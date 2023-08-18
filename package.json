@@ -1,0 +1,87 @@
+{
+  "name": "@goodt-widgets-package/vendor",
+  "version": "1.0.0",
+  "author": "",
+  "description": "",
+  "main": "./resolveEntry.js",
+  "files": [
+    "./resolveEntry.js",
+    "./src",
+    "./babel.config.js",
+    "./postcss.config.js",
+    "./tailwind.config.js",
+    "./vue.config.js",
+    "./vue.config.webpack.js"
+  ],
+  "scripts": {
+    "start": "npm run serve",
+    "create": "npx goodt-scaffold",
+    "serve": "vite --force",
+    "serve:webpack": "vue-cli-service serve",
+    "serve:platform": "npx goodt-sandbox-platform",
+    "sandbox:init": "npx goodt-sandbox-init",
+    "preview": "vite preview",
+    "build": "vue-cli-service build",
+    "prebuild": "npm run report:deps",
+    "update:platform-deps": "npx goodt-update-platform-deps",
+    "report:deps": "npx goodt-create-widgets-deps-report",
+    "rebirth": "npx goodt-reinstall-deps"
+  },
+  "dependencies": {
+    "@goodt/common-deps": "^2.0.0",
+    "goodt-dremio-sdk": "^1.0.30",
+    "goodt-framework-css": "^2.0.11",
+    "goodt-wcore": ">=1.11.0 & <1.100.0",
+    "goodteditor-ui": "^1.0.30",
+    "vue": "^2.6.14"
+  },
+  "devDependencies": {
+    "@goodt/build-deps": "^2.0.10",
+    "@goodt/dev-deps": "^2.0.0",
+    "vue-template-compiler": "^2.6.14"
+  },
+  "sharedDependencies": [
+    "goodt-wcore",
+    "vue"
+  ],
+  "externalDependencies": [],
+  "viteOptimizeExcludeDependencies": [
+    "@goodt-widgets",
+    "goodteditor-ui"
+  ],
+  "vuePlugins": {
+    "resolveFrom": "./node_modules/@goodt/build-deps"
+  },
+  "vendorOptions": {
+    "platformUrl": "https://insight-release-test.goodt.me/editor/",
+    "widgetsDir": "./src"
+  },
+  "gitHooks": {
+    "pre-commit": "lint-staged",
+    "pre-push1": "lint-prepush"
+  },
+  "lint-staged": {
+    "*.vue": [
+      "eslint"
+    ],
+    "*.js": [
+      "eslint"
+    ]
+  },
+  "lint-prepush": {
+    "base": "master",
+    "tasks": {
+      "*.vue": [
+        "prettier --write"
+      ],
+      "*.js": [
+        "prettier --write"
+      ]
+    }
+  },
+  "license": "ISC",
+  "engines": {
+    "node": ">=18",
+    "npm": ">=9"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "elements": [
+    {
+      "type": "vendor::ElemHelloWorldDemo",
+      "name": "Привет, мир!",
+      "icon": "mdi-earth"
+    }
+  ],
+  "tools": {
+    "page": [
+      {
+        "name": "Название группы",
+        "elements": [
+          "vendor::ElemHelloWorldDemo"
+        ]
+      }
+    ],
+    "template": [
+      {
+        "name": "Название группы",
+        "elements": [
+          "vendor::ElemHelloWorldDemo"
+        ]
+      }
+    ]
+  }
+}

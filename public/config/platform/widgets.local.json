@@ -1,0 +1,9 @@
+{
+  "widgets": {
+    "packages": {
+      "vendor": {
+        "url": "./widgets.local/vendor"
+      }
+    }
+  }
+}
