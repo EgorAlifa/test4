@@ -14,31 +14,26 @@
     "./vue.config.webpack.js"
   ],
   "scripts": {
-    "start": "npm run serve",
+    "start": "npm run serve:webpack",
     "create": "npx goodt-scaffold",
     "serve": "vite --force",
     "serve:webpack": "vue-cli-service serve",
-    "serve:platform": "npx goodt-sandbox-platform",
-    "sandbox:init": "npx goodt-sandbox-init",
     "preview": "vite preview",
     "build": "vue-cli-service build",
     "prebuild": "npm run report:deps",
     "update:platform-deps": "npx goodt-update-platform-deps",
     "report:deps": "npx goodt-create-widgets-deps-report",
-    "rebirth": "npx goodt-reinstall-deps"
-  },
-  "dependencies": {
-    "@goodt/common-deps": "^2.0.0",
-    "goodt-dremio-sdk": "^1.0.30",
-    "goodt-framework-css": "^2.0.11",
-    "goodt-wcore": ">=1.11.0 & <1.100.0",
-    "goodteditor-ui": "^1.0.30",
-    "vue": "^2.6.14"
+    "rebirth": "node ./scripts/rebirth.js"
   },
   "devDependencies": {
-    "@goodt/build-deps": "^2.0.10",
-    "@goodt/dev-deps": "^2.0.0",
-    "vue-template-compiler": "^2.6.14"
+    "@goodt/build-deps": "^2.0.0",
+    "@goodt/common-deps": "^2.0.0",
+    "@goodt/dev-deps": "^2.0.0"
+  },
+  "peerDependencies": {
+    "@goodt/common-deps": "*",
+    "goodt-wcore": "1.14.x",
+    "vue": "^2.7.14"
   },
   "sharedDependencies": [
     "goodt-wcore",
