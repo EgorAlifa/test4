@@ -1,6 +1,8 @@
+const { OUTPUT_DIR } = require('./.config/consts');
 const { configureWebpack, chainWebpack } = require('./vue.config.webpack');
 
 module.exports = {
+    outputDir: OUTPUT_DIR,
     // Webpack Module Federation
     publicPath: 'auto',
     devServer: {
@@ -14,5 +16,5 @@ module.exports = {
     chainWebpack,
     lintOnSave: undefined,
     // eslint-disable-next-line global-require
-    transpileDependencies: require('@goodt/webpack/remote/config/transpileDependencies') //?
+    transpileDependencies: require('@goodt/webpack/remote/config/transpileDependencies')
 };
