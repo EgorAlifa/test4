@@ -140,14 +140,20 @@ export default {
     methods: {
         async loadRoutes() {
             // Попытка загрузить app.json из сети
+            // Используем prop appJsonUrl в первую очередь, затем fallback пути
             const possiblePaths = [
-                '/app.json',
-                '/config/app.json',
+                this.props.appJsonUrl || 'app.json',
+                'app.json',
                 './app.json',
-                '../app.json'
+                '/app.json',
+                'config/app.json',
+                '/config/app.json'
             ];
 
-            for (const path of possiblePaths) {
+            // Убираем дубликаты
+            const uniquePaths = [...new Set(possiblePaths)];
+
+            for (const path of uniquePaths) {
                 try {
                     console.log('[ElemRoutesNavigator] Trying to fetch app.json from:', path);
                     const response = await fetch(path);
@@ -158,11 +164,13 @@ export default {
                     }
 
                     const appConfig = await response.json();
+                    console.log('[ElemRoutesNavigator] Received config from', path, ':', appConfig);
 
                     if (appConfig && appConfig.routes && Array.isArray(appConfig.routes)) {
                         this.routes = appConfig.routes.filter(route => route.enabled !== false);
                         this.isPlayerMode = true;
-                        console.log('[ElemRoutesNavigator] Successfully loaded routes from', path, ':', this.routes);
+                        console.log('[ElemRoutesNavigator] Successfully loaded', this.routes.length, 'routes from', path);
+                        console.log('[ElemRoutesNavigator] Routes:', this.routes);
                         return;
                     }
 

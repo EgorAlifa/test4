@@ -15,6 +15,11 @@
                 </template>
             </ui-has-panel>
 
+            <!-- Источник данных -->
+            <div class="form-label form-label-small mt-3">Источник данных</div>
+
+            <ui-input prop="appJsonUrl" placeholder="app.json">Путь к app.json</ui-input>
+
             <!-- Основные настройки -->
             <div class="form-label form-label-small mt-3">Основные настройки</div>
 
