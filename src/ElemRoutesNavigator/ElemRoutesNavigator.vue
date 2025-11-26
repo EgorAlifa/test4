@@ -56,7 +56,9 @@ export default {
         routes: [],
         currentSlug: null,
         hoveredIndex: null,
-        isPlayerMode: false
+        isPlayerMode: false,
+        loadAttempts: 0,
+        maxAttempts: 5
     }),
 
     computed: {
@@ -138,7 +140,15 @@ export default {
     },
 
     methods: {
-        async loadRoutes() {
+        async loadRoutes(retryDelay = 0) {
+            this.loadAttempts += 1;
+
+            // Если это retry, ждем перед попыткой
+            if (retryDelay > 0) {
+                console.log(`[ElemRoutesNavigator] Retry attempt ${this.loadAttempts}/${this.maxAttempts} after ${retryDelay}ms delay`);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
+
             // Попытка загрузить app.json из сети
             // Используем prop appJsonUrl в первую очередь, затем fallback пути
             const possiblePaths = [
@@ -169,9 +179,9 @@ export default {
                     if (appConfig && appConfig.routes && Array.isArray(appConfig.routes)) {
                         this.routes = appConfig.routes.filter(route => route.enabled !== false);
                         this.isPlayerMode = true;
-                        console.log('[ElemRoutesNavigator] Successfully loaded', this.routes.length, 'routes from', path);
+                        console.log('[ElemRoutesNavigator] ✅ Successfully loaded', this.routes.length, 'routes from', path, `(attempt ${this.loadAttempts})`);
                         console.log('[ElemRoutesNavigator] Routes:', this.routes);
-                        return;
+                        return true;
                     }
 
                     console.warn('[ElemRoutesNavigator] app.json found at', path, 'but no routes array');
@@ -180,16 +190,37 @@ export default {
                 }
             }
 
-            // Если не удалось загрузить app.json ни из одного пути
-            console.log('[ElemRoutesNavigator] Could not fetch app.json from network. Running in editor mode with mock data.');
+            // Не удалось загрузить - пробуем retry
+            if (this.loadAttempts < this.maxAttempts) {
+                // Экспоненциальная задержка: 100ms, 300ms, 500ms, 1000ms, 2000ms
+                const delays = [100, 300, 500, 1000, 2000]; // eslint-disable-line no-magic-numbers
+                const nextDelay = delays[this.loadAttempts - 1] || 2000; // eslint-disable-line no-magic-numbers
+                return this.loadRoutes(nextDelay);
+            }
+
+            // Все попытки исчерпаны - переходим в режим редактора
+            console.log(`[ElemRoutesNavigator] ❌ Could not fetch app.json after ${this.loadAttempts} attempts. Running in editor mode with mock data.`);
             this.isPlayerMode = false;
             this.routes = [];
+            return false;
         },
 
         detectCurrentSlug() {
             if (typeof window !== 'undefined') {
                 this.currentSlug = window.location.pathname;
             }
+        },
+
+        /**
+         * Публичный метод для принудительной перезагрузки routes
+         * Можно вызвать из консоли: widgetInstance.reloadRoutes()
+         */
+        async reloadRoutes() {
+            console.log('[ElemRoutesNavigator] Manual reload requested');
+            this.loadAttempts = 0;
+            this.routes = [];
+            this.isPlayerMode = false;
+            await this.loadRoutes();
         },
 
         navigateToRoute(route) {
