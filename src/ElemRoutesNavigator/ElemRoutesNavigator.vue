@@ -143,6 +143,31 @@ export default {
         async loadRoutes(retryDelay = 0) {
             this.loadAttempts += 1;
 
+            // СНАЧАЛА пытаемся найти уже загруженный app.json в глобальных объектах
+            console.log('[ElemRoutesNavigator] Checking global objects for app.json...');
+            const globalSources = [
+                { name: 'window.__APP_CONFIG__', value: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null },
+                { name: 'window.appConfig', value: typeof window !== 'undefined' ? window.appConfig : null },
+                { name: 'window.APP_CONFIG', value: typeof window !== 'undefined' ? window.APP_CONFIG : null },
+                { name: 'window.$appConfig', value: typeof window !== 'undefined' ? window.$appConfig : null },
+                { name: 'window.goodt?.config', value: typeof window !== 'undefined' && window.goodt ? window.goodt.config : null },
+                { name: 'window.goodt?.appConfig', value: typeof window !== 'undefined' && window.goodt ? window.goodt.appConfig : null }
+            ];
+
+            for (const source of globalSources) {
+                if (source.value && source.value.routes && Array.isArray(source.value.routes)) {
+                    console.log('[ElemRoutesNavigator] ✅ Found app.json in', source.name);
+                    console.log('[ElemRoutesNavigator] Config:', source.value);
+                    this.routes = source.value.routes.filter(route => route.enabled !== false);
+                    this.isPlayerMode = true;
+                    console.log('[ElemRoutesNavigator] ✅ Successfully loaded', this.routes.length, 'routes from global object');
+                    console.log('[ElemRoutesNavigator] Routes:', this.routes);
+                    return true;
+                }
+            }
+
+            console.log('[ElemRoutesNavigator] No app.json found in global objects, trying fetch...');
+
             // Если это retry, ждем перед попыткой
             if (retryDelay > 0) {
                 console.log(`[ElemRoutesNavigator] Retry attempt ${this.loadAttempts}/${this.maxAttempts} after ${retryDelay}ms delay`);
