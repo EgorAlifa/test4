@@ -138,34 +138,44 @@ export default {
     },
 
     methods: {
-        loadRoutes() {
-            // Попытка получить routes из app.json через различные источники
-            let appConfig = null;
+        async loadRoutes() {
+            // Попытка загрузить app.json из сети
+            const possiblePaths = [
+                '/app.json',
+                '/config/app.json',
+                './app.json',
+                '../app.json'
+            ];
 
-            // Вариант 1: Глобальный объект window.__APP_CONFIG__
-            if (typeof window !== 'undefined' && window.__APP_CONFIG__) {
-                appConfig = window.__APP_CONFIG__;
+            for (const path of possiblePaths) {
+                try {
+                    console.log('[ElemRoutesNavigator] Trying to fetch app.json from:', path);
+                    const response = await fetch(path);
+
+                    if (!response.ok) {
+                        console.warn('[ElemRoutesNavigator] Failed to fetch from', path, '- status:', response.status);
+                        continue;
+                    }
+
+                    const appConfig = await response.json();
+
+                    if (appConfig && appConfig.routes && Array.isArray(appConfig.routes)) {
+                        this.routes = appConfig.routes.filter(route => route.enabled !== false);
+                        this.isPlayerMode = true;
+                        console.log('[ElemRoutesNavigator] Successfully loaded routes from', path, ':', this.routes);
+                        return;
+                    }
+
+                    console.warn('[ElemRoutesNavigator] app.json found at', path, 'but no routes array');
+                } catch (error) {
+                    console.warn('[ElemRoutesNavigator] Error fetching from', path, ':', error.message);
+                }
             }
 
-            // Вариант 2: Глобальный объект window.appConfig
-            if (!appConfig && typeof window !== 'undefined' && window.appConfig) {
-                appConfig = window.appConfig;
-            }
-
-            // Вариант 3: Попытка найти в window.goodt или других возможных местах
-            if (!appConfig && typeof window !== 'undefined' && window.goodt && window.goodt.config) {
-                appConfig = window.goodt.config;
-            }
-
-            // Если нашли конфиг с routes
-            if (appConfig && appConfig.routes && Array.isArray(appConfig.routes)) {
-                this.routes = appConfig.routes.filter(route => route.enabled !== false);
-                this.isPlayerMode = true;
-                console.log('[ElemRoutesNavigator] Loaded routes from app.json:', this.routes);
-            } else {
-                console.log('[ElemRoutesNavigator] Running in editor mode, using mock data');
-                this.isPlayerMode = false;
-            }
+            // Если не удалось загрузить app.json ни из одного пути
+            console.log('[ElemRoutesNavigator] Could not fetch app.json from network. Running in editor mode with mock data.');
+            this.isPlayerMode = false;
+            this.routes = [];
         },
 
         detectCurrentSlug() {
