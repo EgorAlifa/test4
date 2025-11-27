@@ -5,21 +5,30 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    overflow: visible;
+    position: relative;
 }
 
 .navigator-title {
     margin: 0 0 12px 0;
     padding: 0;
+    flex-shrink: 0;
 }
 
 .routes-nav {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    position: relative;
+    z-index: 1;
 }
 
 .route-button {
     font-family: inherit;
     outline: none;
+    position: relative;
+    z-index: 2;
 }
 
 .route-button:hover {
@@ -127,4 +136,96 @@
 .kebab-menu .route-button {
     width: 100%;
     justify-content: flex-start;
+}
+
+/* Tabs Styles */
+.routes-nav-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0;
+}
+
+.routes-nav-tabs .route-button {
+    border-bottom: 3px solid transparent;
+    border-radius: 6px 6px 0 0;
+    margin-bottom: -2px;
+    transition: all 0.2s ease;
+}
+
+.routes-nav-tabs .route-button-active {
+    border-bottom-color: currentColor;
+}
+
+.routes-nav-tabs .route-button:hover {
+    transform: translateY(-2px);
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Dropdown Styles */
+.routes-nav-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dropdown-toggle:hover {
+    transform: none;
+    filter: brightness(0.95);
+}
+
+.dropdown-arrow {
+    font-size: 0.8em;
+    transition: transform 0.2s ease;
+}
+
+.dropdown-toggle-open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+    animation: dropdownSlideIn 0.2s ease-out;
+}
+
+@keyframes dropdownSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-menu .route-button {
+    width: 100%;
+    justify-content: flex-start;
+    border-radius: 0;
+}
+
+.dropdown-menu .route-button:first-child {
+    border-radius: 6px 6px 0 0;
+}
+
+.dropdown-menu .route-button:last-child {
+    border-radius: 0 0 6px 6px;
 }
