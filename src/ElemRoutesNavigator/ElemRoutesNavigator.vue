@@ -6,28 +6,13 @@
                 {{ props.title }}
             </h2>
 
-            <!-- Tabs -->
-            <nav v-if="props.orientation === 'tabs'" class="routes-nav-tabs" :style="tabsStyle">
-                <button
-                    v-for="(route, index) in displayRoutes"
-                    :key="route.id || index"
-                    class="route-button"
-                    :class="getButtonClass(route)"
-                    :style="getButtonStyle(route, index)"
-                    @click="navigateToRoute(route)"
-                    @mouseenter="hoveredIndex = index"
-                    @mouseleave="hoveredIndex = null"
-                    type="button"
-                >
-                    <span v-if="props.showIcons && route.icon" class="route-icon">
-                        {{ route.icon }}
-                    </span>
-                    <span class="route-title">{{ route.title || route.name }}</span>
-                </button>
-            </nav>
+            <!-- Информационная подсказка для редактора -->
+            <div v-if="!isPlayerMode && routes.length === 0" class="editor-hint">
+                💡 Тестовый режим: настройте внешний вид. В плеере появятся реальные маршруты.
+            </div>
 
             <!-- Dropdown -->
-            <nav v-else-if="props.orientation === 'dropdown'" class="routes-nav-dropdown">
+            <nav v-if="props.orientation === 'dropdown'" class="routes-nav-dropdown">
                 <button
                     class="dropdown-toggle"
                     :class="{ 'dropdown-toggle-open': isMenuOpen }"
@@ -50,11 +35,8 @@
                         @mouseleave="hoveredIndex = null"
                         type="button"
                     >
-                        <span v-if="props.showIcons && route.icon" class="route-icon">
-                            {{ route.icon }}
-                        </span>
                         <span class="route-title">{{ route.title || route.name }}</span>
-                        <span v-if="route.slug" class="route-slug">{{ route.slug }}</span>
+                        <span v-if="props.showSlug && route.slug" class="route-slug">{{ route.slug }}</span>
                     </button>
                 </div>
             </nav>
@@ -84,11 +66,8 @@
                         @mouseleave="hoveredIndex = null"
                         type="button"
                     >
-                        <span v-if="props.showIcons && route.icon" class="route-icon">
-                            {{ route.icon }}
-                        </span>
                         <span class="route-title">{{ route.title || route.name }}</span>
-                        <span v-if="route.slug" class="route-slug">{{ route.slug }}</span>
+                        <span v-if="props.showSlug && route.slug" class="route-slug">{{ route.slug }}</span>
                     </button>
                 </div>
             </nav>
@@ -106,19 +85,17 @@
                     @mouseleave="hoveredIndex = null"
                     type="button"
                 >
-                    <span v-if="props.showIcons && route.icon" class="route-icon">
-                        {{ route.icon }}
-                    </span>
                     <span class="route-title">{{ route.title || route.name }}</span>
-                    <span v-if="route.slug" class="route-slug">{{ route.slug }}</span>
+                    <span v-if="props.showSlug && route.slug" class="route-slug">{{ route.slug }}</span>
                 </button>
             </nav>
 
             <!-- Empty State -->
             <div v-if="displayRoutes.length === 0" class="empty-state">
-                <p>Маршруты не найдены</p>
+                <p>⚠️ Маршруты не найдены</p>
                 <p class="empty-state-hint">
-                    В режиме плеера виджет автоматически загрузит маршруты из app.json
+                    Сейчас показываются тестовые данные для настройки дизайна.<br>
+                    В режиме плеера виджет автоматически загрузит реальные маршруты из app.json
                 </p>
             </div>
         </div>
@@ -158,31 +135,36 @@ export default {
                 return this.routes;
             }
 
-            // Mock данные для редактора
+            // Тестовые данные для настройки внешнего вида в редакторе
+            // В режиме плеера виджет загрузит реальные маршруты из app.json
             return [
                 {
-                    id: 'mock-1',
-                    title: 'Главная',
-                    name: 'index',
+                    id: 'mock-demo-1',
+                    title: 'Главная страница',
+                    name: 'home',
                     slug: '/',
-                    enabled: true,
-                    icon: '🏠'
+                    enabled: true
                 },
                 {
-                    id: 'mock-2',
-                    title: 'Страница 1',
-                    name: 'page1',
-                    slug: '/page1',
-                    enabled: true,
-                    icon: '📄'
+                    id: 'mock-demo-2',
+                    title: 'О компании',
+                    name: 'about',
+                    slug: '/about',
+                    enabled: true
                 },
                 {
-                    id: 'mock-3',
-                    title: 'Страница 2',
-                    name: 'page2',
-                    slug: '/page2',
-                    enabled: true,
-                    icon: '📋'
+                    id: 'mock-demo-3',
+                    title: 'Услуги',
+                    name: 'services',
+                    slug: '/services',
+                    enabled: true
+                },
+                {
+                    id: 'mock-demo-4',
+                    title: 'Контакты',
+                    name: 'contacts',
+                    slug: '/contacts',
+                    enabled: true
                 }
             ];
         },
@@ -256,16 +238,6 @@ export default {
 
         activeRoute() {
             return this.displayRoutes.find(route => route.slug === this.currentSlug);
-        },
-
-        tabsStyle() {
-            const defaultGap = 8; // eslint-disable-line no-magic-numbers
-            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'px' };
-            const gap = `${gapObj.size}${gapObj.unit}`;
-
-            return {
-                gap
-            };
         },
 
         dropdownToggleStyle() {

@@ -3,7 +3,6 @@
 export const ORIENTATION_OPTIONS = [
     { value: 'vertical', label: 'Вертикальная' },
     { value: 'horizontal', label: 'Горизонтальная' },
-    { value: 'tabs', label: 'Табы (вкладки)' },
     { value: 'dropdown', label: 'Выпадающий список' },
     { value: 'kebab', label: 'Кебаб меню (гамбургер)' }
 ];
