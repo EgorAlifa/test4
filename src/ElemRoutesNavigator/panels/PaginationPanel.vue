@@ -57,7 +57,7 @@
                 :units="FontSizeFirstPxUnits"
                 v-model="buttonGapString"
                 @change="saveButtonGap">
-                Расстояние между кнопками
+                Расстояние м/у кнопками
             </ui-input-units>
 
             <ui-input prop="borderRadius" placeholder="0.375rem">Скругление углов</ui-input>

@@ -203,7 +203,7 @@ export default {
 
             // Добавляем пагинацию со скроллом для вертикальной ориентации (если включена)
             if (this.props.orientation === 'vertical' && this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
-                const itemHeight = 3; // Примерная высота одной кнопки с отступами в rem
+                const itemHeight = 2.7; // Примерная высота одной кнопки с отступами в rem
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
                 baseStyle.overflowY = 'auto';
@@ -253,7 +253,7 @@ export default {
 
             // Добавляем пагинацию со скроллом (если включена)
             if (this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
-                const itemHeight = 3; // Примерная высота одной кнопки с отступами в rem
+                const itemHeight = 2.7; // Примерная высота одной кнопки с отступами в rem
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
                 baseStyle.overflowY = 'auto';
@@ -314,7 +314,7 @@ export default {
 
             // Добавляем пагинацию со скроллом (если включена)
             if (this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
-                const itemHeight = 3; // Примерная высота одной кнопки с отступами в rem
+                const itemHeight = 2.7; // Примерная высота одной кнопки с отступами в rem
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
                 baseStyle.overflowY = 'auto';
@@ -389,7 +389,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v17-BorderControls | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v18-ImprovedDefaults | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
             const globalSources = [

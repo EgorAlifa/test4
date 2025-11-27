@@ -18,7 +18,7 @@ export const descriptor = () => ({
         },
         dropdownText: {
             type: String,
-            default: '',
+            default: 'Выберите страницу для перехода',
             label: 'Текст выпадающего списка',
             hint: 'Отображается в выпадающем списке'
         },
@@ -53,7 +53,7 @@ export const descriptor = () => ({
                 { label: 'По клику', value: 'click' },
                 { label: 'При наведении', value: 'hover' }
             ],
-            hint: 'Для dropdown и kebab меню'
+            hint: 'Для выпадающего списка и кебаб меню'
         },
         enablePagination: {
             type: Boolean,
@@ -121,25 +121,25 @@ export const descriptor = () => ({
             type: Boolean,
             default: true,
             label: 'Показывать границу списка',
-            hint: 'Граница выпадающего списка (dropdown/kebab)'
+            hint: 'Граница выпадающего списка и кебаб меню'
         },
         menuBorderColor: {
             type: String,
             default: '#1f2937',
             label: 'Цвет границы списка',
-            hint: 'Цвет границы выпадающего списка'
+            hint: 'Цвет границы выпадающего списка и кебаб меню'
         },
         showToggleBorder: {
             type: Boolean,
             default: true,
             label: 'Показывать границу кнопки',
-            hint: 'Граница кнопки меню (dropdown/kebab)'
+            hint: 'Граница кнопки выпадающего списка и кебаб меню'
         },
         toggleBorderColor: {
             type: String,
             default: '#1f2937',
             label: 'Цвет границы кнопки',
-            hint: 'Цвет границы кнопки меню'
+            hint: 'Цвет границы кнопки выпадающего списка и кебаб меню'
         },
         appJsonUrl: {
             type: String,
