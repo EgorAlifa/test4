@@ -62,3 +62,69 @@
     font-size: 0.875em;
     opacity: 0.8;
 }
+
+/* Kebab Menu (Hamburger) Styles */
+.routes-nav-kebab {
+    position: relative;
+}
+
+.kebab-toggle {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: transparent;
+    border: none;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.kebab-toggle:hover {
+    transform: scale(1.05);
+}
+
+.kebab-line {
+    display: block;
+    width: 24px;
+    height: 3px;
+    background-color: currentColor;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.kebab-toggle-open .kebab-line:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+
+.kebab-toggle-open .kebab-line:nth-child(2) {
+    opacity: 0;
+}
+
+.kebab-toggle-open .kebab-line:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -7px);
+}
+
+.kebab-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 200px;
+    animation: kebabSlideIn 0.2s ease-out;
+}
+
+@keyframes kebabSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.kebab-menu .route-button {
+    width: 100%;
+    justify-content: flex-start;
+}
