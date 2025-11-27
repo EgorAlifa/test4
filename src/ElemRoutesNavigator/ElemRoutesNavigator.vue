@@ -302,10 +302,20 @@ export default {
             }
 
             // Пробуем извлечь из URL
-            const urlMatch = window.location.pathname.match(/\/application\/(\d+)/);
-            if (urlMatch && urlMatch[1]) {
-                console.log('[ElemRoutesNavigator] Extracted application ID from URL:', urlMatch[1]);
-                return urlMatch[1];
+            // Поддерживаем разные паттерны URL:
+            // - /apps/edit/3096 (редактор)
+            // - /application/3096 (плеер)
+            const urlPatterns = [
+                /\/apps\/edit\/(\d+)/,
+                /\/application\/(\d+)/
+            ];
+
+            for (const pattern of urlPatterns) {
+                const urlMatch = window.location.pathname.match(pattern);
+                if (urlMatch && urlMatch[1]) {
+                    console.log('[ElemRoutesNavigator] Extracted application ID from URL:', urlMatch[1]);
+                    return urlMatch[1];
+                }
             }
 
             console.warn('[ElemRoutesNavigator] Could not find application ID');
