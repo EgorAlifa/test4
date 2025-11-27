@@ -369,7 +369,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v13-HoverTimerAndPanelReorg | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v14-SeparatePaginationPanel | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
             console.log('[ElemRoutesNavigator] Checking global objects for app.json...');
