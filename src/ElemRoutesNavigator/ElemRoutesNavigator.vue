@@ -7,8 +7,12 @@
             </h2>
 
             <!-- Информационная подсказка для редактора -->
-            <div v-if="!isPlayerMode && routes.length === 0 && props.showHint" class="editor-hint">
-                💡 Тестовый режим
+            <div
+                v-if="!isPlayerMode && props.showHint"
+                class="editor-hint"
+                title="Виджет автоматически отображает список страниц из редактора. В плеере загрузятся маршруты из app.json"
+            >
+                💡 Режим редактора
             </div>
 
             <!-- Dropdown -->
@@ -92,10 +96,10 @@
 
             <!-- Empty State -->
             <div v-if="displayRoutes.length === 0" class="empty-state">
-                <p>⚠️ Маршруты не найдены</p>
+                <p>⚠️ Страницы не найдены</p>
                 <p class="empty-state-hint">
-                    Сейчас показываются тестовые данные для настройки дизайна.<br>
-                    В режиме плеера виджет автоматически загрузит реальные маршруты из app.json
+                    В редакторе создайте страницы - они автоматически появятся в навигации.<br>
+                    В плеере виджет загрузит маршруты из app.json
                 </p>
             </div>
         </div>
@@ -124,49 +128,15 @@ export default {
         loadAttempts: 0,
         maxAttempts: 5,
         isReady: false,
-        isMenuOpen: false
+        isMenuOpen: false,
+        mutationObserver: null
     }),
 
     computed: {
         displayRoutes() {
-            // В режиме плеера показываем routes из app.json
-            // В редакторе показываем mock данные
-            if (this.routes.length > 0) {
-                return this.routes;
-            }
-
-            // Тестовые данные для настройки внешнего вида в редакторе
-            // В режиме плеера виджет загрузит реальные маршруты из app.json
-            return [
-                {
-                    id: 'mock-demo-1',
-                    title: 'Главная страница',
-                    name: 'home',
-                    slug: '/',
-                    enabled: true
-                },
-                {
-                    id: 'mock-demo-2',
-                    title: 'О компании',
-                    name: 'about',
-                    slug: '/about',
-                    enabled: true
-                },
-                {
-                    id: 'mock-demo-3',
-                    title: 'Услуги',
-                    name: 'services',
-                    slug: '/services',
-                    enabled: true
-                },
-                {
-                    id: 'mock-demo-4',
-                    title: 'Контакты',
-                    name: 'contacts',
-                    slug: '/contacts',
-                    enabled: true
-                }
-            ];
+            // В плеере показываем routes из app.json
+            // В редакторе показываем routes распарсенные из HTML
+            return this.routes;
         },
 
         containerStyle() {
@@ -179,21 +149,21 @@ export default {
         },
 
         titleStyle() {
-            const defaultFontSize = 18; // eslint-disable-line no-magic-numbers
-            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'px' };
+            const defaultFontSize = 1.125; // 1.125rem = 18px
+            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'rem' };
             const fontSize = `${fontSizeObj.size * 1.2}${fontSizeObj.unit}`;
 
             return {
                 fontSize,
                 fontWeight: '600',
-                marginBottom: '12px',
+                marginBottom: '0.75rem',
                 color: this.props.textColor || '#1f2937'
             };
         },
 
         navStyle() {
-            const defaultGap = 8; // eslint-disable-line no-magic-numbers
-            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'px' };
+            const defaultGap = 0.5; // 0.5rem = 8px
+            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'rem' };
             const gap = `${gapObj.size}${gapObj.unit}`;
 
             return {
@@ -205,13 +175,13 @@ export default {
         },
 
         kebabToggleStyle() {
-            const defaultPadding = 12; // eslint-disable-line no-magic-numbers
-            const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'px' };
+            const defaultPadding = 0.75; // 0.75rem = 12px
+            const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'rem' };
             const padding = `${paddingObj.size}${paddingObj.unit}`;
 
             return {
                 padding,
-                borderRadius: this.props.borderRadius || '6px',
+                borderRadius: this.props.borderRadius || '0.375rem',
                 border: `1px solid ${this.props.textColor || '#1f2937'}`,
                 backgroundColor: this.props.backgroundColor || '#ffffff',
                 cursor: 'pointer'
@@ -219,8 +189,8 @@ export default {
         },
 
         kebabMenuStyle() {
-            const defaultGap = 8; // eslint-disable-line no-magic-numbers
-            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'px' };
+            const defaultGap = 0.5; // 0.5rem = 8px
+            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'rem' };
             const gap = `${gapObj.size}${gapObj.unit}`;
 
             return {
@@ -241,18 +211,18 @@ export default {
         },
 
         dropdownToggleStyle() {
-            const defaultPadding = 12; // eslint-disable-line no-magic-numbers
-            const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'px' };
+            const defaultPadding = 0.75; // 0.75rem = 12px
+            const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'rem' };
             const padding = `${paddingObj.size}${paddingObj.unit}`;
 
-            const defaultFontSize = 14; // eslint-disable-line no-magic-numbers
-            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'px' };
+            const defaultFontSize = 0.875; // 0.875rem = 14px
+            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'rem' };
             const fontSize = `${fontSizeObj.size}${fontSizeObj.unit}`;
 
             return {
                 padding,
                 fontSize,
-                borderRadius: this.props.borderRadius || '6px',
+                borderRadius: this.props.borderRadius || '0.375rem',
                 border: `1px solid ${this.props.textColor || '#1f2937'}`,
                 backgroundColor: this.props.backgroundColor || '#ffffff',
                 color: this.props.textColor || '#1f2937',
@@ -261,8 +231,8 @@ export default {
         },
 
         dropdownMenuStyle() {
-            const defaultGap = 8; // eslint-disable-line no-magic-numbers
-            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'px' };
+            const defaultGap = 0.5; // 0.5rem = 8px
+            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'rem' };
             const gap = `${gapObj.size}${gapObj.unit}`;
 
             return {
@@ -283,12 +253,94 @@ export default {
         await this.loadRoutes();
         this.detectCurrentSlug();
 
+        // В редакторе запускаем наблюдение за изменениями списка страниц
+        if (!this.isPlayerMode) {
+            this.startEditorPagesObserver();
+        }
+
         // Небольшая задержка перед показом чтобы не мелькали моки
         await new Promise(resolve => setTimeout(resolve, 100)); // eslint-disable-line no-magic-numbers
         this.isReady = true;
     },
 
+    beforeDestroy() {
+        // Отключаем observer при удалении виджета
+        if (this.mutationObserver) {
+            this.mutationObserver.disconnect();
+        }
+    },
+
     methods: {
+        /**
+         * Парсит список страниц из HTML редактора
+         */
+        parseEditorPages() {
+            if (typeof window === 'undefined') return [];
+
+            const pageItems = document.querySelectorAll('.page-item');
+            const routes = [];
+
+            pageItems.forEach((item, index) => {
+                try {
+                    // Извлекаем название страницы
+                    const titleElement = item.querySelector('.text-truncate > div[title]');
+                    const title = titleElement ? titleElement.getAttribute('title') : null;
+
+                    // Извлекаем slug
+                    const slugElement = item.querySelector('.page-item__slug');
+                    const slugText = slugElement ? slugElement.getAttribute('title') : null;
+
+                    if (title && slugText) {
+                        routes.push({
+                            id: `editor-page-${index}`,
+                            title,
+                            name: title.toLowerCase().replace(/\s+/g, '-'),
+                            slug: slugText,
+                            enabled: true
+                        });
+                    }
+                } catch (error) {
+                    console.warn('[ElemRoutesNavigator] Error parsing page item:', error);
+                }
+            });
+
+            console.log('[ElemRoutesNavigator] 📄 Parsed', routes.length, 'pages from editor HTML');
+            return routes;
+        },
+
+        /**
+         * Запускает наблюдение за изменениями списка страниц в редакторе
+         */
+        startEditorPagesObserver() {
+            if (typeof window === 'undefined' || typeof MutationObserver === 'undefined') return;
+
+            // Ищем контейнер со списком страниц
+            const pagesContainer = document.querySelector('.page-item')?.parentElement;
+            if (!pagesContainer) {
+                console.warn('[ElemRoutesNavigator] Pages container not found, observer not started');
+                return;
+            }
+
+            // Создаем observer
+            this.mutationObserver = new MutationObserver(() => {
+                console.log('[ElemRoutesNavigator] 🔄 Pages list changed, updating routes...');
+                const newRoutes = this.parseEditorPages();
+                if (newRoutes.length > 0) {
+                    this.routes = newRoutes;
+                }
+            });
+
+            // Запускаем наблюдение
+            this.mutationObserver.observe(pagesContainer, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['title']
+            });
+
+            console.log('[ElemRoutesNavigator] ✅ Started observing pages list for changes');
+        },
+
         async loadRoutes(retryDelay = 0) {
             this.loadAttempts += 1;
 
@@ -375,9 +427,19 @@ export default {
                 return this.loadRoutes(nextDelay);
             }
 
-            // Все попытки исчерпаны - переходим в режим редактора
-            console.log(`[ElemRoutesNavigator] ❌ Could not fetch app.json after ${this.loadAttempts} attempts. Running in editor mode with mock data.`);
+            // Все попытки исчерпаны - пробуем парсить страницы из редактора
+            console.log(`[ElemRoutesNavigator] ❌ Could not fetch app.json after ${this.loadAttempts} attempts.`);
             this.isPlayerMode = false;
+
+            // Пытаемся парсить страницы из HTML редактора
+            const editorRoutes = this.parseEditorPages();
+            if (editorRoutes.length > 0) {
+                console.log('[ElemRoutesNavigator] ✅ Using pages from editor HTML');
+                this.routes = editorRoutes;
+                return true;
+            }
+
+            console.log('[ElemRoutesNavigator] ⚠️ No pages found in editor, routes will be empty');
             this.routes = [];
             return false;
         },
@@ -451,19 +513,19 @@ export default {
         },
 
         getButtonStyle(route, index) {
-            const defaultPadding = 12; // eslint-disable-line no-magic-numbers
-            const defaultFontSize = 14; // eslint-disable-line no-magic-numbers
+            const defaultPadding = 0.75; // 0.75rem = 12px
+            const defaultFontSize = 0.875; // 0.875rem = 14px
 
-            const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'px' };
+            const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'rem' };
             const padding = `${paddingObj.size}${paddingObj.unit}`;
 
-            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'px' };
+            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'rem' };
             const fontSize = `${fontSizeObj.size}${fontSizeObj.unit}`;
 
             const baseStyle = {
                 padding,
                 fontSize,
-                borderRadius: this.props.borderRadius || '6px',
+                borderRadius: this.props.borderRadius || '0.375rem',
                 border: 'none',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
