@@ -2,7 +2,8 @@
 
 export const ORIENTATION_OPTIONS = [
     { value: 'vertical', label: 'Вертикальная' },
-    { value: 'horizontal', label: 'Горизонтальная' }
+    { value: 'horizontal', label: 'Горизонтальная' },
+    { value: 'kebab', label: 'Кебаб меню (гамбургер)' }
 ];
 
 export const BUTTON_STYLE_OPTIONS = [
