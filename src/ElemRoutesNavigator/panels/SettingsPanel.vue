@@ -15,9 +15,6 @@
                 </template>
             </ui-has-panel>
 
-            <!-- Основные настройки -->
-            <div class="form-label form-label-small mt-3">Основные настройки</div>
-
             <ui-checkbox prop="showSlug">Показывать пути страниц</ui-checkbox>
 
             <ui-select prop="orientation" :options="options.orientations" label="Ориентация"></ui-select>

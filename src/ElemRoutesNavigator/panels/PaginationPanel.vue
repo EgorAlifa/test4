@@ -6,10 +6,8 @@
                 Включить пагинацию
             </ui-switch>
 
-            <!-- Настройки пагинации (только для dropdown/kebab) -->
-            <template v-if="props.enablePagination && (props.orientation === 'dropdown' || props.orientation === 'kebab')">
-                <div class="form-label form-label-small mt-3">Настройки пагинации</div>
-
+            <!-- Настройки пагинации (для vertical/dropdown/kebab) -->
+            <template v-if="props.enablePagination && (props.orientation === 'vertical' || props.orientation === 'dropdown' || props.orientation === 'kebab')">
                 <ui-input
                     prop="itemsPerPage"
                     type="number"
@@ -17,7 +15,10 @@
                     placeholder="6">
                     Элементов на странице
                 </ui-input>
+            </template>
 
+            <!-- Режим открытия меню (только для dropdown/kebab) -->
+            <template v-if="props.enablePagination && (props.orientation === 'dropdown' || props.orientation === 'kebab')">
                 <ui-select
                     prop="openMode"
                     :options="options.openModes"
@@ -25,21 +26,12 @@
                 </ui-select>
             </template>
 
-            <!-- Стиль кнопок -->
-            <div class="form-label form-label-small mt-3">Стиль кнопок</div>
-
             <ui-select prop="buttonStyle" :options="options.buttonStyles" label="Стиль кнопок"></ui-select>
-
-            <!-- Цвета -->
-            <div class="form-label form-label-small mt-3">Цвета</div>
 
             <ui-input-cp prop="activeColor">Цвет активной кнопки</ui-input-cp>
             <ui-input-cp prop="hoverColor">Цвет при наведении</ui-input-cp>
             <ui-input-cp prop="backgroundColor">Фон контейнера</ui-input-cp>
             <ui-input-cp prop="textColor">Цвет текста</ui-input-cp>
-
-            <!-- Размеры -->
-            <div class="form-label form-label-small mt-3">Размеры</div>
 
             <ui-input-units
                 col-size="6-12"
