@@ -58,22 +58,22 @@ export const descriptor = () => ({
         },
         buttonPadding: {
             type: Object,
-            default: () => ({ size: 12, unit: 'px' }), // eslint-disable-line no-magic-numbers
+            default: () => ({ size: 0.75, unit: 'rem' }),
             label: 'Отступ кнопок'
         },
         buttonGap: {
             type: Object,
-            default: () => ({ size: 8, unit: 'px' }), // eslint-disable-line no-magic-numbers
+            default: () => ({ size: 0.5, unit: 'rem' }),
             label: 'Расстояние между кнопками'
         },
         borderRadius: {
             type: String,
-            default: '6px',
+            default: '0.375rem',
             label: 'Скругление углов'
         },
         fontSize: {
             type: Object,
-            default: () => ({ size: 14, unit: 'px' }), // eslint-disable-line no-magic-numbers
+            default: () => ({ size: 0.875, unit: 'rem' }),
             label: 'Размер шрифта'
         },
         appJsonUrl: {

@@ -103,8 +103,8 @@ export default {
     computed: {
         fontSizeString: {
             get() {
-                const defaultSize = 14; // eslint-disable-line no-magic-numbers
-                const fontSize = this.props.fontSize || { size: defaultSize, unit: 'px' };
+                const defaultSize = 0.875; // 0.875rem = 14px
+                const fontSize = this.props.fontSize || { size: defaultSize, unit: 'rem' };
                 return `${fontSize.size}${fontSize.unit}`;
             },
             set(val) {
@@ -121,8 +121,8 @@ export default {
 
         buttonPaddingString: {
             get() {
-                const defaultSize = 12; // eslint-disable-line no-magic-numbers
-                const padding = this.props.buttonPadding || { size: defaultSize, unit: 'px' };
+                const defaultSize = 0.75; // 0.75rem = 12px
+                const padding = this.props.buttonPadding || { size: defaultSize, unit: 'rem' };
                 return `${padding.size}${padding.unit}`;
             },
             set(val) {
@@ -139,8 +139,8 @@ export default {
 
         buttonGapString: {
             get() {
-                const defaultSize = 8; // eslint-disable-line no-magic-numbers
-                const gap = this.props.buttonGap || { size: defaultSize, unit: 'px' };
+                const defaultSize = 0.5; // 0.5rem = 8px
+                const gap = this.props.buttonGap || { size: defaultSize, unit: 'rem' };
                 return `${gap.size}${gap.unit}`;
             },
             set(val) {

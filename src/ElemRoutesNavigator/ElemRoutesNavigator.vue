@@ -183,21 +183,21 @@ export default {
         },
 
         titleStyle() {
-            const defaultFontSize = 18; // eslint-disable-line no-magic-numbers
-            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'px' };
+            const defaultFontSize = 1.125; // 1.125rem = 18px
+            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'rem' };
             const fontSize = `${fontSizeObj.size * 1.2}${fontSizeObj.unit}`;
 
             return {
                 fontSize,
                 fontWeight: '600',
-                marginBottom: '12px',
+                marginBottom: '0.75rem',
                 color: this.props.textColor || '#1f2937'
             };
         },
 
         navStyle() {
-            const defaultGap = 8; // eslint-disable-line no-magic-numbers
-            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'px' };
+            const defaultGap = 0.5; // 0.5rem = 8px
+            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'rem' };
             const gap = `${gapObj.size}${gapObj.unit}`;
 
             return {
@@ -209,13 +209,13 @@ export default {
         },
 
         kebabToggleStyle() {
-            const defaultPadding = 12; // eslint-disable-line no-magic-numbers
-            const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'px' };
+            const defaultPadding = 0.75; // 0.75rem = 12px
+            const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'rem' };
             const padding = `${paddingObj.size}${paddingObj.unit}`;
 
             return {
                 padding,
-                borderRadius: this.props.borderRadius || '6px',
+                borderRadius: this.props.borderRadius || '0.375rem',
                 border: `1px solid ${this.props.textColor || '#1f2937'}`,
                 backgroundColor: this.props.backgroundColor || '#ffffff',
                 cursor: 'pointer'
@@ -223,8 +223,8 @@ export default {
         },
 
         kebabMenuStyle() {
-            const defaultGap = 8; // eslint-disable-line no-magic-numbers
-            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'px' };
+            const defaultGap = 0.5; // 0.5rem = 8px
+            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'rem' };
             const gap = `${gapObj.size}${gapObj.unit}`;
 
             return {
@@ -245,18 +245,18 @@ export default {
         },
 
         dropdownToggleStyle() {
-            const defaultPadding = 12; // eslint-disable-line no-magic-numbers
-            const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'px' };
+            const defaultPadding = 0.75; // 0.75rem = 12px
+            const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'rem' };
             const padding = `${paddingObj.size}${paddingObj.unit}`;
 
-            const defaultFontSize = 14; // eslint-disable-line no-magic-numbers
-            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'px' };
+            const defaultFontSize = 0.875; // 0.875rem = 14px
+            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'rem' };
             const fontSize = `${fontSizeObj.size}${fontSizeObj.unit}`;
 
             return {
                 padding,
                 fontSize,
-                borderRadius: this.props.borderRadius || '6px',
+                borderRadius: this.props.borderRadius || '0.375rem',
                 border: `1px solid ${this.props.textColor || '#1f2937'}`,
                 backgroundColor: this.props.backgroundColor || '#ffffff',
                 color: this.props.textColor || '#1f2937',
@@ -265,8 +265,8 @@ export default {
         },
 
         dropdownMenuStyle() {
-            const defaultGap = 8; // eslint-disable-line no-magic-numbers
-            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'px' };
+            const defaultGap = 0.5; // 0.5rem = 8px
+            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'rem' };
             const gap = `${gapObj.size}${gapObj.unit}`;
 
             return {
@@ -455,19 +455,19 @@ export default {
         },
 
         getButtonStyle(route, index) {
-            const defaultPadding = 12; // eslint-disable-line no-magic-numbers
-            const defaultFontSize = 14; // eslint-disable-line no-magic-numbers
+            const defaultPadding = 0.75; // 0.75rem = 12px
+            const defaultFontSize = 0.875; // 0.875rem = 14px
 
-            const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'px' };
+            const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'rem' };
             const padding = `${paddingObj.size}${paddingObj.unit}`;
 
-            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'px' };
+            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'rem' };
             const fontSize = `${fontSizeObj.size}${fontSizeObj.unit}`;
 
             const baseStyle = {
                 padding,
                 fontSize,
-                borderRadius: this.props.borderRadius || '6px',
+                borderRadius: this.props.borderRadius || '0.375rem',
                 border: 'none',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
