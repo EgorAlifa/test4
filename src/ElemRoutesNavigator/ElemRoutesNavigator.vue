@@ -15,7 +15,7 @@
                     type="button"
                     :style="dropdownToggleStyle"
                 >
-                    <span class="route-title">{{ props.dropdownText || 'Меню навигации' }}</span>
+                    <span class="route-title">{{ props.dropdownText }}</span>
                     <span class="dropdown-arrow">▼</span>
                 </button>
                 <div v-if="isMenuOpen" class="dropdown-menu" :style="dropdownMenuStyle">
