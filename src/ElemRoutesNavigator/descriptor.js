@@ -1,5 +1,4 @@
 /* eslint-disable no-restricted-syntax */
-import panels from './panels';
 
 /**
  * @return {ElemDescriptor}
@@ -16,25 +15,38 @@ export const descriptor = () => ({
             default: true,
             label: 'Показывать заголовок'
         },
-        showSlug: {
-            type: Boolean,
-            default: true,
-            label: 'Показывать пути страниц'
-        },
         dropdownText: {
             type: String,
             default: 'Меню навигации',
-            label: 'Текст выпадающего списка'
+            label: 'Текст выпадающего списка',
+            hint: 'Отображается в dropdown и kebab режимах'
+        },
+        showSlug: {
+            type: Boolean,
+            default: false,
+            label: 'Показывать пути (slug) страниц',
+            hint: 'Показывает путь рядом с названием страницы'
         },
         orientation: {
             type: String,
             default: 'horizontal',
-            label: 'Ориентация'
+            label: 'Ориентация',
+            options: [
+                { label: 'Горизонтально', value: 'horizontal' },
+                { label: 'Вертикально', value: 'vertical' },
+                { label: 'Выпадающий список', value: 'dropdown' },
+                { label: 'Гамбургер меню', value: 'kebab' }
+            ]
         },
         buttonStyle: {
             type: String,
             default: 'filled',
-            label: 'Стиль кнопок'
+            label: 'Стиль кнопок',
+            options: [
+                { label: 'Заполненные', value: 'filled' },
+                { label: 'С обводкой', value: 'outlined' },
+                { label: 'Без обводки', value: 'text' }
+            ]
         },
         activeColor: {
             type: String,
@@ -80,13 +92,18 @@ export const descriptor = () => ({
             type: String,
             default: 'inherit',
             label: 'Семейство шрифта'
+        },
+        appJsonUrl: {
+            type: String,
+            default: '',
+            label: 'URL для app.json (опционально)',
+            hint: 'Если не указан, URL строится автоматически'
         }
     }
 });
 
 export const meta = {
-    descriptor,
-    panels
+    descriptor
 };
 
 export default descriptor;
