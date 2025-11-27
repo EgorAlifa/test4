@@ -6,8 +6,61 @@
                 {{ props.title }}
             </h2>
 
+            <!-- Tabs -->
+            <nav v-if="props.orientation === 'tabs'" class="routes-nav-tabs" :style="tabsStyle">
+                <button
+                    v-for="(route, index) in displayRoutes"
+                    :key="route.id || index"
+                    class="route-button"
+                    :class="getButtonClass(route)"
+                    :style="getButtonStyle(route, index)"
+                    @click="navigateToRoute(route)"
+                    @mouseenter="hoveredIndex = index"
+                    @mouseleave="hoveredIndex = null"
+                    type="button"
+                >
+                    <span v-if="props.showIcons && route.icon" class="route-icon">
+                        {{ route.icon }}
+                    </span>
+                    <span class="route-title">{{ route.title || route.name }}</span>
+                </button>
+            </nav>
+
+            <!-- Dropdown -->
+            <nav v-else-if="props.orientation === 'dropdown'" class="routes-nav-dropdown">
+                <button
+                    class="dropdown-toggle"
+                    :class="{ 'dropdown-toggle-open': isMenuOpen }"
+                    @click="isMenuOpen = !isMenuOpen"
+                    type="button"
+                    :style="dropdownToggleStyle"
+                >
+                    <span class="route-title">{{ activeRoute ? (activeRoute.title || activeRoute.name) : 'Выберите страницу' }}</span>
+                    <span class="dropdown-arrow">▼</span>
+                </button>
+                <div v-if="isMenuOpen" class="dropdown-menu" :style="dropdownMenuStyle">
+                    <button
+                        v-for="(route, index) in displayRoutes"
+                        :key="route.id || index"
+                        class="route-button"
+                        :class="getButtonClass(route)"
+                        :style="getButtonStyle(route, index)"
+                        @click="navigateToRoute(route); isMenuOpen = false"
+                        @mouseenter="hoveredIndex = index"
+                        @mouseleave="hoveredIndex = null"
+                        type="button"
+                    >
+                        <span v-if="props.showIcons && route.icon" class="route-icon">
+                            {{ route.icon }}
+                        </span>
+                        <span class="route-title">{{ route.title || route.name }}</span>
+                        <span v-if="route.slug" class="route-slug">{{ route.slug }}</span>
+                    </button>
+                </div>
+            </nav>
+
             <!-- Kebab Menu (Hamburger) -->
-            <nav v-if="props.orientation === 'kebab'" class="routes-nav-kebab">
+            <nav v-else-if="props.orientation === 'kebab'" class="routes-nav-kebab">
                 <button
                     class="kebab-toggle"
                     :class="{ 'kebab-toggle-open': isMenuOpen }"
@@ -40,7 +93,7 @@
                 </div>
             </nav>
 
-            <!-- Regular Navigation -->
+            <!-- Regular Navigation (Vertical/Horizontal) -->
             <nav v-else class="routes-nav" :style="navStyle">
                 <button
                     v-for="(route, index) in displayRoutes"
@@ -184,6 +237,58 @@ export default {
         },
 
         kebabMenuStyle() {
+            const defaultGap = 8; // eslint-disable-line no-magic-numbers
+            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'px' };
+            const gap = `${gapObj.size}${gapObj.unit}`;
+
+            return {
+                display: 'flex',
+                flexDirection: 'column',
+                gap,
+                marginTop: gap,
+                padding: gap,
+                backgroundColor: this.props.backgroundColor || '#ffffff',
+                border: `1px solid ${this.props.textColor || '#1f2937'}`,
+                borderRadius: this.props.borderRadius || '6px',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+            };
+        },
+
+        activeRoute() {
+            return this.displayRoutes.find(route => route.slug === this.currentSlug);
+        },
+
+        tabsStyle() {
+            const defaultGap = 8; // eslint-disable-line no-magic-numbers
+            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'px' };
+            const gap = `${gapObj.size}${gapObj.unit}`;
+
+            return {
+                gap
+            };
+        },
+
+        dropdownToggleStyle() {
+            const defaultPadding = 12; // eslint-disable-line no-magic-numbers
+            const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'px' };
+            const padding = `${paddingObj.size}${paddingObj.unit}`;
+
+            const defaultFontSize = 14; // eslint-disable-line no-magic-numbers
+            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'px' };
+            const fontSize = `${fontSizeObj.size}${fontSizeObj.unit}`;
+
+            return {
+                padding,
+                fontSize,
+                borderRadius: this.props.borderRadius || '6px',
+                border: `1px solid ${this.props.textColor || '#1f2937'}`,
+                backgroundColor: this.props.backgroundColor || '#ffffff',
+                color: this.props.textColor || '#1f2937',
+                cursor: 'pointer'
+            };
+        },
+
+        dropdownMenuStyle() {
             const defaultGap = 8; // eslint-disable-line no-magic-numbers
             const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'px' };
             const gap = `${gapObj.size}${gapObj.unit}`;
