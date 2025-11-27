@@ -18,8 +18,13 @@ export const descriptor = () => ({
         },
         showSlug: {
             type: Boolean,
-            default: false,
-            label: 'Показывать slug (путь)'
+            default: true,
+            label: 'Показывать относительную ссылку страницы'
+        },
+        showHint: {
+            type: Boolean,
+            default: true,
+            label: 'Показывать подсказку о тестовом режиме'
         },
         orientation: {
             type: String,
