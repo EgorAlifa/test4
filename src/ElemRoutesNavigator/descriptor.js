@@ -21,15 +21,10 @@ export const descriptor = () => ({
             default: true,
             label: 'Показывать пути страниц'
         },
-        enableReorder: {
-            type: Boolean,
-            default: false,
-            label: 'Разрешить изменение порядка страниц'
-        },
-        showWarning: {
-            type: Boolean,
-            default: true,
-            label: 'Показывать предупреждение в редакторе'
+        dropdownText: {
+            type: String,
+            default: 'Меню навигации',
+            label: 'Текст выпадающего списка'
         },
         orientation: {
             type: String,

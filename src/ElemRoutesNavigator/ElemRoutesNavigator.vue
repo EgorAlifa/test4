@@ -1,25 +1,6 @@
 <template>
     <w-elem :placeholder="$placeholder">
         <div v-if="isReady" class="routes-navigator-container" :style="containerStyle">
-            <!-- Warning в редакторе -->
-            <div
-                v-if="!isPlayerMode && props.showWarning && !warningHidden"
-                class="editor-warning"
-                :style="warningStyle"
-            >
-                <div class="warning-content">
-                    <span class="warning-icon">⚠️</span>
-                    <span class="warning-text">
-                        Для корректной работы виджета убедитесь, что названия страниц и заголовки ссылок совпадают.
-                        При перетаскивании маршруты сопоставляются по slug из app.json.
-                    </span>
-                </div>
-                <label class="warning-checkbox">
-                    <input type="checkbox" v-model="warningHidden" />
-                    <span>Больше не показывать</span>
-                </label>
-            </div>
-
             <!-- Title -->
             <h2 v-if="props.showTitle && props.title" class="navigator-title" :style="titleStyle">
                 {{ props.title }}
@@ -34,7 +15,7 @@
                     type="button"
                     :style="dropdownToggleStyle"
                 >
-                    <span class="route-title">{{ activeRoute ? (activeRoute.title || activeRoute.name) : 'Выберите страницу' }}</span>
+                    <span class="route-title">{{ props.dropdownText || 'Меню навигации' }}</span>
                     <span class="dropdown-arrow">▼</span>
                 </button>
                 <div v-if="isMenuOpen" class="dropdown-menu" :style="dropdownMenuStyle">
@@ -145,11 +126,11 @@ export default {
         maxAttempts: 5,
         isReady: false,
         isMenuOpen: false,
-        mutationObserver: null,
+        pollingInterval: null,
         draggedIndex: null,
         dragOverIndex: null,
         isDragging: false,
-        warningHidden: false
+        applicationData: null // Данные из API /api/application/{id}
     }),
 
     computed: {
@@ -160,8 +141,8 @@ export default {
         },
 
         canReorder() {
-            // Перетаскивание доступно только в редакторе и только если включено
-            return !this.isPlayerMode && this.props.enableReorder;
+            // Перетаскивание доступно только в редакторе
+            return !this.isPlayerMode;
         },
 
         containerStyle() {
@@ -273,18 +254,6 @@ export default {
                 borderRadius: this.props.borderRadius || '6px',
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
             };
-        },
-
-        warningStyle() {
-            return {
-                backgroundColor: '#fef3c7',
-                border: '1px solid #f59e0b',
-                borderRadius: this.props.borderRadius || '6px',
-                padding: '12px',
-                marginBottom: '12px',
-                fontSize: '0.875rem',
-                color: '#92400e'
-            };
         }
     },
 
@@ -292,9 +261,9 @@ export default {
         await this.loadRoutes();
         this.detectCurrentSlug();
 
-        // В редакторе запускаем наблюдение за изменениями списка страниц
+        // В редакторе запускаем периодический опрос данных
         if (!this.isPlayerMode) {
-            this.startEditorPagesObserver();
+            this.startEditorDataPolling();
         }
 
         // Небольшая задержка перед показом чтобы не мелькали моки
@@ -303,131 +272,137 @@ export default {
     },
 
     beforeDestroy() {
-        // Отключаем observer при удалении виджета
-        if (this.mutationObserver) {
-            this.mutationObserver.disconnect();
+        // Останавливаем polling при удалении виджета
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
         }
     },
 
     methods: {
         /**
-         * Парсит список страниц из HTML редактора
-         * Ищет элементы в контейнере .ui-container__content.has-scroll
+         * Получает ID приложения из глобальных переменных
          */
-        parseEditorPages() {
-            if (typeof window === 'undefined') return [];
+        getApplicationId() {
+            if (typeof window === 'undefined') return null;
 
-            // Ищем контейнер с классами ui-container__content и has-scroll
-            const container = document.querySelector('.ui-container__content.has-scroll');
-            if (!container) {
-                console.log('[ElemRoutesNavigator] Container .ui-container__content.has-scroll not found');
-                return [];
+            // Пробуем разные источники
+            const sources = [
+                window.__APPLICATION_ID__,
+                window.applicationId,
+                window.appId,
+                window.goodt?.applicationId,
+                window.goodt?.appId
+            ];
+
+            for (const source of sources) {
+                if (source) {
+                    console.log('[ElemRoutesNavigator] Found application ID:', source);
+                    return source;
+                }
             }
 
-            // Ищем все элементы .ui-list-item.page-item внутри контейнера
-            const pageItems = container.querySelectorAll('.ui-list-item.page-item');
-            const routes = [];
-            const seenSlugs = new Set(); // Для предотвращения дубликатов
+            // Пробуем извлечь из URL
+            const urlMatch = window.location.pathname.match(/\/application\/(\d+)/);
+            if (urlMatch && urlMatch[1]) {
+                console.log('[ElemRoutesNavigator] Extracted application ID from URL:', urlMatch[1]);
+                return urlMatch[1];
+            }
 
-            console.log('[ElemRoutesNavigator] 🔍 Found', pageItems.length, 'page items in editor');
-
-            pageItems.forEach((item, index) => {
-                try {
-                    const textContainer = item.querySelector('.text-truncate');
-                    if (!textContainer) return;
-
-                    // Извлекаем название страницы из первого div с title
-                    const titleElement = textContainer.querySelector('div[title]');
-                    const title = titleElement ? titleElement.getAttribute('title') : null;
-
-                    // Извлекаем slug из .page-item__slug с атрибутом title
-                    const slugElement = textContainer.querySelector('.page-item__slug');
-                    const slugText = slugElement ? slugElement.getAttribute('title') : null;
-
-                    if (title && slugText && !seenSlugs.has(slugText)) {
-                        seenSlugs.add(slugText);
-                        routes.push({
-                            id: `editor-page-${index}`,
-                            title,
-                            name: title.toLowerCase().replace(/\s+/g, '-'),
-                            slug: slugText,
-                            enabled: true
-                        });
-                    }
-                } catch (error) {
-                    console.warn('[ElemRoutesNavigator] Error parsing page item:', error);
-                }
-            });
-
-            console.log('[ElemRoutesNavigator] 📄 Parsed', routes.length, 'pages from editor HTML');
-            return routes;
+            console.warn('[ElemRoutesNavigator] Could not find application ID');
+            return null;
         },
 
         /**
-         * Запускает наблюдение за изменениями списка страниц в редакторе
+         * Получает данные приложения из API /api/application/{id}
          */
-        startEditorPagesObserver() {
-            if (typeof window === 'undefined' || typeof MutationObserver === 'undefined') return;
+        async fetchApplicationData() {
+            if (typeof window === 'undefined') return null;
 
-            // Ищем контейнер .ui-container__content.has-scroll
-            const pagesContainer = document.querySelector('.ui-container__content.has-scroll');
-            if (!pagesContainer) {
-                console.warn('[ElemRoutesNavigator] Pages container .ui-container__content.has-scroll not found, observer not started');
-                return;
+            const appId = this.getApplicationId();
+            if (!appId) {
+                console.warn('[ElemRoutesNavigator] No application ID found, cannot fetch data');
+                return null;
             }
 
-            // Создаем observer
-            this.mutationObserver = new MutationObserver(() => {
-                console.log('[ElemRoutesNavigator] 🔄 Pages list changed, updating routes...');
-                const newRoutes = this.parseEditorPages();
+            try {
+                // Строим URL относительно текущего хоста
+                const apiUrl = `/api/application/${appId}`;
+                console.log('[ElemRoutesNavigator] Fetching application data from:', apiUrl);
 
-                // Обновляем только если routes действительно изменились
-                if (newRoutes.length > 0 && this.routesChanged(newRoutes)) {
-                    this.routes = newRoutes;
-                    console.log('[ElemRoutesNavigator] ✅ Routes updated:', this.routes.length);
-                } else {
-                    console.log('[ElemRoutesNavigator] ⏭️ Routes unchanged, skipping update');
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    console.warn('[ElemRoutesNavigator] Failed to fetch application data:', response.status);
+                    return null;
                 }
-            });
 
-            // Запускаем наблюдение
-            this.mutationObserver.observe(pagesContainer, {
-                childList: true,
-                subtree: true,
-                attributes: true,
-                attributeFilter: ['title']
-            });
+                const result = await response.json();
+                console.log('[ElemRoutesNavigator] Received application data:', result);
 
-            console.log('[ElemRoutesNavigator] ✅ Started observing pages list for changes');
+                // Парсим JSON из поля data
+                if (result.data && typeof result.data === 'string') {
+                    const appData = JSON.parse(result.data);
+                    console.log('[ElemRoutesNavigator] Parsed application data:', appData);
+
+                    // Сохраняем полные данные для последующего обновления
+                    this.applicationData = {
+                        meta: result.meta,
+                        rawData: appData
+                    };
+
+                    // Извлекаем routes
+                    if (appData.routes && Array.isArray(appData.routes)) {
+                        console.log('[ElemRoutesNavigator] ✅ Found', appData.routes.length, 'routes in application data');
+                        return appData.routes.filter(route => route.enabled !== false);
+                    }
+                }
+
+                console.warn('[ElemRoutesNavigator] No routes found in application data');
+                return null;
+            } catch (error) {
+                console.error('[ElemRoutesNavigator] Error fetching application data:', error);
+                return null;
+            }
+        },
+
+        /**
+         * Запускает периодическое обновление данных в редакторе
+         * Проверяет изменения каждые 3 секунды
+         */
+        startEditorDataPolling() {
+            if (typeof window === 'undefined') return;
+
+            const pollInterval = 3000; // 3 секунды
+
+            const poll = async () => {
+                const newRoutes = await this.fetchApplicationData();
+
+                if (newRoutes && newRoutes.length > 0 && this.routesChanged(newRoutes)) {
+                    this.routes = newRoutes;
+                    console.log('[ElemRoutesNavigator] ✅ Routes updated from API:', this.routes.length);
+                }
+            };
+
+            // Запускаем периодический опрос
+            this.pollingInterval = setInterval(poll, pollInterval);
+            console.log('[ElemRoutesNavigator] ✅ Started polling application data every', pollInterval, 'ms');
         },
 
         async loadRoutes(retryDelay = 0) {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v8-EDITOR-DOM | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v9-API | Attempt:', this.loadAttempts);
 
             // СНАЧАЛА проверяем, находимся ли мы в редакторе
-            // Признак редактора - наличие контейнера .ui-container__content.has-scroll
-            const editorContainer = typeof window !== 'undefined'
-                ? document.querySelector('.ui-container__content.has-scroll')
-                : null;
+            // Пробуем получить данные из API /api/application/{id}
+            const editorRoutes = await this.fetchApplicationData();
 
-            if (editorContainer) {
-                console.log('[ElemRoutesNavigator] 🎨 Editor mode detected, parsing DOM...');
-                const editorRoutes = this.parseEditorPages();
-
-                if (editorRoutes.length > 0) {
-                    console.log('[ElemRoutesNavigator] ✅ Loaded', editorRoutes.length, 'routes from editor DOM');
-                    this.routes = editorRoutes;
-                    this.isPlayerMode = false;
-                    return true;
-                }
-
-                console.log('[ElemRoutesNavigator] ⚠️ Editor mode but no pages found yet');
-                this.routes = [];
+            if (editorRoutes && editorRoutes.length > 0) {
+                console.log('[ElemRoutesNavigator] 🎨 Editor mode detected, loaded from API');
+                console.log('[ElemRoutesNavigator] ✅ Loaded', editorRoutes.length, 'routes from API');
+                this.routes = editorRoutes;
                 this.isPlayerMode = false;
-                return false;
+                return true;
             }
 
             // Если не в редакторе, пытаемся загрузить app.json (режим плеера)
@@ -677,72 +652,73 @@ export default {
         },
 
         /**
-         * Перемещает элементы страниц в DOM правой панели редактора по slug
-         * Это изменит порядок в app.json автоматически
+         * Обновляет порядок routes в applicationData и сохраняет через API
          */
-        reorderPagesInDOM(fromIndex, toIndex) {
-            if (!this.canReorder) return;
+        async updateRoutesOrder(fromIndex, toIndex) {
+            if (!this.canReorder || !this.applicationData) return;
 
             try {
-                // Получаем slug перемещаемых routes
-                const fromRoute = this.routes[fromIndex];
-                const toRoute = this.routes[toIndex];
+                console.log('[ElemRoutesNavigator] 🔄 Updating routes order:', fromIndex, '→', toIndex);
 
-                if (!fromRoute || !toRoute) {
-                    console.warn('[ElemRoutesNavigator] Routes not found at indices', fromIndex, toIndex);
-                    return;
-                }
+                // Обновляем порядок в applicationData.rawData.routes
+                const routes = this.applicationData.rawData.routes;
+                const movedRoute = routes[fromIndex];
 
-                console.log('[ElemRoutesNavigator] 🔄 Reordering by slug:', fromRoute.slug, '→', toRoute.slug);
+                // Удаляем из старой позиции
+                routes.splice(fromIndex, 1);
+                // Вставляем в новую позицию
+                routes.splice(toIndex, 0, movedRoute);
 
-                // Ищем элементы в DOM по slug
-                const container = document.querySelector('.ui-container__content.has-scroll');
-                if (!container) {
-                    console.warn('[ElemRoutesNavigator] Container not found');
-                    return;
-                }
+                // Обновляем applicationData
+                this.applicationData.rawData.routes = routes;
 
-                const pageItems = container.querySelectorAll('.ui-list-item.page-item');
-                let fromElement = null;
-                let toElement = null;
+                // Сохраняем изменения через API
+                await this.saveApplicationData();
 
-                // Находим элементы по slug
-                pageItems.forEach(item => {
-                    const slugElement = item.querySelector('.page-item__slug');
-                    if (!slugElement) return;
+                console.log('[ElemRoutesNavigator] ✅ Routes order updated and saved');
+            } catch (error) {
+                console.error('[ElemRoutesNavigator] Error updating routes order:', error);
+            }
+        },
 
-                    const slug = slugElement.getAttribute('title');
-                    if (slug === fromRoute.slug) {
-                        fromElement = item;
-                    }
-                    if (slug === toRoute.slug) {
-                        toElement = item;
-                    }
+        /**
+         * Сохраняет изменения applicationData обратно через API
+         */
+        async saveApplicationData() {
+            if (!this.applicationData || !this.applicationData.meta) return;
+
+            const appId = this.applicationData.meta.id;
+            if (!appId) {
+                console.warn('[ElemRoutesNavigator] No application ID, cannot save');
+                return;
+            }
+
+            try {
+                const apiUrl = `/api/application/${appId}`;
+                console.log('[ElemRoutesNavigator] Saving application data to:', apiUrl);
+
+                // Преобразуем rawData обратно в JSON-строку
+                const dataString = JSON.stringify(this.applicationData.rawData);
+
+                const response = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        ...this.applicationData.meta,
+                        data: dataString
+                    })
                 });
 
-                if (!fromElement || !toElement) {
-                    console.warn('[ElemRoutesNavigator] DOM elements not found for slugs:', fromRoute.slug, toRoute.slug);
+                if (!response.ok) {
+                    console.error('[ElemRoutesNavigator] Failed to save application data:', response.status);
                     return;
                 }
 
-                const parent = fromElement.parentElement;
-                if (!parent) {
-                    console.warn('[ElemRoutesNavigator] Parent element not found');
-                    return;
-                }
-
-                // Перемещаем элемент в DOM
-                if (fromIndex < toIndex) {
-                    // Перемещаем вниз - вставляем после toElement
-                    parent.insertBefore(fromElement, toElement.nextSibling);
-                } else {
-                    // Перемещаем вверх - вставляем перед toElement
-                    parent.insertBefore(fromElement, toElement);
-                }
-
-                console.log('[ElemRoutesNavigator] ✅ Reordered pages in DOM by slug:', fromRoute.slug, '→', toRoute.slug);
+                console.log('[ElemRoutesNavigator] ✅ Application data saved successfully');
             } catch (error) {
-                console.error('[ElemRoutesNavigator] Error reordering pages in DOM:', error);
+                console.error('[ElemRoutesNavigator] Error saving application data:', error);
             }
         },
 
@@ -790,10 +766,6 @@ export default {
                 const fromIndex = this.draggedIndex;
                 const toIndex = index;
 
-                // Перемещаем элементы в DOM правой панели
-                // Это автоматически изменит порядок в app.json
-                this.reorderPagesInDOM(fromIndex, toIndex);
-
                 // Обновляем локальный массив для отображения
                 const newRoutes = [...this.routes];
                 const draggedItem = newRoutes[fromIndex];
@@ -804,6 +776,9 @@ export default {
                 newRoutes.splice(toIndex, 0, draggedItem);
 
                 this.routes = newRoutes;
+
+                // Сохраняем изменения в applicationData и через API
+                await this.updateRoutesOrder(fromIndex, toIndex);
             }
 
             this.draggedIndex = null;
