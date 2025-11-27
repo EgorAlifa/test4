@@ -1,6 +1,25 @@
 <template>
     <w-elem :placeholder="$placeholder">
         <div v-if="isReady" class="routes-navigator-container" :style="containerStyle">
+            <!-- Warning в редакторе -->
+            <div
+                v-if="!isPlayerMode && props.showWarning && !warningHidden"
+                class="editor-warning"
+                :style="warningStyle"
+            >
+                <div class="warning-content">
+                    <span class="warning-icon">⚠️</span>
+                    <span class="warning-text">
+                        Для корректной работы виджета убедитесь, что названия страниц и заголовки ссылок совпадают.
+                        При перетаскивании маршруты сопоставляются по slug из app.json.
+                    </span>
+                </div>
+                <label class="warning-checkbox">
+                    <input type="checkbox" v-model="warningHidden" />
+                    <span>Больше не показывать</span>
+                </label>
+            </div>
+
             <!-- Title -->
             <h2 v-if="props.showTitle && props.title" class="navigator-title" :style="titleStyle">
                 {{ props.title }}
@@ -129,7 +148,8 @@ export default {
         mutationObserver: null,
         draggedIndex: null,
         dragOverIndex: null,
-        isDragging: false
+        isDragging: false,
+        warningHidden: false
     }),
 
     computed: {
@@ -253,6 +273,18 @@ export default {
                 borderRadius: this.props.borderRadius || '6px',
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
             };
+        },
+
+        warningStyle() {
+            return {
+                backgroundColor: '#fef3c7',
+                border: '1px solid #f59e0b',
+                borderRadius: this.props.borderRadius || '6px',
+                padding: '12px',
+                marginBottom: '12px',
+                fontSize: '0.875rem',
+                color: '#92400e'
+            };
         }
     },
 
@@ -280,22 +312,27 @@ export default {
     methods: {
         /**
          * Парсит список страниц из HTML редактора
+         * Ищет элементы в контейнере .ui-container__content.has-scroll
          */
         parseEditorPages() {
             if (typeof window === 'undefined') return [];
 
-            const pageItems = document.querySelectorAll('.ui-list-item');
+            // Ищем контейнер с классами ui-container__content и has-scroll
+            const container = document.querySelector('.ui-container__content.has-scroll');
+            if (!container) {
+                console.log('[ElemRoutesNavigator] Container .ui-container__content.has-scroll not found');
+                return [];
+            }
+
+            // Ищем все элементы .ui-list-item.page-item внутри контейнера
+            const pageItems = container.querySelectorAll('.ui-list-item.page-item');
             const routes = [];
             const seenSlugs = new Set(); // Для предотвращения дубликатов
 
+            console.log('[ElemRoutesNavigator] 🔍 Found', pageItems.length, 'page items in editor');
+
             pageItems.forEach((item, index) => {
                 try {
-                    // Пропускаем старые элементы с классом .page-item
-                    if (item.classList.contains('page-item')) {
-                        console.log('[ElemRoutesNavigator] ⏭️ Skipping old .page-item element');
-                        return;
-                    }
-
                     const textContainer = item.querySelector('.text-truncate');
                     if (!textContainer) return;
 
@@ -303,10 +340,9 @@ export default {
                     const titleElement = textContainer.querySelector('div[title]');
                     const title = titleElement ? titleElement.getAttribute('title') : null;
 
-                    // Извлекаем slug из второго div с классами color-grey text-xsmall
-                    // ВАЖНО: НЕ .page-item__slug, а просто .color-grey.text-xsmall
-                    const slugElement = textContainer.querySelector('.color-grey.text-xsmall');
-                    const slugText = slugElement ? slugElement.textContent.trim() : null;
+                    // Извлекаем slug из .page-item__slug с атрибутом title
+                    const slugElement = textContainer.querySelector('.page-item__slug');
+                    const slugText = slugElement ? slugElement.getAttribute('title') : null;
 
                     if (title && slugText && !seenSlugs.has(slugText)) {
                         seenSlugs.add(slugText);
@@ -333,10 +369,10 @@ export default {
         startEditorPagesObserver() {
             if (typeof window === 'undefined' || typeof MutationObserver === 'undefined') return;
 
-            // Ищем контейнер со списком страниц
-            const pagesContainer = document.querySelector('.ui-list-item')?.parentElement;
+            // Ищем контейнер .ui-container__content.has-scroll
+            const pagesContainer = document.querySelector('.ui-container__content.has-scroll');
             if (!pagesContainer) {
-                console.warn('[ElemRoutesNavigator] Pages container not found, observer not started');
+                console.warn('[ElemRoutesNavigator] Pages container .ui-container__content.has-scroll not found, observer not started');
                 return;
             }
 
@@ -369,18 +405,33 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v6 | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v8-EDITOR-DOM | Attempt:', this.loadAttempts);
 
-            // СНАЧАЛА пытаемся парсить страницы из HTML редактора
-            const editorRoutes = this.parseEditorPages();
-            if (editorRoutes.length > 0) {
-                console.log('[ElemRoutesNavigator] ✅ Using pages from editor HTML (no fetch needed)');
-                this.routes = editorRoutes;
+            // СНАЧАЛА проверяем, находимся ли мы в редакторе
+            // Признак редактора - наличие контейнера .ui-container__content.has-scroll
+            const editorContainer = typeof window !== 'undefined'
+                ? document.querySelector('.ui-container__content.has-scroll')
+                : null;
+
+            if (editorContainer) {
+                console.log('[ElemRoutesNavigator] 🎨 Editor mode detected, parsing DOM...');
+                const editorRoutes = this.parseEditorPages();
+
+                if (editorRoutes.length > 0) {
+                    console.log('[ElemRoutesNavigator] ✅ Loaded', editorRoutes.length, 'routes from editor DOM');
+                    this.routes = editorRoutes;
+                    this.isPlayerMode = false;
+                    return true;
+                }
+
+                console.log('[ElemRoutesNavigator] ⚠️ Editor mode but no pages found yet');
+                this.routes = [];
                 this.isPlayerMode = false;
-                return true;
+                return false;
             }
 
-            // Если в редакторе ничего не нашли, пытаемся найти app.json в глобальных объектах
+            // Если не в редакторе, пытаемся загрузить app.json (режим плеера)
+            console.log('[ElemRoutesNavigator] 🎮 Player mode detected, loading app.json...');
             console.log('[ElemRoutesNavigator] Checking global objects for app.json...');
             const globalSources = [
                 { name: 'window.__APP_CONFIG__', value: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null },
@@ -460,10 +511,10 @@ export default {
                 return this.loadRoutes(nextDelay);
             }
 
-            // Все попытки исчерпаны - не удалось найти маршруты
+            // Все попытки исчерпаны - не удалось загрузить app.json в режиме плеера
             console.log(`[ElemRoutesNavigator] ❌ Could not fetch app.json after ${this.loadAttempts} attempts.`);
             console.log('[ElemRoutesNavigator] ⚠️ No routes found, widget will be empty');
-            this.isPlayerMode = false;
+            this.isPlayerMode = true; // Остаемся в режиме плеера, но без данных
             this.routes = [];
             return false;
         },
@@ -626,24 +677,51 @@ export default {
         },
 
         /**
-         * Перемещает элементы страниц в DOM правой панели редактора
+         * Перемещает элементы страниц в DOM правой панели редактора по slug
          * Это изменит порядок в app.json автоматически
          */
         reorderPagesInDOM(fromIndex, toIndex) {
             if (!this.canReorder) return;
 
             try {
-                const pageItems = document.querySelectorAll('.ui-list-item');
-                if (!pageItems || pageItems.length === 0) {
-                    console.warn('[ElemRoutesNavigator] No page items found in DOM');
+                // Получаем slug перемещаемых routes
+                const fromRoute = this.routes[fromIndex];
+                const toRoute = this.routes[toIndex];
+
+                if (!fromRoute || !toRoute) {
+                    console.warn('[ElemRoutesNavigator] Routes not found at indices', fromIndex, toIndex);
                     return;
                 }
 
-                const fromElement = pageItems[fromIndex];
-                const toElement = pageItems[toIndex];
+                console.log('[ElemRoutesNavigator] 🔄 Reordering by slug:', fromRoute.slug, '→', toRoute.slug);
+
+                // Ищем элементы в DOM по slug
+                const container = document.querySelector('.ui-container__content.has-scroll');
+                if (!container) {
+                    console.warn('[ElemRoutesNavigator] Container not found');
+                    return;
+                }
+
+                const pageItems = container.querySelectorAll('.ui-list-item.page-item');
+                let fromElement = null;
+                let toElement = null;
+
+                // Находим элементы по slug
+                pageItems.forEach(item => {
+                    const slugElement = item.querySelector('.page-item__slug');
+                    if (!slugElement) return;
+
+                    const slug = slugElement.getAttribute('title');
+                    if (slug === fromRoute.slug) {
+                        fromElement = item;
+                    }
+                    if (slug === toRoute.slug) {
+                        toElement = item;
+                    }
+                });
 
                 if (!fromElement || !toElement) {
-                    console.warn('[ElemRoutesNavigator] Page elements not found at indices', fromIndex, toIndex);
+                    console.warn('[ElemRoutesNavigator] DOM elements not found for slugs:', fromRoute.slug, toRoute.slug);
                     return;
                 }
 
@@ -662,7 +740,7 @@ export default {
                     parent.insertBefore(fromElement, toElement);
                 }
 
-                console.log('[ElemRoutesNavigator] ✅ Reordered pages in DOM:', fromIndex, '→', toIndex);
+                console.log('[ElemRoutesNavigator] ✅ Reordered pages in DOM by slug:', fromRoute.slug, '→', toRoute.slug);
             } catch (error) {
                 console.error('[ElemRoutesNavigator] Error reordering pages in DOM:', error);
             }

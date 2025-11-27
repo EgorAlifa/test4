@@ -26,6 +26,11 @@ export const descriptor = () => ({
             default: false,
             label: 'Разрешить изменение порядка страниц'
         },
+        showWarning: {
+            type: Boolean,
+            default: true,
+            label: 'Показывать предупреждение в редакторе'
+        },
         orientation: {
             type: String,
             default: 'horizontal',

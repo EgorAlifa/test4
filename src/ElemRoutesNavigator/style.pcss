@@ -224,3 +224,47 @@
 .dropdown-menu .route-button:last-child {
     border-radius: 0 0 6px 6px;
 }
+
+/* Warning Styles */
+.editor-warning {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+}
+
+.warning-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.warning-icon {
+    font-size: 1.2em;
+    flex-shrink: 0;
+    line-height: 1.4;
+}
+
+.warning-text {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.warning-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.875em;
+    cursor: pointer;
+    user-select: none;
+}
+
+.warning-checkbox input[type="checkbox"] {
+    cursor: pointer;
+    margin: 0;
+}
+
+.warning-checkbox span {
+    opacity: 0.9;
+}
