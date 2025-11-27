@@ -18,9 +18,9 @@ export const descriptor = () => ({
         },
         dropdownText: {
             type: String,
-            default: 'Меню навигации',
+            default: '',
             label: 'Текст выпадающего списка',
-            hint: 'Отображается в dropdown и kebab режимах'
+            hint: 'Отображается в выпадающем списке'
         },
         showSlug: {
             type: Boolean,

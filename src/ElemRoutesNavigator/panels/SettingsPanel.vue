@@ -26,7 +26,7 @@
             <ui-input
                 v-if="props.orientation === 'dropdown' || props.orientation === 'kebab'"
                 prop="dropdownText"
-                placeholder="Меню навигации">
+                placeholder="Оставьте пустым чтобы скрыть">
                 Текст меню
             </ui-input>
 
