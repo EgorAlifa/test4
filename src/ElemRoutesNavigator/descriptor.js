@@ -19,7 +19,7 @@ export const descriptor = () => ({
         showSlug: {
             type: Boolean,
             default: true,
-            label: 'Показывать относительную ссылку страницы'
+            label: 'Показывать пути страниц'
         },
         showHint: {
             type: Boolean,

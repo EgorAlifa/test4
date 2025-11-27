@@ -23,7 +23,7 @@
             <!-- Основные настройки -->
             <div class="form-label form-label-small mt-3">Основные настройки</div>
 
-            <ui-checkbox prop="showSlug">Показывать относительную ссылку страницы</ui-checkbox>
+            <ui-checkbox prop="showSlug">Показывать пути страниц</ui-checkbox>
 
             <ui-checkbox prop="showHint">Показывать подсказку о тестовом режиме</ui-checkbox>
 
