@@ -57,7 +57,7 @@ export const descriptor = () => ({
         },
         enablePagination: {
             type: Boolean,
-            default: true,
+            default: false,
             label: 'Включить пагинацию',
             hint: 'Для dropdown и kebab меню'
         },

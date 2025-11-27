@@ -1,3 +1,4 @@
-const SettingsPanelAsync = () => import('./SettingsPanel.vue');
+const WidgetSettingsPanelAsync = () => import('./SettingsPanel.vue');
+const PaginationPanelAsync = () => import('./PaginationPanel.vue');
 
-export default [SettingsPanelAsync];
+export default [WidgetSettingsPanelAsync, PaginationPanelAsync];
