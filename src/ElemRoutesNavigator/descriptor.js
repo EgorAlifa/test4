@@ -43,7 +43,7 @@ export const descriptor = () => ({
             type: Number,
             default: 6,
             label: 'Элементов на странице',
-            hint: 'Для dropdown и kebab меню, остальные через скролл'
+            hint: 'Для вертикальной ориентации, выпадающего списка и кебаб меню'
         },
         openMode: {
             type: String,
@@ -59,7 +59,7 @@ export const descriptor = () => ({
             type: Boolean,
             default: false,
             label: 'Включить пагинацию',
-            hint: 'Для dropdown и kebab меню'
+            hint: 'Для вертикальной ориентации, выпадающего списка и кебаб меню'
         },
         buttonStyle: {
             type: String,

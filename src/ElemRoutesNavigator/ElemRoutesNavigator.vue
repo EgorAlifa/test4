@@ -194,12 +194,22 @@ export default {
             const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'rem' };
             const gap = `${gapObj.size}${gapObj.unit}`;
 
-            return {
+            const baseStyle = {
                 display: 'flex',
                 flexDirection: this.props.orientation === 'horizontal' ? 'row' : 'column',
                 gap,
                 flexWrap: this.props.orientation === 'horizontal' ? 'wrap' : 'nowrap'
             };
+
+            // Добавляем пагинацию со скроллом для вертикальной ориентации (если включена)
+            if (this.props.orientation === 'vertical' && this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
+                const itemHeight = 3; // Примерная высота одной кнопки с отступами в rem
+                const maxHeight = this.props.itemsPerPage * itemHeight;
+                baseStyle.maxHeight = `${maxHeight}rem`;
+                baseStyle.overflowY = 'auto';
+            }
+
+            return baseStyle;
         },
 
         kebabToggleStyle() {
@@ -326,12 +336,10 @@ export default {
             for (const pattern of urlPatterns) {
                 const urlMatch = window.location.pathname.match(pattern);
                 if (urlMatch && urlMatch[1]) {
-                    console.log('[ElemRoutesNavigator] Extracted application ID from URL:', urlMatch[1]);
                     return urlMatch[1];
                 }
             }
 
-            console.warn('[ElemRoutesNavigator] Could not find application ID in URL');
             return null;
         },
 
@@ -353,26 +361,21 @@ export default {
                 const editorIndex = currentUrl.indexOf('/editor/');
                 if (editorIndex !== -1 && appId) {
                     const baseUrl = currentUrl.substring(0, editorIndex + '/editor'.length);
-                    const appJsonUrl = `${baseUrl}/player/${appId}/app.json`;
-                    console.log('[ElemRoutesNavigator] Built app.json URL for editor:', appJsonUrl);
-                    return appJsonUrl;
+                    return `${baseUrl}/player/${appId}/app.json`;
                 }
             }
 
             // Fallback: добавляем /app.json к текущему URL
-            const fallbackUrl = `${window.location.origin}${currentPath}/app.json`.replace(/\/+/g, '/').replace(':/', '://');
-            console.log('[ElemRoutesNavigator] Built fallback app.json URL:', fallbackUrl);
-            return fallbackUrl;
+            return `${window.location.origin}${currentPath}/app.json`.replace(/\/+/g, '/').replace(':/', '://');
         },
 
         async loadRoutes(retryDelay = 0) {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v14-SeparatePaginationPanel | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v16-CleanLogs | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
-            console.log('[ElemRoutesNavigator] Checking global objects for app.json...');
             const globalSources = [
                 { name: 'window.__APP_CONFIG__', value: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null },
                 { name: 'window.appConfig', value: typeof window !== 'undefined' ? window.appConfig : null },
@@ -384,21 +387,14 @@ export default {
 
             for (const source of globalSources) {
                 if (source.value && source.value.routes && Array.isArray(source.value.routes)) {
-                    console.log('[ElemRoutesNavigator] ✅ Found app.json in', source.name);
-                    console.log('[ElemRoutesNavigator] Config:', source.value);
                     this.routes = source.value.routes.filter(route => route.enabled !== false);
                     this.isPlayerMode = true;
-                    console.log('[ElemRoutesNavigator] ✅ Successfully loaded', this.routes.length, 'routes from global object');
-                    console.log('[ElemRoutesNavigator] Routes:', this.routes);
                     return true;
                 }
             }
 
-            console.log('[ElemRoutesNavigator] No app.json found in global objects, trying fetch...');
-
             // Если это retry, ждем перед попыткой
             if (retryDelay > 0) {
-                console.log(`[ElemRoutesNavigator] Retry attempt ${this.loadAttempts}/${this.maxAttempts} after ${retryDelay}ms delay`);
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
             }
 
@@ -419,28 +415,21 @@ export default {
 
             for (const path of uniquePaths) {
                 try {
-                    console.log('[ElemRoutesNavigator] Trying to fetch app.json from:', path);
                     const response = await fetch(path);
 
                     if (!response.ok) {
-                        console.warn('[ElemRoutesNavigator] Failed to fetch from', path, '- status:', response.status);
                         continue;
                     }
 
                     const appConfig = await response.json();
-                    console.log('[ElemRoutesNavigator] Received config from', path, ':', appConfig);
 
                     if (appConfig && appConfig.routes && Array.isArray(appConfig.routes)) {
                         this.routes = appConfig.routes.filter(route => route.enabled !== false);
                         this.isPlayerMode = true;
-                        console.log('[ElemRoutesNavigator] ✅ Successfully loaded', this.routes.length, 'routes from', path, `(attempt ${this.loadAttempts})`);
-                        console.log('[ElemRoutesNavigator] Routes:', this.routes);
                         return true;
                     }
-
-                    console.warn('[ElemRoutesNavigator] app.json found at', path, 'but no routes array');
                 } catch (error) {
-                    console.warn('[ElemRoutesNavigator] Error fetching from', path, ':', error.message);
+                    // Игнорируем ошибки
                 }
             }
 
@@ -453,8 +442,6 @@ export default {
             }
 
             // Все попытки исчерпаны
-            console.log(`[ElemRoutesNavigator] ❌ Could not fetch app.json after ${this.loadAttempts} attempts.`);
-            console.log('[ElemRoutesNavigator] ⚠️ No routes found, widget will be empty');
             this.isPlayerMode = true;
             this.routes = [];
             return false;
@@ -528,7 +515,6 @@ export default {
          * Можно вызвать из консоли: widgetInstance.reloadRoutes()
          */
         async reloadRoutes() {
-            console.log('[ElemRoutesNavigator] Manual reload requested');
             this.loadAttempts = 0;
             this.routes = [];
             this.isPlayerMode = false;
@@ -543,13 +529,11 @@ export default {
             }
 
             if (!route.slug) {
-                console.warn('[ElemRoutesNavigator] Route has no slug:', route);
                 return;
             }
 
             // Проверяем что не пытаемся перейти на текущую страницу
             if (this.currentSlug === route.slug) {
-                console.log('[ElemRoutesNavigator] Already on this route:', route.slug);
                 return;
             }
 
@@ -563,17 +547,13 @@ export default {
                 // Проверяем наличие роутера
                 if (this.$router) {
                     // Используем catch для подавления ошибки NavigationDuplicated
-                    this.$router.push(route.slug).catch(err => {
-                        if (err.name !== 'NavigationDuplicated') {
-                            console.error('[ElemRoutesNavigator] Navigation error:', err);
-                        }
+                    this.$router.push(route.slug).catch(() => {
+                        // Игнорируем ошибки навигации
                     });
                 } else {
                     // Fallback на обычную навигацию
                     window.location.href = route.slug;
                 }
-            } else {
-                console.log('[ElemRoutesNavigator] Navigate to:', route.slug, '(editor mode, no actual navigation)');
             }
         },
 
@@ -710,9 +690,6 @@ export default {
                 newRoutes.splice(toIndex, 0, draggedItem);
 
                 this.routes = newRoutes;
-
-                console.log('[ElemRoutesNavigator] 🔄 Routes reordered:', fromIndex, '→', toIndex);
-                console.log('[ElemRoutesNavigator] Note: Changes are visual only, not saved');
             }
 
             this.draggedIndex = null;
