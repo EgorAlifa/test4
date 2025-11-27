@@ -70,6 +70,11 @@ export const descriptor = () => ({
             type: Object,
             default: () => ({ size: 14, unit: 'px' }), // eslint-disable-line no-magic-numbers
             label: 'Размер шрифта'
+        },
+        appJsonUrl: {
+            type: String,
+            default: 'app.json',
+            label: 'Путь к app.json'
         }
     }
 });

@@ -56,7 +56,9 @@ export default {
         routes: [],
         currentSlug: null,
         hoveredIndex: null,
-        isPlayerMode: false
+        isPlayerMode: false,
+        loadAttempts: 0,
+        maxAttempts: 5
     }),
 
     computed: {
@@ -138,40 +140,115 @@ export default {
     },
 
     methods: {
-        loadRoutes() {
-            // Попытка получить routes из app.json через различные источники
-            let appConfig = null;
+        async loadRoutes(retryDelay = 0) {
+            this.loadAttempts += 1;
 
-            // Вариант 1: Глобальный объект window.__APP_CONFIG__
-            if (typeof window !== 'undefined' && window.__APP_CONFIG__) {
-                appConfig = window.__APP_CONFIG__;
+            // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v2 | Attempt:', this.loadAttempts);
+
+            // СНАЧАЛА пытаемся найти уже загруженный app.json в глобальных объектах
+            console.log('[ElemRoutesNavigator] Checking global objects for app.json...');
+            const globalSources = [
+                { name: 'window.__APP_CONFIG__', value: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null },
+                { name: 'window.appConfig', value: typeof window !== 'undefined' ? window.appConfig : null },
+                { name: 'window.APP_CONFIG', value: typeof window !== 'undefined' ? window.APP_CONFIG : null },
+                { name: 'window.$appConfig', value: typeof window !== 'undefined' ? window.$appConfig : null },
+                { name: 'window.goodt?.config', value: typeof window !== 'undefined' && window.goodt ? window.goodt.config : null },
+                { name: 'window.goodt?.appConfig', value: typeof window !== 'undefined' && window.goodt ? window.goodt.appConfig : null }
+            ];
+
+            for (const source of globalSources) {
+                if (source.value && source.value.routes && Array.isArray(source.value.routes)) {
+                    console.log('[ElemRoutesNavigator] ✅ Found app.json in', source.name);
+                    console.log('[ElemRoutesNavigator] Config:', source.value);
+                    this.routes = source.value.routes.filter(route => route.enabled !== false);
+                    this.isPlayerMode = true;
+                    console.log('[ElemRoutesNavigator] ✅ Successfully loaded', this.routes.length, 'routes from global object');
+                    console.log('[ElemRoutesNavigator] Routes:', this.routes);
+                    return true;
+                }
             }
 
-            // Вариант 2: Глобальный объект window.appConfig
-            if (!appConfig && typeof window !== 'undefined' && window.appConfig) {
-                appConfig = window.appConfig;
+            console.log('[ElemRoutesNavigator] No app.json found in global objects, trying fetch...');
+
+            // Если это retry, ждем перед попыткой
+            if (retryDelay > 0) {
+                console.log(`[ElemRoutesNavigator] Retry attempt ${this.loadAttempts}/${this.maxAttempts} after ${retryDelay}ms delay`);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
             }
 
-            // Вариант 3: Попытка найти в window.goodt или других возможных местах
-            if (!appConfig && typeof window !== 'undefined' && window.goodt && window.goodt.config) {
-                appConfig = window.goodt.config;
+            // Попытка загрузить app.json из сети
+            // Используем prop appJsonUrl в первую очередь, затем fallback пути
+            const possiblePaths = [
+                this.props.appJsonUrl || 'app.json',
+                'app.json',
+                './app.json',
+                '/app.json',
+                'config/app.json',
+                '/config/app.json'
+            ];
+
+            // Убираем дубликаты
+            const uniquePaths = [...new Set(possiblePaths)];
+
+            for (const path of uniquePaths) {
+                try {
+                    console.log('[ElemRoutesNavigator] Trying to fetch app.json from:', path);
+                    const response = await fetch(path);
+
+                    if (!response.ok) {
+                        console.warn('[ElemRoutesNavigator] Failed to fetch from', path, '- status:', response.status);
+                        continue;
+                    }
+
+                    const appConfig = await response.json();
+                    console.log('[ElemRoutesNavigator] Received config from', path, ':', appConfig);
+
+                    if (appConfig && appConfig.routes && Array.isArray(appConfig.routes)) {
+                        this.routes = appConfig.routes.filter(route => route.enabled !== false);
+                        this.isPlayerMode = true;
+                        console.log('[ElemRoutesNavigator] ✅ Successfully loaded', this.routes.length, 'routes from', path, `(attempt ${this.loadAttempts})`);
+                        console.log('[ElemRoutesNavigator] Routes:', this.routes);
+                        return true;
+                    }
+
+                    console.warn('[ElemRoutesNavigator] app.json found at', path, 'but no routes array');
+                } catch (error) {
+                    console.warn('[ElemRoutesNavigator] Error fetching from', path, ':', error.message);
+                }
             }
 
-            // Если нашли конфиг с routes
-            if (appConfig && appConfig.routes && Array.isArray(appConfig.routes)) {
-                this.routes = appConfig.routes.filter(route => route.enabled !== false);
-                this.isPlayerMode = true;
-                console.log('[ElemRoutesNavigator] Loaded routes from app.json:', this.routes);
-            } else {
-                console.log('[ElemRoutesNavigator] Running in editor mode, using mock data');
-                this.isPlayerMode = false;
+            // Не удалось загрузить - пробуем retry
+            if (this.loadAttempts < this.maxAttempts) {
+                // Экспоненциальная задержка: 100ms, 300ms, 500ms, 1000ms, 2000ms
+                const delays = [100, 300, 500, 1000, 2000]; // eslint-disable-line no-magic-numbers
+                const nextDelay = delays[this.loadAttempts - 1] || 2000; // eslint-disable-line no-magic-numbers
+                return this.loadRoutes(nextDelay);
             }
+
+            // Все попытки исчерпаны - переходим в режим редактора
+            console.log(`[ElemRoutesNavigator] ❌ Could not fetch app.json after ${this.loadAttempts} attempts. Running in editor mode with mock data.`);
+            this.isPlayerMode = false;
+            this.routes = [];
+            return false;
         },
 
         detectCurrentSlug() {
             if (typeof window !== 'undefined') {
                 this.currentSlug = window.location.pathname;
             }
+        },
+
+        /**
+         * Публичный метод для принудительной перезагрузки routes
+         * Можно вызвать из консоли: widgetInstance.reloadRoutes()
+         */
+        async reloadRoutes() {
+            console.log('[ElemRoutesNavigator] Manual reload requested');
+            this.loadAttempts = 0;
+            this.routes = [];
+            this.isPlayerMode = false;
+            await this.loadRoutes();
         },
 
         navigateToRoute(route) {
