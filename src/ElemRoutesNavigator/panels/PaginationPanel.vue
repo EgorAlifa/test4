@@ -63,6 +63,25 @@
             <ui-input prop="borderRadius" placeholder="0.375rem">Скругление углов</ui-input>
 
             <ui-input prop="fontFamily" placeholder="inherit">Семейство шрифта</ui-input>
+
+            <!-- Границы (только для dropdown/kebab) -->
+            <template v-if="props.orientation === 'dropdown' || props.orientation === 'kebab'">
+                <ui-checkbox prop="showMenuBorder">Показывать границу списка</ui-checkbox>
+
+                <ui-input-cp
+                    v-if="props.showMenuBorder"
+                    prop="menuBorderColor">
+                    Цвет границы списка
+                </ui-input-cp>
+
+                <ui-checkbox prop="showToggleBorder">Показывать границу кнопки</ui-checkbox>
+
+                <ui-input-cp
+                    v-if="props.showToggleBorder"
+                    prop="toggleBorderColor">
+                    Цвет границы кнопки
+                </ui-input-cp>
+            </template>
         </ui-container>
     </ui-panel-container>
 </template>

@@ -57,7 +57,7 @@ export const descriptor = () => ({
         },
         enablePagination: {
             type: Boolean,
-            default: false,
+            default: true,
             label: 'Включить пагинацию',
             hint: 'Для вертикальной ориентации, выпадающего списка и кебаб меню'
         },
@@ -114,7 +114,32 @@ export const descriptor = () => ({
         fontFamily: {
             type: String,
             default: 'inherit',
-            label: 'Семейство шрифта'
+            label: 'Семейство шрифта',
+            hint: 'Например: Arial, Helvetica, sans-serif'
+        },
+        showMenuBorder: {
+            type: Boolean,
+            default: true,
+            label: 'Показывать границу списка',
+            hint: 'Граница выпадающего списка (dropdown/kebab)'
+        },
+        menuBorderColor: {
+            type: String,
+            default: '#1f2937',
+            label: 'Цвет границы списка',
+            hint: 'Цвет границы выпадающего списка'
+        },
+        showToggleBorder: {
+            type: Boolean,
+            default: true,
+            label: 'Показывать границу кнопки',
+            hint: 'Граница кнопки меню (dropdown/kebab)'
+        },
+        toggleBorderColor: {
+            type: String,
+            default: '#1f2937',
+            label: 'Цвет границы кнопки',
+            hint: 'Цвет границы кнопки меню'
         },
         appJsonUrl: {
             type: String,
