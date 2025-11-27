@@ -85,7 +85,7 @@
                     @dragend="onDragEnd"
                     type="button"
                 >
-                    <span v-if="canReorder" class="drag-handle">⋮⋮</span>
+                    <span v-if="canReorder" class="drag-handle" @mousedown.stop>⋮⋮</span>
                     <span class="route-title">{{ route.title || route.name }}</span>
                     <span v-if="props.showSlug && route.slug" class="route-slug">{{ route.slug }}</span>
                 </button>
@@ -128,7 +128,8 @@ export default {
         isMenuOpen: false,
         mutationObserver: null,
         draggedIndex: null,
-        dragOverIndex: null
+        dragOverIndex: null,
+        isDragging: false
     }),
 
     computed: {
@@ -286,18 +287,21 @@ export default {
         parseEditorPages() {
             if (typeof window === 'undefined') return [];
 
-            const pageItems = document.querySelectorAll('.page-item');
+            const pageItems = document.querySelectorAll('.ui-list-item');
             const routes = [];
 
             pageItems.forEach((item, index) => {
                 try {
-                    // Извлекаем название страницы
-                    const titleElement = item.querySelector('.text-truncate > div[title]');
+                    const textContainer = item.querySelector('.text-truncate');
+                    if (!textContainer) return;
+
+                    // Извлекаем название страницы из первого div с title
+                    const titleElement = textContainer.querySelector('div[title]');
                     const title = titleElement ? titleElement.getAttribute('title') : null;
 
-                    // Извлекаем slug
-                    const slugElement = item.querySelector('.page-item__slug');
-                    const slugText = slugElement ? slugElement.getAttribute('title') : null;
+                    // Извлекаем slug из второго div с классами color-grey text-xsmall
+                    const slugElement = textContainer.querySelector('.color-grey.text-xsmall');
+                    const slugText = slugElement ? slugElement.textContent.trim() : null;
 
                     if (title && slugText) {
                         routes.push({
@@ -324,7 +328,7 @@ export default {
             if (typeof window === 'undefined' || typeof MutationObserver === 'undefined') return;
 
             // Ищем контейнер со списком страниц
-            const pagesContainer = document.querySelector('.page-item')?.parentElement;
+            const pagesContainer = document.querySelector('.ui-list-item')?.parentElement;
             if (!pagesContainer) {
                 console.warn('[ElemRoutesNavigator] Pages container not found, observer not started');
                 return;
@@ -356,9 +360,18 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v2 | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v3 | Attempt:', this.loadAttempts);
 
-            // СНАЧАЛА пытаемся найти уже загруженный app.json в глобальных объектах
+            // СНАЧАЛА пытаемся парсить страницы из HTML редактора
+            const editorRoutes = this.parseEditorPages();
+            if (editorRoutes.length > 0) {
+                console.log('[ElemRoutesNavigator] ✅ Using pages from editor HTML (no fetch needed)');
+                this.routes = editorRoutes;
+                this.isPlayerMode = false;
+                return true;
+            }
+
+            // Если в редакторе ничего не нашли, пытаемся найти app.json в глобальных объектах
             console.log('[ElemRoutesNavigator] Checking global objects for app.json...');
             const globalSources = [
                 { name: 'window.__APP_CONFIG__', value: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null },
@@ -438,19 +451,10 @@ export default {
                 return this.loadRoutes(nextDelay);
             }
 
-            // Все попытки исчерпаны - пробуем парсить страницы из редактора
+            // Все попытки исчерпаны - не удалось найти маршруты
             console.log(`[ElemRoutesNavigator] ❌ Could not fetch app.json after ${this.loadAttempts} attempts.`);
+            console.log('[ElemRoutesNavigator] ⚠️ No routes found, widget will be empty');
             this.isPlayerMode = false;
-
-            // Пытаемся парсить страницы из HTML редактора
-            const editorRoutes = this.parseEditorPages();
-            if (editorRoutes.length > 0) {
-                console.log('[ElemRoutesNavigator] ✅ Using pages from editor HTML');
-                this.routes = editorRoutes;
-                return true;
-            }
-
-            console.log('[ElemRoutesNavigator] ⚠️ No pages found in editor, routes will be empty');
             this.routes = [];
             return false;
         },
@@ -474,6 +478,12 @@ export default {
         },
 
         navigateToRoute(route) {
+            // Если было перетаскивание, не делаем навигацию
+            if (this.isDragging) {
+                this.isDragging = false;
+                return;
+            }
+
             if (!route.slug) {
                 console.warn('[ElemRoutesNavigator] Route has no slug:', route);
                 return;
@@ -657,6 +667,9 @@ export default {
         onDragStart(index, event) {
             if (!this.canReorder) return;
 
+            event.stopPropagation(); // Не даем перетаскивать весь виджет
+
+            this.isDragging = true;
             this.draggedIndex = index;
             event.dataTransfer.effectAllowed = 'move';
             event.dataTransfer.setData('text/html', event.target.innerHTML);
@@ -672,6 +685,7 @@ export default {
             if (!this.canReorder || this.draggedIndex === null) return;
 
             event.preventDefault();
+            event.stopPropagation(); // Не даем перетаскивать весь виджет
             event.dataTransfer.dropEffect = 'move';
 
             this.dragOverIndex = index;
@@ -710,9 +724,16 @@ export default {
          * Обработчик завершения перетаскивания
          */
         onDragEnd(event) {
+            event.stopPropagation(); // Не даем перетаскивать весь виджет
             event.target.classList.remove('dragging');
             this.draggedIndex = null;
             this.dragOverIndex = null;
+
+            // Сбрасываем флаг перетаскивания с небольшой задержкой
+            // чтобы событие click не сработало
+            setTimeout(() => {
+                this.isDragging = false;
+            }, 100); // eslint-disable-line no-magic-numbers
         }
     }
 };
