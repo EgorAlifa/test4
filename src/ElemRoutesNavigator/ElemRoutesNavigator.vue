@@ -10,13 +10,13 @@
             <nav
                 v-if="props.orientation === 'dropdown'"
                 class="routes-nav-dropdown"
-                @mouseenter="props.openMode === 'hover' && openMenu()"
-                @mouseleave="props.openMode === 'hover' && closeMenu()"
             >
                 <button
                     class="dropdown-toggle"
                     :class="{ 'dropdown-toggle-open': isMenuOpen }"
                     @click="props.openMode === 'click' && toggleMenu()"
+                    @mouseenter="props.openMode === 'hover' && openMenu()"
+                    @mouseleave="props.openMode === 'hover' && scheduleCloseMenu()"
                     type="button"
                     :style="dropdownToggleStyle"
                 >
@@ -27,6 +27,8 @@
                     v-if="isMenuOpen"
                     class="dropdown-menu"
                     :style="dropdownMenuStyle"
+                    @mouseenter="props.openMode === 'hover' && openMenu()"
+                    @mouseleave="props.openMode === 'hover' && scheduleCloseMenu()"
                 >
                     <button
                         v-for="(route, index) in displayRoutes"
@@ -49,13 +51,13 @@
             <nav
                 v-else-if="props.orientation === 'kebab'"
                 class="routes-nav-kebab"
-                @mouseenter="props.openMode === 'hover' && openMenu()"
-                @mouseleave="props.openMode === 'hover' && closeMenu()"
             >
                 <button
                     class="kebab-toggle"
                     :class="{ 'kebab-toggle-open': isMenuOpen }"
                     @click="props.openMode === 'click' && toggleMenu()"
+                    @mouseenter="props.openMode === 'hover' && openMenu()"
+                    @mouseleave="props.openMode === 'hover' && scheduleCloseMenu()"
                     type="button"
                     :style="kebabToggleStyle"
                 >
@@ -67,6 +69,8 @@
                     v-if="isMenuOpen"
                     class="kebab-menu"
                     :style="kebabMenuStyle"
+                    @mouseenter="props.openMode === 'hover' && openMenu()"
+                    @mouseleave="props.openMode === 'hover' && scheduleCloseMenu()"
                 >
                     <button
                         v-for="(route, index) in displayRoutes"
@@ -146,7 +150,8 @@ export default {
         isMenuOpen: false,
         draggedIndex: null,
         dragOverIndex: null,
-        isDragging: false
+        isDragging: false,
+        closeMenuTimer: null
     }),
 
     computed: {
@@ -228,8 +233,8 @@ export default {
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
             };
 
-            // Добавляем пагинацию со скроллом
-            if (this.routes.length > this.props.itemsPerPage) {
+            // Добавляем пагинацию со скроллом (если включена)
+            if (this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
                 const itemHeight = 3; // Примерная высота одной кнопки с отступами в rem
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
@@ -281,8 +286,8 @@ export default {
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
             };
 
-            // Добавляем пагинацию со скроллом
-            if (this.routes.length > this.props.itemsPerPage) {
+            // Добавляем пагинацию со скроллом (если включена)
+            if (this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
                 const itemHeight = 3; // Примерная высота одной кнопки с отступами в rem
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
@@ -364,7 +369,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v12-HoverFix | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v13-HoverTimerAndPanelReorg | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
             console.log('[ElemRoutesNavigator] Checking global objects for app.json...');
@@ -470,8 +475,13 @@ export default {
 
         /**
          * Открывает меню (для режима hover)
+         * Отменяет запланированное закрытие
          */
         openMenu() {
+            if (this.closeMenuTimer) {
+                clearTimeout(this.closeMenuTimer);
+                this.closeMenuTimer = null;
+            }
             this.isMenuOpen = true;
         },
 
@@ -480,6 +490,19 @@ export default {
          */
         closeMenu() {
             this.isMenuOpen = false;
+        },
+
+        /**
+         * Планирует закрытие меню с задержкой (для режима hover)
+         */
+        scheduleCloseMenu() {
+            if (this.closeMenuTimer) {
+                clearTimeout(this.closeMenuTimer);
+            }
+            this.closeMenuTimer = setTimeout(() => {
+                this.isMenuOpen = false;
+                this.closeMenuTimer = null;
+            }, 150); // Задержка 150ms для плавного перехода между элементами
         },
 
         /**

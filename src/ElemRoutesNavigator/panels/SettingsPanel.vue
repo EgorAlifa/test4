@@ -15,8 +15,8 @@
                 </template>
             </ui-has-panel>
 
-            <!-- Основные настройки -->
-            <div class="form-label form-label-small mt-3">Основные настройки</div>
+            <!-- Настройки виджета -->
+            <div class="form-label form-label-small mt-3">Настройки виджета</div>
 
             <ui-checkbox prop="showSlug">Показывать пути страниц</ui-checkbox>
 
@@ -29,24 +29,6 @@
                 placeholder="Оставьте пустым чтобы скрыть">
                 Текст меню
             </ui-input>
-
-            <!-- Пагинация для dropdown/kebab -->
-            <ui-input
-                v-if="props.orientation === 'dropdown' || props.orientation === 'kebab'"
-                prop="itemsPerPage"
-                type="number"
-                :min="1"
-                placeholder="6">
-                Элементов на странице
-            </ui-input>
-
-            <!-- Режим открытия для dropdown/kebab -->
-            <ui-select
-                v-if="props.orientation === 'dropdown' || props.orientation === 'kebab'"
-                prop="openMode"
-                :options="options.openModes"
-                label="Режим открытия меню">
-            </ui-select>
 
             <ui-select prop="buttonStyle" :options="options.buttonStyles" label="Стиль кнопок"></ui-select>
 
@@ -88,9 +70,34 @@
                 Расстояние между кнопками
             </ui-input-units>
 
-            <ui-input prop="borderRadius" placeholder="6px">Скругление углов</ui-input>
+            <ui-input prop="borderRadius" placeholder="0.375rem">Скругление углов</ui-input>
 
             <ui-input prop="fontFamily" placeholder="inherit">Семейство шрифта</ui-input>
+
+            <!-- Пагинация (только для dropdown/kebab) -->
+            <template v-if="props.orientation === 'dropdown' || props.orientation === 'kebab'">
+                <div class="form-label form-label-small mt-3">Пагинация</div>
+
+                <ui-checkbox prop="enablePagination">Включить пагинацию</ui-checkbox>
+
+                <!-- Поля пагинации (только если включена) -->
+                <template v-if="props.enablePagination">
+                    <ui-input
+                        prop="itemsPerPage"
+                        type="number"
+                        :min="1"
+                        placeholder="6">
+                        Элементов на странице
+                    </ui-input>
+                </template>
+
+                <!-- Режим открытия меню -->
+                <ui-select
+                    prop="openMode"
+                    :options="options.openModes"
+                    label="Режим открытия меню">
+                </ui-select>
+            </template>
         </ui-container>
     </w-panel>
 </template>
