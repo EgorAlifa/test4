@@ -217,10 +217,14 @@ export default {
             const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'rem' };
             const padding = `${paddingObj.size}${paddingObj.unit}`;
 
+            const borderColor = this.props.showToggleBorder
+                ? (this.props.toggleBorderColor || '#1f2937')
+                : 'transparent';
+
             return {
                 padding,
                 borderRadius: this.props.borderRadius || '0.375rem',
-                border: `1px solid ${this.props.textColor || '#1f2937'}`,
+                border: `1px solid ${borderColor}`,
                 backgroundColor: this.props.backgroundColor || '#ffffff',
                 cursor: 'pointer'
             };
@@ -231,6 +235,10 @@ export default {
             const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'rem' };
             const gap = `${gapObj.size}${gapObj.unit}`;
 
+            const borderColor = this.props.showMenuBorder
+                ? (this.props.menuBorderColor || '#1f2937')
+                : 'transparent';
+
             const baseStyle = {
                 display: 'flex',
                 flexDirection: 'column',
@@ -238,7 +246,7 @@ export default {
                 marginTop: gap,
                 padding: gap,
                 backgroundColor: this.props.backgroundColor || '#ffffff',
-                border: `1px solid ${this.props.textColor || '#1f2937'}`,
+                border: `1px solid ${borderColor}`,
                 borderRadius: this.props.borderRadius || '0.375rem',
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
             };
@@ -267,11 +275,15 @@ export default {
             const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'rem' };
             const fontSize = `${fontSizeObj.size}${fontSizeObj.unit}`;
 
+            const borderColor = this.props.showToggleBorder
+                ? (this.props.toggleBorderColor || '#1f2937')
+                : 'transparent';
+
             return {
                 padding,
                 fontSize,
                 borderRadius: this.props.borderRadius || '0.375rem',
-                border: `1px solid ${this.props.textColor || '#1f2937'}`,
+                border: `1px solid ${borderColor}`,
                 backgroundColor: this.props.backgroundColor || '#ffffff',
                 color: this.props.textColor || '#1f2937',
                 cursor: 'pointer',
@@ -284,6 +296,10 @@ export default {
             const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'rem' };
             const gap = `${gapObj.size}${gapObj.unit}`;
 
+            const borderColor = this.props.showMenuBorder
+                ? (this.props.menuBorderColor || '#1f2937')
+                : 'transparent';
+
             const baseStyle = {
                 display: 'flex',
                 flexDirection: 'column',
@@ -291,7 +307,7 @@ export default {
                 marginTop: gap,
                 padding: gap,
                 backgroundColor: this.props.backgroundColor || '#ffffff',
-                border: `1px solid ${this.props.textColor || '#1f2937'}`,
+                border: `1px solid ${borderColor}`,
                 borderRadius: this.props.borderRadius || '0.375rem',
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
             };
@@ -373,7 +389,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v16-CleanLogs | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v17-BorderControls | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
             const globalSources = [
