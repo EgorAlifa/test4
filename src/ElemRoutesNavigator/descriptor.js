@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-syntax */
+import panels from './panels';
 
 /**
  * @return {ElemDescriptor}
@@ -103,7 +104,8 @@ export const descriptor = () => ({
 });
 
 export const meta = {
-    descriptor
+    descriptor,
+    panels
 };
 
 export default descriptor;
