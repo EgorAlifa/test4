@@ -19,7 +19,7 @@ export const descriptor = () => ({
         showSlug: {
             type: Boolean,
             default: false,
-            label: 'Показывать ссылку'
+            label: 'Показывать относительный путь'
         },
         orientation: {
             type: String,
