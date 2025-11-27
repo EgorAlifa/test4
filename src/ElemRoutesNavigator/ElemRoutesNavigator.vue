@@ -7,13 +7,16 @@
             </h2>
 
             <!-- Dropdown -->
-            <nav v-if="props.orientation === 'dropdown'" class="routes-nav-dropdown">
+            <nav
+                v-if="props.orientation === 'dropdown'"
+                class="routes-nav-dropdown"
+                @mouseenter="props.openMode === 'hover' && openMenu()"
+                @mouseleave="props.openMode === 'hover' && closeMenu()"
+            >
                 <button
                     class="dropdown-toggle"
                     :class="{ 'dropdown-toggle-open': isMenuOpen }"
                     @click="props.openMode === 'click' && toggleMenu()"
-                    @mouseenter="props.openMode === 'hover' && openMenu()"
-                    @mouseleave="props.openMode === 'hover' && closeMenu()"
                     type="button"
                     :style="dropdownToggleStyle"
                 >
@@ -24,8 +27,7 @@
                     v-if="isMenuOpen"
                     class="dropdown-menu"
                     :style="dropdownMenuStyle"
-                    @mouseenter="props.openMode === 'hover' && openMenu()"
-                    @mouseleave="props.openMode === 'hover' && closeMenu()">
+                >
                     <button
                         v-for="(route, index) in displayRoutes"
                         :key="route.id || index"
@@ -44,13 +46,16 @@
             </nav>
 
             <!-- Kebab Menu (Hamburger) -->
-            <nav v-else-if="props.orientation === 'kebab'" class="routes-nav-kebab">
+            <nav
+                v-else-if="props.orientation === 'kebab'"
+                class="routes-nav-kebab"
+                @mouseenter="props.openMode === 'hover' && openMenu()"
+                @mouseleave="props.openMode === 'hover' && closeMenu()"
+            >
                 <button
                     class="kebab-toggle"
                     :class="{ 'kebab-toggle-open': isMenuOpen }"
                     @click="props.openMode === 'click' && toggleMenu()"
-                    @mouseenter="props.openMode === 'hover' && openMenu()"
-                    @mouseleave="props.openMode === 'hover' && closeMenu()"
                     type="button"
                     :style="kebabToggleStyle"
                 >
@@ -62,8 +67,7 @@
                     v-if="isMenuOpen"
                     class="kebab-menu"
                     :style="kebabMenuStyle"
-                    @mouseenter="props.openMode === 'hover' && openMenu()"
-                    @mouseleave="props.openMode === 'hover' && closeMenu()">
+                >
                     <button
                         v-for="(route, index) in displayRoutes"
                         :key="route.id || index"
@@ -226,7 +230,7 @@ export default {
 
             // Добавляем пагинацию со скроллом
             if (this.routes.length > this.props.itemsPerPage) {
-                const itemHeight = 2.5; // Примерная высота одной кнопки в rem
+                const itemHeight = 3; // Примерная высота одной кнопки с отступами в rem
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
                 baseStyle.overflowY = 'auto';
@@ -279,7 +283,7 @@ export default {
 
             // Добавляем пагинацию со скроллом
             if (this.routes.length > this.props.itemsPerPage) {
-                const itemHeight = 2.5; // Примерная высота одной кнопки в rem
+                const itemHeight = 3; // Примерная высота одной кнопки с отступами в rem
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
                 baseStyle.overflowY = 'auto';
@@ -360,7 +364,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v11-RemUnits | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v12-HoverFix | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
             console.log('[ElemRoutesNavigator] Checking global objects for app.json...');
