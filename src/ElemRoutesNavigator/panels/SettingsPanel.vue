@@ -20,9 +20,15 @@
 
             <ui-checkbox prop="showSlug">Показывать пути страниц</ui-checkbox>
 
-            <ui-checkbox prop="enableReorder">Разрешить изменение порядка страниц</ui-checkbox>
-
             <ui-select prop="orientation" :options="options.orientations" label="Ориентация"></ui-select>
+
+            <!-- Настройка текста для dropdown/kebab меню -->
+            <ui-input
+                v-if="props.orientation === 'dropdown' || props.orientation === 'kebab'"
+                prop="dropdownText"
+                placeholder="Меню навигации">
+                Текст меню
+            </ui-input>
 
             <ui-select prop="buttonStyle" :options="options.buttonStyles" label="Стиль кнопок"></ui-select>
 
