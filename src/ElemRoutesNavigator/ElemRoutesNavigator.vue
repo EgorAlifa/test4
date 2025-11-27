@@ -143,6 +143,9 @@ export default {
         async loadRoutes(retryDelay = 0) {
             this.loadAttempts += 1;
 
+            // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v2 | Attempt:', this.loadAttempts);
+
             // СНАЧАЛА пытаемся найти уже загруженный app.json в глобальных объектах
             console.log('[ElemRoutesNavigator] Checking global objects for app.json...');
             const globalSources = [
