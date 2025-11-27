@@ -755,7 +755,7 @@ export default {
         /**
          * Обработчик отпускания элемента
          */
-        onDrop(index, event) {
+        async onDrop(index, event) {
             if (!this.canReorder || this.draggedIndex === null) return;
 
             event.preventDefault();
