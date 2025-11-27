@@ -161,8 +161,8 @@ export default {
             return {
                 backgroundColor: this.props.backgroundColor || '#ffffff',
                 color: this.props.textColor || '#1f2937',
-                borderRadius: this.props.borderRadius || '6px',
-                padding: '16px'
+                borderRadius: this.props.borderRadius || '0.375rem',
+                padding: '1rem'
             };
         },
 
@@ -220,15 +220,15 @@ export default {
                 padding: gap,
                 backgroundColor: this.props.backgroundColor || '#ffffff',
                 border: `1px solid ${this.props.textColor || '#1f2937'}`,
-                borderRadius: this.props.borderRadius || '6px',
+                borderRadius: this.props.borderRadius || '0.375rem',
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
             };
 
             // Добавляем пагинацию со скроллом
             if (this.routes.length > this.props.itemsPerPage) {
-                const itemHeight = 40; // Примерная высота одной кнопки в px
+                const itemHeight = 2.5; // Примерная высота одной кнопки в rem
                 const maxHeight = this.props.itemsPerPage * itemHeight;
-                baseStyle.maxHeight = `${maxHeight}px`;
+                baseStyle.maxHeight = `${maxHeight}rem`;
                 baseStyle.overflowY = 'auto';
             }
 
@@ -273,15 +273,15 @@ export default {
                 padding: gap,
                 backgroundColor: this.props.backgroundColor || '#ffffff',
                 border: `1px solid ${this.props.textColor || '#1f2937'}`,
-                borderRadius: this.props.borderRadius || '6px',
+                borderRadius: this.props.borderRadius || '0.375rem',
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
             };
 
             // Добавляем пагинацию со скроллом
             if (this.routes.length > this.props.itemsPerPage) {
-                const itemHeight = 40; // Примерная высота одной кнопки в px
+                const itemHeight = 2.5; // Примерная высота одной кнопки в rem
                 const maxHeight = this.props.itemsPerPage * itemHeight;
-                baseStyle.maxHeight = `${maxHeight}px`;
+                baseStyle.maxHeight = `${maxHeight}rem`;
                 baseStyle.overflowY = 'auto';
             }
 
@@ -360,7 +360,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v10-AppJson | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v11-RemUnits | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
             console.log('[ElemRoutesNavigator] Checking global objects for app.json...');
@@ -595,7 +595,7 @@ export default {
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '0.5rem',
                 width: this.props.orientation === 'vertical' ? '100%' : 'auto',
                 textAlign: 'left',
                 fontFamily: this.props.fontFamily || 'inherit'
