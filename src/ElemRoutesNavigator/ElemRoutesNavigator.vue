@@ -260,9 +260,6 @@ export default {
         await this.loadRoutes();
         this.detectCurrentSlug();
 
-        // Загружаем сохраненный порядок страниц
-        this.loadRoutesOrder();
-
         // В редакторе запускаем наблюдение за изменениями списка страниц
         if (!this.isPlayerMode) {
             this.startEditorPagesObserver();
@@ -340,8 +337,6 @@ export default {
                 const newRoutes = this.parseEditorPages();
                 if (newRoutes.length > 0) {
                     this.routes = newRoutes;
-                    // Применяем сохраненный порядок после обновления списка
-                    this.loadRoutesOrder();
                 }
             });
 
@@ -360,7 +355,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v3 | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v4 | Attempt:', this.loadAttempts);
 
             // СНАЧАЛА пытаемся парсить страницы из HTML редактора
             const editorRoutes = this.parseEditorPages();
@@ -599,65 +594,45 @@ export default {
         },
 
         /**
-         * Получить ключ для сохранения порядка страниц в localStorage
+         * Перемещает элементы страниц в DOM правой панели редактора
+         * Это изменит порядок в app.json автоматически
          */
-        getStorageKey() {
-            // Используем URL проекта как ключ
-            const projectUrl = typeof window !== 'undefined' ? window.location.pathname : '';
-            return `elemRoutesNavigator_order_${projectUrl}`;
-        },
-
-        /**
-         * Сохранить порядок страниц в localStorage
-         */
-        saveRoutesOrder() {
+        reorderPagesInDOM(fromIndex, toIndex) {
             if (!this.canReorder) return;
 
-            const order = this.routes.map(route => route.slug || route.id);
-            const storageKey = this.getStorageKey();
-
             try {
-                localStorage.setItem(storageKey, JSON.stringify(order));
-                console.log('[ElemRoutesNavigator] 💾 Saved routes order:', order);
+                const pageItems = document.querySelectorAll('.ui-list-item');
+                if (!pageItems || pageItems.length === 0) {
+                    console.warn('[ElemRoutesNavigator] No page items found in DOM');
+                    return;
+                }
+
+                const fromElement = pageItems[fromIndex];
+                const toElement = pageItems[toIndex];
+
+                if (!fromElement || !toElement) {
+                    console.warn('[ElemRoutesNavigator] Page elements not found at indices', fromIndex, toIndex);
+                    return;
+                }
+
+                const parent = fromElement.parentElement;
+                if (!parent) {
+                    console.warn('[ElemRoutesNavigator] Parent element not found');
+                    return;
+                }
+
+                // Перемещаем элемент в DOM
+                if (fromIndex < toIndex) {
+                    // Перемещаем вниз - вставляем после toElement
+                    parent.insertBefore(fromElement, toElement.nextSibling);
+                } else {
+                    // Перемещаем вверх - вставляем перед toElement
+                    parent.insertBefore(fromElement, toElement);
+                }
+
+                console.log('[ElemRoutesNavigator] ✅ Reordered pages in DOM:', fromIndex, '→', toIndex);
             } catch (error) {
-                console.warn('[ElemRoutesNavigator] Failed to save routes order:', error);
-            }
-        },
-
-        /**
-         * Загрузить сохраненный порядок и применить к routes
-         */
-        loadRoutesOrder() {
-            const storageKey = this.getStorageKey();
-
-            try {
-                const savedOrder = localStorage.getItem(storageKey);
-                if (!savedOrder) return;
-
-                const order = JSON.parse(savedOrder);
-                if (!Array.isArray(order) || order.length === 0) return;
-
-                // Сортируем routes согласно сохраненному порядку
-                const sortedRoutes = [];
-                const routesMap = new Map(this.routes.map(r => [r.slug || r.id, r]));
-
-                // Сначала добавляем в сохраненном порядке
-                order.forEach(key => {
-                    if (routesMap.has(key)) {
-                        sortedRoutes.push(routesMap.get(key));
-                        routesMap.delete(key);
-                    }
-                });
-
-                // Затем добавляем новые страницы, которых не было в сохраненном порядке
-                routesMap.forEach(route => {
-                    sortedRoutes.push(route);
-                });
-
-                this.routes = sortedRoutes;
-                console.log('[ElemRoutesNavigator] 📥 Loaded routes order from storage');
-            } catch (error) {
-                console.warn('[ElemRoutesNavigator] Failed to load routes order:', error);
+                console.error('[ElemRoutesNavigator] Error reordering pages in DOM:', error);
             }
         },
 
@@ -702,18 +677,23 @@ export default {
 
             // Меняем местами элементы
             if (this.draggedIndex !== index) {
+                const fromIndex = this.draggedIndex;
+                const toIndex = index;
+
+                // Перемещаем элементы в DOM правой панели
+                // Это автоматически изменит порядок в app.json
+                this.reorderPagesInDOM(fromIndex, toIndex);
+
+                // Обновляем локальный массив для отображения
                 const newRoutes = [...this.routes];
-                const draggedItem = newRoutes[this.draggedIndex];
+                const draggedItem = newRoutes[fromIndex];
 
                 // Удаляем из старой позиции
-                newRoutes.splice(this.draggedIndex, 1);
+                newRoutes.splice(fromIndex, 1);
                 // Вставляем в новую позицию
-                newRoutes.splice(index, 0, draggedItem);
+                newRoutes.splice(toIndex, 0, draggedItem);
 
                 this.routes = newRoutes;
-
-                // Сохраняем новый порядок
-                this.saveRoutesOrder();
             }
 
             this.draggedIndex = null;
