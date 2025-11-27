@@ -21,10 +21,10 @@ export const descriptor = () => ({
             default: true,
             label: 'Показывать пути страниц'
         },
-        showActivePage: {
+        enableReorder: {
             type: Boolean,
-            default: true,
-            label: 'Показывать текущую страницу'
+            default: false,
+            label: 'Разрешить изменение порядка страниц'
         },
         orientation: {
             type: String,

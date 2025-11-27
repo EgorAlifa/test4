@@ -15,21 +15,6 @@
     flex-shrink: 0;
 }
 
-.editor-hint {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    padding: 6px 12px;
-    background-color: #fef3c7;
-    border: 1px solid #fbbf24;
-    border-radius: 6px;
-    font-size: 0.75em;
-    color: #92400e;
-    z-index: 100;
-    pointer-events: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
 .routes-nav {
     flex: 1;
     overflow-y: auto;
@@ -63,6 +48,33 @@
     font-size: 0.85em;
     opacity: 0.7;
     font-family: monospace;
+}
+
+/* Drag & Drop Styles */
+.route-button.draggable {
+    cursor: move;
+}
+
+.route-button.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+.route-button.drag-over {
+    border: 2px dashed #3b82f6;
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.drag-handle {
+    font-size: 1.2em;
+    color: #9ca3af;
+    cursor: grab;
+    user-select: none;
+    line-height: 1;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
 }
 
 .empty-state {
