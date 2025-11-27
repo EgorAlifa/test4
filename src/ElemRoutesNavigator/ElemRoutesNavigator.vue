@@ -286,9 +286,16 @@ export default {
 
             const pageItems = document.querySelectorAll('.ui-list-item');
             const routes = [];
+            const seenSlugs = new Set(); // Для предотвращения дубликатов
 
             pageItems.forEach((item, index) => {
                 try {
+                    // Пропускаем старые элементы с классом .page-item
+                    if (item.classList.contains('page-item')) {
+                        console.log('[ElemRoutesNavigator] ⏭️ Skipping old .page-item element');
+                        return;
+                    }
+
                     const textContainer = item.querySelector('.text-truncate');
                     if (!textContainer) return;
 
@@ -297,10 +304,12 @@ export default {
                     const title = titleElement ? titleElement.getAttribute('title') : null;
 
                     // Извлекаем slug из второго div с классами color-grey text-xsmall
+                    // ВАЖНО: НЕ .page-item__slug, а просто .color-grey.text-xsmall
                     const slugElement = textContainer.querySelector('.color-grey.text-xsmall');
                     const slugText = slugElement ? slugElement.textContent.trim() : null;
 
-                    if (title && slugText) {
+                    if (title && slugText && !seenSlugs.has(slugText)) {
+                        seenSlugs.add(slugText);
                         routes.push({
                             id: `editor-page-${index}`,
                             title,
@@ -335,8 +344,13 @@ export default {
             this.mutationObserver = new MutationObserver(() => {
                 console.log('[ElemRoutesNavigator] 🔄 Pages list changed, updating routes...');
                 const newRoutes = this.parseEditorPages();
-                if (newRoutes.length > 0) {
+
+                // Обновляем только если routes действительно изменились
+                if (newRoutes.length > 0 && this.routesChanged(newRoutes)) {
                     this.routes = newRoutes;
+                    console.log('[ElemRoutesNavigator] ✅ Routes updated:', this.routes.length);
+                } else {
+                    console.log('[ElemRoutesNavigator] ⏭️ Routes unchanged, skipping update');
                 }
             });
 
@@ -355,7 +369,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v4 | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v6 | Attempt:', this.loadAttempts);
 
             // СНАЧАЛА пытаемся парсить страницы из HTML редактора
             const editorRoutes = this.parseEditorPages();
@@ -458,6 +472,24 @@ export default {
             if (typeof window !== 'undefined') {
                 this.currentSlug = window.location.pathname;
             }
+        },
+
+        /**
+         * Проверяет изменились ли routes
+         */
+        routesChanged(newRoutes) {
+            if (this.routes.length !== newRoutes.length) {
+                return true;
+            }
+
+            // Сравниваем slugs в том же порядке
+            for (let i = 0; i < this.routes.length; i++) {
+                if (this.routes[i].slug !== newRoutes[i].slug || this.routes[i].title !== newRoutes[i].title) {
+                    return true;
+                }
+            }
+
+            return false;
         },
 
         /**
