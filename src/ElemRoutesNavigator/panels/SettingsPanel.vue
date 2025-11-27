@@ -23,7 +23,7 @@
             <!-- Основные настройки -->
             <div class="form-label form-label-small mt-3">Основные настройки</div>
 
-            <ui-checkbox prop="showIcons">Показывать иконки</ui-checkbox>
+            <ui-checkbox prop="showSlug">Показывать путь (slug)</ui-checkbox>
 
             <ui-select prop="orientation" :options="options.orientations" label="Ориентация"></ui-select>
 

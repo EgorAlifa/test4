@@ -15,6 +15,17 @@
     flex-shrink: 0;
 }
 
+.editor-hint {
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background-color: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: 6px;
+    font-size: 0.875em;
+    color: #92400e;
+    flex-shrink: 0;
+}
+
 .routes-nav {
     flex: 1;
     overflow-y: auto;
@@ -37,13 +48,6 @@
 
 .route-button:active {
     transform: scale(0.98);
-}
-
-.route-icon {
-    font-size: 1.2em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .route-title {
@@ -136,31 +140,6 @@
 .kebab-menu .route-button {
     width: 100%;
     justify-content: flex-start;
-}
-
-/* Tabs Styles */
-.routes-nav-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    border-bottom: 2px solid #e5e7eb;
-    padding-bottom: 0;
-}
-
-.routes-nav-tabs .route-button {
-    border-bottom: 3px solid transparent;
-    border-radius: 6px 6px 0 0;
-    margin-bottom: -2px;
-    transition: all 0.2s ease;
-}
-
-.routes-nav-tabs .route-button-active {
-    border-bottom-color: currentColor;
-}
-
-.routes-nav-tabs .route-button:hover {
-    transform: translateY(-2px);
-    background-color: rgba(0, 0, 0, 0.05);
 }
 
 /* Dropdown Styles */

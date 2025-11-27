@@ -16,10 +16,10 @@ export const descriptor = () => ({
             default: true,
             label: 'Показывать заголовок'
         },
-        showIcons: {
+        showSlug: {
             type: Boolean,
-            default: true,
-            label: 'Показывать иконки'
+            default: false,
+            label: 'Показывать slug (путь)'
         },
         orientation: {
             type: String,
