@@ -290,6 +290,12 @@ export default {
 
             pageItems.forEach((item, index) => {
                 try {
+                    // Пропускаем старые элементы с классом .page-item
+                    if (item.classList.contains('page-item')) {
+                        console.log('[ElemRoutesNavigator] ⏭️ Skipping old .page-item element');
+                        return;
+                    }
+
                     const textContainer = item.querySelector('.text-truncate');
                     if (!textContainer) return;
 
@@ -298,6 +304,7 @@ export default {
                     const title = titleElement ? titleElement.getAttribute('title') : null;
 
                     // Извлекаем slug из второго div с классами color-grey text-xsmall
+                    // ВАЖНО: НЕ .page-item__slug, а просто .color-grey.text-xsmall
                     const slugElement = textContainer.querySelector('.color-grey.text-xsmall');
                     const slugText = slugElement ? slugElement.textContent.trim() : null;
 
@@ -362,7 +369,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v5 | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v6 | Attempt:', this.loadAttempts);
 
             // СНАЧАЛА пытаемся парсить страницы из HTML редактора
             const editorRoutes = this.parseEditorPages();
