@@ -73,13 +73,19 @@
                     v-for="(route, index) in displayRoutes"
                     :key="route.id || index"
                     class="route-button"
-                    :class="getButtonClass(route)"
+                    :class="getButtonClass(route, index)"
                     :style="getButtonStyle(route, index)"
+                    :draggable="canReorder"
                     @click="navigateToRoute(route)"
                     @mouseenter="hoveredIndex = index"
                     @mouseleave="hoveredIndex = null"
+                    @dragstart="onDragStart(index, $event)"
+                    @dragover="onDragOver(index, $event)"
+                    @drop="onDrop(index, $event)"
+                    @dragend="onDragEnd"
                     type="button"
                 >
+                    <span v-if="canReorder" class="drag-handle">⋮⋮</span>
                     <span class="route-title">{{ route.title || route.name }}</span>
                     <span v-if="props.showSlug && route.slug" class="route-slug">{{ route.slug }}</span>
                 </button>
@@ -120,7 +126,9 @@ export default {
         maxAttempts: 5,
         isReady: false,
         isMenuOpen: false,
-        mutationObserver: null
+        mutationObserver: null,
+        draggedIndex: null,
+        dragOverIndex: null
     }),
 
     computed: {
@@ -128,6 +136,11 @@ export default {
             // В плеере показываем routes из app.json
             // В редакторе показываем routes распарсенные из HTML
             return this.routes;
+        },
+
+        canReorder() {
+            // Перетаскивание доступно только в редакторе и только если включено
+            return !this.isPlayerMode && this.props.enableReorder;
         },
 
         containerStyle() {
@@ -246,6 +259,9 @@ export default {
         await this.loadRoutes();
         this.detectCurrentSlug();
 
+        // Загружаем сохраненный порядок страниц
+        this.loadRoutesOrder();
+
         // В редакторе запускаем наблюдение за изменениями списка страниц
         if (!this.isPlayerMode) {
             this.startEditorPagesObserver();
@@ -320,6 +336,8 @@ export default {
                 const newRoutes = this.parseEditorPages();
                 if (newRoutes.length > 0) {
                     this.routes = newRoutes;
+                    // Применяем сохраненный порядок после обновления списка
+                    this.loadRoutesOrder();
                 }
             });
 
@@ -491,7 +509,7 @@ export default {
             }
         },
 
-        getButtonClass(route) {
+        getButtonClass(route, index) {
             const classes = [];
 
             if (this.props.buttonStyle) {
@@ -500,6 +518,18 @@ export default {
 
             if (this.isActive(route)) {
                 classes.push('route-button-active');
+            }
+
+            if (this.canReorder) {
+                classes.push('draggable');
+            }
+
+            if (this.draggedIndex === index) {
+                classes.push('dragging');
+            }
+
+            if (this.dragOverIndex === index && this.draggedIndex !== index) {
+                classes.push('drag-over');
             }
 
             return classes;
@@ -555,11 +585,134 @@ export default {
         },
 
         isActive(route) {
-            // Подсвечивать активную страницу только если включено showActivePage
-            if (!this.props.showActivePage) {
-                return false;
-            }
             return this.currentSlug === route.slug;
+        },
+
+        /**
+         * Получить ключ для сохранения порядка страниц в localStorage
+         */
+        getStorageKey() {
+            // Используем URL проекта как ключ
+            const projectUrl = typeof window !== 'undefined' ? window.location.pathname : '';
+            return `elemRoutesNavigator_order_${projectUrl}`;
+        },
+
+        /**
+         * Сохранить порядок страниц в localStorage
+         */
+        saveRoutesOrder() {
+            if (!this.canReorder) return;
+
+            const order = this.routes.map(route => route.slug || route.id);
+            const storageKey = this.getStorageKey();
+
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(order));
+                console.log('[ElemRoutesNavigator] 💾 Saved routes order:', order);
+            } catch (error) {
+                console.warn('[ElemRoutesNavigator] Failed to save routes order:', error);
+            }
+        },
+
+        /**
+         * Загрузить сохраненный порядок и применить к routes
+         */
+        loadRoutesOrder() {
+            const storageKey = this.getStorageKey();
+
+            try {
+                const savedOrder = localStorage.getItem(storageKey);
+                if (!savedOrder) return;
+
+                const order = JSON.parse(savedOrder);
+                if (!Array.isArray(order) || order.length === 0) return;
+
+                // Сортируем routes согласно сохраненному порядку
+                const sortedRoutes = [];
+                const routesMap = new Map(this.routes.map(r => [r.slug || r.id, r]));
+
+                // Сначала добавляем в сохраненном порядке
+                order.forEach(key => {
+                    if (routesMap.has(key)) {
+                        sortedRoutes.push(routesMap.get(key));
+                        routesMap.delete(key);
+                    }
+                });
+
+                // Затем добавляем новые страницы, которых не было в сохраненном порядке
+                routesMap.forEach(route => {
+                    sortedRoutes.push(route);
+                });
+
+                this.routes = sortedRoutes;
+                console.log('[ElemRoutesNavigator] 📥 Loaded routes order from storage');
+            } catch (error) {
+                console.warn('[ElemRoutesNavigator] Failed to load routes order:', error);
+            }
+        },
+
+        /**
+         * Обработчик начала перетаскивания
+         */
+        onDragStart(index, event) {
+            if (!this.canReorder) return;
+
+            this.draggedIndex = index;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/html', event.target.innerHTML);
+
+            // Добавляем класс для визуального эффекта
+            event.target.classList.add('dragging');
+        },
+
+        /**
+         * Обработчик перетаскивания над элементом
+         */
+        onDragOver(index, event) {
+            if (!this.canReorder || this.draggedIndex === null) return;
+
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+
+            this.dragOverIndex = index;
+        },
+
+        /**
+         * Обработчик отпускания элемента
+         */
+        onDrop(index, event) {
+            if (!this.canReorder || this.draggedIndex === null) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            // Меняем местами элементы
+            if (this.draggedIndex !== index) {
+                const newRoutes = [...this.routes];
+                const draggedItem = newRoutes[this.draggedIndex];
+
+                // Удаляем из старой позиции
+                newRoutes.splice(this.draggedIndex, 1);
+                // Вставляем в новую позицию
+                newRoutes.splice(index, 0, draggedItem);
+
+                this.routes = newRoutes;
+
+                // Сохраняем новый порядок
+                this.saveRoutesOrder();
+            }
+
+            this.draggedIndex = null;
+            this.dragOverIndex = null;
+        },
+
+        /**
+         * Обработчик завершения перетаскивания
+         */
+        onDragEnd(event) {
+            event.target.classList.remove('dragging');
+            this.draggedIndex = null;
+            this.dragOverIndex = null;
         }
     }
 };

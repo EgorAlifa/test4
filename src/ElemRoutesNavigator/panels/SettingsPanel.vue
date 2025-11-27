@@ -20,7 +20,7 @@
 
             <ui-checkbox prop="showSlug">Показывать пути страниц</ui-checkbox>
 
-            <ui-checkbox prop="showActivePage">Показывать текущую страницу</ui-checkbox>
+            <ui-checkbox prop="enableReorder">Разрешить изменение порядка страниц</ui-checkbox>
 
             <ui-select prop="orientation" :options="options.orientations" label="Ориентация"></ui-select>
 
