@@ -21,14 +21,14 @@ export const descriptor = () => ({
             default: true,
             label: 'Показывать пути страниц'
         },
-        showHint: {
+        showActivePage: {
             type: Boolean,
             default: true,
-            label: 'Показывать подсказку режима'
+            label: 'Показывать текущую страницу'
         },
         orientation: {
             type: String,
-            default: 'vertical',
+            default: 'horizontal',
             label: 'Ориентация'
         },
         buttonStyle: {
@@ -76,10 +76,10 @@ export const descriptor = () => ({
             default: () => ({ size: 0.875, unit: 'rem' }),
             label: 'Размер шрифта'
         },
-        appJsonUrl: {
+        fontFamily: {
             type: String,
-            default: 'app.json',
-            label: 'Путь к app.json'
+            default: 'inherit',
+            label: 'Семейство шрифта'
         }
     }
 });

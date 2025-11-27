@@ -6,15 +6,6 @@
                 {{ props.title }}
             </h2>
 
-            <!-- Информационная подсказка для редактора -->
-            <div
-                v-if="!isPlayerMode && props.showHint"
-                class="editor-hint"
-                title="Виджет автоматически отображает список страниц из редактора. В плеере загрузятся маршруты из app.json"
-            >
-                💡 Режим редактора
-            </div>
-
             <!-- Dropdown -->
             <nav v-if="props.orientation === 'dropdown'" class="routes-nav-dropdown">
                 <button
@@ -157,7 +148,8 @@ export default {
                 fontSize,
                 fontWeight: '600',
                 marginBottom: '0.75rem',
-                color: this.props.textColor || '#1f2937'
+                color: this.props.textColor || '#1f2937',
+                fontFamily: this.props.fontFamily || 'inherit'
             };
         },
 
@@ -226,7 +218,8 @@ export default {
                 border: `1px solid ${this.props.textColor || '#1f2937'}`,
                 backgroundColor: this.props.backgroundColor || '#ffffff',
                 color: this.props.textColor || '#1f2937',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                fontFamily: this.props.fontFamily || 'inherit'
             };
         },
 
@@ -533,7 +526,8 @@ export default {
                 alignItems: 'center',
                 gap: '8px',
                 width: this.props.orientation === 'vertical' ? '100%' : 'auto',
-                textAlign: 'left'
+                textAlign: 'left',
+                fontFamily: this.props.fontFamily || 'inherit'
             };
 
             // Определяем цвет кнопки
@@ -561,6 +555,10 @@ export default {
         },
 
         isActive(route) {
+            // Подсвечивать активную страницу только если включено showActivePage
+            if (!this.props.showActivePage) {
+                return false;
+            }
             return this.currentSlug === route.slug;
         }
     }
