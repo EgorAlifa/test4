@@ -126,11 +126,9 @@ export default {
         maxAttempts: 5,
         isReady: false,
         isMenuOpen: false,
-        pollingInterval: null,
         draggedIndex: null,
         dragOverIndex: null,
-        isDragging: false,
-        applicationData: null // Данные из API /api/application/{id}
+        isDragging: false
     }),
 
     computed: {
@@ -261,47 +259,19 @@ export default {
         await this.loadRoutes();
         this.detectCurrentSlug();
 
-        // В редакторе запускаем периодический опрос данных
-        if (!this.isPlayerMode) {
-            this.startEditorDataPolling();
-        }
-
         // Небольшая задержка перед показом чтобы не мелькали моки
         await new Promise(resolve => setTimeout(resolve, 100)); // eslint-disable-line no-magic-numbers
         this.isReady = true;
     },
 
-    beforeDestroy() {
-        // Останавливаем polling при удалении виджета
-        if (this.pollingInterval) {
-            clearInterval(this.pollingInterval);
-        }
-    },
-
     methods: {
         /**
-         * Получает ID приложения из глобальных переменных
+         * Получает ID приложения из URL
          */
         getApplicationId() {
             if (typeof window === 'undefined') return null;
 
-            // Пробуем разные источники
-            const sources = [
-                window.__APPLICATION_ID__,
-                window.applicationId,
-                window.appId,
-                window.goodt?.applicationId,
-                window.goodt?.appId
-            ];
-
-            for (const source of sources) {
-                if (source) {
-                    console.log('[ElemRoutesNavigator] Found application ID:', source);
-                    return source;
-                }
-            }
-
-            // Пробуем извлечь из URL
+            // Извлекаем из URL
             // Поддерживаем разные паттерны URL:
             // - /apps/edit/3096 (редактор)
             // - /application/3096 (плеер)
@@ -318,105 +288,47 @@ export default {
                 }
             }
 
-            console.warn('[ElemRoutesNavigator] Could not find application ID');
+            console.warn('[ElemRoutesNavigator] Could not find application ID in URL');
             return null;
         },
 
         /**
-         * Получает данные приложения из API /api/application/{id}
+         * Строит URL для app.json на основе текущего URL
+         * Логика:
+         * 1. Для редактора: обрезает до /editor и добавляет /player/{id}/app.json
+         * 2. Для плеера: добавляет /app.json к текущему URL
          */
-        async fetchApplicationData() {
+        buildAppJsonUrl() {
             if (typeof window === 'undefined') return null;
 
             const appId = this.getApplicationId();
-            if (!appId) {
-                console.warn('[ElemRoutesNavigator] No application ID found, cannot fetch data');
-                return null;
+            const currentUrl = window.location.href;
+            const currentPath = window.location.pathname;
+
+            // Для редактора: обрезаем до /editor и добавляем /player/{id}/app.json
+            if (currentPath.includes('/editor/')) {
+                const editorIndex = currentUrl.indexOf('/editor/');
+                if (editorIndex !== -1 && appId) {
+                    const baseUrl = currentUrl.substring(0, editorIndex + '/editor'.length);
+                    const appJsonUrl = `${baseUrl}/player/${appId}/app.json`;
+                    console.log('[ElemRoutesNavigator] Built app.json URL for editor:', appJsonUrl);
+                    return appJsonUrl;
+                }
             }
 
-            try {
-                // Строим URL относительно текущего хоста
-                const apiUrl = `/api/application/${appId}`;
-                console.log('[ElemRoutesNavigator] Fetching application data from:', apiUrl);
-
-                const response = await fetch(apiUrl);
-                if (!response.ok) {
-                    console.warn('[ElemRoutesNavigator] Failed to fetch application data:', response.status);
-                    return null;
-                }
-
-                const result = await response.json();
-                console.log('[ElemRoutesNavigator] Received application data:', result);
-
-                // Парсим JSON из поля data
-                if (result.data && typeof result.data === 'string') {
-                    const appData = JSON.parse(result.data);
-                    console.log('[ElemRoutesNavigator] Parsed application data:', appData);
-
-                    // Сохраняем полные данные для последующего обновления
-                    this.applicationData = {
-                        meta: result.meta,
-                        rawData: appData
-                    };
-
-                    // Извлекаем routes
-                    if (appData.routes && Array.isArray(appData.routes)) {
-                        console.log('[ElemRoutesNavigator] ✅ Found', appData.routes.length, 'routes in application data');
-                        return appData.routes.filter(route => route.enabled !== false);
-                    }
-                }
-
-                console.warn('[ElemRoutesNavigator] No routes found in application data');
-                return null;
-            } catch (error) {
-                console.error('[ElemRoutesNavigator] Error fetching application data:', error);
-                return null;
-            }
-        },
-
-        /**
-         * Запускает периодическое обновление данных в редакторе
-         * Проверяет изменения каждые 3 секунды
-         */
-        startEditorDataPolling() {
-            if (typeof window === 'undefined') return;
-
-            const pollInterval = 3000; // 3 секунды
-
-            const poll = async () => {
-                const newRoutes = await this.fetchApplicationData();
-
-                if (newRoutes && newRoutes.length > 0 && this.routesChanged(newRoutes)) {
-                    this.routes = newRoutes;
-                    console.log('[ElemRoutesNavigator] ✅ Routes updated from API:', this.routes.length);
-                }
-            };
-
-            // Запускаем периодический опрос
-            this.pollingInterval = setInterval(poll, pollInterval);
-            console.log('[ElemRoutesNavigator] ✅ Started polling application data every', pollInterval, 'ms');
+            // Fallback: добавляем /app.json к текущему URL
+            const fallbackUrl = `${window.location.origin}${currentPath}/app.json`.replace(/\/+/g, '/').replace(':/', '://');
+            console.log('[ElemRoutesNavigator] Built fallback app.json URL:', fallbackUrl);
+            return fallbackUrl;
         },
 
         async loadRoutes(retryDelay = 0) {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v9-API | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v10-AppJson | Attempt:', this.loadAttempts);
 
-            // СНАЧАЛА проверяем, находимся ли мы в редакторе
-            // Пробуем получить данные из API /api/application/{id}
-            const editorRoutes = await this.fetchApplicationData();
-
-            if (editorRoutes && editorRoutes.length > 0) {
-                console.log('[ElemRoutesNavigator] 🎨 Editor mode detected, loaded from API');
-                console.log('[ElemRoutesNavigator] ✅ Loaded', editorRoutes.length, 'routes from API');
-                this.routes = editorRoutes;
-                this.isPlayerMode = false;
-                return true;
-            }
-
-            // Если не в редакторе, пытаемся загрузить app.json (режим плеера)
-            console.log('[ElemRoutesNavigator] 🎮 Player mode detected, loading app.json...');
+            // Сначала проверяем глобальные объекты
             console.log('[ElemRoutesNavigator] Checking global objects for app.json...');
             const globalSources = [
                 { name: 'window.__APP_CONFIG__', value: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null },
@@ -447,16 +359,17 @@ export default {
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
             }
 
+            // Строим URL для app.json
+            const smartUrl = this.buildAppJsonUrl();
+
             // Попытка загрузить app.json из сети
-            // Используем prop appJsonUrl в первую очередь, затем fallback пути
             const possiblePaths = [
-                this.props.appJsonUrl || 'app.json',
+                this.props.appJsonUrl, // Если пользователь указал вручную
+                smartUrl, // Умный URL на основе текущего URL
                 'app.json',
                 './app.json',
-                '/app.json',
-                'config/app.json',
-                '/config/app.json'
-            ];
+                '/app.json'
+            ].filter(Boolean); // Удаляем null/undefined
 
             // Убираем дубликаты
             const uniquePaths = [...new Set(possiblePaths)];
@@ -496,10 +409,10 @@ export default {
                 return this.loadRoutes(nextDelay);
             }
 
-            // Все попытки исчерпаны - не удалось загрузить app.json в режиме плеера
+            // Все попытки исчерпаны
             console.log(`[ElemRoutesNavigator] ❌ Could not fetch app.json after ${this.loadAttempts} attempts.`);
             console.log('[ElemRoutesNavigator] ⚠️ No routes found, widget will be empty');
-            this.isPlayerMode = true; // Остаемся в режиме плеера, но без данных
+            this.isPlayerMode = true;
             this.routes = [];
             return false;
         },
@@ -662,77 +575,6 @@ export default {
         },
 
         /**
-         * Обновляет порядок routes в applicationData и сохраняет через API
-         */
-        async updateRoutesOrder(fromIndex, toIndex) {
-            if (!this.canReorder || !this.applicationData) return;
-
-            try {
-                console.log('[ElemRoutesNavigator] 🔄 Updating routes order:', fromIndex, '→', toIndex);
-
-                // Обновляем порядок в applicationData.rawData.routes
-                const routes = this.applicationData.rawData.routes;
-                const movedRoute = routes[fromIndex];
-
-                // Удаляем из старой позиции
-                routes.splice(fromIndex, 1);
-                // Вставляем в новую позицию
-                routes.splice(toIndex, 0, movedRoute);
-
-                // Обновляем applicationData
-                this.applicationData.rawData.routes = routes;
-
-                // Сохраняем изменения через API
-                await this.saveApplicationData();
-
-                console.log('[ElemRoutesNavigator] ✅ Routes order updated and saved');
-            } catch (error) {
-                console.error('[ElemRoutesNavigator] Error updating routes order:', error);
-            }
-        },
-
-        /**
-         * Сохраняет изменения applicationData обратно через API
-         */
-        async saveApplicationData() {
-            if (!this.applicationData || !this.applicationData.meta) return;
-
-            const appId = this.applicationData.meta.id;
-            if (!appId) {
-                console.warn('[ElemRoutesNavigator] No application ID, cannot save');
-                return;
-            }
-
-            try {
-                const apiUrl = `/api/application/${appId}`;
-                console.log('[ElemRoutesNavigator] Saving application data to:', apiUrl);
-
-                // Преобразуем rawData обратно в JSON-строку
-                const dataString = JSON.stringify(this.applicationData.rawData);
-
-                const response = await fetch(apiUrl, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        ...this.applicationData.meta,
-                        data: dataString
-                    })
-                });
-
-                if (!response.ok) {
-                    console.error('[ElemRoutesNavigator] Failed to save application data:', response.status);
-                    return;
-                }
-
-                console.log('[ElemRoutesNavigator] ✅ Application data saved successfully');
-            } catch (error) {
-                console.error('[ElemRoutesNavigator] Error saving application data:', error);
-            }
-        },
-
-        /**
          * Обработчик начала перетаскивания
          */
         onDragStart(index, event) {
@@ -765,7 +607,7 @@ export default {
         /**
          * Обработчик отпускания элемента
          */
-        async onDrop(index, event) {
+        onDrop(index, event) {
             if (!this.canReorder || this.draggedIndex === null) return;
 
             event.preventDefault();
@@ -787,8 +629,8 @@ export default {
 
                 this.routes = newRoutes;
 
-                // Сохраняем изменения в applicationData и через API
-                await this.updateRoutesOrder(fromIndex, toIndex);
+                console.log('[ElemRoutesNavigator] 🔄 Routes reordered:', fromIndex, '→', toIndex);
+                console.log('[ElemRoutesNavigator] Note: Changes are visual only, not saved');
             }
 
             this.draggedIndex = null;
