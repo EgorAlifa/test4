@@ -24,7 +24,7 @@ export const descriptor = () => ({
         showHint: {
             type: Boolean,
             default: true,
-            label: 'Показывать подсказку о тестовом режиме'
+            label: 'Показывать подсказку режима'
         },
         orientation: {
             type: String,

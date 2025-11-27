@@ -25,7 +25,7 @@
 
             <ui-checkbox prop="showSlug">Показывать пути страниц</ui-checkbox>
 
-            <ui-checkbox prop="showHint">Показывать подсказку о тестовом режиме</ui-checkbox>
+            <ui-checkbox prop="showHint">Показывать подсказку режима</ui-checkbox>
 
             <ui-select prop="orientation" :options="options.orientations" label="Ориентация"></ui-select>
 
