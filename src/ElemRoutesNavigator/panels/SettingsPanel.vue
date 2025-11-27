@@ -22,13 +22,31 @@
 
             <ui-select prop="orientation" :options="options.orientations" label="Ориентация"></ui-select>
 
-            <!-- Настройка текста для dropdown/kebab меню -->
+            <!-- Настройка текста для dropdown меню -->
             <ui-input
-                v-if="props.orientation === 'dropdown' || props.orientation === 'kebab'"
+                v-if="props.orientation === 'dropdown'"
                 prop="dropdownText"
                 placeholder="Оставьте пустым чтобы скрыть">
                 Текст меню
             </ui-input>
+
+            <!-- Пагинация для dropdown/kebab -->
+            <ui-input
+                v-if="props.orientation === 'dropdown' || props.orientation === 'kebab'"
+                prop="itemsPerPage"
+                type="number"
+                :min="1"
+                placeholder="6">
+                Элементов на странице
+            </ui-input>
+
+            <!-- Режим открытия для dropdown/kebab -->
+            <ui-select
+                v-if="props.orientation === 'dropdown' || props.orientation === 'kebab'"
+                prop="openMode"
+                :options="options.openModes"
+                label="Режим открытия меню">
+            </ui-select>
 
             <ui-select prop="buttonStyle" :options="options.buttonStyles" label="Стиль кнопок"></ui-select>
 
@@ -99,7 +117,11 @@ export default {
         ...PanelInstanceTypeDescriptor,
         options: {
             orientations: ORIENTATION_OPTIONS,
-            buttonStyles: BUTTON_STYLE_OPTIONS
+            buttonStyles: BUTTON_STYLE_OPTIONS,
+            openModes: [
+                { label: 'По клику', value: 'click' },
+                { label: 'При наведении', value: 'hover' }
+            ]
         }
     }),
 

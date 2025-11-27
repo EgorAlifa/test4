@@ -39,6 +39,22 @@ export const descriptor = () => ({
                 { label: 'Гамбургер меню', value: 'kebab' }
             ]
         },
+        itemsPerPage: {
+            type: Number,
+            default: 6,
+            label: 'Элементов на странице',
+            hint: 'Для dropdown и kebab меню, остальные через скролл'
+        },
+        openMode: {
+            type: String,
+            default: 'click',
+            label: 'Режим открытия меню',
+            options: [
+                { label: 'По клику', value: 'click' },
+                { label: 'При наведении', value: 'hover' }
+            ],
+            hint: 'Для dropdown и kebab меню'
+        },
         buttonStyle: {
             type: String,
             default: 'filled',

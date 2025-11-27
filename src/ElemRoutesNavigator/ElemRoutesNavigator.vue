@@ -11,14 +11,21 @@
                 <button
                     class="dropdown-toggle"
                     :class="{ 'dropdown-toggle-open': isMenuOpen }"
-                    @click="isMenuOpen = !isMenuOpen"
+                    @click="props.openMode === 'click' && toggleMenu()"
+                    @mouseenter="props.openMode === 'hover' && openMenu()"
+                    @mouseleave="props.openMode === 'hover' && closeMenu()"
                     type="button"
                     :style="dropdownToggleStyle"
                 >
                     <span class="route-title">{{ props.dropdownText }}</span>
                     <span class="dropdown-arrow">▼</span>
                 </button>
-                <div v-if="isMenuOpen" class="dropdown-menu" :style="dropdownMenuStyle">
+                <div
+                    v-if="isMenuOpen"
+                    class="dropdown-menu"
+                    :style="dropdownMenuStyle"
+                    @mouseenter="props.openMode === 'hover' && openMenu()"
+                    @mouseleave="props.openMode === 'hover' && closeMenu()">
                     <button
                         v-for="(route, index) in displayRoutes"
                         :key="route.id || index"
@@ -41,7 +48,9 @@
                 <button
                     class="kebab-toggle"
                     :class="{ 'kebab-toggle-open': isMenuOpen }"
-                    @click="isMenuOpen = !isMenuOpen"
+                    @click="props.openMode === 'click' && toggleMenu()"
+                    @mouseenter="props.openMode === 'hover' && openMenu()"
+                    @mouseleave="props.openMode === 'hover' && closeMenu()"
                     type="button"
                     :style="kebabToggleStyle"
                 >
@@ -49,7 +58,12 @@
                     <span class="kebab-line"></span>
                     <span class="kebab-line"></span>
                 </button>
-                <div v-if="isMenuOpen" class="kebab-menu" :style="kebabMenuStyle">
+                <div
+                    v-if="isMenuOpen"
+                    class="kebab-menu"
+                    :style="kebabMenuStyle"
+                    @mouseenter="props.openMode === 'hover' && openMenu()"
+                    @mouseleave="props.openMode === 'hover' && closeMenu()">
                     <button
                         v-for="(route, index) in displayRoutes"
                         :key="route.id || index"
@@ -198,7 +212,7 @@ export default {
             const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'rem' };
             const gap = `${gapObj.size}${gapObj.unit}`;
 
-            return {
+            const baseStyle = {
                 display: 'flex',
                 flexDirection: 'column',
                 gap,
@@ -209,6 +223,16 @@ export default {
                 borderRadius: this.props.borderRadius || '6px',
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
             };
+
+            // Добавляем пагинацию со скроллом
+            if (this.routes.length > this.props.itemsPerPage) {
+                const itemHeight = 40; // Примерная высота одной кнопки в px
+                const maxHeight = this.props.itemsPerPage * itemHeight;
+                baseStyle.maxHeight = `${maxHeight}px`;
+                baseStyle.overflowY = 'auto';
+            }
+
+            return baseStyle;
         },
 
         activeRoute() {
@@ -241,7 +265,7 @@ export default {
             const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'rem' };
             const gap = `${gapObj.size}${gapObj.unit}`;
 
-            return {
+            const baseStyle = {
                 display: 'flex',
                 flexDirection: 'column',
                 gap,
@@ -252,6 +276,16 @@ export default {
                 borderRadius: this.props.borderRadius || '6px',
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
             };
+
+            // Добавляем пагинацию со скроллом
+            if (this.routes.length > this.props.itemsPerPage) {
+                const itemHeight = 40; // Примерная высота одной кнопки в px
+                const maxHeight = this.props.itemsPerPage * itemHeight;
+                baseStyle.maxHeight = `${maxHeight}px`;
+                baseStyle.overflowY = 'auto';
+            }
+
+            return baseStyle;
         }
     },
 
@@ -421,6 +455,27 @@ export default {
             if (typeof window !== 'undefined') {
                 this.currentSlug = window.location.pathname;
             }
+        },
+
+        /**
+         * Переключает состояние меню (для режима click)
+         */
+        toggleMenu() {
+            this.isMenuOpen = !this.isMenuOpen;
+        },
+
+        /**
+         * Открывает меню (для режима hover)
+         */
+        openMenu() {
+            this.isMenuOpen = true;
+        },
+
+        /**
+         * Закрывает меню (для режима hover)
+         */
+        closeMenu() {
+            this.isMenuOpen = false;
         },
 
         /**
