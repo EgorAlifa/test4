@@ -15,17 +15,12 @@
                 </template>
             </ui-has-panel>
 
-            <!-- Источник данных -->
-            <div class="form-label form-label-small mt-3">Источник данных</div>
-
-            <ui-input prop="appJsonUrl" placeholder="app.json">Путь к app.json</ui-input>
-
             <!-- Основные настройки -->
             <div class="form-label form-label-small mt-3">Основные настройки</div>
 
             <ui-checkbox prop="showSlug">Показывать пути страниц</ui-checkbox>
 
-            <ui-checkbox prop="showHint">Показывать подсказку режима</ui-checkbox>
+            <ui-checkbox prop="showActivePage">Показывать текущую страницу</ui-checkbox>
 
             <ui-select prop="orientation" :options="options.orientations" label="Ориентация"></ui-select>
 
@@ -70,6 +65,8 @@
             </ui-input-units>
 
             <ui-input prop="borderRadius" placeholder="6px">Скругление углов</ui-input>
+
+            <ui-input prop="fontFamily" placeholder="inherit">Семейство шрифта</ui-input>
         </ui-container>
     </w-panel>
 </template>
