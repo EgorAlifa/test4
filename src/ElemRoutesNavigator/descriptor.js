@@ -158,6 +158,24 @@ export const descriptor = () => ({
             label: 'Цвет границы кнопки',
             hint: 'Цвет границы кнопки выпадающего списка и кебаб меню'
         },
+        enableHierarchy: {
+            type: Boolean,
+            default: false,
+            label: 'Включить иерархию',
+            hint: 'Позволяет создавать вложенные разделы и подразделы'
+        },
+        navigateParents: {
+            type: Boolean,
+            default: true,
+            label: 'Переходить по родителям',
+            hint: 'При клике на родителя - перейти на страницу и развернуть детей'
+        },
+        hierarchy: {
+            type: Object,
+            default: () => ({}),
+            label: 'Иерархия страниц',
+            hint: 'Хранит связи родитель-ребенок (настраивается в панели Эксперт)'
+        },
         appJsonUrl: {
             type: String,
             default: '',

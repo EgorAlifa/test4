@@ -36,11 +36,18 @@
                         class="route-button"
                         :class="getButtonClass(route)"
                         :style="getButtonStyle(route, index)"
-                        @click="navigateToRoute(route); isMenuOpen = false"
+                        @click="props.enableHierarchy ? handleRouteClick(route) : navigateToRoute(route); isMenuOpen = false"
                         @mouseenter="hoveredIndex = index"
                         @mouseleave="hoveredIndex = null"
                         type="button"
                     >
+                        <span
+                            v-if="props.enableHierarchy && route.hasChildren"
+                            class="expand-icon"
+                            @click.stop="toggleRouteExpansion(route)"
+                        >
+                            {{ route.isExpanded ? '▼' : '▶' }}
+                        </span>
                         <span class="route-title">{{ route.title || route.name }}</span>
                         <span v-if="props.showSlug && route.slug" class="route-slug">{{ route.slug }}</span>
                     </button>
@@ -78,11 +85,18 @@
                         class="route-button"
                         :class="getButtonClass(route)"
                         :style="getButtonStyle(route, index)"
-                        @click="navigateToRoute(route); isMenuOpen = false"
+                        @click="props.enableHierarchy ? handleRouteClick(route) : navigateToRoute(route); isMenuOpen = false"
                         @mouseenter="hoveredIndex = index"
                         @mouseleave="hoveredIndex = null"
                         type="button"
                     >
+                        <span
+                            v-if="props.enableHierarchy && route.hasChildren"
+                            class="expand-icon"
+                            @click.stop="toggleRouteExpansion(route)"
+                        >
+                            {{ route.isExpanded ? '▼' : '▶' }}
+                        </span>
                         <span class="route-title">{{ route.title || route.name }}</span>
                         <span v-if="props.showSlug && route.slug" class="route-slug">{{ route.slug }}</span>
                     </button>
@@ -98,7 +112,7 @@
                     :class="getButtonClass(route, index)"
                     :style="getButtonStyle(route, index)"
                     :draggable="canReorder"
-                    @click="navigateToRoute(route)"
+                    @click="props.enableHierarchy ? handleRouteClick(route) : navigateToRoute(route)"
                     @mouseenter="hoveredIndex = index"
                     @mouseleave="hoveredIndex = null"
                     @dragstart="onDragStart(index, $event)"
@@ -108,6 +122,13 @@
                     type="button"
                 >
                     <span v-if="canReorder" class="drag-handle" @mousedown.stop>⋮⋮</span>
+                    <span
+                        v-if="props.enableHierarchy && route.hasChildren"
+                        class="expand-icon"
+                        @click.stop="toggleRouteExpansion(route)"
+                    >
+                        {{ route.isExpanded ? '▼' : '▶' }}
+                    </span>
                     <span class="route-title">{{ route.title || route.name }}</span>
                     <span v-if="props.showSlug && route.slug" class="route-slug">{{ route.slug }}</span>
                 </button>
@@ -138,6 +159,12 @@ export default {
     /* static data used in <template></template> */
     static: {},
 
+    provide() {
+        return {
+            getRoutes: () => this.routes
+        };
+    },
+
     data: () => ({
         ...ElemInstanceTypeDescriptor,
         routes: [],
@@ -152,14 +179,24 @@ export default {
         draggedIndex: null,
         dragOverIndex: null,
         isDragging: false,
-        closeMenuTimer: null
+        closeMenuTimer: null,
+        expandedRoutes: new Set() // Для отслеживания развернутых разделов
     }),
 
     computed: {
         displayRoutes() {
-            // В плеере показываем routes из app.json
-            // В редакторе показываем routes распарсенные из HTML
-            return this.routes;
+            if (!this.props.enableHierarchy) {
+                // Без иерархии - показываем все routes как есть
+                return this.routes.map(route => ({
+                    ...route,
+                    depth: 0,
+                    hasChildren: false,
+                    isExpanded: false
+                }));
+            }
+
+            // С иерархией - строим дерево и фильтруем по expanded
+            return this.buildHierarchicalRoutes();
         },
 
         canReorder() {
@@ -329,12 +366,130 @@ export default {
         await this.loadRoutes();
         this.detectCurrentSlug();
 
+        // Инициализируем expandedRoutes - по умолчанию все развернуты
+        if (this.props.enableHierarchy) {
+            this.initializeExpandedState();
+        }
+
         // Небольшая задержка перед показом чтобы не мелькали моки
         await new Promise(resolve => setTimeout(resolve, 100)); // eslint-disable-line no-magic-numbers
         this.isReady = true;
     },
 
     methods: {
+        /**
+         * Строит иерархический список routes с учетом expanded state
+         */
+        buildHierarchicalRoutes() {
+            const hierarchy = this.props.hierarchy || {};
+            const routes = this.routes;
+            const result = [];
+
+            // Создаем обогащенные routes с depth и hasChildren
+            const enrichedRoutes = routes.map(route => {
+                const routeId = route.id || route.pageId;
+                const depth = this.calculateRouteDepth(routeId, hierarchy);
+                const hasChildren = this.hasRouteChildren(routeId, hierarchy);
+                const isExpanded = this.expandedRoutes.has(routeId);
+
+                return {
+                    ...route,
+                    depth,
+                    hasChildren,
+                    isExpanded,
+                    parentId: hierarchy[routeId]
+                };
+            });
+
+            // Рекурсивная функция для добавления route и его видимых детей
+            const addRouteWithChildren = (route, parentExpanded = true) => {
+                // Добавляем route если родитель развернут (или это корневой элемент)
+                if (parentExpanded || route.depth === 0) {
+                    result.push(route);
+
+                    // Если route развернут, добавляем его детей
+                    if (route.isExpanded || route.depth === 0) {
+                        const children = enrichedRoutes.filter(r => r.parentId === (route.id || route.pageId));
+                        children.forEach(child => addRouteWithChildren(child, route.isExpanded));
+                    }
+                }
+            };
+
+            // Начинаем с корневых элементов (без родителя)
+            const rootRoutes = enrichedRoutes.filter(r => !r.parentId);
+            rootRoutes.forEach(route => addRouteWithChildren(route, true));
+
+            return result;
+        },
+
+        /**
+         * Вычисляет глубину route в иерархии
+         */
+        calculateRouteDepth(routeId, hierarchy, visited = new Set()) {
+            if (visited.has(routeId)) return 0; // Защита от циклов
+
+            const parentId = hierarchy[routeId];
+            if (!parentId) return 0;
+
+            visited.add(routeId);
+            return 1 + this.calculateRouteDepth(parentId, hierarchy, visited);
+        },
+
+        /**
+         * Проверяет есть ли у route дети
+         */
+        hasRouteChildren(routeId, hierarchy) {
+            return Object.values(hierarchy || {}).includes(routeId);
+        },
+
+        /**
+         * Переключает развернутость route
+         */
+        toggleRouteExpansion(route) {
+            const routeId = route.id || route.pageId;
+
+            if (this.expandedRoutes.has(routeId)) {
+                this.expandedRoutes.delete(routeId);
+            } else {
+                this.expandedRoutes.add(routeId);
+            }
+
+            // Триггерим реактивность
+            this.expandedRoutes = new Set(this.expandedRoutes);
+        },
+
+        /**
+         * Обработка клика по route с учетом иерархии
+         */
+        handleRouteClick(route) {
+            // Если у route есть дети и navigateParents = false, только разворачиваем
+            if (route.hasChildren && !this.props.navigateParents) {
+                this.toggleRouteExpansion(route);
+                return;
+            }
+
+            // Если navigateParents = true, сначала разворачиваем (если есть дети)
+            if (route.hasChildren) {
+                this.toggleRouteExpansion(route);
+            }
+
+            // Затем переходим
+            this.navigateToRoute(route);
+        },
+
+        /**
+         * Инициализирует состояние развернутости - по умолчанию все развернуты
+         */
+        initializeExpandedState() {
+            const hierarchy = this.props.hierarchy || {};
+
+            // Находим все routes которые являются родителями
+            const parentIds = new Set(Object.values(hierarchy).filter(Boolean));
+
+            // Разворачиваем всех родителей
+            this.expandedRoutes = new Set(parentIds);
+        },
+
         /**
          * Получает ID приложения из URL
          */
@@ -390,7 +545,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v26-UsePageId | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v27-Hierarchy | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
             const globalSources = [
@@ -720,6 +875,12 @@ export default {
                 textAlign,
                 fontFamily: this.props.fontFamily || 'inherit'
             };
+
+            // Добавляем отступ для вложенных элементов
+            if (this.props.enableHierarchy && route.depth > 0) {
+                const indent = route.depth * 1.5; // 1.5rem на каждый уровень
+                baseStyle.paddingLeft = `${indent + paddingObj.size}rem`;
+            }
 
             // Определяем цвет кнопки
             if (this.isActive(route)) {
