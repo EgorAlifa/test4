@@ -79,8 +79,6 @@ export default {
 
     meta: { name: 'Режим эксперта', icon: 'cog-outline' },
 
-    inject: ['getRoutes'],
-
     data: () => ({
         ...PanelInstanceTypeDescriptor,
         draggedRoute: null,
@@ -88,9 +86,25 @@ export default {
     }),
 
     computed: {
-        // Получаем routes из родительского компонента через inject
+        // Получаем routes напрямую из глобальных объектов (как в основном компоненте)
         routes() {
-            return this.getRoutes ? this.getRoutes() : [];
+            // Проверяем глобальные объекты window
+            const globalSources = [
+                typeof window !== 'undefined' ? window.__APP_CONFIG__ : null,
+                typeof window !== 'undefined' ? window.appConfig : null,
+                typeof window !== 'undefined' ? window.APP_CONFIG : null,
+                typeof window !== 'undefined' ? window.$appConfig : null,
+                typeof window !== 'undefined' && window.goodt ? window.goodt.config : null,
+                typeof window !== 'undefined' && window.goodt ? window.goodt.appConfig : null
+            ];
+
+            for (const source of globalSources) {
+                if (source && source.routes && Array.isArray(source.routes)) {
+                    return source.routes.filter(route => route.enabled !== false);
+                }
+            }
+
+            return [];
         },
 
         // Иерархия из props
