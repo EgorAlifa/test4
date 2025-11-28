@@ -390,7 +390,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v23-DOMParsing | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v24-ParentDocument | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
             const globalSources = [
@@ -474,13 +474,16 @@ export default {
 
         /**
          * Парсит routes из DOM в режиме редактора
-         * Ищет элементы .page-item с id (UUID) и slug
+         * Ищет элементы .page-item с id (UUID) и slug в родительском документе
          */
         parseRoutesFromDOM() {
-            if (typeof document === 'undefined') return [];
+            if (typeof window === 'undefined') return [];
+
+            // В режиме редактора виджет находится в iframe, а список страниц в родительском документе
+            const doc = window.parent && window.parent.document ? window.parent.document : document;
 
             const routes = [];
-            const pageItems = document.querySelectorAll('.page-item[id]');
+            const pageItems = doc.querySelectorAll('.page-item[id]');
 
             pageItems.forEach(item => {
                 const id = item.getAttribute('id');
