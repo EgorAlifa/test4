@@ -143,6 +143,11 @@
                 </p>
             </div>
         </div>
+
+        <!-- Custom Styles from Designer Panel -->
+        <component :is="'style'" v-if="hasCustomStyles">
+            {{ customStylesCSS }}
+        </component>
     </w-elem>
 </template>
 
@@ -180,6 +185,15 @@ export default {
     computed: {
         displayRoutes() {
             let result = this.routes;
+
+            // Фильтруем отключенные страницы
+            const disabledPages = this.props.disabledPages || [];
+            if (disabledPages.length > 0) {
+                result = result.filter(route => {
+                    const routeId = route.id || route.pageId;
+                    return !disabledPages.includes(routeId);
+                });
+            }
 
             // Применяем кастомный порядок если он задан
             if (this.props.routesOrder && this.props.routesOrder.length > 0) {
@@ -360,6 +374,41 @@ export default {
             }
 
             return baseStyle;
+        },
+
+        // Проверяет есть ли кастомные стили
+        hasCustomStyles() {
+            const customStyles = this.props.customStyles || {};
+            return Object.keys(customStyles).some(key => customStyles[key] && customStyles[key].trim() !== '');
+        },
+
+        // Генерирует CSS из кастомных стилей
+        customStylesCSS() {
+            const customStyles = this.props.customStyles || {};
+            let css = '';
+
+            const styleMap = {
+                container: '.routes-navigator-container',
+                title: '.navigator-title',
+                button: '.route-button',
+                buttonHover: '.route-button:hover',
+                buttonActive: '.route-button-active',
+                dropdownToggle: '.dropdown-toggle',
+                dropdownMenu: '.dropdown-menu',
+                kebabToggle: '.kebab-toggle',
+                kebabMenu: '.kebab-menu',
+                kebabLine: '.kebab-line',
+                routeSlug: '.route-slug',
+                expandIcon: '.expand-icon'
+            };
+
+            Object.keys(styleMap).forEach(key => {
+                if (customStyles[key] && customStyles[key].trim() !== '') {
+                    css += `${styleMap[key]} { ${customStyles[key]} }\n`;
+                }
+            });
+
+            return css;
         }
     },
 

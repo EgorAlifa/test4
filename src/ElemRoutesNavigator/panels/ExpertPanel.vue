@@ -6,28 +6,16 @@
 
             <template v-if="props.enableHierarchy">
                 <!-- Настройка навигации по родителям -->
-                <ui-checkbox prop="navigateParents">Переходить по родителям</ui-checkbox>
-
-                <hr>
+                <ui-checkbox prop="navigateParents">Переходить при клике на раздел</ui-checkbox>
 
                 <!-- Список страниц с иерархией -->
                 <div class="hierarchy-manager">
                     <div class="hierarchy-header">
                         <h4>Управление иерархией и порядком</h4>
-                        <p class="hint">
+                        <div class="hint">
                             • Перетащите НА элемент (центр) - сделать вложенной страницей<br>
                             • Перетащите ДО/ПОСЛЕ элемента (края) - изменить порядок
-                        </p>
-                    </div>
-
-                    <!-- Отладка -->
-                    <div v-if="!routes || routes.length === 0" style="padding: 1rem; background: #fef3c7; border-radius: 0.375rem; margin-bottom: 1rem;">
-                        <p style="font-size: 0.75rem; color: #92400e;">
-                            ⚠️ Страницы не загружены. Количество: {{ routes ? routes.length : 'undefined' }}
-                        </p>
-                        <p style="font-size: 0.75rem; color: #92400e; margin-top: 0.5rem;">
-                            getRoutes: {{ getRoutes ? 'exists' : 'missing' }}
-                        </p>
+                        </div>
                     </div>
 
                     <div
@@ -38,7 +26,8 @@
                             'is-child': route.depth > 0,
                             'drag-over-before': dragOverRoute === route && dropTargetIndex === 'before',
                             'drag-over-after': dragOverRoute === route && dropTargetIndex === 'after',
-                            'drag-over-on': dragOverRoute === route && dropTargetIndex === 'on'
+                            'drag-over-on': dragOverRoute === route && dropTargetIndex === 'on',
+                            'is-disabled': isRouteDisabled(route)
                         }"
                         :style="{ paddingLeft: `${route.depth * 1.5}rem` }"
                         draggable="true"
@@ -54,6 +43,14 @@
                         </div>
 
                         <div class="route-actions">
+                            <button
+                                class="btn-small btn-toggle"
+                                :class="{ 'is-disabled': isRouteDisabled(route) }"
+                                @click="toggleRouteEnabled(route)"
+                                :title="isRouteDisabled(route) ? 'Включить страницу' : 'Отключить страницу'"
+                            >
+                                {{ isRouteDisabled(route) ? '👁️' : '✓' }}
+                            </button>
                             <button
                                 v-if="route.depth === 0 && hasChildren(route)"
                                 class="btn-small"
@@ -105,6 +102,11 @@ export default {
         // Иерархия из props
         hierarchy() {
             return this.props.hierarchy || {};
+        },
+
+        // Отключенные страницы из props
+        disabledPages() {
+            return this.props.disabledPages || [];
         },
 
         // Построение иерархического списка для отображения
@@ -275,6 +277,29 @@ export default {
             });
 
             return routes;
+        },
+
+        // Проверяет отключена ли страница
+        isRouteDisabled(route) {
+            const routeId = route.id || route.pageId;
+            return this.disabledPages.includes(routeId);
+        },
+
+        // Переключает enabled/disabled состояние страницы
+        toggleRouteEnabled(route) {
+            const routeId = route.id || route.pageId;
+            const newDisabledPages = [...this.disabledPages];
+
+            const index = newDisabledPages.indexOf(routeId);
+            if (index !== -1) {
+                // Страница отключена, включаем
+                newDisabledPages.splice(index, 1);
+            } else {
+                // Страница включена, отключаем
+                newDisabledPages.push(routeId);
+            }
+
+            this.updateDisabledPages(newDisabledPages);
         },
 
         // Вычисляем глубину вложенности
@@ -509,6 +534,12 @@ export default {
         updateRoutesOrder(newOrder) {
             // Используем Vue.$set для реактивного обновления
             this.$set(this.props, 'routesOrder', newOrder);
+        },
+
+        // Обновить список отключенных страниц
+        updateDisabledPages(newDisabledPages) {
+            // Используем Vue.$set для реактивного обновления
+            this.$set(this.props, 'disabledPages', newDisabledPages);
         }
     }
 };
@@ -516,7 +547,7 @@ export default {
 
 <style lang="pcss" scoped>
 .hierarchy-manager {
-    margin-top: 1rem;
+    margin-top: 0.75rem;
 }
 
 .hierarchy-header {
@@ -526,12 +557,14 @@ export default {
 .hierarchy-header h4 {
     font-size: 0.875rem;
     font-weight: 600;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
 }
 
 .hierarchy-header .hint {
     font-size: 0.75rem;
-    color: #6b7280;
+    color: #9ca3af;
+    line-height: 1.5;
+    opacity: 0.85;
 }
 
 .route-item {
@@ -555,6 +588,16 @@ export default {
 .route-item.is-child {
     background: #eff6ff;
     border-color: #bfdbfe;
+}
+
+.route-item.is-disabled {
+    opacity: 0.5;
+    background: #f3f4f6;
+}
+
+.route-item.is-disabled .route-title {
+    text-decoration: line-through;
+    color: #9ca3af;
 }
 
 .route-content {
@@ -599,6 +642,11 @@ export default {
 .btn-small:hover {
     background: #f3f4f6;
     border-color: #9ca3af;
+}
+
+.btn-toggle.is-disabled {
+    background: #fee;
+    border-color: #fca5a5;
 }
 
 /* Drag and drop визуальные индикаторы */
