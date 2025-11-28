@@ -164,9 +164,10 @@ export default {
             buttonActive: '',
             dropdownToggle: '',
             dropdownMenu: '',
-            kebabToggle: '',
-            kebabMenu: '',
-            kebabLine: '',
+            burgerToggle: '',
+            burgerMenu: '',
+            burgerLine: '',
+            burgerIcon: '',
             routeSlug: '',
             expandIcon: ''
         },
@@ -212,19 +213,24 @@ export default {
                     selector: '.dropdown-menu'
                 },
                 {
-                    key: 'kebabToggle',
-                    label: 'Кнопка кебаб меню',
-                    selector: '.kebab-toggle'
+                    key: 'burgerToggle',
+                    label: 'Кнопка бургер меню',
+                    selector: '.burger-toggle'
                 },
                 {
-                    key: 'kebabMenu',
-                    label: 'Кебаб меню',
-                    selector: '.kebab-menu'
+                    key: 'burgerMenu',
+                    label: 'Бургер меню',
+                    selector: '.burger-menu'
                 },
                 {
-                    key: 'kebabLine',
-                    label: 'Линии кебаб иконки',
-                    selector: '.kebab-line'
+                    key: 'burgerLine',
+                    label: 'Линии бургер иконки',
+                    selector: '.burger-line'
+                },
+                {
+                    key: 'burgerIcon',
+                    label: 'MDI иконка бургер меню',
+                    selector: '.burger-icon'
                 },
                 {
                     key: 'routeSlug',
@@ -307,22 +313,25 @@ font-family: ${this.props.fontFamily || 'inherit'}`;
 border: 1px solid ${this.props.showMenuBorder ? (this.props.menuBorderColor || '#1f2937') : 'transparent'};
 border-radius: ${this.props.borderRadius || '0.375rem'};
 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1)`;
-                case 'kebabToggle':
+                case 'burgerToggle':
                     return `padding: ${padding};
 border-radius: ${this.props.borderRadius || '0.375rem'};
 border: 1px solid ${this.props.showToggleBorder ? (this.props.toggleBorderColor || '#1f2937') : 'transparent'};
 background-color: ${this.props.backgroundColor || '#ffffff'};
 cursor: pointer`;
-                case 'kebabMenu':
+                case 'burgerMenu':
                     return `background-color: ${this.props.backgroundColor || '#ffffff'};
 border: 1px solid ${this.props.showMenuBorder ? (this.props.menuBorderColor || '#1f2937') : 'transparent'};
 border-radius: ${this.props.borderRadius || '0.375rem'};
 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1)`;
-                case 'kebabLine':
+                case 'burgerLine':
                     return `width: 20px;
 height: 2px;
 background-color: ${this.props.textColor || '#1f2937'};
 border-radius: 2px`;
+                case 'burgerIcon':
+                    return `font-size: 1.5rem;
+color: ${this.props.textColor || '#1f2937'}`;
                 case 'routeSlug':
                     return `font-size: 0.75rem;
 color: #6b7280;

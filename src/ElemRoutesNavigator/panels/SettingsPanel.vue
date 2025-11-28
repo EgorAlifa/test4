@@ -15,15 +15,15 @@
                 </template>
             </ui-has-panel>
 
-            <ui-checkbox prop="showSlug">Показывать пути страниц</ui-checkbox>
+            <ui-checkbox prop="showSlug">Показывать ссылки страниц</ui-checkbox>
 
             <ui-checkbox prop="highlightActivePage">Активная страница</ui-checkbox>
 
             <ui-select prop="orientation" :options="options.orientations" label="Ориентация"></ui-select>
 
-            <!-- Позиционирование кнопок (для vertical/dropdown/kebab) -->
+            <!-- Позиционирование кнопок (для vertical/dropdown/burger) -->
             <ui-select
-                v-if="props.orientation === 'vertical' || props.orientation === 'dropdown' || props.orientation === 'kebab'"
+                v-if="props.orientation === 'vertical' || props.orientation === 'dropdown' || props.orientation === 'burger'"
                 prop="buttonAlignment"
                 :options="options.buttonAlignments"
                 label="Позиционирование кнопок">
