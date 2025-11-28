@@ -203,7 +203,7 @@ export default {
 
             // Добавляем пагинацию со скроллом для вертикальной ориентации (если включена)
             if (this.props.orientation === 'vertical' && this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
-                const itemHeight = 3.2; // Высота одной кнопки с отступами в rem (16rem / 5 элементов)
+                const itemHeight = 3.1; // Высота одной кнопки с отступами в rem для вертикальной ориентации
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
                 baseStyle.overflowY = 'auto';
@@ -389,7 +389,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v19-PerfectItemHeight | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v20-ButtonAlignment | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
             const globalSources = [
@@ -609,6 +609,21 @@ export default {
             const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'rem' };
             const fontSize = `${fontSizeObj.size}${fontSizeObj.unit}`;
 
+            // Определяем выравнивание для vertical, dropdown, kebab
+            let justifyContent = 'flex-start';
+            let textAlign = 'left';
+
+            if (this.props.orientation === 'vertical' || this.props.orientation === 'dropdown' || this.props.orientation === 'kebab') {
+                const alignment = this.props.buttonAlignment || 'left';
+                if (alignment === 'center') {
+                    justifyContent = 'center';
+                    textAlign = 'center';
+                } else if (alignment === 'right') {
+                    justifyContent = 'flex-end';
+                    textAlign = 'right';
+                }
+            }
+
             const baseStyle = {
                 padding,
                 fontSize,
@@ -618,9 +633,10 @@ export default {
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent,
                 gap: '0.5rem',
                 width: this.props.orientation === 'vertical' ? '100%' : 'auto',
-                textAlign: 'left',
+                textAlign,
                 fontFamily: this.props.fontFamily || 'inherit'
             };
 
