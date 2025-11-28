@@ -390,7 +390,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v21-ActivePage | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v22-ActivePageFix | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
             const globalSources = [
@@ -466,6 +466,10 @@ export default {
 
         detectCurrentSlug() {
             if (typeof window === 'undefined') return;
+
+            // Сбрасываем оба значения для чистого состояния
+            this.currentSlug = null;
+            this.currentPageId = null;
 
             if (!this.props.highlightActivePage) {
                 // Old behavior: just use pathname
@@ -697,13 +701,23 @@ export default {
                 return this.currentSlug === route.slug;
             }
 
-            // If we have a currentPageId (editor mode), match by ID
-            if (this.currentPageId && route.id) {
-                return this.currentPageId === route.id;
+            // Editor mode: match by ID if we have currentPageId
+            if (this.currentPageId) {
+                // Проверяем наличие route.id и сравниваем
+                if (route.id) {
+                    return this.currentPageId === route.id;
+                }
+                // Если у route нет id, но есть slug, можем попробовать fallback
+                // (на случай если routes не содержат id в редакторе)
+                return false;
             }
 
-            // Otherwise match by slug (player mode or fallback)
-            return this.currentSlug === route.slug;
+            // Player mode or fallback: match by slug
+            if (this.currentSlug && route.slug) {
+                return this.currentSlug === route.slug;
+            }
+
+            return false;
         },
 
         /**
