@@ -13,8 +13,11 @@
                 <!-- Список страниц с иерархией -->
                 <div class="hierarchy-manager">
                     <div class="hierarchy-header">
-                        <h4>Управление иерархией</h4>
-                        <p class="hint">Перетащите страницу на родителя чтобы сделать ее вложенной</p>
+                        <h4>Управление иерархией и порядком</h4>
+                        <p class="hint">
+                            • Перетащите НА элемент (центр) - сделать вложенной страницей<br>
+                            • Перетащите ДО/ПОСЛЕ элемента (края) - изменить порядок
+                        </p>
                     </div>
 
                     <!-- Отладка -->
@@ -31,7 +34,12 @@
                         v-for="(route, index) in hierarchicalRoutes"
                         :key="route.id || index"
                         class="route-item"
-                        :class="{ 'is-child': route.depth > 0 }"
+                        :class="{
+                            'is-child': route.depth > 0,
+                            'drag-over-before': dragOverRoute === route && dropTargetIndex === 'before',
+                            'drag-over-after': dragOverRoute === route && dropTargetIndex === 'after',
+                            'drag-over-on': dragOverRoute === route && dropTargetIndex === 'on'
+                        }"
                         :style="{ paddingLeft: `${route.depth * 1.5}rem` }"
                         draggable="true"
                         @dragstart="onDragStart(route, $event)"
@@ -82,23 +90,17 @@ export default {
     data: () => ({
         ...PanelInstanceTypeDescriptor,
         draggedRoute: null,
-        dragOverRoute: null
+        dragOverRoute: null,
+        routes: [],
+        dropTargetIndex: null
     }),
 
-    computed: {
-        // Получаем routes напрямую из родительского виджета через $parent
-        routes() {
-            // Ищем родительский компонент который имеет routes
-            let parent = this.$parent;
-            while (parent) {
-                if (parent.routes && Array.isArray(parent.routes) && parent.routes.length > 0) {
-                    return parent.routes;
-                }
-                parent = parent.$parent;
-            }
+    async mounted() {
+        // Загружаем routes при монтировании панели
+        await this.loadRoutes();
+    },
 
-            return [];
-        },
+    computed: {
 
         // Иерархия из props
         hierarchy() {
@@ -128,6 +130,153 @@ export default {
     },
 
     methods: {
+        /**
+         * Загружает routes используя ту же логику что и основной виджет
+         */
+        async loadRoutes() {
+            // Сначала проверяем глобальные объекты (режим плеера)
+            const globalSources = [
+                { name: 'window.__APP_CONFIG__', value: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null },
+                { name: 'window.appConfig', value: typeof window !== 'undefined' ? window.appConfig : null },
+                { name: 'window.APP_CONFIG', value: typeof window !== 'undefined' ? window.APP_CONFIG : null },
+                { name: 'window.$appConfig', value: typeof window !== 'undefined' ? window.$appConfig : null },
+                { name: 'window.goodt?.config', value: typeof window !== 'undefined' && window.goodt ? window.goodt.config : null },
+                { name: 'window.goodt?.appConfig', value: typeof window !== 'undefined' && window.goodt ? window.goodt.appConfig : null }
+            ];
+
+            for (const source of globalSources) {
+                if (source.value && source.value.routes && Array.isArray(source.value.routes)) {
+                    this.routes = source.value.routes.filter(route => route.enabled !== false);
+                    console.log('[ExpertPanel] Загружено routes из', source.name, ':', this.routes.length);
+                    return;
+                }
+            }
+
+            // Попытка загрузить app.json из сети (как в основном виджете)
+            const smartUrl = this.buildAppJsonUrl();
+            const possiblePaths = [
+                this.props.appJsonUrl,
+                smartUrl,
+                'app.json',
+                './app.json',
+                '/app.json'
+            ].filter(Boolean);
+
+            const uniquePaths = [...new Set(possiblePaths)];
+
+            for (const path of uniquePaths) {
+                try {
+                    const response = await fetch(path);
+                    if (!response.ok) continue;
+
+                    const appConfig = await response.json();
+                    if (appConfig && appConfig.routes && Array.isArray(appConfig.routes)) {
+                        this.routes = appConfig.routes.filter(route => route.enabled !== false);
+                        console.log('[ExpertPanel] Загружено routes из app.json:', path, this.routes.length);
+                        return;
+                    }
+                } catch (error) {
+                    // Игнорируем ошибки
+                }
+            }
+
+            // Если не удалось загрузить из app.json, парсим из DOM как fallback
+            const domRoutes = this.parseRoutesFromDOM();
+            if (domRoutes.length > 0) {
+                this.routes = domRoutes;
+                console.log('[ExpertPanel] Загружено routes из DOM (fallback):', this.routes.length);
+                return;
+            }
+
+            console.warn('[ExpertPanel] Не удалось загрузить routes');
+            this.routes = [];
+        },
+
+        /**
+         * Строит URL для app.json (копия из основного виджета)
+         */
+        buildAppJsonUrl() {
+            if (typeof window === 'undefined') return null;
+
+            const appId = this.getApplicationId();
+            const currentUrl = window.location.href;
+            const currentPath = window.location.pathname;
+
+            // Для редактора: обрезаем до /editor и добавляем /player/{id}/app.json
+            if (currentPath.includes('/editor/')) {
+                const editorIndex = currentUrl.indexOf('/editor/');
+                if (editorIndex !== -1 && appId) {
+                    const baseUrl = currentUrl.substring(0, editorIndex + '/editor'.length);
+                    return `${baseUrl}/player/${appId}/app.json`;
+                }
+            }
+
+            // Fallback: добавляем /app.json к текущему URL
+            return `${window.location.origin}${currentPath}/app.json`.replace(/\/+/g, '/').replace(':/', '://');
+        },
+
+        /**
+         * Получает ID приложения из URL (копия из основного виджета)
+         */
+        getApplicationId() {
+            if (typeof window === 'undefined') return null;
+
+            const urlPatterns = [
+                /\/apps\/edit\/(\d+)/,
+                /\/application\/(\d+)/
+            ];
+
+            for (const pattern of urlPatterns) {
+                const urlMatch = window.location.pathname.match(pattern);
+                if (urlMatch && urlMatch[1]) {
+                    return urlMatch[1];
+                }
+            }
+
+            return null;
+        },
+
+        /**
+         * Парсит routes из DOM в режиме редактора
+         * Копия метода из основного виджета
+         */
+        parseRoutesFromDOM() {
+            if (typeof window === 'undefined') return [];
+
+            // В режиме редактора виджет находится в iframe, а список страниц в родительском документе
+            const doc = window.parent && window.parent.document ? window.parent.document : document;
+
+            const routes = [];
+            const pageItems = doc.querySelectorAll('.page-item[id]');
+
+            pageItems.forEach(item => {
+                const pageId = item.getAttribute('id');
+
+                // Пропускаем элементы без валидного UUID
+                if (!pageId || !pageId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                    return;
+                }
+
+                // Ищем title и slug внутри элемента
+                const titleEl = item.querySelector('[title]');
+                const slugEl = item.querySelector('.page-item__slug .text-truncate');
+
+                const title = titleEl ? titleEl.getAttribute('title') : `Page ${pageId.substring(0, 8)}`;
+                const slug = slugEl ? slugEl.textContent.trim() : `/${pageId}`;
+
+                routes.push({
+                    id: pageId,
+                    pageId,
+                    title,
+                    slug,
+                    name: title,
+                    enabled: true
+                });
+            });
+
+            return routes;
+        },
+
         // Вычисляем глубину вложенности
         calculateDepth(routeId, hierarchy, visited = new Set()) {
             if (visited.has(routeId)) return 0; // Защита от циклов
@@ -139,11 +288,12 @@ export default {
             return 1 + this.calculateDepth(parentId, hierarchy, visited);
         },
 
-        // Сортировка по иерархии (родители перед детьми)
+        // Сортировка по иерархии (родители перед детьми) с учетом кастомного порядка
         sortByHierarchy(routes) {
             const result = [];
             const routeMap = new Map(routes.map(r => [(r.id || r.pageId), r]));
             const processed = new Set();
+            const customOrder = this.props.routesOrder || [];
 
             const addRoute = (route) => {
                 const routeId = route.id || route.pageId;
@@ -152,17 +302,49 @@ export default {
                 processed.add(routeId);
                 result.push(route);
 
-                // Добавляем детей
-                const children = routes.filter(r => {
+                // Добавляем детей с учетом кастомного порядка
+                let children = routes.filter(r => {
                     const rId = r.id || r.pageId;
                     return r.parentId === routeId && !processed.has(rId);
                 });
 
+                // Сортируем детей по кастомному порядку если он есть
+                if (customOrder.length > 0) {
+                    children = children.sort((a, b) => {
+                        const aId = a.id || a.pageId;
+                        const bId = b.id || b.pageId;
+                        const aIndex = customOrder.indexOf(aId);
+                        const bIndex = customOrder.indexOf(bId);
+
+                        if (aIndex === -1 && bIndex === -1) return 0;
+                        if (aIndex === -1) return 1;
+                        if (bIndex === -1) return -1;
+                        return aIndex - bIndex;
+                    });
+                }
+
                 children.forEach(child => addRoute(child));
             };
 
-            // Сначала добавляем корневые элементы
-            routes.filter(r => !r.parentId).forEach(route => addRoute(route));
+            // Получаем корневые элементы
+            let rootRoutes = routes.filter(r => !r.parentId);
+
+            // Сортируем корневые элементы по кастомному порядку
+            if (customOrder.length > 0) {
+                rootRoutes = rootRoutes.sort((a, b) => {
+                    const aId = a.id || a.pageId;
+                    const bId = b.id || b.pageId;
+                    const aIndex = customOrder.indexOf(aId);
+                    const bIndex = customOrder.indexOf(bId);
+
+                    if (aIndex === -1 && bIndex === -1) return 0;
+                    if (aIndex === -1) return 1;
+                    if (bIndex === -1) return -1;
+                    return aIndex - bIndex;
+                });
+            }
+
+            rootRoutes.forEach(route => addRoute(route));
 
             return result;
         },
@@ -186,12 +368,28 @@ export default {
             event.preventDefault();
             event.dataTransfer.dropEffect = 'move';
             this.dragOverRoute = route;
+
+            // Определяем зону drop: верхняя половина, нижняя половина или на элемент
+            const rect = event.currentTarget.getBoundingClientRect();
+            const y = event.clientY - rect.top;
+            const height = rect.height;
+
+            if (y < height * 0.25) {
+                this.dropTargetIndex = 'before';
+            } else if (y > height * 0.75) {
+                this.dropTargetIndex = 'after';
+            } else {
+                this.dropTargetIndex = 'on';
+            }
         },
 
         onDrop(targetRoute, event) {
             event.preventDefault();
 
             if (!this.draggedRoute || this.draggedRoute === targetRoute) {
+                this.draggedRoute = null;
+                this.dragOverRoute = null;
+                this.dropTargetIndex = null;
                 return;
             }
 
@@ -200,22 +398,68 @@ export default {
 
             // Не даем создать цикл (перетащить родителя на ребенка)
             if (this.isDescendant(targetId, draggedId)) {
+                this.draggedRoute = null;
+                this.dragOverRoute = null;
+                this.dropTargetIndex = null;
                 return;
             }
 
-            // Обновляем иерархию
-            const newHierarchy = { ...this.hierarchy };
-            newHierarchy[draggedId] = targetId;
-
-            this.updateHierarchy(newHierarchy);
+            if (this.dropTargetIndex === 'on') {
+                // Перетащили НА элемент - создаем иерархию (делаем ребенком)
+                const newHierarchy = { ...this.hierarchy };
+                newHierarchy[draggedId] = targetId;
+                this.updateHierarchy(newHierarchy);
+            } else {
+                // Перетащили ДО или ПОСЛЕ элемента - изменяем порядок
+                this.reorderRoutes(this.draggedRoute, targetRoute, this.dropTargetIndex);
+            }
 
             this.draggedRoute = null;
             this.dragOverRoute = null;
+            this.dropTargetIndex = null;
         },
 
         onDragEnd() {
             this.draggedRoute = null;
             this.dragOverRoute = null;
+            this.dropTargetIndex = null;
+        },
+
+        /**
+         * Изменяет порядок страниц
+         */
+        reorderRoutes(draggedRoute, targetRoute, position) {
+            const draggedId = draggedRoute.id || draggedRoute.pageId;
+            const targetId = targetRoute.id || targetRoute.pageId;
+
+            // Получаем текущий порядок или создаем новый из routes
+            let currentOrder = [...(this.props.routesOrder || [])];
+
+            // Если порядок пустой, создаем из текущих routes
+            if (currentOrder.length === 0) {
+                currentOrder = this.hierarchicalRoutes.map(r => r.id || r.pageId);
+            }
+
+            // Удаляем draggedId из текущей позиции
+            const draggedIndex = currentOrder.indexOf(draggedId);
+            if (draggedIndex !== -1) {
+                currentOrder.splice(draggedIndex, 1);
+            }
+
+            // Находим позицию targetId
+            const targetIndex = currentOrder.indexOf(targetId);
+
+            if (targetIndex === -1) {
+                // Если target не в списке, добавляем в конец
+                currentOrder.push(draggedId);
+            } else {
+                // Вставляем draggedId до или после targetId
+                const insertIndex = position === 'before' ? targetIndex : targetIndex + 1;
+                currentOrder.splice(insertIndex, 0, draggedId);
+            }
+
+            // Обновляем prop
+            this.updateRoutesOrder(currentOrder);
         },
 
         // Проверка является ли потомком
@@ -258,6 +502,11 @@ export default {
         // Обновить иерархию через elapi
         updateHierarchy(newHierarchy) {
             this.elapi.updateProp('hierarchy', newHierarchy);
+        },
+
+        // Обновить порядок страниц через elapi
+        updateRoutesOrder(newOrder) {
+            this.elapi.updateProp('routesOrder', newOrder);
         }
     }
 };
@@ -348,5 +597,20 @@ export default {
 .btn-small:hover {
     background: #f3f4f6;
     border-color: #9ca3af;
+}
+
+/* Drag and drop визуальные индикаторы */
+.route-item.drag-over-before {
+    border-top: 3px solid #3b82f6;
+}
+
+.route-item.drag-over-after {
+    border-bottom: 3px solid #3b82f6;
+}
+
+.route-item.drag-over-on {
+    background: #dbeafe !important;
+    border-color: #3b82f6 !important;
+    border-width: 2px;
 }
 </style>

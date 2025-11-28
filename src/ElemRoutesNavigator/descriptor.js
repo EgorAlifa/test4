@@ -176,6 +176,12 @@ export const descriptor = () => ({
             label: 'Иерархия страниц',
             hint: 'Хранит связи родитель-ребенок (настраивается в панели Эксперт)'
         },
+        routesOrder: {
+            type: Array,
+            default: () => ([]),
+            label: 'Порядок страниц',
+            hint: 'Хранит кастомный порядок страниц (настраивается в панели Эксперт)'
+        },
         appJsonUrl: {
             type: String,
             default: '',

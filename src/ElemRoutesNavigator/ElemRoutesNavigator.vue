@@ -179,9 +179,16 @@ export default {
 
     computed: {
         displayRoutes() {
+            let result = this.routes;
+
+            // Применяем кастомный порядок если он задан
+            if (this.props.routesOrder && this.props.routesOrder.length > 0) {
+                result = this.applySortOrder(result);
+            }
+
             if (!this.props.enableHierarchy) {
                 // Без иерархии - показываем все routes как есть
-                return this.routes.map(route => ({
+                return result.map(route => ({
                     ...route,
                     depth: 0,
                     hasChildren: false,
@@ -190,7 +197,7 @@ export default {
             }
 
             // С иерархией - строим дерево и фильтруем по expanded
-            return this.buildHierarchicalRoutes();
+            return this.buildHierarchicalRoutes(result);
         },
 
         canReorder() {
@@ -372,15 +379,43 @@ export default {
 
     methods: {
         /**
+         * Применяет кастомный порядок сортировки к routes
+         */
+        applySortOrder(routes) {
+            const customOrder = this.props.routesOrder || [];
+            if (customOrder.length === 0) return routes;
+
+            // Создаем копию routes для сортировки
+            const sortedRoutes = [...routes];
+
+            sortedRoutes.sort((a, b) => {
+                const aId = a.id || a.pageId;
+                const bId = b.id || b.pageId;
+                const aIndex = customOrder.indexOf(aId);
+                const bIndex = customOrder.indexOf(bId);
+
+                // Если оба элемента не в списке порядка, сохраняем исходный порядок
+                if (aIndex === -1 && bIndex === -1) return 0;
+                // Если только один элемент не в списке, он идет в конец
+                if (aIndex === -1) return 1;
+                if (bIndex === -1) return -1;
+                // Оба элемента в списке - сортируем по их позиции
+                return aIndex - bIndex;
+            });
+
+            return sortedRoutes;
+        },
+
+        /**
          * Строит иерархический список routes с учетом expanded state
          */
-        buildHierarchicalRoutes() {
+        buildHierarchicalRoutes(routes = null) {
             const hierarchy = this.props.hierarchy || {};
-            const routes = this.routes;
+            const routesToUse = routes || this.routes;
             const result = [];
 
             // Создаем обогащенные routes с depth и hasChildren
-            const enrichedRoutes = routes.map(route => {
+            const enrichedRoutes = routesToUse.map(route => {
                 const routeId = route.id || route.pageId;
                 const depth = this.calculateRouteDepth(routeId, hierarchy);
                 const hasChildren = this.hasRouteChildren(routeId, hierarchy);
@@ -539,7 +574,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v27-Hierarchy | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v28-HierarchyOrder | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
             const globalSources = [
