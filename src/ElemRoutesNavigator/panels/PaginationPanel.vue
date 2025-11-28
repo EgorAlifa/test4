@@ -6,8 +6,8 @@
                 Включить пагинацию
             </ui-switch>
 
-            <!-- Настройки пагинации (для vertical/dropdown/kebab) -->
-            <template v-if="props.enablePagination && (props.orientation === 'vertical' || props.orientation === 'dropdown' || props.orientation === 'kebab')">
+            <!-- Настройки пагинации (для vertical/dropdown/burger) -->
+            <template v-if="props.enablePagination && (props.orientation === 'vertical' || props.orientation === 'dropdown' || props.orientation === 'burger')">
                 <ui-input
                     prop="itemsPerPage"
                     type="number"
@@ -17,8 +17,8 @@
                 </ui-input>
             </template>
 
-            <!-- Режим открытия меню (только для dropdown/kebab) -->
-            <template v-if="props.enablePagination && (props.orientation === 'dropdown' || props.orientation === 'kebab')">
+            <!-- Режим открытия меню (только для dropdown/burger) -->
+            <template v-if="props.enablePagination && (props.orientation === 'dropdown' || props.orientation === 'burger')">
                 <ui-select
                     prop="openMode"
                     :options="options.openModes"
@@ -64,8 +64,8 @@
 
             <ui-input prop="fontFamily" placeholder="inherit">Семейство шрифта</ui-input>
 
-            <!-- Границы (только для dropdown/kebab) -->
-            <template v-if="props.orientation === 'dropdown' || props.orientation === 'kebab'">
+            <!-- Границы (только для dropdown/burger) -->
+            <template v-if="props.orientation === 'dropdown' || props.orientation === 'burger'">
                 <ui-checkbox prop="showMenuBorder">Показывать границу списка</ui-checkbox>
 
                 <ui-input-cp

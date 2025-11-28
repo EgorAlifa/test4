@@ -4,7 +4,7 @@ export const ORIENTATION_OPTIONS = [
     { value: 'vertical', label: 'Вертикальная' },
     { value: 'horizontal', label: 'Горизонтальная' },
     { value: 'dropdown', label: 'Выпадающий список' },
-    { value: 'kebab', label: 'Кебаб меню (гамбургер)' }
+    { value: 'burger', label: 'Бургер меню (гамбургер)' }
 ];
 
 export const BUTTON_STYLE_OPTIONS = [

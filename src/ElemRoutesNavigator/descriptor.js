@@ -42,7 +42,7 @@ export const descriptor = () => ({
                 { label: 'Горизонтально', value: 'horizontal' },
                 { label: 'Вертикально', value: 'vertical' },
                 { label: 'Выпадающий список', value: 'dropdown' },
-                { label: 'Гамбургер меню', value: 'kebab' }
+                { label: 'Гамбургер меню', value: 'burger' }
             ]
         },
         buttonAlignment: {
@@ -60,7 +60,7 @@ export const descriptor = () => ({
             type: Number,
             default: 6,
             label: 'Элементов на странице',
-            hint: 'Для вертикальной ориентации, выпадающего списка и кебаб меню'
+            hint: 'Для вертикальной ориентации, выпадающего списка и бургер меню'
         },
         openMode: {
             type: String,
@@ -70,13 +70,13 @@ export const descriptor = () => ({
                 { label: 'По клику', value: 'click' },
                 { label: 'При наведении', value: 'hover' }
             ],
-            hint: 'Для выпадающего списка и кебаб меню'
+            hint: 'Для выпадающего списка и бургер меню'
         },
         enablePagination: {
             type: Boolean,
             default: true,
             label: 'Включить пагинацию',
-            hint: 'Для вертикальной ориентации, выпадающего списка и кебаб меню'
+            hint: 'Для вертикальной ориентации, выпадающего списка и бургер меню'
         },
         buttonStyle: {
             type: String,
@@ -138,25 +138,37 @@ export const descriptor = () => ({
             type: Boolean,
             default: true,
             label: 'Показывать границу списка',
-            hint: 'Граница выпадающего списка и кебаб меню'
+            hint: 'Граница выпадающего списка и бургер меню'
         },
         menuBorderColor: {
             type: String,
             default: '#1f2937',
             label: 'Цвет границы списка',
-            hint: 'Цвет границы выпадающего списка и кебаб меню'
+            hint: 'Цвет границы выпадающего списка и бургер меню'
         },
         showToggleBorder: {
             type: Boolean,
             default: true,
             label: 'Показывать границу кнопки',
-            hint: 'Граница кнопки выпадающего списка и кебаб меню'
+            hint: 'Граница кнопки выпадающего списка и бургер меню'
         },
         toggleBorderColor: {
             type: String,
             default: '#1f2937',
             label: 'Цвет границы кнопки',
-            hint: 'Цвет границы кнопки выпадающего списка и кебаб меню'
+            hint: 'Цвет границы кнопки выпадающего списка и бургер меню'
+        },
+        burgerIconOpen: {
+            type: String,
+            default: '',
+            label: 'MDI иконка (открытое меню)',
+            hint: 'Название MDI иконки для открытого бургер меню (например: mdi-close)'
+        },
+        burgerIconClosed: {
+            type: String,
+            default: '',
+            label: 'MDI иконка (закрытое меню)',
+            hint: 'Название MDI иконки для закрытого бургер меню (например: mdi-menu)'
         },
         enableHierarchy: {
             type: Boolean,

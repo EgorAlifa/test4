@@ -54,28 +54,36 @@
                 </div>
             </nav>
 
-            <!-- Kebab Menu (Hamburger) -->
+            <!-- Burger Menu (Hamburger) -->
             <nav
-                v-else-if="props.orientation === 'kebab'"
-                class="routes-nav-kebab"
+                v-else-if="props.orientation === 'burger'"
+                class="routes-nav-burger"
             >
                 <button
-                    class="kebab-toggle"
-                    :class="{ 'kebab-toggle-open': isMenuOpen }"
+                    class="burger-toggle"
+                    :class="{ 'burger-toggle-open': isMenuOpen }"
                     @click="props.openMode === 'click' && toggleMenu()"
                     @mouseenter="props.openMode === 'hover' && openMenu()"
                     @mouseleave="props.openMode === 'hover' && scheduleCloseMenu()"
                     type="button"
-                    :style="kebabToggleStyle"
+                    :style="burgerToggleStyle"
                 >
-                    <span class="kebab-line"></span>
-                    <span class="kebab-line"></span>
-                    <span class="kebab-line"></span>
+                    <!-- MDI иконки если указаны -->
+                    <template v-if="props.burgerIconOpen && props.burgerIconClosed">
+                        <i v-if="isMenuOpen" :class="props.burgerIconOpen" class="mdi burger-icon"></i>
+                        <i v-else :class="props.burgerIconClosed" class="mdi burger-icon"></i>
+                    </template>
+                    <!-- Дефолтные линии -->
+                    <template v-else>
+                        <span class="burger-line"></span>
+                        <span class="burger-line"></span>
+                        <span class="burger-line"></span>
+                    </template>
                 </button>
                 <div
                     v-if="isMenuOpen"
-                    class="kebab-menu"
-                    :style="kebabMenuStyle"
+                    class="burger-menu"
+                    :style="burgerMenuStyle"
                     @mouseenter="props.openMode === 'hover' && openMenu()"
                     @mouseleave="props.openMode === 'hover' && scheduleCloseMenu()"
                 >
@@ -265,7 +273,7 @@ export default {
             return baseStyle;
         },
 
-        kebabToggleStyle() {
+        burgerToggleStyle() {
             const defaultPadding = 0.75; // 0.75rem = 12px
             const paddingObj = this.props.buttonPadding || { size: defaultPadding, unit: 'rem' };
             const padding = `${paddingObj.size}${paddingObj.unit}`;
@@ -283,7 +291,7 @@ export default {
             };
         },
 
-        kebabMenuStyle() {
+        burgerMenuStyle() {
             const defaultGap = 0.5; // 0.5rem = 8px
             const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'rem' };
             const gap = `${gapObj.size}${gapObj.unit}`;
@@ -306,7 +314,7 @@ export default {
 
             // Добавляем пагинацию со скроллом (если включена)
             if (this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
-                const itemHeight = 3.1; // Высота одной кнопки с отступами в rem для кебаб меню
+                const itemHeight = 3.1; // Высота одной кнопки с отступами в rem для бургер меню
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
                 baseStyle.overflowY = 'auto';
@@ -382,7 +390,7 @@ export default {
             return Object.keys(customStyles).some(key => customStyles[key] && customStyles[key].trim() !== '');
         },
 
-        // Генерирует CSS из кастомных стилей
+        // Генерирует CSS из кастомных стилей с !important для переопределения inline стилей
         customStylesCSS() {
             const customStyles = this.props.customStyles || {};
             let css = '';
@@ -395,16 +403,31 @@ export default {
                 buttonActive: '.route-button-active',
                 dropdownToggle: '.dropdown-toggle',
                 dropdownMenu: '.dropdown-menu',
-                kebabToggle: '.kebab-toggle',
-                kebabMenu: '.kebab-menu',
-                kebabLine: '.kebab-line',
+                burgerToggle: '.burger-toggle',
+                burgerMenu: '.burger-menu',
+                burgerLine: '.burger-line',
+                burgerIcon: '.burger-icon',
                 routeSlug: '.route-slug',
                 expandIcon: '.expand-icon'
             };
 
             Object.keys(styleMap).forEach(key => {
                 if (customStyles[key] && customStyles[key].trim() !== '') {
-                    css += `${styleMap[key]} { ${customStyles[key]} }\n`;
+                    // Добавляем !important к каждому свойству для переопределения inline стилей
+                    const importantStyles = customStyles[key]
+                        .split(';')
+                        .filter(rule => rule.trim())
+                        .map(rule => {
+                            const trimmed = rule.trim();
+                            // Если !important уже есть, не добавляем
+                            if (trimmed.includes('!important')) {
+                                return trimmed;
+                            }
+                            return `${trimmed} !important`;
+                        })
+                        .join('; ');
+
+                    css += `${styleMap[key]} { ${importantStyles}; }\n`;
                 }
             });
 
@@ -424,6 +447,25 @@ export default {
         // Небольшая задержка перед показом чтобы не мелькали моки
         await new Promise(resolve => setTimeout(resolve, 100)); // eslint-disable-line no-magic-numbers
         this.isReady = true;
+    },
+
+    watch: {
+        // Следим за изменениями hierarchy и пересчитываем expandedRoutes
+        'props.hierarchy': {
+            handler() {
+                if (this.props.enableHierarchy) {
+                    this.initializeExpandedState();
+                }
+            },
+            deep: true
+        },
+
+        // Следим за включением/выключением иерархии
+        'props.enableHierarchy'(newVal) {
+            if (newVal) {
+                this.initializeExpandedState();
+            }
+        }
     },
 
     methods: {
@@ -951,11 +993,11 @@ export default {
             const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'rem' };
             const fontSize = `${fontSizeObj.size}${fontSizeObj.unit}`;
 
-            // Определяем выравнивание для vertical, dropdown, kebab
+            // Определяем выравнивание для vertical, dropdown, burger
             let justifyContent = 'flex-start';
             let textAlign = 'left';
 
-            if (this.props.orientation === 'vertical' || this.props.orientation === 'dropdown' || this.props.orientation === 'kebab') {
+            if (this.props.orientation === 'vertical' || this.props.orientation === 'dropdown' || this.props.orientation === 'burger') {
                 const alignment = this.props.buttonAlignment || 'left';
                 if (alignment === 'center') {
                     justifyContent = 'center';
