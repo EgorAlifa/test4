@@ -390,9 +390,21 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v24-ParentDocument | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v25-EditorModeFirst | Attempt:', this.loadAttempts);
 
-            // Сначала проверяем глобальные объекты
+            // В режиме редактора (есть ?page= в URL) сразу парсим DOM, не используем app.json
+            const isEditorMode = typeof window !== 'undefined' && window.location.search.includes('page=');
+
+            if (isEditorMode) {
+                const domRoutes = this.parseRoutesFromDOM();
+                if (domRoutes.length > 0) {
+                    this.routes = domRoutes;
+                    this.isPlayerMode = false;
+                    return true;
+                }
+            }
+
+            // В режиме плеера - проверяем глобальные объекты
             const globalSources = [
                 { name: 'window.__APP_CONFIG__', value: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null },
                 { name: 'window.appConfig', value: typeof window !== 'undefined' ? window.appConfig : null },
