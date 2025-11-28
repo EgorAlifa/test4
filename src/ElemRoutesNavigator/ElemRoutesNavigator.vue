@@ -143,6 +143,11 @@
                 </p>
             </div>
         </div>
+
+        <!-- Custom Styles from Designer Panel -->
+        <component :is="'style'" v-if="hasCustomStyles">
+            {{ customStylesCSS }}
+        </component>
     </w-elem>
 </template>
 
@@ -180,6 +185,15 @@ export default {
     computed: {
         displayRoutes() {
             let result = this.routes;
+
+            // Фильтруем отключенные страницы
+            const disabledPages = this.props.disabledPages || [];
+            if (disabledPages.length > 0) {
+                result = result.filter(route => {
+                    const routeId = route.id || route.pageId;
+                    return !disabledPages.includes(routeId);
+                });
+            }
 
             // Применяем кастомный порядок если он задан
             if (this.props.routesOrder && this.props.routesOrder.length > 0) {
@@ -360,6 +374,41 @@ export default {
             }
 
             return baseStyle;
+        },
+
+        // Проверяет есть ли кастомные стили
+        hasCustomStyles() {
+            const customStyles = this.props.customStyles || {};
+            return Object.keys(customStyles).some(key => customStyles[key] && customStyles[key].trim() !== '');
+        },
+
+        // Генерирует CSS из кастомных стилей
+        customStylesCSS() {
+            const customStyles = this.props.customStyles || {};
+            let css = '';
+
+            const styleMap = {
+                container: '.routes-navigator-container',
+                title: '.navigator-title',
+                button: '.route-button',
+                buttonHover: '.route-button:hover',
+                buttonActive: '.route-button-active',
+                dropdownToggle: '.dropdown-toggle',
+                dropdownMenu: '.dropdown-menu',
+                kebabToggle: '.kebab-toggle',
+                kebabMenu: '.kebab-menu',
+                kebabLine: '.kebab-line',
+                routeSlug: '.route-slug',
+                expandIcon: '.expand-icon'
+            };
+
+            Object.keys(styleMap).forEach(key => {
+                if (customStyles[key] && customStyles[key].trim() !== '') {
+                    css += `${styleMap[key]} { ${customStyles[key]} }\n`;
+                }
+            });
+
+            return css;
         }
     },
 
@@ -407,11 +456,12 @@ export default {
         },
 
         /**
-         * Строит иерархический список routes с учетом expanded state
+         * Строит иерархический список routes с учетом expanded state и кастомного порядка
          */
         buildHierarchicalRoutes(routes = null) {
             const hierarchy = this.props.hierarchy || {};
             const routesToUse = routes || this.routes;
+            const customOrder = this.props.routesOrder || [];
             const result = [];
 
             // Создаем обогащенные routes с depth и hasChildren
@@ -430,6 +480,25 @@ export default {
                 };
             });
 
+            // Функция сортировки по кастомному порядку
+            const sortByCustomOrder = (routesList) => {
+                if (customOrder.length === 0) {
+                    return routesList;
+                }
+
+                return routesList.sort((a, b) => {
+                    const aId = a.id || a.pageId;
+                    const bId = b.id || b.pageId;
+                    const aIndex = customOrder.indexOf(aId);
+                    const bIndex = customOrder.indexOf(bId);
+
+                    if (aIndex === -1 && bIndex === -1) return 0;
+                    if (aIndex === -1) return 1;
+                    if (bIndex === -1) return -1;
+                    return aIndex - bIndex;
+                });
+            };
+
             // Рекурсивная функция для добавления route и его видимых детей
             const addRouteWithChildren = (route, parentExpanded = true) => {
                 // Добавляем route если родитель развернут (или это корневой элемент)
@@ -438,14 +507,22 @@ export default {
 
                     // Если route развернут, добавляем его детей
                     if (route.isExpanded || route.depth === 0) {
-                        const children = enrichedRoutes.filter(r => r.parentId === (route.id || route.pageId));
+                        let children = enrichedRoutes.filter(r => r.parentId === (route.id || route.pageId));
+
+                        // Сортируем детей по кастомному порядку
+                        children = sortByCustomOrder(children);
+
                         children.forEach(child => addRouteWithChildren(child, route.isExpanded));
                     }
                 }
             };
 
             // Начинаем с корневых элементов (без родителя)
-            const rootRoutes = enrichedRoutes.filter(r => !r.parentId);
+            let rootRoutes = enrichedRoutes.filter(r => !r.parentId);
+
+            // Сортируем корневые элементы по кастомному порядку
+            rootRoutes = sortByCustomOrder(rootRoutes);
+
             rootRoutes.forEach(route => addRouteWithChildren(route, true));
 
             return result;

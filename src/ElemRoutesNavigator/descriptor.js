@@ -25,8 +25,8 @@ export const descriptor = () => ({
         showSlug: {
             type: Boolean,
             default: false,
-            label: 'Показывать пути (slug) страниц',
-            hint: 'Показывает путь рядом с названием страницы'
+            label: 'Показывать ссылки страниц',
+            hint: 'Показывает ссылку рядом с названием страницы'
         },
         highlightActivePage: {
             type: Boolean,
@@ -167,14 +167,20 @@ export const descriptor = () => ({
         navigateParents: {
             type: Boolean,
             default: true,
-            label: 'Переходить по родителям',
-            hint: 'При клике на родителя - перейти на страницу и развернуть детей'
+            label: 'Переходить при клике на раздел',
+            hint: 'При клике на раздел - перейти на страницу и развернуть подстраницы'
         },
         hierarchy: {
             type: Object,
             default: () => ({}),
             label: 'Иерархия страниц',
-            hint: 'Хранит связи родитель-ребенок (настраивается в панели Эксперт)'
+            hint: 'Хранит связи раздел-подстраница (настраивается в панели Эксперт)'
+        },
+        disabledPages: {
+            type: Array,
+            default: () => ([]),
+            label: 'Отключенные страницы',
+            hint: 'Страницы которые не отображаются в виджете (настраивается в панели Эксперт)'
         },
         routesOrder: {
             type: Array,
@@ -187,6 +193,12 @@ export const descriptor = () => ({
             default: '',
             label: 'URL для app.json (опционально)',
             hint: 'Если не указан, URL строится автоматически'
+        },
+        customStyles: {
+            type: Object,
+            default: () => ({}),
+            label: 'Пользовательские CSS стили',
+            hint: 'Кастомные стили для элементов (настраивается в панели "Я дизайнер")'
         }
     }
 });
