@@ -390,7 +390,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v22-ActivePageFix | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v23-DOMParsing | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
             const globalSources = [
@@ -458,10 +458,55 @@ export default {
                 return this.loadRoutes(nextDelay);
             }
 
-            // Все попытки исчерпаны
+            // Все попытки исчерпаны - пробуем парсить из DOM (режим редактора)
+            const domRoutes = this.parseRoutesFromDOM();
+            if (domRoutes.length > 0) {
+                this.routes = domRoutes;
+                this.isPlayerMode = false;
+                return true;
+            }
+
+            // Совсем ничего не нашли
             this.isPlayerMode = true;
             this.routes = [];
             return false;
+        },
+
+        /**
+         * Парсит routes из DOM в режиме редактора
+         * Ищет элементы .page-item с id (UUID) и slug
+         */
+        parseRoutesFromDOM() {
+            if (typeof document === 'undefined') return [];
+
+            const routes = [];
+            const pageItems = document.querySelectorAll('.page-item[id]');
+
+            pageItems.forEach(item => {
+                const id = item.getAttribute('id');
+
+                // Пропускаем элементы без валидного UUID
+                if (!id || !id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                    return;
+                }
+
+                // Ищем title и slug внутри элемента
+                const titleEl = item.querySelector('[title]');
+                const slugEl = item.querySelector('.page-item__slug .text-truncate');
+
+                const title = titleEl ? titleEl.getAttribute('title') : `Page ${id.substring(0, 8)}`;
+                const slug = slugEl ? slugEl.textContent.trim() : `/${id}`;
+
+                routes.push({
+                    id,
+                    title,
+                    slug,
+                    name: title,
+                    enabled: true
+                });
+            });
+
+            return routes;
         },
 
         detectCurrentSlug() {
