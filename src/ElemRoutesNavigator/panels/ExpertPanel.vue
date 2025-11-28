@@ -499,14 +499,16 @@ export default {
             this.updateHierarchy(newHierarchy);
         },
 
-        // Обновить иерархию через elapi
+        // Обновить иерархию
         updateHierarchy(newHierarchy) {
-            this.elapi.updateProp('hierarchy', newHierarchy);
+            // Используем Vue.$set для реактивного обновления
+            this.$set(this.props, 'hierarchy', newHierarchy);
         },
 
-        // Обновить порядок страниц через elapi
+        // Обновить порядок страниц
         updateRoutesOrder(newOrder) {
-            this.elapi.updateProp('routesOrder', newOrder);
+            // Используем Vue.$set для реактивного обновления
+            this.$set(this.props, 'routesOrder', newOrder);
         }
     }
 };
