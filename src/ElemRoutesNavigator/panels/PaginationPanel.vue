@@ -28,10 +28,41 @@
 
             <ui-select prop="buttonStyle" :options="options.buttonStyles" label="Стиль кнопок"></ui-select>
 
-            <ui-input-cp prop="activeColor">Цвет активной кнопки</ui-input-cp>
-            <ui-input-cp prop="hoverColor">Цвет при наведении</ui-input-cp>
-            <ui-input-cp prop="backgroundColor">Фон контейнера</ui-input-cp>
-            <ui-input-cp prop="textColor">Цвет текста</ui-input-cp>
+            <ui-input-cp prop="activeColor">
+                Цвет активной кнопки
+                <template v-if="overriddenValues.activeColor" #hint>
+                    <span :style="{ color: '#f59e0b', fontSize: '0.75rem' }">
+                        ⚠️ Переопределено: {{ overriddenValues.activeColor }}
+                    </span>
+                </template>
+            </ui-input-cp>
+
+            <ui-input-cp prop="hoverColor">
+                Цвет при наведении
+                <template v-if="overriddenValues.hoverColor" #hint>
+                    <span :style="{ color: '#f59e0b', fontSize: '0.75rem' }">
+                        ⚠️ Переопределено: {{ overriddenValues.hoverColor }}
+                    </span>
+                </template>
+            </ui-input-cp>
+
+            <ui-input-cp prop="backgroundColor">
+                Фон контейнера
+                <template v-if="overriddenValues.backgroundColor" #hint>
+                    <span :style="{ color: '#f59e0b', fontSize: '0.75rem' }">
+                        ⚠️ Переопределено: {{ overriddenValues.backgroundColor }}
+                    </span>
+                </template>
+            </ui-input-cp>
+
+            <ui-input-cp prop="textColor">
+                Цвет текста
+                <template v-if="overriddenValues.textColor" #hint>
+                    <span :style="{ color: '#f59e0b', fontSize: '0.75rem' }">
+                        ⚠️ Переопределено: {{ overriddenValues.textColor }}
+                    </span>
+                </template>
+            </ui-input-cp>
 
             <ui-input-units
                 col-size="6-12"
@@ -117,6 +148,37 @@ export default {
     },
 
     computed: {
+        // Извлекаем переопределенные значения из customStyles
+        overriddenValues() {
+            const customStyles = this.props.customStyles || {};
+            const overrides = {};
+
+            // Парсим CSS и ищем переопределенные значения
+            Object.keys(customStyles).forEach(key => {
+                const css = customStyles[key];
+                if (!css || !css.trim()) return;
+
+                // Парсим цвета и другие значения
+                const colorMatch = css.match(/(?:background-)?color:\s*([^;!]+)/i);
+                if (colorMatch) {
+                    if (key === 'button' || key === 'container') {
+                        const bgMatch = css.match(/background-color:\s*([^;!]+)/i);
+                        const textMatch = css.match(/(?:^|;)\s*color:\s*([^;!]+)/i);
+                        if (bgMatch) overrides.backgroundColor = bgMatch[1].trim();
+                        if (textMatch) overrides.textColor = textMatch[1].trim();
+                    }
+                    if (key === 'buttonHover') {
+                        overrides.hoverColor = colorMatch[1].trim();
+                    }
+                    if (key === 'buttonActive') {
+                        overrides.activeColor = colorMatch[1].trim();
+                    }
+                }
+            });
+
+            return overrides;
+        },
+
         fontSizeString: {
             get() {
                 const defaultSize = 0.875; // 0.875rem = 14px
