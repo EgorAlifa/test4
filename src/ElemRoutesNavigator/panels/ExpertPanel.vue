@@ -17,6 +17,16 @@
                         <p class="hint">Перетащите страницу на родителя чтобы сделать ее вложенной</p>
                     </div>
 
+                    <!-- Отладка -->
+                    <div v-if="!routes || routes.length === 0" style="padding: 1rem; background: #fef3c7; border-radius: 0.375rem; margin-bottom: 1rem;">
+                        <p style="font-size: 0.75rem; color: #92400e;">
+                            ⚠️ Страницы не загружены. Количество: {{ routes ? routes.length : 'undefined' }}
+                        </p>
+                        <p style="font-size: 0.75rem; color: #92400e; margin-top: 0.5rem;">
+                            getRoutes: {{ getRoutes ? 'exists' : 'missing' }}
+                        </p>
+                    </div>
+
                     <div
                         v-for="(route, index) in hierarchicalRoutes"
                         :key="route.id || index"
