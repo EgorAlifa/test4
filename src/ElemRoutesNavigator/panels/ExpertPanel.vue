@@ -61,11 +61,18 @@
 </template>
 
 <script>
+import { Panel } from '@goodt-wcore/panel';
+import { PanelInstanceTypeDescriptor } from '../types';
+
 export default {
-    name: 'ExpertPanel',
-    inject: ['elapi', 'props', 'getRoutes'],
+    extends: Panel,
+
+    meta: { name: 'Режим эксперта', icon: 'cog-outline' },
+
+    inject: ['getRoutes'],
 
     data: () => ({
+        ...PanelInstanceTypeDescriptor,
         draggedRoute: null,
         dragOverRoute: null
     }),
