@@ -46,7 +46,15 @@
                             class="expand-icon"
                             @click.stop="toggleRouteExpansion(route)"
                         >
-                            {{ route.isExpanded ? '▼' : '▶' }}
+                            <!-- MDI иконки если указаны -->
+                            <template v-if="props.expandIconExpanded && props.expandIconCollapsed">
+                                <i v-if="route.isExpanded" :class="props.expandIconExpanded" class="mdi"></i>
+                                <i v-else :class="props.expandIconCollapsed" class="mdi"></i>
+                            </template>
+                            <!-- Дефолтные символы -->
+                            <template v-else>
+                                {{ route.isExpanded ? '▼' : '▶' }}
+                            </template>
                         </span>
                         <span class="route-title">{{ route.title || route.name }}</span>
                         <span v-if="props.showSlug && route.slug" class="route-slug">{{ route.slug }}</span>
@@ -103,7 +111,15 @@
                             class="expand-icon"
                             @click.stop="toggleRouteExpansion(route)"
                         >
-                            {{ route.isExpanded ? '▼' : '▶' }}
+                            <!-- MDI иконки если указаны -->
+                            <template v-if="props.expandIconExpanded && props.expandIconCollapsed">
+                                <i v-if="route.isExpanded" :class="props.expandIconExpanded" class="mdi"></i>
+                                <i v-else :class="props.expandIconCollapsed" class="mdi"></i>
+                            </template>
+                            <!-- Дефолтные символы -->
+                            <template v-else>
+                                {{ route.isExpanded ? '▼' : '▶' }}
+                            </template>
                         </span>
                         <span class="route-title">{{ route.title || route.name }}</span>
                         <span v-if="props.showSlug && route.slug" class="route-slug">{{ route.slug }}</span>
@@ -135,7 +151,15 @@
                         class="expand-icon"
                         @click.stop="toggleRouteExpansion(route)"
                     >
-                        {{ route.isExpanded ? '▼' : '▶' }}
+                        <!-- MDI иконки если указаны -->
+                        <template v-if="props.expandIconExpanded && props.expandIconCollapsed">
+                            <i v-if="route.isExpanded" :class="props.expandIconExpanded" class="mdi"></i>
+                            <i v-else :class="props.expandIconCollapsed" class="mdi"></i>
+                        </template>
+                        <!-- Дефолтные символы -->
+                        <template v-else>
+                            {{ route.isExpanded ? '▼' : '▶' }}
+                        </template>
                     </span>
                     <span class="route-title">{{ route.title || route.name }}</span>
                     <span v-if="props.showSlug && route.slug" class="route-slug">{{ route.slug }}</span>

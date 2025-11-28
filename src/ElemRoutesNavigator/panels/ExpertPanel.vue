@@ -29,7 +29,7 @@
                             'drag-over-on': dragOverRoute === route && dropTargetIndex === 'on',
                             'is-disabled': isRouteDisabled(route)
                         }"
-                        :style="{ paddingLeft: `${route.depth * 1.5}rem` }"
+                        :style="{ paddingLeft: `${Math.max(route.depth * 1.5, 0.5)}rem` }"
                         draggable="true"
                         @dragstart="onDragStart(route, $event)"
                         @dragover="onDragOver(route, $event)"
@@ -528,18 +528,24 @@ export default {
         updateHierarchy(newHierarchy) {
             // Используем Vue.$set для реактивного обновления
             this.$set(this.props, 'hierarchy', newHierarchy);
+            // Принудительно вызываем propChanged для уведомления системы
+            this.propChanged('hierarchy');
         },
 
         // Обновить порядок страниц
         updateRoutesOrder(newOrder) {
             // Используем Vue.$set для реактивного обновления
             this.$set(this.props, 'routesOrder', newOrder);
+            // Принудительно вызываем propChanged для уведомления системы
+            this.propChanged('routesOrder');
         },
 
         // Обновить список отключенных страниц
         updateDisabledPages(newDisabledPages) {
             // Используем Vue.$set для реактивного обновления
             this.$set(this.props, 'disabledPages', newDisabledPages);
+            // Принудительно вызываем propChanged для уведомления системы
+            this.propChanged('disabledPages');
         }
     }
 };

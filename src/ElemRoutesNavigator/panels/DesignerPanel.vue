@@ -192,6 +192,60 @@
                 </template>
             </ui-has-panel>
 
+            <!-- Expand/Collapse Icons -->
+            <ui-has-panel>
+                <div class="form-label form-label-small">
+                    Иконки развернуть/свернуть (иерархия)
+                </div>
+                <template #panel>
+                    <ui-panel :groups="[{ name: 'Иконки иерархии', slot: 'expandIcons' }]">
+                        <template #expandIcons>
+                            <ui-container>
+                                <div
+                                    :style="{
+                                        marginBottom: '10px',
+                                        padding: '8px',
+                                        backgroundColor: '#eff6ff',
+                                        border: '1px solid #bfdbfe',
+                                        borderRadius: '6px'
+                                    }"
+                                >
+                                    <div
+                                        :style="{ fontSize: '12px', color: '#1e40af', lineHeight: '1.6' }"
+                                    >
+                                        <strong :style="{ fontWeight: '600' }">💡 Совет:</strong>
+                                        Иконки для разделов с подстраницами
+                                        <br>
+                                        Например: <code :style="{
+                                            padding: '2px 6px',
+                                            backgroundColor: '#dbeafe',
+                                            borderRadius: '4px',
+                                            fontFamily: 'monospace',
+                                            fontSize: '11px'
+                                        }">mdi-chevron-down</code>,
+                                        <code :style="{
+                                            padding: '2px 6px',
+                                            backgroundColor: '#dbeafe',
+                                            borderRadius: '4px',
+                                            fontFamily: 'monospace',
+                                            fontSize: '11px'
+                                        }">mdi-chevron-right</code>
+                                    </div>
+                                </div>
+
+                                <ui-input prop="expandIconExpanded" placeholder="mdi-chevron-down">
+                                    Иконка развернутого раздела
+                                </ui-input>
+
+                                <ui-input prop="expandIconCollapsed" placeholder="mdi-chevron-right">
+                                    Иконка свернутого раздела
+                                </ui-input>
+                            </ui-container>
+                        </template>
+                    </ui-panel>
+                </template>
+            </ui-has-panel>
+
             <!-- Global Actions -->
             <div class="mt-3 pt-3 border-t border-gray-200 dark:border-zinc-700">
                 <ui-button type="danger" @click="resetAll">
@@ -432,6 +486,12 @@ user-select: none`;
             this.props.burgerIconClosed = '';
             this.propChanged('burgerIconOpen');
             this.propChanged('burgerIconClosed');
+
+            // Сбрасываем иконки expand/collapse
+            this.props.expandIconExpanded = '';
+            this.props.expandIconCollapsed = '';
+            this.propChanged('expandIconExpanded');
+            this.propChanged('expandIconCollapsed');
         }
     }
 };

@@ -170,6 +170,18 @@ export const descriptor = () => ({
             label: 'MDI иконка (закрытое меню)',
             hint: 'Название MDI иконки для закрытого бургер меню (например: mdi-menu)'
         },
+        expandIconExpanded: {
+            type: String,
+            default: '',
+            label: 'MDI иконка (развернутый раздел)',
+            hint: 'Название MDI иконки для развернутого раздела в иерархии (например: mdi-chevron-down)'
+        },
+        expandIconCollapsed: {
+            type: String,
+            default: '',
+            label: 'MDI иконка (свернутый раздел)',
+            hint: 'Название MDI иконки для свернутого раздела в иерархии (например: mdi-chevron-right)'
+        },
         enableHierarchy: {
             type: Boolean,
             default: false,
