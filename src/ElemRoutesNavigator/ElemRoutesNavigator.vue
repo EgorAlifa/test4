@@ -390,21 +390,9 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v25-EditorModeFirst | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v26-UsePageId | Attempt:', this.loadAttempts);
 
-            // В режиме редактора (есть ?page= в URL) сразу парсим DOM, не используем app.json
-            const isEditorMode = typeof window !== 'undefined' && window.location.search.includes('page=');
-
-            if (isEditorMode) {
-                const domRoutes = this.parseRoutesFromDOM();
-                if (domRoutes.length > 0) {
-                    this.routes = domRoutes;
-                    this.isPlayerMode = false;
-                    return true;
-                }
-            }
-
-            // В режиме плеера - проверяем глобальные объекты
+            // Сначала проверяем глобальные объекты
             const globalSources = [
                 { name: 'window.__APP_CONFIG__', value: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null },
                 { name: 'window.appConfig', value: typeof window !== 'undefined' ? window.appConfig : null },
@@ -498,10 +486,10 @@ export default {
             const pageItems = doc.querySelectorAll('.page-item[id]');
 
             pageItems.forEach(item => {
-                const id = item.getAttribute('id');
+                const pageId = item.getAttribute('id');
 
                 // Пропускаем элементы без валидного UUID
-                if (!id || !id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                if (!pageId || !pageId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
                     return;
                 }
 
@@ -509,11 +497,12 @@ export default {
                 const titleEl = item.querySelector('[title]');
                 const slugEl = item.querySelector('.page-item__slug .text-truncate');
 
-                const title = titleEl ? titleEl.getAttribute('title') : `Page ${id.substring(0, 8)}`;
-                const slug = slugEl ? slugEl.textContent.trim() : `/${id}`;
+                const title = titleEl ? titleEl.getAttribute('title') : `Page ${pageId.substring(0, 8)}`;
+                const slug = slugEl ? slugEl.textContent.trim() : `/${pageId}`;
 
                 routes.push({
-                    id,
+                    id: pageId, // Для обратной совместимости
+                    pageId, // ID страницы (как в app.json)
                     title,
                     slug,
                     name: title,
@@ -761,14 +750,17 @@ export default {
                 return this.currentSlug === route.slug;
             }
 
-            // Editor mode: match by ID if we have currentPageId
+            // Editor mode: match by pageId if we have currentPageId
             if (this.currentPageId) {
-                // Проверяем наличие route.id и сравниваем
+                // В app.json routes имеют поле pageId (ID страницы в редакторе)
+                // В DOM парсинге мы сохраняем id который тоже является pageId
+                if (route.pageId) {
+                    return this.currentPageId === route.pageId;
+                }
+                // Fallback на id для обратной совместимости
                 if (route.id) {
                     return this.currentPageId === route.id;
                 }
-                // Если у route нет id, но есть slug, можем попробовать fallback
-                // (на случай если routes не содержат id в редакторе)
                 return false;
             }
 
