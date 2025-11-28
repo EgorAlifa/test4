@@ -86,22 +86,15 @@ export default {
     }),
 
     computed: {
-        // Получаем routes напрямую из глобальных объектов (как в основном компоненте)
+        // Получаем routes напрямую из родительского виджета через $parent
         routes() {
-            // Проверяем глобальные объекты window
-            const globalSources = [
-                typeof window !== 'undefined' ? window.__APP_CONFIG__ : null,
-                typeof window !== 'undefined' ? window.appConfig : null,
-                typeof window !== 'undefined' ? window.APP_CONFIG : null,
-                typeof window !== 'undefined' ? window.$appConfig : null,
-                typeof window !== 'undefined' && window.goodt ? window.goodt.config : null,
-                typeof window !== 'undefined' && window.goodt ? window.goodt.appConfig : null
-            ];
-
-            for (const source of globalSources) {
-                if (source && source.routes && Array.isArray(source.routes)) {
-                    return source.routes.filter(route => route.enabled !== false);
+            // Ищем родительский компонент который имеет routes
+            let parent = this.$parent;
+            while (parent) {
+                if (parent.routes && Array.isArray(parent.routes) && parent.routes.length > 0) {
+                    return parent.routes;
                 }
+                parent = parent.$parent;
             }
 
             return [];
