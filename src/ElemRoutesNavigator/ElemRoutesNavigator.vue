@@ -187,11 +187,15 @@ export default {
         dragOverIndex: null,
         isDragging: false,
         closeMenuTimer: null,
-        expandedRoutes: new Set() // Для отслеживания развернутых разделов
+        expandedRoutes: new Set(), // Для отслеживания развернутых разделов
+        hierarchyUpdateKey: 0 // Ключ для принудительного обновления
     }),
 
     computed: {
         displayRoutes() {
+            // Используем hierarchyUpdateKey для принудительного пересчета
+            const _key = this.hierarchyUpdateKey; // eslint-disable-line no-unused-vars
+
             let result = this.routes;
 
             // Фильтруем отключенные страницы
@@ -203,13 +207,13 @@ export default {
                 });
             }
 
-            // Применяем кастомный порядок если он задан
-            if (this.props.routesOrder && this.props.routesOrder.length > 0) {
+            // Применяем кастомный порядок ТОЛЬКО если иерархия включена
+            if (this.props.enableHierarchy && this.props.routesOrder && this.props.routesOrder.length > 0) {
                 result = this.applySortOrder(result);
             }
 
             if (!this.props.enableHierarchy) {
-                // Без иерархии - показываем все routes как есть
+                // Без иерархии - показываем все routes как есть (порядок из app.json)
                 return result.map(route => ({
                     ...route,
                     depth: 0,
@@ -455,8 +459,8 @@ export default {
                 if (this.props.enableHierarchy) {
                     this.initializeExpandedState();
                 }
-                // Принудительно обновляем компонент
-                this.$forceUpdate();
+                // Инкрементируем ключ для принудительного пересчета
+                this.hierarchyUpdateKey++;
             },
             deep: true
         },
@@ -464,8 +468,8 @@ export default {
         // Следим за изменениями порядка страниц
         'props.routesOrder': {
             handler() {
-                // Принудительно обновляем компонент
-                this.$forceUpdate();
+                // Инкрементируем ключ для принудительного пересчета
+                this.hierarchyUpdateKey++;
             },
             deep: true
         },
@@ -478,8 +482,16 @@ export default {
                 // При выключении иерархии сбрасываем expandedRoutes
                 this.expandedRoutes = new Set();
             }
-            // Принудительно обновляем компонент
-            this.$forceUpdate();
+            // Инкрементируем ключ для принудительного пересчета
+            this.hierarchyUpdateKey++;
+        },
+
+        // Следим за отключенными страницами
+        'props.disabledPages': {
+            handler() {
+                this.hierarchyUpdateKey++;
+            },
+            deep: true
         }
     },
 

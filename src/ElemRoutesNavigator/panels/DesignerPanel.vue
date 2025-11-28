@@ -1,63 +1,6 @@
 <template>
     <w-panel>
         <ui-container>
-            <!-- Burger Menu Icons -->
-            <ui-has-panel>
-                <div class="form-label form-label-small">
-                    Иконки бургер меню
-                </div>
-                <template #panel>
-                    <ui-panel :groups="[{ name: 'Иконки бургер меню', slot: 'burgerIcons' }]">
-                        <template #burgerIcons>
-                            <ui-container>
-                                <div
-                                    :style="{
-                                        marginBottom: '10px',
-                                        padding: '8px',
-                                        backgroundColor: '#eff6ff',
-                                        border: '1px solid #bfdbfe',
-                                        borderRadius: '6px'
-                                    }"
-                                >
-                                    <div
-                                        :style="{ fontSize: '12px', color: '#1e40af', lineHeight: '1.6' }"
-                                    >
-                                        <strong :style="{ fontWeight: '600' }">💡 Совет:</strong>
-                                        Используйте названия MDI иконок из
-                                        <a href="https://materialdesignicons.com/" target="_blank" style="color: #2563eb; text-decoration: underline;">
-                                            materialdesignicons.com
-                                        </a>
-                                        <br>
-                                        Например: <code :style="{
-                                            padding: '2px 6px',
-                                            backgroundColor: '#dbeafe',
-                                            borderRadius: '4px',
-                                            fontFamily: 'monospace',
-                                            fontSize: '11px'
-                                        }">mdi-menu</code>,
-                                        <code :style="{
-                                            padding: '2px 6px',
-                                            backgroundColor: '#dbeafe',
-                                            borderRadius: '4px',
-                                            fontFamily: 'monospace',
-                                            fontSize: '11px'
-                                        }">mdi-close</code>
-                                    </div>
-                                </div>
-
-                                <ui-input prop="burgerIconClosed" placeholder="mdi-menu">
-                                    Иконка закрытого меню
-                                </ui-input>
-
-                                <ui-input prop="burgerIconOpen" placeholder="mdi-close">
-                                    Иконка открытого меню
-                                </ui-input>
-                            </ui-container>
-                        </template>
-                    </ui-panel>
-                </template>
-            </ui-has-panel>
-
             <!-- Element Style Editors -->
             <ui-has-panel v-for="element in elements" :key="element.key">
                 <div class="form-label form-label-small">
@@ -192,10 +135,67 @@
                 </template>
             </ui-has-panel>
 
+            <!-- Burger Menu Icons -->
+            <ui-has-panel>
+                <div class="form-label form-label-small">
+                    Иконки бургер меню
+                </div>
+                <template #panel>
+                    <ui-panel :groups="[{ name: 'Иконки бургер меню', slot: 'burgerIcons' }]">
+                        <template #burgerIcons>
+                            <ui-container>
+                                <div
+                                    :style="{
+                                        marginBottom: '10px',
+                                        padding: '8px',
+                                        backgroundColor: '#eff6ff',
+                                        border: '1px solid #bfdbfe',
+                                        borderRadius: '6px'
+                                    }"
+                                >
+                                    <div
+                                        :style="{ fontSize: '12px', color: '#1e40af', lineHeight: '1.6' }"
+                                    >
+                                        <strong :style="{ fontWeight: '600' }">💡 Совет:</strong>
+                                        Используйте названия MDI иконок из
+                                        <a href="https://materialdesignicons.com/" target="_blank" style="color: #2563eb; text-decoration: underline;">
+                                            materialdesignicons.com
+                                        </a>
+                                        <br>
+                                        Например: <code :style="{
+                                            padding: '2px 6px',
+                                            backgroundColor: '#dbeafe',
+                                            borderRadius: '4px',
+                                            fontFamily: 'monospace',
+                                            fontSize: '11px'
+                                        }">mdi-menu</code>,
+                                        <code :style="{
+                                            padding: '2px 6px',
+                                            backgroundColor: '#dbeafe',
+                                            borderRadius: '4px',
+                                            fontFamily: 'monospace',
+                                            fontSize: '11px'
+                                        }">mdi-close</code>
+                                    </div>
+                                </div>
+
+                                <ui-input prop="burgerIconClosed" placeholder="mdi-menu">
+                                    Иконка закрытого меню
+                                </ui-input>
+
+                                <ui-input prop="burgerIconOpen" placeholder="mdi-close">
+                                    Иконка открытого меню
+                                </ui-input>
+                            </ui-container>
+                        </template>
+                    </ui-panel>
+                </template>
+            </ui-has-panel>
+
             <!-- Global Actions -->
             <div class="mt-3 pt-3 border-t border-gray-200 dark:border-zinc-700">
                 <ui-button type="danger" @click="resetAll">
-                    Сбросить все стили
+                    Сбросить все стили и иконки
                 </ui-button>
             </div>
         </ui-container>
@@ -426,6 +426,12 @@ user-select: none`;
             });
             this.props.customStyles = { ...this.localStyles };
             this.propChanged('customStyles');
+
+            // Также сбрасываем MDI иконки бургер меню
+            this.props.burgerIconOpen = '';
+            this.props.burgerIconClosed = '';
+            this.propChanged('burgerIconOpen');
+            this.propChanged('burgerIconClosed');
         }
     }
 };
