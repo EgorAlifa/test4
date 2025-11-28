@@ -19,6 +19,14 @@
 
             <ui-select prop="orientation" :options="options.orientations" label="Ориентация"></ui-select>
 
+            <!-- Позиционирование кнопок (для vertical/dropdown/kebab) -->
+            <ui-select
+                v-if="props.orientation === 'vertical' || props.orientation === 'dropdown' || props.orientation === 'kebab'"
+                prop="buttonAlignment"
+                :options="options.buttonAlignments"
+                label="Позиционирование кнопок">
+            </ui-select>
+
             <!-- Настройка текста для dropdown меню -->
             <ui-input
                 v-if="props.orientation === 'dropdown'"
@@ -43,7 +51,12 @@ export default {
     data: () => ({
         ...PanelInstanceTypeDescriptor,
         options: {
-            orientations: ORIENTATION_OPTIONS
+            orientations: ORIENTATION_OPTIONS,
+            buttonAlignments: [
+                { label: 'По левому краю', value: 'left' },
+                { label: 'По центру', value: 'center' },
+                { label: 'По правому краю', value: 'right' }
+            ]
         }
     })
 };

@@ -39,6 +39,17 @@ export const descriptor = () => ({
                 { label: 'Гамбургер меню', value: 'kebab' }
             ]
         },
+        buttonAlignment: {
+            type: String,
+            default: 'left',
+            label: 'Позиционирование кнопок',
+            options: [
+                { label: 'По левому краю', value: 'left' },
+                { label: 'По центру', value: 'center' },
+                { label: 'По правому краю', value: 'right' }
+            ],
+            hint: 'Выравнивание текста в кнопках'
+        },
         itemsPerPage: {
             type: Number,
             default: 6,
