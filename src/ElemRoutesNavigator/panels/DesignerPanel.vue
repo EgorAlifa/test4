@@ -1,6 +1,63 @@
 <template>
     <w-panel>
         <ui-container>
+            <!-- Burger Menu Icons -->
+            <ui-has-panel>
+                <div class="form-label form-label-small">
+                    Иконки бургер меню
+                </div>
+                <template #panel>
+                    <ui-panel :groups="[{ name: 'Иконки бургер меню', slot: 'burgerIcons' }]">
+                        <template #burgerIcons>
+                            <ui-container>
+                                <div
+                                    :style="{
+                                        marginBottom: '10px',
+                                        padding: '8px',
+                                        backgroundColor: '#eff6ff',
+                                        border: '1px solid #bfdbfe',
+                                        borderRadius: '6px'
+                                    }"
+                                >
+                                    <div
+                                        :style="{ fontSize: '12px', color: '#1e40af', lineHeight: '1.6' }"
+                                    >
+                                        <strong :style="{ fontWeight: '600' }">💡 Совет:</strong>
+                                        Используйте названия MDI иконок из
+                                        <a href="https://materialdesignicons.com/" target="_blank" style="color: #2563eb; text-decoration: underline;">
+                                            materialdesignicons.com
+                                        </a>
+                                        <br>
+                                        Например: <code :style="{
+                                            padding: '2px 6px',
+                                            backgroundColor: '#dbeafe',
+                                            borderRadius: '4px',
+                                            fontFamily: 'monospace',
+                                            fontSize: '11px'
+                                        }">mdi-menu</code>,
+                                        <code :style="{
+                                            padding: '2px 6px',
+                                            backgroundColor: '#dbeafe',
+                                            borderRadius: '4px',
+                                            fontFamily: 'monospace',
+                                            fontSize: '11px'
+                                        }">mdi-close</code>
+                                    </div>
+                                </div>
+
+                                <ui-input prop="burgerIconClosed" placeholder="mdi-menu">
+                                    Иконка закрытого меню
+                                </ui-input>
+
+                                <ui-input prop="burgerIconOpen" placeholder="mdi-close">
+                                    Иконка открытого меню
+                                </ui-input>
+                            </ui-container>
+                        </template>
+                    </ui-panel>
+                </template>
+            </ui-has-panel>
+
             <!-- Element Style Editors -->
             <ui-has-panel v-for="element in elements" :key="element.key">
                 <div class="form-label form-label-small">
@@ -167,7 +224,6 @@ export default {
             burgerToggle: '',
             burgerMenu: '',
             burgerLine: '',
-            burgerIcon: '',
             routeSlug: '',
             expandIcon: ''
         },
@@ -224,13 +280,8 @@ export default {
                 },
                 {
                     key: 'burgerLine',
-                    label: 'Линии бургер иконки',
+                    label: 'Линии бургер иконки (по умолчанию)',
                     selector: '.burger-line'
-                },
-                {
-                    key: 'burgerIcon',
-                    label: 'MDI иконка бургер меню',
-                    selector: '.burger-icon'
                 },
                 {
                     key: 'routeSlug',
@@ -328,10 +379,8 @@ box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1)`;
                     return `width: 20px;
 height: 2px;
 background-color: ${this.props.textColor || '#1f2937'};
-border-radius: 2px`;
-                case 'burgerIcon':
-                    return `font-size: 1.5rem;
-color: ${this.props.textColor || '#1f2937'}`;
+border-radius: 2px;
+/* Применяется только если MDI иконки не заданы */`;
                 case 'routeSlug':
                     return `font-size: 0.75rem;
 color: #6b7280;

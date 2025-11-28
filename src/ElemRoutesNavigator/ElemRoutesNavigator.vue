@@ -406,7 +406,6 @@ export default {
                 burgerToggle: '.burger-toggle',
                 burgerMenu: '.burger-menu',
                 burgerLine: '.burger-line',
-                burgerIcon: '.burger-icon',
                 routeSlug: '.route-slug',
                 expandIcon: '.expand-icon'
             };
@@ -456,6 +455,17 @@ export default {
                 if (this.props.enableHierarchy) {
                     this.initializeExpandedState();
                 }
+                // Принудительно обновляем компонент
+                this.$forceUpdate();
+            },
+            deep: true
+        },
+
+        // Следим за изменениями порядка страниц
+        'props.routesOrder': {
+            handler() {
+                // Принудительно обновляем компонент
+                this.$forceUpdate();
             },
             deep: true
         },
@@ -464,7 +474,12 @@ export default {
         'props.enableHierarchy'(newVal) {
             if (newVal) {
                 this.initializeExpandedState();
+            } else {
+                // При выключении иерархии сбрасываем expandedRoutes
+                this.expandedRoutes = new Set();
             }
+            // Принудительно обновляем компонент
+            this.$forceUpdate();
         }
     },
 
