@@ -142,6 +142,7 @@ export default {
         ...ElemInstanceTypeDescriptor,
         routes: [],
         currentSlug: null,
+        currentPageId: null,
         hoveredIndex: null,
         isPlayerMode: false,
         loadAttempts: 0,
@@ -203,7 +204,7 @@ export default {
 
             // Добавляем пагинацию со скроллом для вертикальной ориентации (если включена)
             if (this.props.orientation === 'vertical' && this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
-                const itemHeight = 3.1; // Высота одной кнопки с отступами в rem для вертикальной ориентации
+                const itemHeight = 3.0; // Высота одной кнопки с отступами в rem для вертикальной ориентации
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
                 baseStyle.overflowY = 'auto';
@@ -253,7 +254,7 @@ export default {
 
             // Добавляем пагинацию со скроллом (если включена)
             if (this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
-                const itemHeight = 3.2; // Высота одной кнопки с отступами в rem (16rem / 5 элементов)
+                const itemHeight = 3.1; // Высота одной кнопки с отступами в rem для кебаб меню
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
                 baseStyle.overflowY = 'auto';
@@ -314,7 +315,7 @@ export default {
 
             // Добавляем пагинацию со скроллом (если включена)
             if (this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
-                const itemHeight = 3.2; // Высота одной кнопки с отступами в rem (16rem / 5 элементов)
+                const itemHeight = 3.1; // Высота одной кнопки с отступами в rem для выпадающего списка
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
                 baseStyle.overflowY = 'auto';
@@ -389,7 +390,7 @@ export default {
             this.loadAttempts += 1;
 
             // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-27-v20-ButtonAlignment | Attempt:', this.loadAttempts);
+            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v21-ActivePage | Attempt:', this.loadAttempts);
 
             // Сначала проверяем глобальные объекты
             const globalSources = [
@@ -464,9 +465,36 @@ export default {
         },
 
         detectCurrentSlug() {
-            if (typeof window !== 'undefined') {
+            if (typeof window === 'undefined') return;
+
+            if (!this.props.highlightActivePage) {
+                // Old behavior: just use pathname
                 this.currentSlug = window.location.pathname;
+                return;
             }
+
+            // Player mode: parse hash like #/1 → /1
+            if (window.location.hash) {
+                const hash = window.location.hash;
+                // Extract everything after # (e.g., #/1 → /1)
+                const match = hash.match(/^#(.+)$/);
+                if (match) {
+                    this.currentSlug = match[1];
+                    return;
+                }
+            }
+
+            // Editor mode: parse query param 'page' for UUID
+            const urlParams = new URLSearchParams(window.location.search);
+            const pageId = urlParams.get('page');
+
+            if (pageId) {
+                this.currentPageId = pageId;
+                return;
+            }
+
+            // Fallback to pathname if nothing else works
+            this.currentSlug = window.location.pathname;
         },
 
         /**
@@ -665,6 +693,16 @@ export default {
         },
 
         isActive(route) {
+            if (!this.props.highlightActivePage) {
+                return this.currentSlug === route.slug;
+            }
+
+            // If we have a currentPageId (editor mode), match by ID
+            if (this.currentPageId && route.id) {
+                return this.currentPageId === route.id;
+            }
+
+            // Otherwise match by slug (player mode or fallback)
             return this.currentSlug === route.slug;
         },
 

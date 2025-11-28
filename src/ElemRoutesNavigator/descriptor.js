@@ -28,6 +28,12 @@ export const descriptor = () => ({
             label: 'Показывать пути (slug) страниц',
             hint: 'Показывает путь рядом с названием страницы'
         },
+        highlightActivePage: {
+            type: Boolean,
+            default: false,
+            label: 'Активная страница',
+            hint: 'Показывает текущую страницу'
+        },
         orientation: {
             type: String,
             default: 'horizontal',
