@@ -159,12 +159,6 @@ export default {
     /* static data used in <template></template> */
     static: {},
 
-    provide() {
-        return {
-            getRoutes: () => this.routes
-        };
-    },
-
     data: () => ({
         ...ElemInstanceTypeDescriptor,
         routes: [],
