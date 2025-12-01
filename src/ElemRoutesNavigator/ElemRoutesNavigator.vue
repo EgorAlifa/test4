@@ -212,7 +212,8 @@ export default {
         isDragging: false,
         closeMenuTimer: null,
         expandedRoutes: new Set(), // Для отслеживания развернутых разделов
-        hierarchyUpdateKey: 0 // Ключ для принудительного обновления
+        hierarchyUpdateKey: 0, // Ключ для принудительного обновления
+        currentPage: 1 // Текущая страница пагинации
     }),
 
     computed: {
@@ -238,16 +239,40 @@ export default {
 
             if (!this.props.enableHierarchy) {
                 // Без иерархии - показываем все routes как есть (порядок из app.json)
-                return result.map(route => ({
+                result = result.map(route => ({
                     ...route,
                     depth: 0,
                     hasChildren: false,
                     isExpanded: false
                 }));
+            } else {
+                // С иерархией - строим дерево и фильтруем по expanded
+                result = this.buildHierarchicalRoutes(result);
             }
 
-            // С иерархией - строим дерево и фильтруем по expanded
-            return this.buildHierarchicalRoutes(result);
+            // Применяем пагинацию с номерами страниц если включена
+            if (this.props.enablePagination && this.props.paginationType === 'pages' &&
+                (this.props.orientation === 'vertical' || this.props.orientation === 'dropdown' || this.props.orientation === 'burger')) {
+                const start = (this.currentPage - 1) * this.props.itemsPerPage;
+                const end = start + this.props.itemsPerPage;
+                return result.slice(start, end);
+            }
+
+            return result;
+        },
+
+        // Общее количество страниц для пагинации
+        totalPages() {
+            if (!this.props.enablePagination || this.props.paginationType !== 'pages') return 1;
+            if (this.props.orientation !== 'vertical' && this.props.orientation !== 'dropdown' && this.props.orientation !== 'burger') return 1;
+
+            const totalRoutes = this.routes.filter(route => {
+                const routeId = route.id || route.pageId;
+                const disabledPages = this.props.disabledPages || [];
+                return !disabledPages.includes(routeId);
+            }).length;
+
+            return Math.ceil(totalRoutes / this.props.itemsPerPage) || 1;
         },
 
         canReorder() {
