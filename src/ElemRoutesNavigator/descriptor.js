@@ -134,6 +134,40 @@ export const descriptor = () => ({
             label: 'Семейство шрифта',
             hint: 'Например: Arial, Helvetica, sans-serif'
         },
+        boxShadow: {
+            type: String,
+            default: '',
+            label: 'Тень контейнера',
+            hint: 'CSS box-shadow, например: 0 4px 6px rgba(0,0,0,0.1)'
+        },
+        buttonShadow: {
+            type: String,
+            default: '',
+            label: 'Тень кнопок',
+            hint: 'CSS box-shadow для кнопок'
+        },
+        menuShadow: {
+            type: String,
+            default: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            label: 'Тень выпадающих меню',
+            hint: 'CSS box-shadow для dropdown и burger меню'
+        },
+        paginationType: {
+            type: String,
+            default: 'scroll',
+            label: 'Тип пагинации',
+            options: [
+                { label: 'Скролл', value: 'scroll' },
+                { label: 'Номера страниц', value: 'pages' }
+            ],
+            hint: 'Режим пагинации для вертикальной ориентации и меню'
+        },
+        paginationActiveColor: {
+            type: String,
+            default: '#3b82f6',
+            label: 'Цвет активной страницы (пагинация)',
+            hint: 'Цвет подсветки активного номера страницы'
+        },
         showMenuBorder: {
             type: Boolean,
             default: true,

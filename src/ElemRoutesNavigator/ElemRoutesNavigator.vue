@@ -174,6 +174,26 @@
                     В плеере виджет загрузит маршруты из app.json
                 </p>
             </div>
+
+            <!-- Pagination Controls (only for pages type) -->
+            <div
+                v-if="props.enablePagination && props.paginationType === 'pages' && totalPages > 1 &&
+                    (props.orientation === 'vertical' || props.orientation === 'dropdown' || props.orientation === 'burger')"
+                class="pagination-controls"
+                :style="paginationControlsStyle"
+            >
+                <button
+                    v-for="page in totalPages"
+                    :key="page"
+                    class="pagination-button"
+                    :class="{ 'pagination-button-active': page === currentPage }"
+                    :style="getPaginationButtonStyle(page)"
+                    @click="goToPage(page)"
+                    type="button"
+                >
+                    {{ page }}
+                </button>
+            </div>
         </div>
 
         <!-- Custom Styles from Designer Panel -->
@@ -212,7 +232,8 @@ export default {
         isDragging: false,
         closeMenuTimer: null,
         expandedRoutes: new Set(), // Для отслеживания развернутых разделов
-        hierarchyUpdateKey: 0 // Ключ для принудительного обновления
+        hierarchyUpdateKey: 0, // Ключ для принудительного обновления
+        currentPage: 1 // Текущая страница пагинации
     }),
 
     computed: {
@@ -238,16 +259,40 @@ export default {
 
             if (!this.props.enableHierarchy) {
                 // Без иерархии - показываем все routes как есть (порядок из app.json)
-                return result.map(route => ({
+                result = result.map(route => ({
                     ...route,
                     depth: 0,
                     hasChildren: false,
                     isExpanded: false
                 }));
+            } else {
+                // С иерархией - строим дерево и фильтруем по expanded
+                result = this.buildHierarchicalRoutes(result);
             }
 
-            // С иерархией - строим дерево и фильтруем по expanded
-            return this.buildHierarchicalRoutes(result);
+            // Применяем пагинацию с номерами страниц если включена
+            if (this.props.enablePagination && this.props.paginationType === 'pages' &&
+                (this.props.orientation === 'vertical' || this.props.orientation === 'dropdown' || this.props.orientation === 'burger')) {
+                const start = (this.currentPage - 1) * this.props.itemsPerPage;
+                const end = start + this.props.itemsPerPage;
+                return result.slice(start, end);
+            }
+
+            return result;
+        },
+
+        // Общее количество страниц для пагинации
+        totalPages() {
+            if (!this.props.enablePagination || this.props.paginationType !== 'pages') return 1;
+            if (this.props.orientation !== 'vertical' && this.props.orientation !== 'dropdown' && this.props.orientation !== 'burger') return 1;
+
+            const totalRoutes = this.routes.filter(route => {
+                const routeId = route.id || route.pageId;
+                const disabledPages = this.props.disabledPages || [];
+                return !disabledPages.includes(routeId);
+            }).length;
+
+            return Math.ceil(totalRoutes / this.props.itemsPerPage) || 1;
         },
 
         canReorder() {
@@ -256,12 +301,19 @@ export default {
         },
 
         containerStyle() {
-            return {
+            const style = {
                 backgroundColor: this.props.backgroundColor || '#ffffff',
                 color: this.props.textColor || '#1f2937',
                 borderRadius: this.props.borderRadius || '0.375rem',
                 padding: '1rem'
             };
+
+            // Добавляем тень контейнера если указана
+            if (this.props.boxShadow) {
+                style.boxShadow = this.props.boxShadow;
+            }
+
+            return style;
         },
 
         titleStyle() {
@@ -290,8 +342,9 @@ export default {
                 flexWrap: this.props.orientation === 'horizontal' ? 'wrap' : 'nowrap'
             };
 
-            // Добавляем пагинацию со скроллом для вертикальной ориентации (если включена)
-            if (this.props.orientation === 'vertical' && this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
+            // Добавляем пагинацию со скроллом для вертикальной ориентации (если включена и тип scroll)
+            if (this.props.orientation === 'vertical' && this.props.enablePagination &&
+                this.props.paginationType === 'scroll' && this.routes.length > this.props.itemsPerPage) {
                 const itemHeight = 3.0; // Высота одной кнопки с отступами в rem для вертикальной ориентации
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
@@ -337,11 +390,11 @@ export default {
                 backgroundColor: this.props.backgroundColor || '#ffffff',
                 border: `1px solid ${borderColor}`,
                 borderRadius: this.props.borderRadius || '0.375rem',
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                boxShadow: this.props.menuShadow || '0 4px 6px rgba(0, 0, 0, 0.1)'
             };
 
-            // Добавляем пагинацию со скроллом (если включена)
-            if (this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
+            // Добавляем пагинацию со скроллом (если включена и тип scroll)
+            if (this.props.enablePagination && this.props.paginationType === 'scroll' && this.routes.length > this.props.itemsPerPage) {
                 const itemHeight = 3.1; // Высота одной кнопки с отступами в rem для бургер меню
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
@@ -398,11 +451,11 @@ export default {
                 backgroundColor: this.props.backgroundColor || '#ffffff',
                 border: `1px solid ${borderColor}`,
                 borderRadius: this.props.borderRadius || '0.375rem',
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                boxShadow: this.props.menuShadow || '0 4px 6px rgba(0, 0, 0, 0.1)'
             };
 
-            // Добавляем пагинацию со скроллом (если включена)
-            if (this.props.enablePagination && this.routes.length > this.props.itemsPerPage) {
+            // Добавляем пагинацию со скроллом (если включена и тип scroll)
+            if (this.props.enablePagination && this.props.paginationType === 'scroll' && this.routes.length > this.props.itemsPerPage) {
                 const itemHeight = 3.1; // Высота одной кнопки с отступами в rem для выпадающего списка
                 const maxHeight = this.props.itemsPerPage * itemHeight;
                 baseStyle.maxHeight = `${maxHeight}rem`;
@@ -410,6 +463,21 @@ export default {
             }
 
             return baseStyle;
+        },
+
+        // Стиль для контейнера пагинации
+        paginationControlsStyle() {
+            const defaultGap = 0.5; // 0.5rem = 8px
+            const gapObj = this.props.buttonGap || { size: defaultGap, unit: 'rem' };
+            const gap = `${gapObj.size}${gapObj.unit}`;
+
+            return {
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                gap,
+                marginTop: '1rem'
+            };
         },
 
         // Проверяет есть ли кастомные стили
@@ -520,6 +588,64 @@ export default {
     },
 
     methods: {
+        /**
+         * Переход на указанную страницу пагинации
+         */
+        goToPage(pageNum) {
+            if (pageNum >= 1 && pageNum <= this.totalPages) {
+                this.currentPage = pageNum;
+            }
+        },
+
+        /**
+         * Стиль для кнопки пагинации
+         */
+        getPaginationButtonStyle(page) {
+            const defaultPadding = 0.5; // Меньше чем для обычных кнопок
+            const paddingObj = this.props.buttonPadding || { size: 0.75, unit: 'rem' };
+            const padding = `${paddingObj.size * 0.67}${paddingObj.unit}`;
+
+            const defaultFontSize = 0.875; // 0.875rem = 14px
+            const fontSizeObj = this.props.fontSize || { size: defaultFontSize, unit: 'rem' };
+            const fontSize = `${fontSizeObj.size}${fontSizeObj.unit}`;
+
+            const baseStyle = {
+                padding,
+                fontSize,
+                borderRadius: this.props.borderRadius || '0.375rem',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                minWidth: '2rem',
+                fontFamily: this.props.fontFamily || 'inherit'
+            };
+
+            // Добавляем тень кнопок если указана
+            if (this.props.buttonShadow) {
+                baseStyle.boxShadow = this.props.buttonShadow;
+            }
+
+            // Определяем цвет кнопки
+            if (page === this.currentPage) {
+                baseStyle.backgroundColor = this.props.paginationActiveColor || this.props.activeColor || '#3b82f6';
+                baseStyle.color = '#ffffff';
+            } else {
+                if (this.props.buttonStyle === 'filled') {
+                    baseStyle.backgroundColor = '#f3f4f6';
+                    baseStyle.color = this.props.textColor || '#1f2937';
+                } else if (this.props.buttonStyle === 'outlined') {
+                    baseStyle.backgroundColor = 'transparent';
+                    baseStyle.border = `1px solid ${this.props.textColor || '#1f2937'}`;
+                    baseStyle.color = this.props.textColor || '#1f2937';
+                } else {
+                    baseStyle.backgroundColor = 'transparent';
+                    baseStyle.color = this.props.textColor || '#1f2937';
+                }
+            }
+
+            return baseStyle;
+        },
+
         /**
          * Применяет кастомный порядок сортировки к routes
          */
@@ -1074,6 +1200,11 @@ export default {
                 textAlign,
                 fontFamily: this.props.fontFamily || 'inherit'
             };
+
+            // Добавляем тень кнопок если указана
+            if (this.props.buttonShadow) {
+                baseStyle.boxShadow = this.props.buttonShadow;
+            }
 
             // Добавляем отступ для вложенных элементов
             if (this.props.enableHierarchy && route.depth > 0) {
