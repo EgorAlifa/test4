@@ -6,6 +6,21 @@
                 Включить пагинацию
             </ui-switch>
 
+            <!-- Тип пагинации -->
+            <template v-if="props.enablePagination && (props.orientation === 'vertical' || props.orientation === 'dropdown' || props.orientation === 'burger')">
+                <ui-select
+                    prop="paginationType"
+                    :options="options.paginationTypes"
+                    label="Тип пагинации">
+                </ui-select>
+
+                <ui-input-cp
+                    v-if="props.paginationType === 'pages'"
+                    prop="paginationActiveColor">
+                    Цвет активной страницы
+                </ui-input-cp>
+            </template>
+
             <!-- Настройки пагинации (для vertical/dropdown/burger) -->
             <template v-if="props.enablePagination && (props.orientation === 'vertical' || props.orientation === 'dropdown' || props.orientation === 'burger')">
                 <ui-input
@@ -99,21 +114,6 @@
             <ui-input prop="boxShadow" placeholder="0 4px 6px rgba(0,0,0,0.1)">Тень контейнера</ui-input>
             <ui-input prop="buttonShadow" placeholder="0 2px 4px rgba(0,0,0,0.05)">Тень кнопок</ui-input>
             <ui-input prop="menuShadow" placeholder="0 4px 6px rgba(0,0,0,0.1)">Тень выпадающих меню</ui-input>
-
-            <!-- Тип пагинации -->
-            <template v-if="props.enablePagination && (props.orientation === 'vertical' || props.orientation === 'dropdown' || props.orientation === 'burger')">
-                <ui-select
-                    prop="paginationType"
-                    :options="options.paginationTypes"
-                    label="Тип пагинации">
-                </ui-select>
-
-                <ui-input-cp
-                    v-if="props.paginationType === 'pages'"
-                    prop="paginationActiveColor">
-                    Цвет активной страницы
-                </ui-input-cp>
-            </template>
 
             <!-- Границы (только для dropdown/burger) -->
             <template v-if="props.orientation === 'dropdown' || props.orientation === 'burger'">

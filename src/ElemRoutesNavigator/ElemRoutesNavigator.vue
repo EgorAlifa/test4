@@ -59,6 +59,25 @@
                         <span class="route-title">{{ route.title || route.name }}</span>
                         <span v-if="props.showSlug && route.slug" class="route-slug">{{ route.slug }}</span>
                     </button>
+
+                    <!-- Pagination Controls for dropdown -->
+                    <div
+                        v-if="props.enablePagination && props.paginationType === 'pages' && totalPages > 1"
+                        class="pagination-controls"
+                        :style="paginationControlsStyle"
+                    >
+                        <button
+                            v-for="page in totalPages"
+                            :key="page"
+                            class="pagination-button"
+                            :class="{ 'pagination-button-active': page === currentPage }"
+                            :style="getPaginationButtonStyle(page)"
+                            @click="goToPage(page)"
+                            type="button"
+                        >
+                            {{ page }}
+                        </button>
+                    </div>
                 </div>
             </nav>
 
@@ -124,6 +143,25 @@
                         <span class="route-title">{{ route.title || route.name }}</span>
                         <span v-if="props.showSlug && route.slug" class="route-slug">{{ route.slug }}</span>
                     </button>
+
+                    <!-- Pagination Controls for burger menu -->
+                    <div
+                        v-if="props.enablePagination && props.paginationType === 'pages' && totalPages > 1"
+                        class="pagination-controls"
+                        :style="paginationControlsStyle"
+                    >
+                        <button
+                            v-for="page in totalPages"
+                            :key="page"
+                            class="pagination-button"
+                            :class="{ 'pagination-button-active': page === currentPage }"
+                            :style="getPaginationButtonStyle(page)"
+                            @click="goToPage(page)"
+                            type="button"
+                        >
+                            {{ page }}
+                        </button>
+                    </div>
                 </div>
             </nav>
 
@@ -175,10 +213,10 @@
                 </p>
             </div>
 
-            <!-- Pagination Controls (only for pages type) -->
+            <!-- Pagination Controls (only for vertical orientation) -->
             <div
                 v-if="props.enablePagination && props.paginationType === 'pages' && totalPages > 1 &&
-                    (props.orientation === 'vertical' || props.orientation === 'dropdown' || props.orientation === 'burger')"
+                    props.orientation === 'vertical'"
                 class="pagination-controls"
                 :style="paginationControlsStyle"
             >
