@@ -384,7 +384,7 @@ export default {
                     return `background-color: ${this.props.backgroundColor || '#ffffff'};
 color: ${this.props.textColor || '#1f2937'};
 border-radius: ${this.props.borderRadius || '0.375rem'};
-padding: 1rem`;
+padding: 1rem;${this.props.boxShadow ? `\nbox-shadow: ${this.props.boxShadow}` : ''}`;
                 case 'title':
                     return `font-size: ${fontSizeObj.size * 1.2}${fontSizeObj.unit};
 font-weight: 600;
@@ -397,7 +397,7 @@ font-size: ${fontSize};
 border-radius: ${this.props.borderRadius || '0.375rem'};
 cursor: pointer;
 transition: all 0.2s ease;
-font-family: ${this.props.fontFamily || 'inherit'}`;
+font-family: ${this.props.fontFamily || 'inherit'};${this.props.buttonShadow ? `\nbox-shadow: ${this.props.buttonShadow}` : ''}`;
                 case 'buttonHover':
                     return `background-color: ${this.props.hoverColor || '#60a5fa'};
 color: #ffffff`;
@@ -417,7 +417,7 @@ font-family: ${this.props.fontFamily || 'inherit'}`;
                     return `background-color: ${this.props.backgroundColor || '#ffffff'};
 border: 1px solid ${this.props.showMenuBorder ? (this.props.menuBorderColor || '#1f2937') : 'transparent'};
 border-radius: ${this.props.borderRadius || '0.375rem'};
-box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1)`;
+box-shadow: ${this.props.menuShadow || '0 4px 6px rgba(0, 0, 0, 0.1)'}`;
                 case 'burgerToggle':
                     return `padding: ${padding};
 border-radius: ${this.props.borderRadius || '0.375rem'};
@@ -428,7 +428,7 @@ cursor: pointer`;
                     return `background-color: ${this.props.backgroundColor || '#ffffff'};
 border: 1px solid ${this.props.showMenuBorder ? (this.props.menuBorderColor || '#1f2937') : 'transparent'};
 border-radius: ${this.props.borderRadius || '0.375rem'};
-box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1)`;
+box-shadow: ${this.props.menuShadow || '0 4px 6px rgba(0, 0, 0, 0.1)'}`;
                 case 'burgerLine':
                     return `width: 20px;
 height: 2px;
