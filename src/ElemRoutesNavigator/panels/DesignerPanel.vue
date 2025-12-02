@@ -135,13 +135,13 @@
                 </template>
             </ui-has-panel>
 
-            <!-- Burger Menu Icons -->
+            <!-- Compact Menu Icons -->
             <ui-has-panel>
                 <div class="form-label form-label-small">
-                    Иконки бургер меню
+                    Настройка иконок компактного меню
                 </div>
                 <template #panel>
-                    <ui-panel :groups="[{ name: 'Иконки бургер меню', slot: 'burgerIcons' }]">
+                    <ui-panel :groups="[{ name: 'Иконки компактного меню', slot: 'burgerIcons' }]">
                         <template #burgerIcons>
                             <ui-container>
                                 <div
@@ -186,16 +186,20 @@
                                 <ui-input prop="burgerIconOpen" placeholder="mdi-close">
                                     Иконка открытого меню
                                 </ui-input>
+
+                                <ui-input prop="burgerIconSize" placeholder="1.5rem">
+                                    Размер иконки (font-size)
+                                </ui-input>
                             </ui-container>
                         </template>
                     </ui-panel>
                 </template>
             </ui-has-panel>
 
-            <!-- Expand/Collapse Icons -->
+            <!-- Hierarchy Icons -->
             <ui-has-panel>
                 <div class="form-label form-label-small">
-                    Иконки развернуть/свернуть (иерархия)
+                    Настройка иконок иерархии
                 </div>
                 <template #panel>
                     <ui-panel :groups="[{ name: 'Иконки иерархии', slot: 'expandIcons' }]">
@@ -239,6 +243,10 @@
 
                                 <ui-input prop="expandIconCollapsed" placeholder="mdi-chevron-right">
                                     Иконка свернутого раздела
+                                </ui-input>
+
+                                <ui-input prop="expandIconSize" placeholder="0.75rem">
+                                    Размер иконки (font-size)
                                 </ui-input>
                             </ui-container>
                         </template>
@@ -324,17 +332,17 @@ export default {
                 },
                 {
                     key: 'burgerToggle',
-                    label: 'Кнопка бургер меню',
+                    label: 'Кнопка компактного меню',
                     selector: '.burger-toggle'
                 },
                 {
                     key: 'burgerMenu',
-                    label: 'Бургер меню',
+                    label: 'Компактное меню',
                     selector: '.burger-menu'
                 },
                 {
                     key: 'burgerLine',
-                    label: 'Линии бургер иконки (по умолчанию)',
+                    label: 'Линии иконки меню (дефолт)',
                     selector: '.burger-line'
                 },
                 {
@@ -344,7 +352,7 @@ export default {
                 },
                 {
                     key: 'expandIcon',
-                    label: 'Иконка развернуть/свернуть',
+                    label: 'Стили иконок иерархии',
                     selector: '.expand-icon'
                 }
             ];
@@ -484,14 +492,18 @@ user-select: none`;
             // Также сбрасываем MDI иконки бургер меню
             this.props.burgerIconOpen = '';
             this.props.burgerIconClosed = '';
+            this.props.burgerIconSize = '1.5rem';
             this.propChanged('burgerIconOpen');
             this.propChanged('burgerIconClosed');
+            this.propChanged('burgerIconSize');
 
             // Сбрасываем иконки expand/collapse
             this.props.expandIconExpanded = '';
             this.props.expandIconCollapsed = '';
+            this.props.expandIconSize = '0.75rem';
             this.propChanged('expandIconExpanded');
             this.propChanged('expandIconCollapsed');
+            this.propChanged('expandIconSize');
         }
     }
 };

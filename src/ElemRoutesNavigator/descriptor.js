@@ -204,6 +204,12 @@ export const descriptor = () => ({
             label: 'MDI иконка (закрытое меню)',
             hint: 'Название MDI иконки для закрытого бургер меню (например: mdi-menu)'
         },
+        burgerIconSize: {
+            type: String,
+            default: '1.5rem',
+            label: 'Размер иконки компактного меню',
+            hint: 'Размер иконки (font-size), например: 1.5rem, 24px'
+        },
         expandIconExpanded: {
             type: String,
             default: '',
@@ -215,6 +221,12 @@ export const descriptor = () => ({
             default: '',
             label: 'MDI иконка (свернутый раздел)',
             hint: 'Название MDI иконки для свернутого раздела в иерархии (например: mdi-chevron-right)'
+        },
+        expandIconSize: {
+            type: String,
+            default: '0.75rem',
+            label: 'Размер иконки иерархии',
+            hint: 'Размер иконки развернуть/свернуть (font-size), например: 0.75rem, 12px'
         },
         enableHierarchy: {
             type: Boolean,
