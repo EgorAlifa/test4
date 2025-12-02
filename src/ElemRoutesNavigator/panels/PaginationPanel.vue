@@ -161,8 +161,8 @@ export default {
                 { label: 'При наведении', value: 'hover' }
             ],
             paginationTypes: [
-                { label: 'Скролл', value: 'scroll' },
-                { label: 'Номера страниц', value: 'pages' }
+                { label: 'Прокрутка', value: 'scroll' },
+                { label: 'Нумерация страниц', value: 'pages' }
             ]
         }
     }),

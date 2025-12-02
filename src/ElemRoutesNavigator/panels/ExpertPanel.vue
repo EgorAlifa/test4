@@ -23,6 +23,7 @@
                         :key="route.id || index"
                         class="route-item"
                         :class="{
+                            'is-parent': route.depth === 0 && hasChildren(route),
                             'is-child': route.depth > 0,
                             'drag-over-before': dragOverRoute === route && dropTargetIndex === 'before',
                             'drag-over-after': dragOverRoute === route && dropTargetIndex === 'after',
@@ -589,6 +590,11 @@ export default {
 .route-item:hover {
     background: #f3f4f6;
     border-color: #d1d5db;
+}
+
+.route-item.is-parent {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
 }
 
 .route-item.is-child {

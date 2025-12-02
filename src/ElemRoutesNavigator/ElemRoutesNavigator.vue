@@ -44,6 +44,7 @@
                         <span
                             v-if="props.enableHierarchy && route.hasChildren"
                             class="expand-icon"
+                            :style="{ fontSize: props.expandIconSize || '0.75rem' }"
                             @click.stop="toggleRouteExpansion(route)"
                         >
                             <!-- MDI иконки если указаны -->
@@ -97,8 +98,8 @@
                 >
                     <!-- MDI иконки если указаны -->
                     <template v-if="props.burgerIconOpen && props.burgerIconClosed">
-                        <i v-if="isMenuOpen" :class="props.burgerIconOpen" class="mdi burger-icon"></i>
-                        <i v-else :class="props.burgerIconClosed" class="mdi burger-icon"></i>
+                        <i v-if="isMenuOpen" :class="props.burgerIconOpen" class="mdi burger-icon" :style="{ fontSize: props.burgerIconSize || '1.5rem' }"></i>
+                        <i v-else :class="props.burgerIconClosed" class="mdi burger-icon" :style="{ fontSize: props.burgerIconSize || '1.5rem' }"></i>
                     </template>
                     <!-- Дефолтные линии -->
                     <template v-else>
@@ -128,6 +129,7 @@
                         <span
                             v-if="props.enableHierarchy && route.hasChildren"
                             class="expand-icon"
+                            :style="{ fontSize: props.expandIconSize || '0.75rem' }"
                             @click.stop="toggleRouteExpansion(route)"
                         >
                             <!-- MDI иконки если указаны -->
