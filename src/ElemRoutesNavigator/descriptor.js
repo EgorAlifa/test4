@@ -104,11 +104,11 @@ export const descriptor = () => ({
             default: '#60a5fa',
             label: 'Цвет при наведении'
         },
-        filledButtonColor: {
+        buttonBackgroundColor: {
             type: String,
             default: '#f3f4f6',
-            label: 'Цвет фона заполненных кнопок',
-            hint: 'Цвет фона для кнопок со стилем "Заполненные"'
+            label: 'Цвет фона кнопок',
+            hint: 'Цвет фона для всех стилей кнопок (заполненные, с обводкой, текстовые)'
         },
         backgroundColor: {
             type: String,

@@ -20,14 +20,6 @@
                     Отступ уровня (rem)
                 </ui-input>
 
-                <!-- Кнопка включения/выключения всех страниц -->
-                <button
-                    class="btn-toggle-all"
-                    @click="toggleAllPages"
-                    :title="allPagesEnabled ? 'Отключить все страницы' : 'Включить все страницы'">
-                    {{ allPagesEnabled ? '✓ Все страницы включены' : '👁️ Включить все страницы' }}
-                </button>
-
                 <!-- Список страниц с иерархией -->
                 <div class="hierarchy-manager">
                     <div class="hierarchy-header">
@@ -37,6 +29,14 @@
                             • Перетащите ДО/ПОСЛЕ элемента (края) - изменить порядок
                         </div>
                     </div>
+
+                    <!-- Кнопка включения/выключения всех страниц -->
+                    <button
+                        class="btn-toggle-all-compact"
+                        @click="toggleAllPages"
+                        :title="allPagesEnabled ? 'Отключить все страницы' : 'Включить все страницы'">
+                        {{ allPagesEnabled ? '✓ Все включены' : 'Включить все' }}
+                    </button>
 
                     <div
                         v-for="(route, index) in hierarchicalRoutes"
@@ -705,30 +705,29 @@ export default {
 }
 
 /* Кнопка включения/выключения всех страниц */
-.btn-toggle-all {
+.btn-toggle-all-compact {
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-    font-size: 0.875rem;
+    padding: 0.375rem 0.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.75rem;
     font-weight: 500;
-    background: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 0.375rem;
+    background: #f9fafb;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.25rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s;
+    text-align: center;
 }
 
-.btn-toggle-all:hover {
-    background: #2563eb;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.btn-toggle-all-compact:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    color: #1f2937;
 }
 
-.btn-toggle-all:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+.btn-toggle-all-compact:active {
+    background: #e5e7eb;
 }
 
 /* Drag and drop визуальные индикаторы */

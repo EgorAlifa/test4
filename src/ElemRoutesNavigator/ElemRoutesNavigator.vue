@@ -1278,15 +1278,17 @@ export default {
                 buttonBgColor = this.props.hoverColor || '#60a5fa';
                 baseStyle.color = '#ffffff';
             } else {
+                const defaultBgColor = this.props.buttonBackgroundColor || '#f3f4f6';
+
                 if (this.props.buttonStyle === 'filled') {
-                    buttonBgColor = this.props.filledButtonColor || '#f3f4f6';
+                    buttonBgColor = defaultBgColor;
                     baseStyle.color = this.props.textColor || '#1f2937';
                 } else if (this.props.buttonStyle === 'outlined') {
-                    buttonBgColor = 'transparent';
+                    buttonBgColor = defaultBgColor;
                     baseStyle.border = `1px solid ${this.props.textColor || '#1f2937'}`;
                     baseStyle.color = this.props.textColor || '#1f2937';
                 } else {
-                    buttonBgColor = 'transparent';
+                    buttonBgColor = defaultBgColor;
                     baseStyle.color = this.props.textColor || '#1f2937';
                 }
             }

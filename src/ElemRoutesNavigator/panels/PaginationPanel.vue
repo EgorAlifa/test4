@@ -65,8 +65,8 @@
                 </ui-input-cp>
             </template>
 
-            <ui-input-cp prop="filledButtonColor">
-                Цвет фона заполненных кнопок
+            <ui-input-cp prop="buttonBackgroundColor">
+                Цвет фона кнопок
             </ui-input-cp>
 
             <ui-input-cp prop="backgroundColor">
