@@ -43,18 +43,14 @@
 
             <ui-select prop="buttonStyle" :options="options.buttonStyles" label="Стиль кнопок"></ui-select>
 
-            <ui-checkbox prop="highlightActivePage">Активная страница</ui-checkbox>
-
-            <template v-if="props.highlightActivePage">
-                <ui-input-cp prop="activeColor">
-                    Цвет активной кнопки
-                    <template v-if="overriddenValues.activeColor" #hint>
-                        <span :style="{ color: '#f59e0b', fontSize: '0.75rem' }">
-                            ⚠️ Переопределено: {{ overriddenValues.activeColor }}
-                        </span>
-                    </template>
-                </ui-input-cp>
-            </template>
+            <ui-input-cp prop="activeColor">
+                Цвет активной кнопки
+                <template v-if="overriddenValues.activeColor" #hint>
+                    <span :style="{ color: '#f59e0b', fontSize: '0.75rem' }">
+                        ⚠️ Переопределено: {{ overriddenValues.activeColor }}
+                    </span>
+                </template>
+            </ui-input-cp>
 
             <ui-switch prop="enableHoverColor">Цвет при наведении</ui-switch>
 
