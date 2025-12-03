@@ -52,17 +52,22 @@
                 </template>
             </ui-input-cp>
 
-            <ui-input-cp prop="hoverColor">
-                Цвет при наведении
-                <template v-if="overriddenValues.hoverColor" #hint>
-                    <span :style="{ color: '#f59e0b', fontSize: '0.75rem' }">
-                        ⚠️ Переопределено: {{ overriddenValues.hoverColor }}
-                    </span>
-                </template>
-            </ui-input-cp>
+            <ui-switch prop="enableHoverColor">Цвет при наведении</ui-switch>
 
-            <ui-checkbox prop="disableHoverColor">Отключить цвет при наведении</ui-checkbox>
-            <ui-checkbox prop="filledButtonStyle">Заполненный стиль кнопок</ui-checkbox>
+            <template v-if="props.enableHoverColor">
+                <ui-input-cp prop="hoverColor">
+                    Цвет при наведении
+                    <template v-if="overriddenValues.hoverColor" #hint>
+                        <span :style="{ color: '#f59e0b', fontSize: '0.75rem' }">
+                            ⚠️ Переопределено: {{ overriddenValues.hoverColor }}
+                        </span>
+                    </template>
+                </ui-input-cp>
+            </template>
+
+            <ui-input-cp prop="filledButtonColor">
+                Цвет фона заполненных кнопок
+            </ui-input-cp>
 
             <ui-input-cp prop="backgroundColor">
                 Фон контейнера

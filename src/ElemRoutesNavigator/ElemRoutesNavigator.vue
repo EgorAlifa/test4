@@ -1274,15 +1274,12 @@ export default {
             if (this.isActive(route)) {
                 buttonBgColor = this.props.activeColor || '#3b82f6';
                 baseStyle.color = '#ffffff';
-            } else if (this.hoveredIndex === index && !this.props.disableHoverColor) {
+            } else if (this.hoveredIndex === index && this.props.enableHoverColor) {
                 buttonBgColor = this.props.hoverColor || '#60a5fa';
                 baseStyle.color = '#ffffff';
             } else {
-                // Проверяем filledButtonStyle prop или существующий buttonStyle
-                const isFilledStyle = this.props.filledButtonStyle || this.props.buttonStyle === 'filled';
-
-                if (isFilledStyle) {
-                    buttonBgColor = '#f3f4f6';
+                if (this.props.buttonStyle === 'filled') {
+                    buttonBgColor = this.props.filledButtonColor || '#f3f4f6';
                     baseStyle.color = this.props.textColor || '#1f2937';
                 } else if (this.props.buttonStyle === 'outlined') {
                     buttonBgColor = 'transparent';

@@ -93,22 +93,22 @@ export const descriptor = () => ({
             default: '#3b82f6',
             label: 'Цвет активной кнопки'
         },
+        enableHoverColor: {
+            type: Boolean,
+            default: true,
+            label: 'Цвет при наведении',
+            hint: 'Включить изменение цвета кнопок при наведении курсора'
+        },
         hoverColor: {
             type: String,
             default: '#60a5fa',
             label: 'Цвет при наведении'
         },
-        disableHoverColor: {
-            type: Boolean,
-            default: false,
-            label: 'Отключить цвет при наведении',
-            hint: 'Убрать изменение цвета кнопок при наведении курсора'
-        },
-        filledButtonStyle: {
-            type: Boolean,
-            default: false,
-            label: 'Заполненный стиль кнопок',
-            hint: 'Кнопки с заполненным фоном вместо прозрачного'
+        filledButtonColor: {
+            type: String,
+            default: '#f3f4f6',
+            label: 'Цвет фона заполненных кнопок',
+            hint: 'Цвет фона для кнопок со стилем "Заполненные"'
         },
         backgroundColor: {
             type: String,
