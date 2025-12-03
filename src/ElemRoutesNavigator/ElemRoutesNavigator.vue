@@ -1291,29 +1291,21 @@ export default {
                 }
             }
 
-            // Добавляем визуальный индикатор вложенности - левая граница (если включена)
+            // Добавляем визуальный индикатор вложенности - граница (если включена)
             if (this.props.enableHierarchy && route.depth > 0 && this.props.hierarchyBorderWidth > 0) {
                 const borderColor = this.props.hierarchyBorderColor || 'rgba(59, 130, 246, 0.3)';
                 const defaultBorderWidth = 3; // eslint-disable-line no-magic-numbers
                 const borderWidth = this.props.hierarchyBorderWidth || defaultBorderWidth;
 
-                // Вычисляем позицию границы слева
-                const defaultHierarchyIndent = 2.5; // eslint-disable-line no-magic-numbers
-                const hierarchyIndent = this.props.hierarchyIndent || defaultHierarchyIndent;
-                const indent = route.depth * hierarchyIndent;
-
-                // Если включен режим "граница от содержимого", сдвигаем границу на величину отступа
-                const borderLeftPosition = this.props.hierarchyBorderStartFromContent
-                    ? `${indent}rem`
-                    : '0';
-
-                const borderGradient = `linear-gradient(to right, ${borderColor} 0%, ${borderColor} 100%)`;
-
-                // Комбинируем gradient границы с основным фоном кнопки
-                baseStyle.backgroundImage = `${borderGradient}, linear-gradient(${buttonBgColor}, ${buttonBgColor})`;
-                baseStyle.backgroundSize = `${borderWidth}px 100%, 100% 100%`;
-                baseStyle.backgroundRepeat = 'no-repeat, no-repeat';
-                baseStyle.backgroundPosition = `${borderLeftPosition} 0, 0 0`;
+                if (this.props.hierarchyBorderStartFromContent) {
+                    // Обводка вокруг всей кнопки
+                    baseStyle.border = `${borderWidth}px solid ${borderColor}`;
+                    baseStyle.backgroundColor = buttonBgColor;
+                } else {
+                    // Только левая граница
+                    baseStyle.borderLeft = `${borderWidth}px solid ${borderColor}`;
+                    baseStyle.backgroundColor = buttonBgColor;
+                }
             } else {
                 baseStyle.backgroundColor = buttonBgColor;
             }
