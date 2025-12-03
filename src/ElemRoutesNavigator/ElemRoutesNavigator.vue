@@ -1274,11 +1274,14 @@ export default {
             if (this.isActive(route)) {
                 buttonBgColor = this.props.activeColor || '#3b82f6';
                 baseStyle.color = '#ffffff';
-            } else if (this.hoveredIndex === index) {
+            } else if (this.hoveredIndex === index && !this.props.disableHoverColor) {
                 buttonBgColor = this.props.hoverColor || '#60a5fa';
                 baseStyle.color = '#ffffff';
             } else {
-                if (this.props.buttonStyle === 'filled') {
+                // Проверяем filledButtonStyle prop или существующий buttonStyle
+                const isFilledStyle = this.props.filledButtonStyle || this.props.buttonStyle === 'filled';
+
+                if (isFilledStyle) {
                     buttonBgColor = '#f3f4f6';
                     baseStyle.color = this.props.textColor || '#1f2937';
                 } else if (this.props.buttonStyle === 'outlined') {
@@ -1291,24 +1294,7 @@ export default {
                 }
             }
 
-            // Добавляем визуальный индикатор вложенности - граница (если включена)
-            if (this.props.enableHierarchy && route.depth > 0 && this.props.hierarchyBorderWidth > 0) {
-                const borderColor = this.props.hierarchyBorderColor || 'rgba(59, 130, 246, 0.3)';
-                const defaultBorderWidth = 3; // eslint-disable-line no-magic-numbers
-                const borderWidth = this.props.hierarchyBorderWidth || defaultBorderWidth;
-
-                if (this.props.hierarchyBorderStartFromContent) {
-                    // Обводка вокруг всей кнопки
-                    baseStyle.border = `${borderWidth}px solid ${borderColor}`;
-                    baseStyle.backgroundColor = buttonBgColor;
-                } else {
-                    // Только левая граница
-                    baseStyle.borderLeft = `${borderWidth}px solid ${borderColor}`;
-                    baseStyle.backgroundColor = buttonBgColor;
-                }
-            } else {
-                baseStyle.backgroundColor = buttonBgColor;
-            }
+            baseStyle.backgroundColor = buttonBgColor;
 
             return baseStyle;
         },

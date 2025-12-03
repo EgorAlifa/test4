@@ -20,8 +20,6 @@
                     Отступ уровня (rem)
                 </ui-input>
 
-                <ui-checkbox prop="hierarchyBorderStartFromContent">Граница от содержимого</ui-checkbox>
-
                 <!-- Кнопка включения/выключения всех страниц -->
                 <button
                     class="btn-toggle-all"

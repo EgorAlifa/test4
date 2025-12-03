@@ -61,6 +61,9 @@
                 </template>
             </ui-input-cp>
 
+            <ui-checkbox prop="disableHoverColor">Отключить цвет при наведении</ui-checkbox>
+            <ui-checkbox prop="filledButtonStyle">Заполненный стиль кнопок</ui-checkbox>
+
             <ui-input-cp prop="backgroundColor">
                 Фон контейнера
                 <template v-if="overriddenValues.backgroundColor" #hint>
