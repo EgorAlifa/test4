@@ -1291,21 +1291,29 @@ export default {
                 }
             }
 
-            // Добавляем визуальный индикатор вложенности - левая граница с градиентом (если включена)
-            if (this.props.enableHierarchy && route.depth > 0 && this.props.showHierarchyBorder !== false) {
+            // Добавляем визуальный индикатор вложенности - левая граница (если включена)
+            if (this.props.enableHierarchy && route.depth > 0 && this.props.hierarchyBorderWidth > 0) {
                 const borderColor = this.props.hierarchyBorderColor || 'rgba(59, 130, 246, 0.3)';
                 const defaultBorderWidth = 3; // eslint-disable-line no-magic-numbers
                 const borderWidth = this.props.hierarchyBorderWidth || defaultBorderWidth;
 
-                // Отступ сверху составляет 20% высоты элемента для визуального разделения
-                const topOffset = 20; // eslint-disable-line no-magic-numbers
-                const borderGradient = `linear-gradient(to bottom, transparent 0%, transparent ${topOffset}%, ${borderColor} ${topOffset}%, ${borderColor} 100%)`;
+                // Вычисляем позицию границы слева
+                const defaultHierarchyIndent = 2.5; // eslint-disable-line no-magic-numbers
+                const hierarchyIndent = this.props.hierarchyIndent || defaultHierarchyIndent;
+                const indent = route.depth * hierarchyIndent;
+
+                // Если включен режим "граница от содержимого", сдвигаем границу на величину отступа
+                const borderLeftPosition = this.props.hierarchyBorderStartFromContent
+                    ? `${indent}rem`
+                    : '0';
+
+                const borderGradient = `linear-gradient(to right, ${borderColor} 0%, ${borderColor} 100%)`;
 
                 // Комбинируем gradient границы с основным фоном кнопки
                 baseStyle.backgroundImage = `${borderGradient}, linear-gradient(${buttonBgColor}, ${buttonBgColor})`;
                 baseStyle.backgroundSize = `${borderWidth}px 100%, 100% 100%`;
                 baseStyle.backgroundRepeat = 'no-repeat, no-repeat';
-                baseStyle.backgroundPosition = '0 0, 0 0';
+                baseStyle.backgroundPosition = `${borderLeftPosition} 0, 0 0`;
             } else {
                 baseStyle.backgroundColor = buttonBgColor;
             }

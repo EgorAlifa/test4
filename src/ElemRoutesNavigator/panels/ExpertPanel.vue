@@ -19,21 +19,21 @@
                     placeholder="2.5">
                     Отступ уровня (rem)
                 </ui-input>
-                <ui-checkbox prop="showHierarchyBorder">Показывать границу вложенности</ui-checkbox>
-                <template v-if="props.showHierarchyBorder">
-                    <ui-input
-                        type="number"
-                        min="1"
-                        max="10"
-                        step="1"
-                        prop="hierarchyBorderWidth"
-                        placeholder="3">
-                        Толщина границы (px)
-                    </ui-input>
-                    <ui-input-cp prop="hierarchyBorderColor">
-                        Цвет границы
-                    </ui-input-cp>
-                </template>
+
+                <div class="form-label form-label-small mt-2">Граница вложенности</div>
+                <ui-input
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="1"
+                    prop="hierarchyBorderWidth"
+                    placeholder="3">
+                    Толщина границы (px)
+                </ui-input>
+                <ui-input-cp prop="hierarchyBorderColor">
+                    Цвет границы
+                </ui-input-cp>
+                <ui-checkbox prop="hierarchyBorderStartFromContent">Граница от содержимого</ui-checkbox>
 
                 <!-- Список страниц с иерархией -->
                 <div class="hierarchy-manager">

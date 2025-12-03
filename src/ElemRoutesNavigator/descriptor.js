@@ -240,23 +240,23 @@ export const descriptor = () => ({
             label: 'Отступ уровня иерархии (rem)',
             hint: 'Размер отступа для каждого уровня вложенности в rem'
         },
-        showHierarchyBorder: {
-            type: Boolean,
-            default: true,
-            label: 'Показывать границу вложенности',
-            hint: 'Левая граница для визуального выделения вложенных элементов'
-        },
         hierarchyBorderWidth: {
             type: Number,
             default: 3, // eslint-disable-line no-magic-numbers
             label: 'Толщина границы вложенности (px)',
-            hint: 'Ширина левой границы для вложенных элементов в px'
+            hint: 'Ширина левой границы для вложенных элементов в px (0 чтобы скрыть)'
         },
         hierarchyBorderColor: {
             type: String,
             default: 'rgba(59, 130, 246, 0.3)',
             label: 'Цвет границы вложенности',
             hint: 'Цвет левой границы для вложенных элементов'
+        },
+        hierarchyBorderStartFromContent: {
+            type: Boolean,
+            default: false,
+            label: 'Граница от содержимого',
+            hint: 'Граница начинается от иконки/текста (убирает пустое пространство слева)'
         },
         navigateParents: {
             type: Boolean,
