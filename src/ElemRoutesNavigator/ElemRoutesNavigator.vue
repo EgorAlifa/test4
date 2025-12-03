@@ -618,6 +618,20 @@ export default {
             this.hierarchyUpdateKey++;
         },
 
+        // Следим за включением/выключением подсветки активной страницы
+        'props.highlightActivePage'(newVal) {
+            if (newVal) {
+                // Обновляем текущий роут при включении
+                this.detectCurrentSlug();
+            }
+            // Инкрементируем ключ для принудительного пересчета
+            this.hierarchyUpdateKey++;
+            // Форсируем обновление компонента для немедленной перерисовки кнопок
+            this.$nextTick(() => {
+                this.$forceUpdate();
+            });
+        },
+
         // Следим за отключенными страницами
         'props.disabledPages': {
             handler() {
