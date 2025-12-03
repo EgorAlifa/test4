@@ -118,6 +118,17 @@ export default {
         await this.loadRoutes();
     },
 
+    watch: {
+        // Следим за изменением enableHierarchy
+        'props.enableHierarchy'(newValue, oldValue) {
+            // Если иерархия выключается (было true, стало false)
+            if (oldValue === true && newValue === false) {
+                // Сбрасываем все настройки иерархии
+                this.resetHierarchySettings();
+            }
+        }
+    },
+
     computed: {
 
         // Иерархия из props
@@ -590,6 +601,18 @@ export default {
             this.$set(this.props, 'disabledPages', newDisabledPages);
             // Принудительно вызываем propChanged для уведомления системы
             this.propChanged('disabledPages');
+        },
+
+        // Сбросить все настройки иерархии
+        resetHierarchySettings() {
+            // Включаем все страницы (очищаем disabledPages)
+            this.updateDisabledPages([]);
+
+            // Сбрасываем порядок к исходному (очищаем routesOrder)
+            this.updateRoutesOrder([]);
+
+            // Сбрасываем иерархию (очищаем hierarchy)
+            this.updateHierarchy({});
         }
     }
 };
