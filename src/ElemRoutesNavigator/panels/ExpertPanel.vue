@@ -35,7 +35,7 @@
                         class="btn-toggle-all-compact"
                         @click="toggleAllPages"
                         :title="allPagesEnabled ? 'Отключить все страницы' : 'Включить все страницы'">
-                        {{ allPagesEnabled ? '✓ Все включены' : 'Включить все' }}
+                        {{ allPagesEnabled ? 'Выключить все' : 'Включить все' }}
                     </button>
 
                     <div
@@ -711,9 +711,9 @@ export default {
     margin-bottom: 0.75rem;
     font-size: 0.75rem;
     font-weight: 500;
-    background: #f9fafb;
-    color: #374151;
-    border: 1px solid #e5e7eb;
+    background: #3b82f6;
+    color: white;
+    border: none;
     border-radius: 0.25rem;
     cursor: pointer;
     transition: all 0.15s;
@@ -721,13 +721,11 @@ export default {
 }
 
 .btn-toggle-all-compact:hover {
-    background: #f3f4f6;
-    border-color: #d1d5db;
-    color: #1f2937;
+    background: #2563eb;
 }
 
 .btn-toggle-all-compact:active {
-    background: #e5e7eb;
+    background: #1d4ed8;
 }
 
 /* Drag and drop визуальные индикаторы */
