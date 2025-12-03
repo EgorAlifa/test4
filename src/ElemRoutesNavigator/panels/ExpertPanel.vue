@@ -8,6 +8,14 @@
                 <!-- Настройка навигации по родителям -->
                 <ui-checkbox prop="navigateParents">Переходить при клике на раздел</ui-checkbox>
 
+                <!-- Кнопка включения/выключения всех страниц -->
+                <button
+                    class="btn-toggle-all"
+                    @click="toggleAllPages"
+                    :title="allPagesEnabled ? 'Отключить все страницы' : 'Включить все страницы'">
+                    {{ allPagesEnabled ? '✓ Все страницы включены' : '👁️ Включить все страницы' }}
+                </button>
+
                 <!-- Настройки визуализации иерархии -->
                 <div class="form-label form-label-small mt-3">Визуализация иерархии</div>
                 <ui-input
@@ -20,19 +28,6 @@
                     Отступ уровня (rem)
                 </ui-input>
 
-                <div class="form-label form-label-small mt-2">Граница вложенности</div>
-                <ui-input
-                    type="number"
-                    min="0"
-                    max="10"
-                    step="1"
-                    prop="hierarchyBorderWidth"
-                    placeholder="3">
-                    Толщина границы (px)
-                </ui-input>
-                <ui-input-cp prop="hierarchyBorderColor">
-                    Цвет границы
-                </ui-input-cp>
                 <ui-checkbox prop="hierarchyBorderStartFromContent">Граница от содержимого</ui-checkbox>
 
                 <!-- Список страниц с иерархией -->
@@ -156,6 +151,17 @@ export default {
 
             // Сортируем: сначала родители, потом дети
             return this.sortByHierarchy(enriched);
+        },
+
+        // Проверяем все ли страницы включены
+        allPagesEnabled() {
+            if (this.routes.length === 0) return true;
+
+            // Проверяем, есть ли хоть одна отключенная страница
+            return this.routes.every(route => {
+                const routeId = route.id || route.pageId;
+                return !this.disabledPages.includes(routeId);
+            });
         }
     },
 
@@ -328,6 +334,18 @@ export default {
             }
 
             this.updateDisabledPages(newDisabledPages);
+        },
+
+        // Переключает все страницы (включить/выключить все)
+        toggleAllPages() {
+            if (this.allPagesEnabled) {
+                // Все включены - отключаем все
+                const allRouteIds = this.routes.map(route => route.id || route.pageId);
+                this.updateDisabledPages(allRouteIds);
+            } else {
+                // Есть отключенные - включаем все
+                this.updateDisabledPages([]);
+            }
         },
 
         // Вычисляем глубину вложенности
@@ -686,6 +704,33 @@ export default {
 .btn-toggle.is-disabled {
     background: #fee;
     border-color: #fca5a5;
+}
+
+/* Кнопка включения/выключения всех страниц */
+.btn-toggle-all {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-toggle-all:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-toggle-all:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* Drag and drop визуальные индикаторы */
