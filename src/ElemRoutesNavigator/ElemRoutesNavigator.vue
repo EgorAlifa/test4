@@ -1262,8 +1262,19 @@ export default {
 
             // Добавляем отступ для вложенных элементов
             if (this.props.enableHierarchy && route.depth > 0) {
-                const indent = route.depth * 1.5; // 1.5rem на каждый уровень
+                // Используем настраиваемый отступ
+                const defaultHierarchyIndent = 2.0; // eslint-disable-line no-magic-numbers
+                const hierarchyIndent = this.props.hierarchyIndent || defaultHierarchyIndent;
+                const indent = route.depth * hierarchyIndent;
                 baseStyle.paddingLeft = `${indent + paddingObj.size}rem`;
+
+                // Добавляем визуальный индикатор вложенности - левая граница (если включена)
+                if (this.props.showHierarchyBorder !== false) {
+                    const borderColor = this.props.hierarchyBorderColor || 'rgba(59, 130, 246, 0.3)';
+                    // Толщина границы увеличивается с глубиной: 2px, 3px, 4px и т.д.
+                    const borderWidth = Math.min(2 + route.depth, 5); // eslint-disable-line no-magic-numbers
+                    baseStyle.borderLeft = `${borderWidth}px solid ${borderColor}`;
+                }
             }
 
             // Определяем цвет кнопки

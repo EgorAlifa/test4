@@ -8,6 +8,24 @@
                 <!-- Настройка навигации по родителям -->
                 <ui-checkbox prop="navigateParents">Переходить при клике на раздел</ui-checkbox>
 
+                <!-- Настройки визуализации иерархии -->
+                <div class="form-label form-label-small mt-3">Визуализация иерархии</div>
+                <ui-input
+                    type="number"
+                    min="0.5"
+                    max="5"
+                    step="0.5"
+                    prop="hierarchyIndent"
+                    placeholder="2.0">
+                    Отступ уровня (rem)
+                </ui-input>
+                <ui-checkbox prop="showHierarchyBorder">Показывать границу вложенности</ui-checkbox>
+                <ui-input-cp
+                    v-if="props.showHierarchyBorder"
+                    prop="hierarchyBorderColor">
+                    Цвет границы
+                </ui-input-cp>
+
                 <!-- Список страниц с иерархией -->
                 <div class="hierarchy-manager">
                     <div class="hierarchy-header">

@@ -234,6 +234,24 @@ export const descriptor = () => ({
             label: 'Включить иерархию',
             hint: 'Позволяет создавать вложенные разделы и подразделы'
         },
+        hierarchyIndent: {
+            type: Number,
+            default: 2.0, // eslint-disable-line no-magic-numbers
+            label: 'Отступ уровня иерархии (rem)',
+            hint: 'Размер отступа для каждого уровня вложенности в rem'
+        },
+        showHierarchyBorder: {
+            type: Boolean,
+            default: true,
+            label: 'Показывать границу вложенности',
+            hint: 'Левая граница для визуального выделения вложенных элементов'
+        },
+        hierarchyBorderColor: {
+            type: String,
+            default: 'rgba(59, 130, 246, 0.3)',
+            label: 'Цвет границы вложенности',
+            hint: 'Цвет левой границы для вложенных элементов'
+        },
         navigateParents: {
             type: Boolean,
             default: true,
