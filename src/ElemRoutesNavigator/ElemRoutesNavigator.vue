@@ -1263,39 +1263,51 @@ export default {
             // Добавляем отступ для вложенных элементов
             if (this.props.enableHierarchy && route.depth > 0) {
                 // Используем настраиваемый отступ
-                const defaultHierarchyIndent = 2.0; // eslint-disable-line no-magic-numbers
+                const defaultHierarchyIndent = 2.5; // eslint-disable-line no-magic-numbers
                 const hierarchyIndent = this.props.hierarchyIndent || defaultHierarchyIndent;
                 const indent = route.depth * hierarchyIndent;
                 baseStyle.paddingLeft = `${indent + paddingObj.size}rem`;
-
-                // Добавляем визуальный индикатор вложенности - левая граница (если включена)
-                if (this.props.showHierarchyBorder !== false) {
-                    const borderColor = this.props.hierarchyBorderColor || 'rgba(59, 130, 246, 0.3)';
-                    // Толщина границы увеличивается с глубиной: 2px, 3px, 4px и т.д.
-                    const borderWidth = Math.min(2 + route.depth, 5); // eslint-disable-line no-magic-numbers
-                    baseStyle.borderLeft = `${borderWidth}px solid ${borderColor}`;
-                }
             }
 
             // Определяем цвет кнопки
+            let buttonBgColor = '';
             if (this.isActive(route)) {
-                baseStyle.backgroundColor = this.props.activeColor || '#3b82f6';
+                buttonBgColor = this.props.activeColor || '#3b82f6';
                 baseStyle.color = '#ffffff';
             } else if (this.hoveredIndex === index) {
-                baseStyle.backgroundColor = this.props.hoverColor || '#60a5fa';
+                buttonBgColor = this.props.hoverColor || '#60a5fa';
                 baseStyle.color = '#ffffff';
             } else {
                 if (this.props.buttonStyle === 'filled') {
-                    baseStyle.backgroundColor = '#f3f4f6';
+                    buttonBgColor = '#f3f4f6';
                     baseStyle.color = this.props.textColor || '#1f2937';
                 } else if (this.props.buttonStyle === 'outlined') {
-                    baseStyle.backgroundColor = 'transparent';
+                    buttonBgColor = 'transparent';
                     baseStyle.border = `1px solid ${this.props.textColor || '#1f2937'}`;
                     baseStyle.color = this.props.textColor || '#1f2937';
                 } else {
-                    baseStyle.backgroundColor = 'transparent';
+                    buttonBgColor = 'transparent';
                     baseStyle.color = this.props.textColor || '#1f2937';
                 }
+            }
+
+            // Добавляем визуальный индикатор вложенности - левая граница с градиентом (если включена)
+            if (this.props.enableHierarchy && route.depth > 0 && this.props.showHierarchyBorder !== false) {
+                const borderColor = this.props.hierarchyBorderColor || 'rgba(59, 130, 246, 0.3)';
+                const defaultBorderWidth = 3; // eslint-disable-line no-magic-numbers
+                const borderWidth = this.props.hierarchyBorderWidth || defaultBorderWidth;
+
+                // Отступ сверху составляет 20% высоты элемента для визуального разделения
+                const topOffset = 20; // eslint-disable-line no-magic-numbers
+                const borderGradient = `linear-gradient(to bottom, transparent 0%, transparent ${topOffset}%, ${borderColor} ${topOffset}%, ${borderColor} 100%)`;
+
+                // Комбинируем gradient границы с основным фоном кнопки
+                baseStyle.backgroundImage = `${borderGradient}, linear-gradient(${buttonBgColor}, ${buttonBgColor})`;
+                baseStyle.backgroundSize = `${borderWidth}px 100%, 100% 100%`;
+                baseStyle.backgroundRepeat = 'no-repeat, no-repeat';
+                baseStyle.backgroundPosition = '0 0, 0 0';
+            } else {
+                baseStyle.backgroundColor = buttonBgColor;
             }
 
             return baseStyle;

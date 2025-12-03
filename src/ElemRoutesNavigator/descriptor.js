@@ -236,7 +236,7 @@ export const descriptor = () => ({
         },
         hierarchyIndent: {
             type: Number,
-            default: 2.0, // eslint-disable-line no-magic-numbers
+            default: 2.5, // eslint-disable-line no-magic-numbers
             label: 'Отступ уровня иерархии (rem)',
             hint: 'Размер отступа для каждого уровня вложенности в rem'
         },
@@ -245,6 +245,12 @@ export const descriptor = () => ({
             default: true,
             label: 'Показывать границу вложенности',
             hint: 'Левая граница для визуального выделения вложенных элементов'
+        },
+        hierarchyBorderWidth: {
+            type: Number,
+            default: 3, // eslint-disable-line no-magic-numbers
+            label: 'Толщина границы вложенности (px)',
+            hint: 'Ширина левой границы для вложенных элементов в px'
         },
         hierarchyBorderColor: {
             type: String,
