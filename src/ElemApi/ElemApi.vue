@@ -119,7 +119,22 @@ export default {
                                 this.convertFromStoreValues(params)
                             );
                             const res = await fetch(composedUrl, config);
-                            const json = await res.json();
+
+                            // Парсим ответ в зависимости от Content-Type
+                            let json;
+                            const contentType = res.headers.get('content-type');
+                            if (contentType && contentType.includes('application/json')) {
+                                json = await res.json();
+                            } else {
+                                // Если не JSON, пытаемся получить текст
+                                const text = await res.text();
+                                try {
+                                    json = JSON.parse(text);
+                                } catch {
+                                    // Если парсинг не удался, возвращаем как есть
+                                    json = { message: text, statusCode: res.status };
+                                }
+                            }
 
                             return {
                                 keys: {
