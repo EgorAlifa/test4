@@ -6,7 +6,7 @@ module.exports = {
     // Webpack Module Federation
     publicPath: 'auto',
     devServer: {
-        port: process.env.DEV_SERVER_PORT || 3000
+        port: process.env.DEV_SERVER_PORT || 3001
     },
     productionSourceMap: process.env.NODE_ENV !== 'production',
     filenameHashing: true,

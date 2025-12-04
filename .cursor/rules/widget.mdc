@@ -1,0 +1,3533 @@
+---
+alwaysApply: false
+---
+# Insight Widget AI Playbook
+
+## Architecture Overview
+Insight widgets follow a consistent module layout that separates configuration, editing UI, runtime logic, and style resources. A full widget shares these core building blocks:
+- `descriptor.js` declares the widget props, dataset contracts, styling variables, and panel bundle wired through `useDatasetMeta`.
+- `panels/` exports all option panels and shared mixins used by the palette editor UI.
+- `Elem<WidgetName>.vue` hosts the runtime logic, renders the widget container, and bridges dataset responses to the visualization.
+- `utils/` contains factories and helpers for default props, formatting, and series manipulation.
+- `styles/` stores PostCSS modules and CSS variable definitions applied at runtime.
+
+The Multi Spline widget illustrates this pattern end to end: the descriptor wires panels and styling alongside a rich prop surface, while the Vue component composes ECharts options from dataset results.
+
+```24:183:src/ElemMultiSpline/descriptor.js
+export const meta = useDatasetMeta(
+    {
+        descriptor,
+        isChildAllowed: true,
+        slotNames: ['tooltip'],
+        cssVars,
+        panels
+    },
+    {
+        panel: {
+            isMultiple: true,
+            mixins: [DatasetPanelMixin]
+        },
+        deviations: true
+    }
+);
+```
+
+```61:1518:src/ElemMultiSpline/ElemMultiSpline.vue
+export default {
+    extends: Elem,
+    components: { WTooltip },
+    mixins: [DatasetMixin, unit2PxMixin],
+    meta,
+    hooks: {
+        then(results) {
+            const composedResults = this.resolveComposedResults(results);
+            this.results = composedResults;
+            if (this.handleSkipDrilldownLevel(composedResults)) {
+                return;
+            }
+            this.constructOpts();
+        }
+    },
+    data() {
+        return {
+            isLoading: false,
+            chartInstance: null,
+            lastCommit: null,
+            results: [],
+            scaleValue: 0,
+            isFirstRun: true,
+            privateProps: null,
+            chosenDimValue: null,
+            mainDimValues: [],
+            chosenNeutralMetricIndexes: [],
+            hasTopMode: true,
+            error: null,
+            drilldownLastDirection: 1,
+            customTooltip: {
+                options: {
+                    appendToBody: false,
+                    data: null,
+                    coordinates: [0, 0],
+                    isFixed: false
+                },
+                isShown: false
+            },
+            ...ElemDatasetBaseMixinTypes
+        };
+    },
+    computed: {
+        /* ... existing code ... */
+    }
+};
+```
+
+## Module Scaffolding Checklist
+When generating a new widget, ensure the directory mirrors the Multi Spline structure. At minimum create:
+- `descriptor.js` exporting `descriptor` and `meta` with props, datasets, cssVars, and panels configured.
+- `Elem<WidgetName>.vue` extending `@goodt-wcore/elem` with dataset mixins, lifecycle hooks, and rendering shell.
+- `panels/index.js` plus individual panel Vue files (dimensions, metrics, options) leveraging existing UI components.
+- `panels/DatasetPanelMixin.js` to auto-sync metrics/dimensions from dataset responses to widget props.
+- `panels/config.js` exporting static dropdown options, formats, and constants used across panels.
+- `utils/constants.js` (and optional helpers) defining default prop factories, series templates, and reusable palette configs.
+- `utils/index.js` with formatting, aggregation, and tooltip utilities.
+- `styles/css-vars.js` and `styles/style.pcss` for palette-driven theming.
+
+Adopt the naming convention `Elem<Feature>` so platform tooling can auto-discover the module. Keep exports defaulted (e.g., `export default { ... }`) to align with the runtime loader.
+
+### Complete Directory Structure
+```
+src/ElemMyChart/
+├── descriptor.js           # Props definition + meta registration
+├── ElemMyChart.vue         # Main Vue component
+├── panels/
+│   ├── index.js            # Panel exports (lazy loaded)
+│   ├── DatasetPanelMixin.js  # Auto-watcher for metrics/dimensions
+│   ├── config.js           # Static options (dropdowns, formats)
+│   ├── DimensionsPanel.vue
+│   ├── MetricsPanel.vue
+│   └── OptionsPanel.vue
+├── utils/
+│   ├── constants.js        # Default factories (series, axis, tooltip)
+│   └── index.js            # Helpers (formatting, aggregation, sorting)
+├── styles/
+│   ├── css-vars.js         # Theme variable definitions
+│   └── style.pcss          # Component styles
+└── components/             # Optional reusable sub-components
+```
+
+```1:166:src/ElemMultiSpline/descriptor.js
+export const descriptor = () => ({
+    props: {
+        dremio: {
+            type: Array,
+            default: () => []
+        },
+        additionalDremio: {
+            type: Object,
+            default: null
+        },
+        width: {
+            type: String,
+            default: ''
+        },
+        /* ... existing code ... */
+        neutralMetrics: {
+            type: Object,
+            default: () => ({
+                isEnabled: false,
+                color: 'rgba(230, 230, 230, 1)',
+                symbolColor: 'rgba(230, 230, 230, 1)',
+                symbolBdrColor: 'rgba(230, 230, 230, 1)'
+            })
+        }
+    },
+    vars: {},
+    dataset: {
+        vars: {
+            dimension: { operation: StoreOperation.ALL }
+        }
+    }
+});
+```
+
+## Building the Options Palette
+Widgets surface configuration through lazy-loaded panels registered in `panels/index.js`. Group panel responsibilities into dataset bindings, metric styling, axis tuning, and general options—the palette already offers specialised UI primitives (`ui-select`, `ui-switch`, `ui-input-units`, rich tooltips) that should always be reused instead of bespoke controls.
+
+```1:11:src/ElemMultiSpline/panels/index.js
+const DimensionsPanelAsync = () => import('./DimensionsPanel.vue');
+const MetricsPanelAsync = () => import('./MetricsPanel.vue');
+const AxisPanelAsync = () => import('./AxisPanel.vue');
+const OptionsPanelAsync = () => import('./OptionsPanel.vue');
+
+export { DatasetPanelMixin } from './DatasetPanelMixin';
+
+export default [/*DremioPanelAsync,*/ DimensionsPanelAsync, MetricsPanelAsync, AxisPanelAsync, OptionsPanelAsync];
+```
+
+Each panel extends `@goodt-wcore/panel` and usually mixes in `usePanelDatasetMixin` so datasets, dimensions, and metrics are accessible for building dropdown options. Keep all prop mutations funneled through `propChanged` to notify the editor shell.
+
+```1:86:src/ElemMultiSpline/panels/DimensionsPanel.vue
+export default {
+    extends: Panel,
+    mixins: [usePanelDatasetMixin()],
+
+    meta: { name: 'Измерения', icon: 'altimeter' },
+
+    static: {
+        dimValueFormats: DIM_VALUE_FORMATS,
+        sortOptions: SORT_OPTIONS
+    },
+    computed: {
+        dimensionsOptions() {
+            return this.buildOptions(this.dimensions, { empty: { label: '', value: null } })
+        }
+    }
+};
+```
+
+Panels can be nested using `ui-has-panel` and grouped sub-sections to keep advanced controls hidden until toggled. Compose responsive layouts with `ui-has-two-columns`, `ui-container`, and prefabricated composite inputs like `ui-complex-font` or `ui-input-cp`. Bind complex props via computed setters to transform palette-friendly input values into the final prop structure exposed to the component.
+
+### Standard UI Component Patterns
+
+**Color Settings**
+Always use `ui-input-cp` (color picker) for all color-related properties. Never use plain text inputs for colors.
+
+```vue
+<!-- ✅ GOOD: Color picker for all colors -->
+<ui-input-cp prop="activeColor">Цвет активных сегментов</ui-input-cp>
+<ui-input-cp prop="valueFontColor">Цвет шрифта</ui-input-cp>
+
+<!-- ❌ BAD: Plain input for colors -->
+<ui-input prop="activeColor" placeholder="#ef4444"></ui-input>
+```
+
+**Font Settings Pattern**
+Use the standard three-component pattern for all font settings (color, family, size):
+
+```vue
+<div class="form-label form-label-small">Шрифт</div>
+<ui-input-cp prop="valueFontColor">Цвет шрифта</ui-input-cp>
+<ui-input-auto prop="valueFontFamily">Шрифт</ui-input-auto>
+<ui-input-units
+    col-size="6-12"
+    min="0"
+    :units="FontSizeFirstPxUnits"
+    v-model="valueFontSizeString"
+    @change="saveValueFontSize">
+    Размер шрифта
+</ui-input-units>
+```
+
+**Universal Dimension Settings Pattern**
+**IMPORTANT:** ALL dimension-related settings (font sizes, bar heights, widths, gaps, padding, spacing, etc.) MUST use the same pattern with `ui-input-units` and object storage format. This ensures consistency across all widgets.
+
+Settings that require this pattern:
+- ✅ Font sizes (valueFontSize, titleFontSize, labelFontSize, etc.)
+- ✅ Bar/chart dimensions (barHeight, barWidth, gaugeSize, chartHeight, etc.)
+- ✅ Spacing/gaps (barGap, itemSpacing, rowGap, columnGap, etc.)
+- ✅ Padding/margins (containerPadding, itemPadding, margin, etc.)
+- ✅ Any other size-related setting that benefits from responsive units
+
+Example for bar dimensions:
+```vue
+<div class="form-label form-label-small mt-3">Размеры</div>
+<ui-input-units
+    col-size="6-12"
+    min="60"
+    max="500"
+    :units="FontSizeFirstPxUnits"
+    v-model="barHeightString"
+    @change="saveBarHeight">
+    Высота бара
+</ui-input-units>
+<ui-input-units
+    col-size="6-12"
+    min="60"
+    max="500"
+    :units="FontSizeFirstPxUnits"
+    v-model="barWidthString"
+    @change="saveBarWidth">
+    Ширина бара
+</ui-input-units>
+<ui-input-units
+    col-size="6-12"
+    min="0"
+    max="100"
+    :units="FontSizeFirstPxUnits"
+    v-model="barGapString"
+    @change="saveBarGap">
+    Расстояние между барами
+</ui-input-units>
+```
+
+**Important:** `ui-input-units` works with **string values** (e.g., `"40px"`, `"2rem"`), but we store sizes as **objects** (`{size: 40, unit: 'px'}`) for better type safety and unit conversion using `unit2PxMixin`. You must create computed properties to convert between formats:
+
+In the panel script:
+```javascript
+const FontSizeFirstPxUnits = ['px', 'rem', 'em', '%'];
+
+export default {
+    extends: Panel,
+    mixins: [usePanelDatasetMixin()],
+    
+    static: {
+        FontSizeFirstPxUnits
+    },
+    
+    computed: {
+        valueFontSizeString: {
+            get() {
+                const defaultSize = 40; // eslint-disable-line no-magic-numbers
+                const fontSize = this.props.valueFontSize || { size: defaultSize, unit: 'px' };
+                return `${fontSize.size}${fontSize.unit}`;
+            },
+            set(val) {
+                // ui-input-units may return string like "20px" or object like {size: 20, unit: 'px'}
+                if (typeof val === 'string') {
+                    const match = val.match(/^(\d+(?:\.\d+)?)(px|rem|em|%)$/);
+                    if (match != null) {
+                        this.props.valueFontSize = { size: parseFloat(match[1]), unit: match[2] };
+                    }
+                } else if (val != null && typeof val === 'object') {
+                    this.props.valueFontSize = val;
+                }
+            }
+        },
+        
+        // Example: Bar dimensions follow the SAME pattern
+        barHeightString: {
+            get() {
+                const defaultSize = 128; // eslint-disable-line no-magic-numbers
+                const barHeight = this.props.barHeight || { size: defaultSize, unit: 'px' };
+                return `${barHeight.size}${barHeight.unit}`;
+            },
+            set(val) {
+                if (typeof val === 'string') {
+                    const match = val.match(/^(\d+(?:\.\d+)?)(px|rem|em|%)$/);
+                    if (match != null) {
+                        this.props.barHeight = { size: parseFloat(match[1]), unit: match[2] };
+                    }
+                } else if (val != null && typeof val === 'object') {
+                    this.props.barHeight = val;
+                }
+            }
+        },
+        
+        barWidthString: {
+            get() {
+                const defaultSize = 150; // eslint-disable-line no-magic-numbers
+                const barWidth = this.props.barWidth || { size: defaultSize, unit: 'px' };
+                return `${barWidth.size}${barWidth.unit}`;
+            },
+            set(val) {
+                if (typeof val === 'string') {
+                    const match = val.match(/^(\d+(?:\.\d+)?)(px|rem|em|%)$/);
+                    if (match != null) {
+                        this.props.barWidth = { size: parseFloat(match[1]), unit: match[2] };
+                    }
+                } else if (val != null && typeof val === 'object') {
+                    this.props.barWidth = val;
+                }
+            }
+        },
+        
+        barGapString: {
+            get() {
+                const defaultSize = 12; // eslint-disable-line no-magic-numbers
+                const barGap = this.props.barGap || { size: defaultSize, unit: 'px' };
+                return `${barGap.size}${barGap.unit}`;
+            },
+            set(val) {
+                if (typeof val === 'string') {
+                    const match = val.match(/^(\d+(?:\.\d+)?)(px|rem|em|%)$/);
+                    if (match != null) {
+                        this.props.barGap = { size: parseFloat(match[1]), unit: match[2] };
+                    }
+                } else if (val != null && typeof val === 'object') {
+                    this.props.barGap = val;
+                }
+            }
+        }
+    },
+    
+    methods: {
+        saveValueFontSize() {
+            this.propChanged('valueFontSize');
+        },
+        
+        // Each dimension setting needs its own save method
+        saveBarHeight() {
+            this.propChanged('barHeight');
+        },
+        
+        saveBarWidth() {
+            this.propChanged('barWidth');
+        },
+        
+        saveBarGap() {
+            this.propChanged('barGap');
+        }
+    }
+}
+```
+
+All dimension props (font sizes, bar heights, widths, gaps, padding) must be objects with `size` and `unit` properties in the descriptor:
+```javascript
+// In descriptor.js
+valueFontSize: {
+    type: Object,
+    default: () => ({ size: 40, unit: 'px' }), // eslint-disable-line no-magic-numbers
+    label: 'Размер значения'
+},
+barHeight: {
+    type: Object,
+    default: () => ({ size: 128, unit: 'px' }), // eslint-disable-line no-magic-numbers
+    label: 'Высота бара'
+},
+barWidth: {
+    type: Object,
+    default: () => ({ size: 150, unit: 'px' }), // eslint-disable-line no-magic-numbers
+    label: 'Ширина бара'
+},
+barGap: {
+    type: Object,
+    default: () => ({ size: 12, unit: 'px' }), // eslint-disable-line no-magic-numbers
+    label: 'Расстояние между барами'
+},
+containerPadding: {
+    type: Object,
+    default: () => ({ size: 20, unit: 'px' }), // eslint-disable-line no-magic-numbers
+    label: 'Отступ контейнера'
+}
+
+// ❌ NEVER use plain Number type for dimensions:
+barHeight: {
+    type: Number,  // WRONG!
+    default: 128,
+    label: 'Высота бара (px)'
+}
+```
+
+In your widget component, use `unit2PxMixin` to convert ALL dimension settings to pixels for consistent rendering:
+```javascript
+// In ElemMyWidget.vue
+import { unit2PxMixin } from './utils/mixins';
+
+export default {
+    extends: Elem,
+    mixins: [DatasetMixin, unit2PxMixin],
+    
+    computed: {
+        valueStyle() {
+            const defaultFontSize = 40; // eslint-disable-line no-magic-numbers
+            const fontSizeObj = this.props.valueFontSize || { size: defaultFontSize, unit: 'px' };
+            const fontSize = this.takeUnit2Px({ 
+                value: fontSizeObj.size > 0 ? fontSizeObj.size : defaultFontSize,
+                unit: fontSizeObj.unit || 'px' 
+            });
+            
+            return {
+                fontSize: `${fontSize}px`, // Always outputs in pixels
+                fontFamily: this.props.valueFontFamily || 'sans-serif',
+                color: this.props.valueFontColor || '#000000'
+            };
+        },
+        
+        barContainerStyle() {
+            const defaultBarHeight = 128; // eslint-disable-line no-magic-numbers
+            const barHeightObj = this.props.barHeight || { size: defaultBarHeight, unit: 'px' };
+            const barHeight = this.takeUnit2Px({ 
+                value: barHeightObj.size != null ? barHeightObj.size : defaultBarHeight, 
+                unit: barHeightObj.unit || 'px' 
+            });
+            
+            return {
+                width: '100%',
+                height: `${barHeight}px`,
+                position: 'relative'
+            };
+        },
+        
+        barItemStyle() {
+            const defaultBarWidth = 150; // eslint-disable-line no-magic-numbers
+            const barWidthObj = this.props.barWidth || { size: defaultBarWidth, unit: 'px' };
+            const barWidth = this.takeUnit2Px({ 
+                value: barWidthObj.size != null ? barWidthObj.size : defaultBarWidth, 
+                unit: barWidthObj.unit || 'px' 
+            });
+            
+            return {
+                flex: '0 0 auto',
+                width: `${barWidth}px`
+            };
+        },
+        
+        chartGridStyle() {
+            const defaultGapSize = 12; // eslint-disable-line no-magic-numbers
+            const gapObj = this.props.barGap || { size: defaultGapSize, unit: 'px' };
+            const gapSize = this.takeUnit2Px({ 
+                value: gapObj.size != null ? gapObj.size : defaultGapSize, 
+                unit: gapObj.unit || 'px' 
+            });
+            
+            return {
+                gap: `${gapSize}px`
+            };
+        },
+        
+        containerStyle() {
+            const defaultPaddingSize = 20; // eslint-disable-line no-magic-numbers
+            const paddingObj = this.props.containerPadding || { size: defaultPaddingSize, unit: 'px' };
+            const padding = this.takeUnit2Px({ 
+                value: paddingObj.size > 0 ? paddingObj.size : defaultPaddingSize, 
+                unit: paddingObj.unit || 'px' 
+            });
+            
+            return {
+                padding: `${padding}px`
+            };
+        }
+    }
+}
+```
+
+Also update constants.js to use object format for all dimensions:
+```javascript
+// In constants.js
+export const defaults = {
+    valueFontSize: { size: 40, unit: 'px' }, // eslint-disable-line no-magic-numbers
+    titleFontSize: { size: 16, unit: 'px' }, // eslint-disable-line no-magic-numbers
+    labelFontSize: { size: 14, unit: 'px' }, // eslint-disable-line no-magic-numbers
+    barHeight: { size: 128, unit: 'px' }, // eslint-disable-line no-magic-numbers
+    barWidth: { size: 150, unit: 'px' }, // eslint-disable-line no-magic-numbers
+    barGap: { size: 12, unit: 'px' }, // eslint-disable-line no-magic-numbers
+    containerPadding: { size: 20, unit: 'px' } // eslint-disable-line no-magic-numbers
+};
+```
+
+This pattern ensures:
+- ✅ UI shows default values correctly (not empty fields)
+- ✅ Changes to size/unit update immediately and reactively
+- ✅ All units (px, rem, em, %) are properly converted to pixels using `unit2PxMixin`
+- ✅ Support for CSS variables (e.g., `var(--custom-size)`)
+- ✅ Consistent type safety across the widget
+- ✅ Responsive design capabilities with relative units (rem, em)
+- ✅ Uniform API for all dimension-related settings
+
+**Number Formatting Pattern**
+Use the same format/separator/prefix/postfix pattern as ElemMultiSpline for all numeric displays:
+
+```vue
+<ui-select prop="format" :options="options.formats" label="Формат метрики"></ui-select>
+<ui-select prop="separator" :options="options.separators" label="Формат разделителя разрядов"></ui-select>
+<ui-has-two-columns>
+    <template #left>
+        <ui-input prop="prefix" placeholder="Префикс"></ui-input>
+    </template>
+    <template #right>
+        <ui-input prop="postfix" placeholder="Постфикс"></ui-input>
+    </template>
+</ui-has-two-columns>
+```
+
+Define format options in `constants.js`:
+```javascript
+export const GaugeFormatOptions = [
+    { value: '0', label: '1000' },
+    { value: '1', label: '1000,1' },
+    { value: '2', label: '1000,12' },
+    { value: '3', label: '1000,123' },
+    { value: '0%', label: '12%' },
+    { value: '1%', label: '12,3%' },
+    { value: '2%', label: '12,34%' },
+    { value: '3%', label: '12,345%' }
+];
+
+export const GaugeSeparatorOptions = [
+    { value: '0', label: '10000' },
+    { value: '1', label: '10 000' },
+    { value: '2', label: '10.000' },
+    { value: '3', label: '10,000' }
+];
+```
+
+**Checkbox with Floating Panels**
+For toggleable feature settings (like showing/hiding title or value), use `ui-has-panel` with `ui-checkbox`:
+
+```vue
+<ui-has-panel>
+    <ui-checkbox prop="showTitle">Заголовок</ui-checkbox>
+    <template #panel>
+        <ui-panel :groups="[{ name: 'Настройки заголовка', slot: 'title' }]">
+            <template #title>
+                <ui-container>
+                    <ui-input prop="title" placeholder="Текст заголовка"></ui-input>
+                    <div class="form-label form-label-small">Шрифт</div>
+                    <ui-input-cp prop="titleFontColor">Цвет шрифта</ui-input-cp>
+                    <ui-input-auto prop="titleFontFamily">Шрифт</ui-input-auto>
+                    <ui-input-units
+                        col-size="6-12"
+                        min="0"
+                        :units="FontSizeFirstPxUnits"
+                        prop="titleFontSize">
+                        Размер шрифта
+                    </ui-input-units>
+                </ui-container>
+            </template>
+        </ui-panel>
+    </template>
+</ui-has-panel>
+```
+
+This pattern provides a clean, floating panel for detailed settings instead of accordion-style sections.
+
+### Panel Organization Best Practices
+
+**Panel Naming**
+Use clear, user-focused panel names:
+- ✅ "Метрики" (Metrics) instead of "Источник данных" (Data Source)
+- ✅ "Настройки виджета" (Widget Settings) instead of "Опции" (Options)
+- ✅ Group logically: Metrics → Design → Layout
+
+**Panel Layout and Spacing**
+Follow ElemMultiSpline's compact layout pattern:
+- Remove `ui-divider` elements between settings to reduce vertical spacing
+- Group related settings under `form-label` headers
+- Use linear flow, not deeply nested accordions
+- Place options one after another in logical order
+
+```vue
+<!-- ✅ GOOD: Compact, linear layout -->
+<ui-container>
+    <ui-select prop="gaugeStyle" :options="options.gaugeStyles" label="Стиль датчика"></ui-select>
+    <ui-select prop="theme" :options="options.themes" label="Тема"></ui-select>
+    
+    <div class="form-label">Дизайн датчика</div>
+    <ui-input-cp prop="activeColor" label="Цвет активных сегментов"></ui-input-cp>
+    <ui-input-cp prop="inactiveColor" label="Цвет неактивных сегментов"></ui-input-cp>
+    
+    <div class="form-label">Оформление</div>
+    <ui-select prop="radius" :options="options.radiuses" label="Скругление углов"></ui-select>
+    <ui-select prop="elevation" :options="options.elevation" label="Тень"></ui-select>
+</ui-container>
+
+<!-- ❌ BAD: Excessive spacing with dividers -->
+<ui-container>
+    <ui-select prop="gaugeStyle"></ui-select>
+    <ui-divider></ui-divider>
+    <ui-select prop="theme"></ui-select>
+    <ui-divider></ui-divider>
+    <ui-input-cp prop="activeColor"></ui-input-cp>
+</ui-container>
+```
+
+**Settings Organization Pattern**
+Organize settings in logical groups matching user workflow:
+1. **Style/Type Selection** (first)
+2. **Data/Metrics Configuration**
+3. **Display Options** (title, value, labels)
+4. **Design** (colors, fonts)
+5. **Layout** (spacing, borders, shadows)
+
+```vue
+<template>
+    <w-panel>
+        <ui-container>
+            <!-- 1. Style Selection -->
+            <ui-select prop="gaugeStyle" :options="options.gaugeStyles" label="Стиль датчика"></ui-select>
+            <ui-select prop="theme" :options="options.themes" label="Тема"></ui-select>
+            
+            <!-- 2. Display Options with Floating Panels -->
+            <ui-has-panel>
+                <ui-checkbox prop="showValue">Значение</ui-checkbox>
+                <template #panel>
+                    <!-- Value settings -->
+                </template>
+            </ui-has-panel>
+            
+            <ui-has-panel>
+                <ui-checkbox prop="showTitle">Заголовок</ui-checkbox>
+                <template #panel>
+                    <!-- Title settings -->
+                </template>
+            </ui-has-panel>
+            
+            <!-- 3. Design -->
+            <div class="form-label">Дизайн датчика</div>
+            <ui-input-cp prop="activeColor"></ui-input-cp>
+            <ui-input-cp prop="inactiveColor"></ui-input-cp>
+            
+            <!-- 4. Layout -->
+            <div class="form-label">Оформление</div>
+            <ui-select prop="radius"></ui-select>
+            <ui-select prop="elevation"></ui-select>
+        </ui-container>
+    </w-panel>
+</template>
+```
+
+```1:982:src/ElemMultiSpline/panels/OptionsPanel.vue
+export default {
+    extends: Panel,
+    components: {
+        WTooltip,
+        WTopMetricSettings
+    },
+    mixins: [usePanelDatasetMixin()],
+    meta: { name: 'Настройки виджета', icon: 'widgets' },
+    data() {
+        return {
+            background: {
+                show: false,
+                color: 'rgba(255, 255, 255, 1)',
+                gradient: {
+                    enable: false,
+                    position: '0 0 0 1',
+                    firstColor: '#FFFFFF',
+                    secondColor: '#F7F8F9',
+                    offSetFirstColor: '0',
+                    offSetSecondColor: '1'
+                }
+            }
+        };
+    },
+    computed: {
+        elemComputedStyles() {
+            return this.elementInstance != null ? getComputedStyle(this.elementInstance.$el) : {};
+        },
+        isTooltipFixed: {
+            set(value) {
+                const { options } = this.elementInstance.customTooltip;
+                options.isFixed = value;
+            },
+            get() {
+                const { options = {} } = this.elementInstance?.customTooltip ?? {};
+                return options.isFixed ?? false;
+            }
+        }
+    },
+    methods: {
+        changeStyles(styles, idx) {
+            const { topOptions } = this.props;
+            topOptions.metricsStyle = cloneDeep(styles);
+            this.propChanged('topOptions');
+        },
+        changeBackground() {
+            const { show: isShown, color, gradient } = this.background;
+            /* ... existing code ... */
+            this.propChanged('backgroundColor');
+        }
+    }
+};
+```
+
+Key palette practices:
+- Clone nested defaults before mutating (`cloneDeep`) to preserve reactivity and avoid shared references between widgets.
+- Use computed get/set pairs when palette input should project back to deeply nested props (e.g., tooltip font size, legend manual positioning).
+- Gate advanced sections behind booleans (checkboxes or switches) so initial configuration stays approachable.
+- Surface dataset-aware options using helper data (e.g., `metricNameOptionsIncludingAll`, drilldown hints) to keep the AI's generated palette aligned with actual data context.
+
+### Advanced Panel Pattern: Custom CSS Styling
+
+For widgets that need fine-grained styling control, implement a Custom CSS panel that allows users to override styles for any widget element using pseudo-CSS. This pattern provides a code-like interface for advanced users while keeping the main settings panel simple.
+
+**When to Use This Pattern**
+- Widget has many visual elements that users might want to customize
+- Standard UI controls don't provide enough flexibility
+- Advanced users need precise control over appearance
+- You want to avoid cluttering the main settings panel
+
+**Implementation Pattern**
+
+**1. Add customStyles Prop to Descriptor**
+
+```javascript
+// descriptor.js
+export const descriptor = () => ({
+    props: {
+        // ... other props ...
+        customStyles: {
+            type: Object,
+            default: () => ({
+                container: '',
+                svg: '',
+                segment: '',
+                valueText: '',
+                titleText: '',
+                // Add one key for each customizable element
+            }),
+            label: 'Кастомные стили CSS'
+        }
+    }
+});
+```
+
+**2. Create CustomStylesPanel.vue**
+
+```vue
+<template>
+    <w-panel>
+        <ui-container>
+            <!-- Element Style Editors -->
+            <ui-has-panel v-for="element in elements" :key="element.key">
+                <div class="form-label form-label-small">
+                    {{ element.label }}
+                    <span class="text-xs opacity-60 font-normal ml-2">{{ element.selector }}</span>
+                </div>
+                <template #panel>
+                    <ui-panel :groups="[{ name: element.label, slot: element.key }]">
+                        <template #[element.key]>
+                            <ui-container>
+                                <!-- Show current settings from main panel -->
+                                <div
+                                    :style="{
+                                        marginBottom: '10px',
+                                        padding: '8px',
+                                        backgroundColor: '#fef3c7',
+                                        borderRadius: '6px'
+                                    }"
+                                >
+                                    <div
+                                        :style="{
+                                            fontSize: '11px',
+                                            fontWeight: '500',
+                                            marginBottom: '4px',
+                                            color: '#92400e'
+                                        }"
+                                    >
+                                        Текущие настройки из панели:
+                                    </div>
+                                    <pre
+                                        :style="{
+                                            fontSize: '11px',
+                                            color: '#78350f',
+                                            fontFamily: 'monospace',
+                                            whiteSpace: 'pre-wrap',
+                                            lineHeight: '1.4',
+                                            margin: '0'
+                                        }"
+                                    >{{ getElementDefaultStyles(element.key) }}</pre>
+                                </div>
+                                
+                                <!-- CSS Editor with Fill Button -->
+                                <div class="form-label form-label-small mb-1 flex justify-between items-center">
+                                    <span>CSS свойства</span>
+                                    <button
+                                        @click="fillWithCurrentSettings(element.key)"
+                                        :style="{
+                                            fontSize: '11px',
+                                            padding: '4px 8px',
+                                            backgroundColor: '#3b82f6',
+                                            color: '#ffffff',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer'
+                                        }"
+                                        type="button"
+                                    >
+                                        ⌨️ Заполнить текущими
+                                    </button>
+                                </div>
+                                <textarea
+                                    v-model="localStyles[element.key]"
+                                    @input="handleStyleChange(element.key)"
+                                    :style="{
+                                        width: '100%',
+                                        height: '160px',
+                                        fontFamily: 'monospace',
+                                        fontSize: '13px',
+                                        padding: '10px',
+                                        backgroundColor: '#ffffff',
+                                        color: '#111827',
+                                        border: '1px solid #d1d5db',
+                                        borderRadius: '6px',
+                                        resize: 'vertical',
+                                        minHeight: '100px',
+                                        maxHeight: '400px'
+                                    }"
+                                    :placeholder="getElementDefaultStyles(element.key)"
+                                    spellcheck="false"
+                                ></textarea>
+                                
+                                <!-- Help/Advice Box -->
+                                <div
+                                    :style="{
+                                        marginTop: '10px',
+                                        padding: '10px',
+                                        backgroundColor: '#eff6ff',
+                                        border: '1px solid #bfdbfe',
+                                        borderRadius: '6px'
+                                    }"
+                                >
+                                    <div
+                                        :style="{ display: 'flex', alignItems: 'flex-start', gap: '8px' }"
+                                    >
+                                        <svg 
+                                            :style="{ width: '16px', height: '16px', color: '#2563eb', marginTop: '2px', flexShrink: '0' }"
+                                            fill="currentColor" 
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <div
+                                            :style="{ fontSize: '12px', color: '#1e40af', lineHeight: '1.6', flex: '1' }"
+                                        >
+                                            <strong
+                                                :style="{ fontWeight: '600' }"
+                                            >💡 Совет:</strong> Вводите только CSS свойства без селекторов. Например: 
+                                            <code
+                                                :style="{ 
+                                                    padding: '2px 6px', 
+                                                    backgroundColor: '#dbeafe', 
+                                                    borderRadius: '4px', 
+                                                    fontFamily: 'monospace', 
+                                                    fontSize: '11px',
+                                                    whiteSpace: 'nowrap'
+                                                }"
+                                            >color: red; font-weight: bold;</code>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <ui-button 
+                                    type="ghost" 
+                                    @click="resetElement(element.key)"
+                                    class="mt-2"
+                                >
+                                    Сбросить {{ element.label.toLowerCase() }}
+                                </ui-button>
+                            </ui-container>
+                        </template>
+                    </ui-panel>
+                </template>
+            </ui-has-panel>
+            
+            <!-- Global Actions -->
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-zinc-700">
+                <ui-button type="danger" @click="resetAll">
+                    Сбросить все стили
+                </ui-button>
+            </div>
+        </ui-container>
+    </w-panel>
+</template>
+
+<script>
+import { Panel } from '@goodt-wcore/panel';
+import { usePanelDatasetMixin, PanelDatasetMixinTypes } from '@goodt-common/data';
+import { PanelInstanceTypeDescriptor } from '../types';
+
+export default {
+    extends: Panel,
+    mixins: [usePanelDatasetMixin()],
+
+    meta: { name: 'Я дизайнер', icon: 'palette' },
+    
+    data: () => ({
+        localStyles: {
+            container: '',
+            svg: '',
+            segment: '',
+            valueText: '',
+            titleText: ''
+            // Match keys from descriptor
+        },
+        debounceTimer: null
+    }),
+
+    computed: {
+        elements() {
+            return [
+                {
+                    key: 'container',
+                    label: 'Основной контейнер',
+                    selector: '.gauge-container'
+                },
+                {
+                    key: 'valueText',
+                    label: 'Текст значения',
+                    selector: '.gauge-value-text'
+                }
+                // Define all customizable elements
+            ];
+        }
+    },
+
+    mounted() {
+        // Initialize localStyles from props only once on mount
+        // IMPORTANT: Do NOT use a watcher - it creates a reactive loop that clears fields while typing
+        if (this.props.customStyles != null && typeof this.props.customStyles === 'object') {
+            Object.keys(this.localStyles).forEach(key => {
+                if (this.props.customStyles[key] != null) {
+                    this.localStyles[key] = this.props.customStyles[key];
+                }
+            });
+        }
+    },
+
+    beforeUnmount() {
+        // Clean up debounce timer to prevent memory leaks
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+        }
+    },
+
+    methods: {
+        ...PanelInstanceTypeDescriptor,
+        ...PanelDatasetMixinTypes,
+
+        getElementDefaultStyles(elementKey) {
+            // Generate CSS showing current prop values
+            // IMPORTANT: Format with newlines for better readability, NO semicolons at line ends
+            const isDark = this.props.theme === 'dark';
+            
+            switch (elementKey) {
+                case 'container': {
+                    const padding = this.props.containerPadding || { size: 16, unit: 'px' }; // eslint-disable-line no-magic-numbers
+                    return `padding: ${padding.size}${padding.unit};
+background-color: ${isDark ? '#3b4d61' : '#ffffff'};
+border-radius: 1rem`;
+                }
+                case 'valueText': {
+                    const fontSize = this.props.valueFontSize || { size: 4, unit: 'rem' }; // eslint-disable-line no-magic-numbers
+                    const color = this.props.valueFontColor || (isDark ? '#ffffff' : '#0a0a0a');
+                    const fontFamily = this.props.valueFontFamily || 'Inter, system-ui, sans-serif';
+                    return `color: ${color};
+font-size: ${fontSize.size}${fontSize.unit};
+font-weight: 700;
+font-family: ${fontFamily}`;
+                }
+                default:
+                    return '/* Нет предустановленных стилей */';
+            }
+        },
+
+        handleStyleChange(elementKey) {
+            // Debounce to avoid clearing field while typing
+            // CRITICAL: This prevents the reactive loop issue
+            if (this.debounceTimer) {
+                clearTimeout(this.debounceTimer);
+            }
+            
+            this.debounceTimer = setTimeout(() => {
+                this.props.customStyles = { ...this.localStyles };
+                this.propChanged('customStyles');
+            }, 300); // Wait 300ms after user stops typing
+        },
+
+        fillWithCurrentSettings(elementKey) {
+            // Fill textarea with current computed styles from other panels
+            const currentStyles = this.getElementDefaultStyles(elementKey);
+            this.localStyles[elementKey] = currentStyles;
+            this.props.customStyles = { ...this.localStyles };
+            this.propChanged('customStyles');
+        },
+
+        resetElement(elementKey) {
+            this.localStyles[elementKey] = '';
+            this.props.customStyles = { ...this.localStyles };
+            this.propChanged('customStyles');
+        },
+
+        resetAll() {
+            Object.keys(this.localStyles).forEach(key => {
+                this.localStyles[key] = '';
+            });
+            this.props.customStyles = { ...this.localStyles };
+            this.propChanged('customStyles');
+        }
+    }
+};
+</script>
+```
+
+**Critical Implementation Notes**
+
+⚠️ **Common Pitfalls to Avoid:**
+
+1. **DO NOT use `watch` on `props.customStyles`** - This creates a reactive loop:
+   - User types → updates `localStyles`
+   - `@input` updates `props.customStyles`
+   - Watch triggers → resets `localStyles` from props
+   - **Field gets cleared!** 😱
+
+2. **Use `mounted()` instead of `watch`** - Initialize only once when panel loads
+
+3. **Always debounce `handleStyleChange`** - Wait 300ms after typing stops to save
+
+4. **Use `placeholder` for current styles** - Shows users what the default CSS is
+
+5. **Format CSS with newlines** - Return multi-line strings for better readability:
+   ```javascript
+   return `color: ${color};
+font-size: ${fontSize};
+font-weight: 700`;  // NO semicolons at line ends
+   ```
+
+6. **Each element must have unique CSS** - Don't return the same styles for all elements
+
+7. **Add "Fill with Current" button** - Users can easily populate from current panel settings
+
+8. **Clean up in `beforeUnmount()`** - Clear debounce timers to prevent memory leaks
+
+**3. Update Widget Component to Apply Custom Styles**
+
+```vue
+<!-- ElemMyWidget.vue -->
+<template>
+    <w-elem :placeholder="$placeholder">
+        <div
+            class="gauge-container"
+            :style="mergedContainerStyle"
+        >
+            <div
+                class="gauge-value-text"
+                :style="mergedValueStyle"
+            >
+                {{ formattedValue }}
+            </div>
+        </div>
+    </w-elem>
+</template>
+
+<script>
+export default {
+    computed: {
+        // Parse custom CSS strings to objects
+        parsedCustomStyles() {
+            const customStyles = this.props.customStyles || {};
+            const parsed = {};
+            
+            Object.keys(customStyles).forEach(key => {
+                if (customStyles[key] != null && customStyles[key].trim() !== '') {
+                    parsed[key] = this.parseCssString(customStyles[key]);
+                } else {
+                    parsed[key] = {};
+                }
+            });
+            
+            return parsed;
+        },
+        
+        // Merge default styles with custom
+        mergedContainerStyle() {
+            return { ...this.containerStyle, ...this.parsedCustomStyles.container };
+        },
+        
+        mergedValueStyle() {
+            return { ...this.valueStyle, ...this.parsedCustomStyles.valueText };
+        }
+    },
+    
+    methods: {
+        parseCssString(cssString) {
+            if (cssString == null || typeof cssString !== 'string' || cssString.trim() === '') {
+                return {};
+            }
+
+            const styleObject = {};
+            const declarations = cssString.split(';').filter(decl => decl.trim() !== '');
+
+            declarations.forEach(declaration => {
+                const colonIndex = declaration.indexOf(':');
+                if (colonIndex === -1) {
+                    return;
+                }
+
+                const property = declaration.substring(0, colonIndex).trim();
+                const value = declaration.substring(colonIndex + 1).trim();
+
+                if (property === '' || value === '') {
+                    return;
+                }
+
+                // Convert kebab-case to camelCase for Vue style binding
+                const camelCaseProperty = property.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
+                styleObject[camelCaseProperty] = value;
+            });
+
+            return styleObject;
+        }
+    }
+};
+</script>
+```
+
+**4. Register Panel in panels/index.js**
+
+```javascript
+const SettingsPanelAsync = () => import('./SettingsPanel.vue');
+const CustomStylesPanelAsync = () => import('./CustomStylesPanel.vue');
+
+export default [SettingsPanelAsync, CustomStylesPanelAsync];
+```
+
+**Best Practices for Custom CSS Panels**
+
+1. **Show Current Values** - Display what the settings panel has configured so users know the baseline
+2. **Use Inline Styles** - Tailwind classes may not work in all contexts; use `:style` binding with object syntax
+3. **Resizable Editors** - Let users adjust textarea height with `resize: 'vertical'`
+4. **Clear Help Text** - Explain that users should only enter properties, not selectors
+5. **Real-time Updates** - Apply changes on input, don't make users click "Apply"
+6. **Reset Options** - Provide both per-element and global reset buttons
+7. **Compact Layout** - Use accordion (`ui-has-panel`) to keep each element's editor collapsed by default
+8. **CSS Class Markers** - Add descriptive classes (`.gauge-container`, `.gauge-value-text`) to all styled elements
+9. **Parser Robustness** - Handle malformed CSS gracefully without breaking the widget
+10. **Example Values** - Show examples in placeholder text matching your widget's theme
+
+**Styling Panel Recommendations**
+- **Panel Name**: Use creative, user-friendly names like "Я дизайнер" (I'm a Designer) instead of "Custom CSS"
+- **Icon**: Use `palette` or `code` icon
+- **Placement**: Add as the last panel after all standard settings
+- **Font Size**: Keep editor font 13-14px, help text 11-12px
+- **Editor Height**: Default 140-180px, allow resize between 100-400px
+- **Color Coding**: Yellow for current settings, blue for help, white background for editor
+
+**Example from ElemWoWGauge**
+
+See `src/ElemWoWGauge/panels/CustomStylesPanel.vue` for a complete implementation with:
+- 10 customizable elements (container, SVG, segments, text, states)
+- Live CSS preview from settings panel
+- Compact accordion interface
+- Inline styled help boxes and editors
+- Real-time prop synchronization
+
+### Smart Defaults and Auto-Configuration
+
+**Auto-setting Title from Metrics**
+When metrics are selected, automatically set the widget title to the first metric name if the title is empty or still has the default value:
+
+```javascript
+// In DatasetPanel.vue or DatasetPanelMixin.js
+watch: {
+    metrics: {
+        handler(metrics) {
+            // Auto-select first metric if not set
+            if (this.props.valueMetric == null && metrics.length > 0) {
+                this.props.valueMetric = metrics[0];
+                this.propChanged('valueMetric');
+                
+                // Set default title to metric name if title is empty
+                if (this.props.title == null || this.props.title === '' || this.props.title === 'Default Title') {
+                    this.props.title = metrics[0];
+                    this.propChanged('title');
+                }
+            }
+        },
+        immediate: true
+    }
+}
+```
+
+**Theme-Aware Auto Colors**
+When a theme prop changes, automatically adjust font colors to match the theme:
+
+```javascript
+// In SettingsPanel.vue
+watch: {
+    'props.theme': {
+        handler(newTheme) {
+            const isDark = newTheme === 'dark';
+            
+            // Update value font color to match theme
+            if (this.props.valueFontColor === '#ffffff' || this.props.valueFontColor === '#0a0a0a') {
+                this.props.valueFontColor = isDark ? '#ffffff' : '#0a0a0a';
+                this.propChanged('valueFontColor');
+            }
+            
+            // Update title font color to match theme
+            if (this.props.titleFontColor === '#ffffff' || this.props.titleFontColor === '#0a0a0a') {
+                this.props.titleFontColor = isDark ? '#ffffff' : '#0a0a0a';
+                this.propChanged('titleFontColor');
+            }
+        }
+    }
+}
+```
+
+In the component, apply theme-based defaults in computed styles:
+
+```javascript
+// In ElemMyWidget.vue
+computed: {
+    valueStyle() {
+        const isDark = this.props.theme === 'dark';
+        const defaultColor = isDark ? '#ffffff' : '#0a0a0a';
+        const { size = 40, unit = 'px' } = this.props.valueFontSize || {};
+        const fontSize = size && unit ? `${size}${unit}` : '40px';
+        
+        return {
+            color: this.props.valueFontColor || defaultColor,
+            fontSize,
+            fontFamily: this.props.valueFontFamily || 'inherit'
+        };
+    },
+    containerStyle() {
+        const isDark = this.props.theme === 'dark';
+        return {
+            backgroundColor: isDark ? '#3b4d61' : '#ffffff',
+            padding: `${this.props.containerPadding || 40}px`
+        };
+    }
+}
+```
+
+**Avoiding Global Duplicates**
+Don't create widget-specific props for settings already handled by platform global styling:
+- ❌ Don't add `backgroundColor` if platform handles it
+- ❌ Don't add `borderColor` or `borderWidth` if platform provides it
+- ✅ Do add widget-specific colors (e.g., gauge segment colors, chart series colors)
+- ✅ Do add theme selection if widget needs internal color coordination
+
+### DatasetPanelMixin Pattern
+The `DatasetPanelMixin` acts as a bridge between Insight datasets and widget props, automatically syncing available metrics and dimensions to the widget configuration. Apply this mixin across all panels so they share consistent dataset awareness.
+
+```1:76:src/ElemMultiSpline/panels/DatasetPanelMixin.js
+export const DatasetPanelMixin = {
+    data: (vm) => ({
+        templateIndex: 0
+    }),
+
+    watch: {
+        metrics: {
+            handler(metrics) {
+                this.updateMetricNames(metrics);
+            },
+            immediate: true
+        },
+        'props.metricNames': {
+            handler(names) {
+                const { metricsStyle } = this.props;
+                if (metricsStyle.length === 0) {
+                    names.forEach((name) => {
+                        const originIdx = this.queryModels.findIndex(({ metrics }) => metrics.includes(name));
+                        this.addMetric({ metricName: name, originIdx: `${originIdx}` });
+                    });
+                }
+            },
+            immediate: true
+        },
+        dimensions: {
+            handler(dimensions) {
+                const { main: mainDim, minor: minorDim } = this.props.dimensionOptions;
+                const [name] = dimensions;
+
+                if (name != null && (mainDim.name === '' || dimensions.includes(mainDim.name) === false)) {
+                    mainDim.name = name;
+                    this.propChanged('dimensionOptions');
+                }
+
+                if (minorDim.name !== '' && dimensions.includes(minorDim.name) === false) {
+                    minorDim.name = '';
+                    this.propChanged('dimensionOptions');
+                }
+            },
+            immediate: true
+        }
+    },
+
+    methods: {
+        updateMetricNames(metrics) {
+            this.props.metricNames = metrics;
+            this.propChanged('metricNames');
+        },
+        addMetric({ metricName, originIdx }) {
+            const newMetric = {
+                ...createSeriesTemplateByIndex(this.templateIndex),
+                name: metricName,
+                marker: metricName,
+                uid: utils.uid(),
+                metricName,
+                originIdx
+            };
+            this.props.metricsStyle.push(newMetric);
+
+            this.templateIndex += 1;
+
+            this.propChanged('metricsStyle');
+        }
+    }
+};
+```
+
+This mixin watches dataset changes and auto-populates `metricsStyle` with properly templated defaults, assigns unique IDs, and ensures dimension dropdowns stay valid. Register it in `descriptor.js` panel config:
+
+```168:183:src/ElemMultiSpline/descriptor.js
+export const meta = useDatasetMeta(
+    {
+        descriptor,
+        isChildAllowed: true,
+        slotNames: ['tooltip'],
+        cssVars,
+        panels
+    },
+    {
+        panel: {
+            isMultiple: true,
+            mixins: [DatasetPanelMixin]
+        },
+        deviations: true
+    }
+);
+```
+
+### Panel Config Constants
+Centralise palette dropdown options in `panels/config.js` so all panels share consistent UX vocabulary. Export formatted option arrays matching the `{ label, value }` structure expected by `ui-select`.
+
+```8:66:src/ElemMultiSpline/panels/config.js
+export const DIM_VALUE_FORMATS = [
+    { label: 'Строка', value: 'string' },
+    { label: 'ДД.ММ.ГГГГ', value: 'DD.MM.YYYY' },
+    { label: 'ДД.ММ', value: 'DD.MM' },
+    { label: 'ДД', value: 'DD' }
+];
+
+export const SORT_OPTIONS = [
+    { label: 'Без сортировки', value: 'none' },
+    { label: 'По возрастанию', value: 'ascending' },
+    { label: 'По убыванию', value: 'descending' }
+];
+
+export const METRIC_FORMAT_OPTIONS = [
+    { value: '0', label: '1000' },
+    { value: '1', label: '1000,1' },
+    { value: '2', label: '1000,12' },
+    { value: '3', label: '1000,123' },
+    { value: '0%', label: '12%' },
+    { value: '1%', label: '12,3%' },
+    { value: '2%', label: '12,34%' },
+    { value: '3%', label: '12,345%' }
+];
+
+export const SEPARATOR_OPTIONS = [
+    { value: '0', label: '10000' },
+    { value: '1', label: '10 000' },
+    { value: '2', label: '10.000' },
+    { value: '3', label: '10,000' }
+];
+
+export const LEGEND_POSITIONS = [
+    { label: 'Сверху', value: 'top' },
+    { label: 'Снизу', value: 'bottom' }
+];
+
+export const TRIGGER_OPTIONS = [
+    { value: 'item', label: 'Метрику' },
+    { value: 'axis', label: 'Ось' }
+];
+```
+
+Import these constants in panels via static properties so Vue templates can reference them cleanly:
+
+```63:72:src/ElemMultiSpline/panels/DimensionsPanel.vue
+export default {
+    extends: Panel,
+    mixins: [usePanelDatasetMixin()],
+
+    meta: { name: 'Измерения', icon: 'altimeter' },
+
+    static: {
+        dimValueFormats: DIM_VALUE_FORMATS,
+        sortOptions: SORT_OPTIONS
+    }
+};
+```
+
+## Integrating Insight Data Platform Results
+The runtime component relies on dataset mixins from `@goodt-common/data` to request federated Insight datasets, handle drilldown, and emit variable updates.
+
+```37:1520:src/ElemMultiSpline/ElemMultiSpline.vue
+import { Elem } from '@goodt-wcore/elem';
+import { useElemDatasetBaseMixin, ElemDatasetBaseMixinTypes } from '@goodt-common/data';
+import { Tooltip as WTooltip } from '@goodt-wcore/components';
+import { convertCssVarToComputedValue } from '@goodt-common/utils';
+import echarts from 'echarts';
+import { cloneDeep, isEqual as _isEqual, throttle as _throttle, merge as _merge } from 'lodash';
+/* ... existing code ... */
+
+const DatasetMixin = useElemDatasetBaseMixin({ drilldown: true, panel: false, deviations: true });
+
+export default {
+    extends: Elem,
+    components: { WTooltip },
+    mixins: [DatasetMixin, unit2PxMixin],
+    meta,
+    hooks: {
+        then(results) {
+            const composedResults = this.resolveComposedResults(results);
+            this.results = composedResults;
+            if (this.handleSkipDrilldownLevel(composedResults)) {
+                return;
+            }
+            this.constructOpts();
+        }
+    },
+    data() {
+        return {
+            isLoading: false,
+            chartInstance: null,
+            lastCommit: null,
+            results: [],
+            scaleValue: 0,
+            isFirstRun: true,
+            privateProps: null,
+            chosenDimValue: null,
+            mainDimValues: [],
+            chosenNeutralMetricIndexes: [],
+            hasTopMode: true,
+            error: null,
+            drilldownLastDirection: 1,
+            customTooltip: {
+                options: {
+                    appendToBody: false,
+                    data: null,
+                    coordinates: [0, 0],
+                    isFixed: false
+                },
+                isShown: false
+            },
+            ...ElemDatasetBaseMixinTypes
+        };
+    }
+};
+```
+
+Essential dataset patterns:
+- `useElemDatasetBaseMixin` configures drilldown support, deviations handling, and dataset panel integration. Pass `{ drilldown: true }` when the widget needs hierarchical navigation.
+- `hooks.then` receives raw dataset responses, allowing aggregation, error handling, and declarative redraws. Always clone or transform results before mutating.
+- `loadData` orchestrates request cancellation and tracks `isLoading` so the UI can show curtains or warnings.
+- Store commits send dimension/metric selections back to the Insight platform. Ensure `storeCommitNulls` clears state when drilldown pops to higher levels.
+
+```326:372:src/ElemMultiSpline/ElemMultiSpline.vue
+async loadData(requests = this.requests) {
+    this.$requestCancel(requests);
+    this.isLoading = true;
+    try {
+        let results = await Promise.all(requests.map((request) => request?.send()));
+        results = results.map((result, i) => result ?? this.results[i] ?? null);
+        this.results = results;
+
+        this.$options.hooks.then.call(this, this.results);
+    } catch (error) {
+        this.results = [];
+        this.$handleError(error);
+    } finally {
+        this.isLoading = false;
+    }
+}
+```
+
+Drilldown-aware widgets must manage skip logic for empty or singleton levels, prevent infinite loops, and maintain breadcrumbs. The Multi Spline helper `handleSkipDrilldownLevel` illustrates how to push or pop drilldown states automatically based on dataset values.
+
+```985:1024:src/ElemMultiSpline/ElemMultiSpline.vue
+handleSkipDrilldownLevel(results) {
+    const { name: drilldownName, filters, canPop, canPush } = this.drilldownState;
+    if (drilldownName === null) {
+        return false;
+    }
+    const { rowCount, rows } = results[0];
+    const {
+        props: { shouldSkipLevelWithOneValue, shouldSkipLevelWithIdenticalValue }
+    } = this;
+
+    if (rowCount === 0 && canPop) {
+        this.storeCommitNulls();
+        this.drilldownPop();
+        this.storeCommitNullsAtFirstLevel();
+        return true;
+    }
+
+    const shouldSkipLevel =
+        rows.length === 1 &&
+        (shouldSkipLevelWithOneValue ||
+            (shouldSkipLevelWithIdenticalValue && filters.slice(-1)[0]?.value === rows[0][drilldownName]));
+
+    if (shouldSkipLevel === false) {
+        return false;
+    }
+
+    if (this.drilldownLastDirection === -1 && canPop) {
+        this.drilldownPop();
+        return true;
+    }
+
+    if (this.drilldownLastDirection === 1 && canPush) {
+        const [row] = rows;
+        const value = row[drilldownName];
+        this.drilldownPush(value);
+        return true;
+    }
+
+    return false;
+}
+```
+
+Data mutations should always remain pure. Use helper factories in `utils/constants.js` to initialise nested defaults and avoid reference sharing across widget instances. When augmenting dataset rows, work on copies (`cloneDeep`) and maintain alignment with deviations arrays so computed results stay consistent.
+
+### Handling Complex Dimensions (Hierarchical Drill-Down)
+
+The Insight Data Platform supports **complex dimensions** — hierarchical structures where a dimension has child levels (e.g., `product` → `product_category` → `product_name`). When a dataset is configured with complex dimensions, the `$drilldown` service provides drill-down state for each dimension that has child levels.
+
+#### Detecting Complex Dimensions
+
+Unlike charts (e.g., `ElemMultiSpline`) which explicitly configure which dimension is the main drill-down dimension via `props.dimensionOptions.main.name`, table-based widgets often receive multiple dimensions in a flat array (`props.dimensions`). To detect which dimension(s) support drill-down:
+
+```javascript
+// In ElemWowTable.vue - Find the dimension that has drilldown configured
+mainDimensionName() {
+    // Find the dimension that has drilldown configured
+    const dims = this.props.dimensions || [];
+    if (!this.$drilldown || !this.$drilldown.state) {
+        return null;
+    }
+    
+    // Check which dimension has drilldown state configured
+    const drilldownDim = dims.find(dim => {
+        const state = this.$drilldown.state[dim];
+        return state && (state.canPush !== undefined || state.childrenLevels);
+    });
+    
+    return drilldownDim || null;
+},
+
+drilldownState() {
+    if (!this.mainDimensionName) {
+        return { canPop: false, canPush: false, filters: [], name: null };
+    }
+    
+    // Apply defaults first, then spread actual state
+    return {
+        canPop: false,
+        canPush: false,
+        filters: [],
+        ...this.$drilldown.state[this.mainDimensionName],
+        name: this.mainDimensionName
+    };
+},
+```
+
+**Key Points:**
+- **Don't assume the first dimension is drillable**: Iterate through all dimensions and check `$drilldown.state[dim]` for each.
+- **Check for `canPush` or `childrenLevels`**: A dimension with drill-down will have these properties defined.
+- **Apply defaults before spreading**: Prevents `undefined` values when the dimension isn't configured.
+
+#### Implementing Drill-Down in Tables
+
+For table widgets, drill-down typically involves:
+1. **Visual indicators**: Mark drillable cells with underlines (text) or icons (non-text)
+2. **Click handlers**: Detect clicks on drillable cells and push drill-down
+3. **Breadcrumbs**: Show current drill-down path
+4. **State synchronization**: Commit dimension values to the store before pushing
+
+```javascript
+// In ElemWowTable.vue - Computed properties
+drilldownCanPush() {
+    return this.drilldownState.canPush;
+},
+
+drilldownCanPop() {
+    return this.drilldownState.canPop;
+},
+
+showBreadcrumbs() {
+    return this.drilldownState.filters && this.drilldownState.filters.length > 0;
+},
+
+breadcrumbText() {
+    if (!this.showBreadcrumbs) {
+        return '';
+    }
+    const path = this.drilldownState.filters.map(f => f.value).join(' > ');
+    return `${this.mainDimensionName} > ${path}`;
+},
+
+// Methods
+drilldownPush(value) {
+    const { name: drilldown, canPush } = this.drilldownState;
+    if (!canPush || !drilldown) {
+        return;
+    }
+    
+    // CRITICAL: Commit the dimension value to store BEFORE pushing
+    this.$storeCommit({ [drilldown]: value });
+    this.$drilldown.push(drilldown, value);
+},
+
+drilldownPop() {
+    const { name: drilldown, canPop } = this.drilldownState;
+    if (!canPop || !drilldown) {
+        return;
+    }
+    this.$drilldown.pop(drilldown);
+},
+
+handleDimensionCellClick(columnField, cellValue) {
+    const dimensions = this.props.dimensions || [];
+    const isDimension = dimensions.includes(columnField);
+    if (!isDimension) {
+        return;
+    }
+
+    const isMainDimension = this.mainDimensionName === columnField;
+    if (!isMainDimension) {
+        return;
+    }
+
+    if (this.drilldownCanPush && cellValue != null) {
+        this.drilldownPush(cellValue);
+    }
+},
+```
+
+#### Visual Indicators for Drillable Cells
+
+Apply visual cues to indicate drillable cells:
+
+```javascript
+// In TableRow.vue - Determine if a cell is drillable
+isDrillableCell(column) {
+    const isDimension = this.dimensions.includes(column.field);
+    const isMainDimension = column.field === this.mainDimensionName;
+    return isDimension && isMainDimension && this.drilldownCanPush;
+},
+
+isTextColumn(column) {
+    return ['string', 'number'].includes(column.type) || !column.type;
+},
+
+// In template
+<div
+    :class="{ 'table-cell-drillable': isDrillableCell(column) }"
+    @click="handleCellClick(column)"
+>
+    <div
+        class="truncate"
+        :class="{ 'table-cell-text-drillable': isDrillableCell(column) && isTextColumn(column) }"
+    >
+        {{ formatCellValue(row[column.field], column) }}
+        <span v-if="isDrillableCell(column) && !isTextColumn(column)" class="drilldown-icon">🔍</span>
+    </div>
+</div>
+```
+
+**CSS Styling:**
+```css
+/* Breadcrumb navigation */
+.table-breadcrumb {
+    padding: 8px 16px;
+    font-size: 12px;
+    color: #6b7280;
+    background-color: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Drillable cell styles */
+.table-cell-drillable {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.table-cell-drillable:hover {
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+/* Text underline for drillable text cells */
+.table-cell-text-drillable {
+    text-decoration: underline;
+    text-decoration-color: #2563eb;
+    text-underline-offset: 2px;
+}
+
+/* Icon for non-text drillable cells */
+.drilldown-icon {
+    margin-left: 4px;
+    font-size: 0.8em;
+    vertical-align: middle;
+    color: #2563eb;
+}
+```
+
+#### Pass Props to Child Components
+
+For table widgets with separate row components, pass drill-down state:
+
+```html
+<!-- In ElemWowTable.vue -->
+<w-table-row
+    v-for="row in visibleRows"
+    :key="row.id"
+    :row="row"
+    :columns="visibleColumns"
+    :dimensions="props.dimensions"
+    :main-dimension-name="mainDimensionName"
+    :drilldown-can-push="drilldownCanPush"
+    @cell-click="handleDimensionCellClick"
+></w-table-row>
+```
+
+```javascript
+// In TableRow.vue - Props
+props: {
+    dimensions: {
+        type: Array,
+        default: () => []
+    },
+    mainDimensionName: {
+        type: String,
+        default: null
+    },
+    drilldownCanPush: {
+        type: Boolean,
+        default: false
+    }
+},
+
+methods: {
+    handleCellClick(column) {
+        if (this.isDrillableCell(column)) {
+            const cellValue = this.row[column.field];
+            this.$emit('cell-click', column.field, cellValue);
+        }
+    }
+}
+```
+
+#### Important Drill-Down Rules
+
+1. **Always commit to store before pushing**: Use `this.$storeCommit({ [drilldown]: value })` before `this.$drilldown.push()` to ensure the Insight platform receives the dimension filter.
+
+2. **Apply defaults to drilldown state**: Spread actual state AFTER defaults to prevent `undefined` values:
+   ```javascript
+   // ✅ GOOD
+   return { canPop: false, canPush: false, ...this.$drilldown.state[dim] };
+   
+   // ❌ BAD - canPush could be undefined
+   return { ...this.$drilldown.state[dim], canPop: false, canPush: false };
+   ```
+
+3. **Check for null dimension names**: Guard against unconfigured dimensions:
+   ```javascript
+   if (!this.mainDimensionName) return;
+   ```
+
+4. **Verify drilldown service exists**: Check `this.$drilldown?.state` before accessing.
+
+5. **Filter only drillable dimensions**: Not all dimensions in `props.dimensions` are drillable — only those with `$drilldown.state[dim]` configured.
+
+### Utilities Organization
+Structure `utils/index.js` with reusable helpers for formatting, aggregation, tooltip generation, and series transformation. Export a utilities object containing bound formatters, conditional styling handlers, and data processing pipelines.
+
+```180:283:src/ElemMultiSpline/utils/index.js
+export const utils = {
+    condStyleTypes,
+    labelFormatter({ data: { value, addlLabelValue } }) {
+        const { metricFormat, metricSeparator, metricPrefix, metricPostfix, label } = this;
+        const { isZeroValueShown } = label;
+        if (value === 0 && !isZeroValueShown) {
+            return '';
+        }
+        const { isAbsoluteValue, isAutoRound } = this;
+
+        if (isAutoRound) {
+            return `${calcRoundValue(isAbsoluteValue ? Math.abs(value) : value)}`;
+        }
+
+        const sep = separators[metricSeparator];
+        const opts = { value: isAbsoluteValue ? Math.abs(value) : value, sep };
+        const formattedValue = availableFormats[metricFormat](opts);
+        return `${metricPrefix} ${formattedValue} ${metricPostfix}`;
+    },
+
+    tooltipSeriesFormatter({ seriesName, name, value }) {
+        const { metricFormat, metricSeparator, metricPrefix, metricPostfix, isAbsoluteValue } = this;
+        const sep = separators[metricSeparator];
+        const tooltipFormat = `${seriesName}</br>${name}: `;
+        const newVal = isAbsoluteValue ? Math.abs(value) : value;
+        const formattedValue = availableFormats[metricFormat]({ value: newVal, sep });
+        return `${tooltipFormat} ${metricPrefix} ${formattedValue} ${metricPostfix}`;
+    },
+
+    addAgrData(seriesData, name, value, axisData, addlLabelValue, seriesOptions, isShownNullLabels) {
+        const { nullValues, voidValues } = seriesOptions;
+        const nullValue = isShownNullLabels ? '-' : null;
+
+        const foundItemIdx = seriesData.findIndex((item) => item.name === name);
+
+        if (foundItemIdx >= 0) {
+            const { value: itemValue } = seriesData[foundItemIdx];
+            seriesData[foundItemIdx] = {
+                ...seriesData[foundItemIdx],
+                value:
+                    itemValue === nullValue && ((value === null && voidValues) || (value === 0 && nullValues))
+                        ? nullValue
+                        : itemValue + Number(value)
+            };
+            return;
+        }
+
+        axisData.push({
+            name,
+            value: name,
+            textStyle: { fontSize: 12, fontWeight: 'normal' }
+        });
+        const adaptValue = (value === null && voidValues) || (value === 0 && nullValues) ? nullValue : Number(value);
+        seriesData.push({
+            name,
+            value: Number.isNaN(adaptValue) ? 0 : value,
+            itemStyle: { color: null },
+            ...(addlLabelValue != null && { addlLabelValue: Number(addlLabelValue) })
+        });
+    },
+
+    getDimValues(dataRows = [], dimName = '') {
+        if (dimName === '' || dimName == null) {
+            return [];
+        }
+        return [
+            ...dataRows.reduce((set, row) => {
+                const [, dimValue] = Object.entries(row ?? {}).find(([key]) => key === dimName);
+                return dimValue === null ? set : set.add(dimValue);
+            }, new Set())
+        ];
+    },
+
+    sortArray(arr, sortOrder, dimFormat) {
+        dimFormat === 'string' ? utils.sortLikeStrings(arr, sortOrder) : utils.sortLikeDates(arr, sortOrder);
+    },
+
+    uid() {
+        return `f${(~~(Math.random() * 1e8)).toString(16)}`;
+    }
+};
+```
+
+Key utility patterns:
+- **Formatters bind to `this`**: `labelFormatter` and `tooltipSeriesFormatter` execute with series config as context, accessing `metricFormat`, `metricSeparator`, etc.
+- **Aggregation mutates arrays in place**: `addAgrData` reduces dataset rows into series data and axis labels simultaneously, handling null/void values via widget flags.
+- **Unique ID generation**: `utils.uid()` creates short hash identifiers for dynamic series tracking.
+- **Dimension extraction**: `getDimValues` collects unique dimension values from dataset rows, filtering nulls.
+
+### Number Formatting Utilities Pattern
+
+For widgets that need custom number formatting (like gauges, KPIs), implement the standard formatting pattern using `Intl.NumberFormat`:
+
+```javascript
+// In utils.js
+/**
+ * Fix number precision
+ */
+const fixNum = (num, frDigits) => {
+    const multiplier = 10 ** frDigits;
+    return Math.round(num * multiplier) / multiplier;
+};
+
+/**
+ * Format number with locale separator
+ */
+const formatNum = (num, localeSep, frDigits) => {
+    if (num === null || Number.isNaN(num)) return '—';
+    
+    return Intl.NumberFormat(localeSep, {
+        minimumFractionDigits: frDigits
+    }).format(num);
+};
+
+/**
+ * Calculate percentage
+ */
+const calcPercentage = (value, sep, frDigits) => {
+    const percentValue = fixNum(value * 100, frDigits);
+    return `${formatNum(percentValue, sep, frDigits)}%`;
+};
+
+const separators = ['default', 'ru-RU', 'de-DE', 'en-EN'];
+
+const availableFormats = {
+    0: ({ value, sep }) => formatNum(fixNum(value, 0), sep, 0),
+    1: ({ value, sep }) => formatNum(fixNum(value, 1), sep, 1),
+    2: ({ value, sep }) => formatNum(fixNum(value, 2), sep, 2),
+    3: ({ value, sep }) => formatNum(fixNum(value, 3), sep, 3),
+    '0%': ({ value, sep }) => calcPercentage(value, sep, 0),
+    '1%': ({ value, sep }) => calcPercentage(value, sep, 1),
+    '2%': ({ value, sep }) => calcPercentage(value, sep, 2),
+    '3%': ({ value, sep }) => calcPercentage(value, sep, 3)
+};
+
+/**
+ * Format value based on format and separator
+ * @param {number} value - The numeric value to format
+ * @param {string} format - Format type from availableFormats
+ * @param {string} separator - Separator type index
+ * @param {string} prefix - Text to prepend
+ * @param {string} postfix - Text to append
+ * @returns {string} Formatted value
+ */
+export const formatGaugeValue = (value, format = '1%', separator = '1', prefix = '', postfix = '') => {
+    if (value === null || Number.isNaN(value)) return '—';
+    
+    const sep = separators[separator] || separators[1];
+    const formatFn = availableFormats[format] || availableFormats['1%'];
+    const formattedValue = formatFn({ value, sep });
+    
+    return `${prefix}${formattedValue}${postfix}`.trim();
+};
+```
+
+In the component, use the formatter in computed properties:
+
+```javascript
+// In ElemMyWidget.vue
+computed: {
+    formattedValue() {
+        if (this.percentValue === null || Number.isNaN(this.percentValue)) {
+            return '—';
+        }
+        return formatGaugeValue(
+            this.percentValue,
+            this.props.format || '1%',
+            this.props.separator || '1',
+            this.props.prefix || '',
+            this.props.postfix || ''
+        );
+    }
+}
+```
+
+This pattern ensures:
+- Consistent number formatting across widgets
+- Locale-aware thousand separators
+- Percentage and decimal format support
+- Prefix/postfix text handling
+- Null/NaN safety with em-dash fallback
+
+Also provide a `propsFixer` utility to merge incoming props with defaults, ensuring backward compatibility when templates evolve:
+
+```1067:1087:src/ElemMultiSpline/utils/index.js
+export const propsFixer = (props) => {
+    const privateProps = cloneDeep(props);
+    if (!Array.isArray(props.axis)) {
+        privateProps.axis = Axises;
+    }
+    privateProps.axis = privateProps.axis.map((item) => _merge(AxisTemplate(), item));
+    privateProps.metricsStyle = privateProps.metricsStyle.map((metric) =>
+        _merge(
+            {
+                styleConditions: { enable: false, conditions: [] },
+                multiMetricMode: { enable: false, metricNames: [] },
+                label: { rotate: 0, offset: [0, 0], align: 'center' }
+            },
+            metric
+        )
+    );
+    privateProps.tooltip = { ...{ excludes: [] }, ...privateProps.tooltip };
+    privateProps.dataZoom = { ...DataZoomOptions, ...privateProps.dataZoom };
+    return privateProps;
+};
+```
+
+## Implementing Widget-Specific Logic
+Transform dataset responses into the visual layer inside the Vue component. The Multi Spline widget progressively builds ECharts options by combining props, css variables, and computed series definitions.
+
+```147:217:src/ElemMultiSpline/ElemMultiSpline.vue
+options() {
+    const {
+        legend: {
+            textStyle: { fontSize: legendFontSize, ...legendTextStyle },
+            ...legend
+        },
+        mainTitle: {
+            textStyle: { fontSize: mainTitleFontSize, ...mainTitleTextStyle },
+            ...mainTitle
+        },
+        backgroundColor,
+        legendManualSize
+    } = this.props;
+    const { dataZoom, tooltip, toolbox, axisPointer, grid, datasetRequests } = this;
+    return {
+        group: 'group',
+        series: [],
+        toolbox,
+        grid,
+        title: {
+            ...mainTitle,
+            text: mainTitle.text === '' ? datasetRequests[0]?.name ?? mainTitle.text : mainTitle.text,
+            textStyle: {
+                ...mainTitleTextStyle,
+                fontSize: this.takeUnit2Px({ size: mainTitleFontSize })
+            }
+        },
+        legend: {
+            ...legend,
+            textStyle: {
+                ...legendTextStyle,
+                fontSize: this.takeUnit2Px({ size: legendFontSize })
+            },
+            ...(legendManualSize.isManualMode && legendManualSize)
+        },
+        backgroundColor,
+        xAxis: [],
+        yAxis: [],
+        dataZoom,
+        axisPointer,
+        tooltip,
+        animation: true
+    };
+}
+```
+
+Series construction flows through helper methods:
+- `buildSeriesOptions` converts palette metrics into pixel-ready configs.
+- `getSeries` merges classic, stacked, and plan vs fact series while honouring top modes and neutral states.
+- `constructOpts` orchestrates axis generation, tooltip formatting, neutral colour toggles, and final chart rendering.
+
+```1279:1388:src/ElemMultiSpline/ElemMultiSpline.vue
+constructOpts() {
+    const {
+        results,
+        privateProps: { metricsStyle, axis: axisOptions },
+        props: {
+            tooltip,
+            axisPointer,
+            dimensionOptions: {
+                main: { name: dimName, format: dimFormat }
+            },
+            dataZoom: { isUsedBaseMinMaxValue, show: isScrollBarShow }
+        }
+    } = this;
+    if (!(results && results.length > 0 && dimName)) {
+        return;
+    }
+    const categoryAxis = axisOptions.find(({ type }) => type === 'category');
+    const seriesOptions = this.buildSeriesOptions(metricsStyle);
+    const { xAxis, yAxis } = utils.getAxis({
+        axisOptions: axisOptions.map(({ valueFontSize, additionalAxisLabel, ...options }) => ({
+            ...options,
+            valueFontSize: this.takeUnit2Px({ size: valueFontSize }),
+            ...(additionalAxisLabel != null
+                ? {
+                      additionalAxisLabel: {
+                          ...additionalAxisLabel,
+                          fontSize: this.takeUnit2Px({ size: additionalAxisLabel.fontSize })
+                      }
+                  }
+                : {})
+        })),
+        tooltip,
+        axisPointer,
+        dimFormat,
+        dimName,
+        rows: results[categoryAxis?.additionalAxisLabel?.datasetIndex ?? 0].rows
+    });
+
+    const series = this.getSeries(seriesOptions, { xAxis, yAxis }).map((ser) => {
+        const { labelLayout = {}, data } = ser;
+
+        ['x', 'y'].forEach((coord) => {
+            if (labelLayout[coord] === 0) {
+                delete labelLayout[coord];
+            }
+        });
+
+        if (labelLayout.use !== true) {
+            ser.labelLayout = {};
+        }
+        if (ser.tooltip != null) {
+            setDefaultTooltipStyle(ser);
+        }
+
+        return {
+            ...ser,
+            data: data.map(({ value, ...rest }) => ({
+                ...rest,
+                value: value === 0 ? ECHARTS_SERIES_MIN_INT_VALUE : value
+            }))
+        };
+    });
+    /* ... existing code ... */
+    this.drawChart(opts);
+    this.addEventListeners(series);
+}
+```
+
+Event handlers coordinate interactivity:
+- `onClickHandler` toggles drilldown or metric highlighting while syncing neutral colour selections.
+- `onMouseOver` and `onMouseOut` drive tooltip display, pointer tracking, and neutral palette resets.
+- `onTopBtnClick` switches between full data and top mode, automatically redrawing.
+
+Always throttle expensive operations (`resize`, `mousemove` tooltip tracking) and tear down events in `beforeDestroy`.
+
+### Error Handling and Loading States
+Widgets must gracefully handle missing datasets, API failures, and empty results. Display inline errors and loading curtains to guide users through configuration.
+
+```1:31:src/ElemMultiSpline/ElemMultiSpline.vue
+<template>
+    <w-elem :placeholder="$placeholder">
+        <w-tooltip :is-shown.sync="customTooltip.isShown" v-bind="customTooltip.options" class="w-100 h-100">
+            <template #target>
+                <div class="w-100 h-100" ref="chartAwesome">
+                    <div v-if="hasError" class="message message--error">
+                        {{ error }}
+                        <i class="message__icon message__icon--close" @click="closeErrorWindow"></i>
+                    </div>
+                </div>
+            </template>
+        </w-tooltip>
+        <div v-if="isLoading" class="curtain">
+            <div class="curtain__preloader"></div>
+        </div>
+        <div v-if="!props.dremio" class="message message--warn">no dataset selected</div>
+
+        <div class="breadcrumb" v-if="isBreadcrumbsShown">{{ breadcrumbText }}</div>
+    </w-elem>
+</template>
+```
+
+Computed flag `hasError` checks for both dataset availability and runtime errors:
+
+```102:109:src/ElemMultiSpline/ElemMultiSpline.vue
+computed: {
+    hasError() {
+        return this.hasDataset && this.error != null;
+    }
+}
+```
+
+The `loadData` method tracks `isLoading`, catches errors, and ensures cleanup:
+
+```358:373:src/ElemMultiSpline/ElemMultiSpline.vue
+async loadData(requests = this.requests) {
+    this.$requestCancel(requests);
+    this.isLoading = true;
+    try {
+        let results = await Promise.all(requests.map((request) => request?.send()));
+        results = results.map((result, i) => result ?? this.results[i] ?? null);
+        this.results = results;
+
+        this.$options.hooks.then.call(this, this.results);
+    } catch (error) {
+        this.results = [];
+        this.$handleError(error);
+    } finally {
+        this.isLoading = false;
+    }
+}
+```
+
+Always provide user-facing error messages and a clear path to fix configuration (e.g., "Select a dataset in the widget settings").
+
+### Empty State Pattern
+Widgets should display a custom empty state when no data is available or when the dataset is not configured. The empty state provides visual feedback and guides users to configure the widget properly.
+
+#### Empty State Implementation
+
+**1. Computed Properties for Empty State Logic**
+
+Create computed properties to determine when to show the empty state and what message to display:
+
+```vue
+computed: {
+    hasDatasetConfigured() {
+        const hasDimensions = this.props.dimensions && this.props.dimensions.length > 0;
+        const hasMetrics = this.props.metrics && this.props.metrics.length > 0;
+        return hasDimensions || hasMetrics;
+    },
+    
+    shouldShowCustomEmptyState() {
+        if (this.isLoading) {
+            return false;
+        }
+        
+        // Show empty state if dataset not configured
+        if (!this.hasDatasetConfigured) {
+            return true;
+        }
+        
+        // Show empty state if configured but no data
+        return this.tableData.length === 0;
+    },
+    
+    emptyStateMessage() {
+        if (!this.hasDatasetConfigured) {
+            return 'Настройте источник данных и добавьте измерения или метрики';
+        }
+        return 'Добавьте измерения и метрики для отображения таблицы';
+    }
+}
+```
+
+**2. Hide Platform Placeholder**
+
+When showing a custom empty state, disable the platform's default placeholder:
+
+```vue
+<template>
+    <w-elem :placeholder="shouldShowCustomEmptyState ? false : $placeholder">
+        <!-- Your widget content -->
+        
+        <div v-if="shouldShowCustomEmptyState" class="empty-state-container">
+            <!-- Empty state content -->
+        </div>
+    </w-elem>
+</template>
+```
+
+**3. Empty State Structure**
+
+Create a complete empty state with icon, title, description, and call-to-action button:
+
+```vue
+<div v-if="shouldShowCustomEmptyState" class="empty-state-container">
+    <div class="empty-state-content">
+        <!-- Custom SVG Icon -->
+        <svg class="empty-state-icon" width="240" height="240" viewBox="0 0 240 240" fill="none">
+            <!-- Background Circle -->
+            <circle cx="120" cy="120" r="100" fill="currentColor" opacity="0.04"/>
+            
+            <!-- Your custom icon shapes -->
+            <rect x="50" y="60" width="140" height="120" rx="6" 
+                  stroke="currentColor" stroke-width="3" fill="none" opacity="0.3"/>
+            <!-- Add more icon elements as needed -->
+        </svg>
+        
+        <!-- Title -->
+        <div class="empty-state-title">Нет данных</div>
+        
+        <!-- Description -->
+        <div class="empty-state-description">{{ emptyStateMessage }}</div>
+        
+        <!-- CTA Button (only when dataset not configured) -->
+        <button v-if="!hasDatasetConfigured" class="empty-state-button" type="button">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M8 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Перейдите на вкладку «Источник»
+        </button>
+    </div>
+</div>
+```
+
+**4. Responsive Empty State Styling**
+
+Style the empty state to be compact and responsive to the widget container:
+
+```css
+/* Empty State Styles */
+.empty-state-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    padding: clamp(12px, 2%, 20px);
+}
+
+.empty-state-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    max-width: 100%;
+    gap: clamp(6px, 1.5%, 10px);
+}
+
+.empty-state-icon {
+    color: #94a3b8;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.03));
+    width: clamp(100px, 20%, 160px);
+    height: clamp(100px, 20%, 160px);
+    flex-shrink: 0;
+}
+
+.empty-state-container:hover .empty-state-icon {
+    transform: scale(1.03) translateY(-2px);
+}
+
+.empty-state-title {
+    font-size: clamp(14px, 2%, 16px);
+    font-weight: 600;
+    color: #475569;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.empty-state-description {
+    font-size: clamp(12px, 1.8%, 13px);
+    color: #64748b;
+    line-height: 1.4;
+    opacity: 0.85;
+    max-width: 90%;
+    margin: 0;
+}
+
+.empty-state-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    margin-top: 4px;
+    font-size: clamp(12px, 1.8%, 13px);
+    font-weight: 500;
+    color: #fff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+}
+
+.empty-state-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.35);
+}
+
+.empty-state-button svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+/* Dark Mode Support */
+.table-container.dark .empty-state-icon {
+    color: #64748b;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
+}
+
+.table-container.dark .empty-state-title {
+    color: #94a3b8;
+}
+
+.table-container.dark .empty-state-button {
+    background: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
+    box-shadow: 0 2px 8px rgba(129, 140, 248, 0.3);
+}
+```
+
+#### Empty State Design Principles
+
+**Responsive Sizing**: Use `clamp()` for all dimensions to ensure the empty state scales properly with any widget size:
+- Icon: `clamp(100px, 20%, 160px)` - scales from 100px to 160px based on container width
+- Gaps: `clamp(6px, 1.5%, 10px)` - tight spacing that adapts
+- Typography: `clamp(12px, 1.8%, 13px)` - readable at all sizes
+
+**Visual Hierarchy**:
+1. **Icon** (largest) - Custom SVG representing the widget type
+2. **Title** (medium) - Brief "No data" message
+3. **Description** (small) - Contextual guidance
+4. **Button** (optional) - Call-to-action only when dataset not configured
+
+**Container-Relative Units**: Use percentage-based sizes relative to the widget container, not the viewport:
+```css
+width: clamp(100px, 20%, 160px);  /* ✅ Good: 20% of container */
+width: clamp(100px, 20vw, 160px); /* ❌ Bad: 20% of viewport */
+```
+
+**Custom SVG Icons**: Create widget-specific icons that visually represent the widget's purpose:
+- Tables: Grid with empty cells
+- Charts: Empty bars or line paths
+- KPIs: Gauge or metric placeholder
+- Keep icons simple with 2-3 shape types maximum
+
+**Contextual Messages**: Provide different messages based on the widget state:
+- No dataset configured: "Configure data source and add dimensions or metrics"
+- Dataset configured but empty: "Add dimensions and metrics to display data"
+- Data loaded but filtered out: "No data matches current filters"
+
+**Dark Mode**: Always provide dark mode variants for colors and shadows to ensure the empty state is visible in all themes.
+
+#### Complete Example
+
+See `src/ElemWowTable/ElemWowTable.vue` for a complete implementation that includes:
+- Conditional empty state rendering
+- Custom SVG table icon
+- Responsive sizing with clamp()
+- Call-to-action button
+- Dark mode support
+- Smooth hover animations
+
+### Prop Watchers and Reactive Redrawing
+Watch props and CSS changes to trigger chart redraws when palette edits occur. Use deep watchers with equality checks to avoid infinite loops.
+
+```285:301:src/ElemMultiSpline/ElemMultiSpline.vue
+watchEditor: {
+    props: {
+        handler(props) {
+            this.privateProps = propsFixer(props);
+        },
+        deep: true
+    },
+    [['cssStyle', 'cssClass', PropNames.map((prop) => `props.${prop}`)]]: {
+        handler(param, oldParam) {
+            if (param && !_isEqual(param, oldParam)) {
+                const composedResults = this.resolveComposedResults();
+                this.results = composedResults;
+                this.$nextTick().then(this.constructOpts);
+            }
+        },
+        deep: true
+    }
+}
+```
+
+Key practices:
+- **Isolate prop fixes**: run `propsFixer` on all incoming props to fill missing defaults before consumption.
+- **Watch arrays of paths**: combine multiple prop paths into a single watcher to batch redraws.
+- **Use `$nextTick`**: ensure DOM updates settle before invoking expensive chart operations.
+- **Compare via `_isEqual`**: prevent redundant redraws when unchanged props emit watch events.
+
+## Styling and CSS Variables
+Widget styles rely on PostCSS modules and dynamic CSS variables exposed through `cssVars`. Keep palette-driven colours, fonts, and spacing in `styles/css-vars.js` so the platform can apply theme overrides without touching component markup.
+
+```1:70:src/ElemMultiSpline/styles/css-vars.js
+const cssVars = ({ palette, typography }) => ({
+    chartTitleColor: typography.heading.color,
+    chartLegendTextColor: typography.caption.color,
+    chartNeutralMetricColor: palette.neutral[300],
+    /* ... existing code ... */
+});
+
+export { cssVars };
+```
+
+Apply the stylesheet through `<style src="./styles/style.pcss" lang="pcss" module></style>` inside the Vue component to scope classes. Where runtime conversions are required, run properties through `convertCssVarToComputedValue` before handing them to chart libraries.
+
+## Responsive Design and Widget Adaptability
+
+Widgets should adapt to their container size and maintain proper proportions. Follow these patterns:
+
+**SVG Responsiveness**
+For SVG-based widgets (gauges, charts), use `viewBox` and `preserveAspectRatio` for scaling:
+
+```vue
+<template>
+    <div class="relative w-full h-full flex items-center justify-center">
+        <svg
+            class="block max-w-full max-h-full"
+            viewBox="0 0 34 17"
+            preserveAspectRatio="xMidYMid meet"
+            role="img"
+            :aria-label="widgetAriaLabel"
+            :style="svgStyle"
+        >
+            <!-- SVG content -->
+        </svg>
+    </div>
+</template>
+
+<script>
+computed: {
+    svgStyle() {
+        return {
+            width: '100%',
+            height: 'auto'
+        };
+    }
+}
+</script>
+```
+
+Key SVG responsiveness practices:
+- Use `viewBox` for coordinate system, not fixed `width`/`height`
+- Set `preserveAspectRatio="xMidYMid meet"` for centered scaling
+- Apply `max-w-full max-h-full` classes for container constraints
+- Use percentage-based widths (`width: '100%'`) in styles
+
+**Container Sizing**
+Use Tailwind utility classes for flexible layouts:
+
+```vue
+<!-- ✅ GOOD: Responsive container -->
+<div class="relative w-full h-full overflow-hidden flex items-center justify-center">
+    <!-- Widget content -->
+</div>
+
+<!-- ❌ BAD: Fixed size breaks responsiveness -->
+<div class="max-w-md mx-auto" style="width: 400px; height: 300px;">
+    <!-- Widget content -->
+</div>
+```
+
+**Dynamic Padding and Spacing**
+Apply padding via computed styles based on props:
+
+```javascript
+computed: {
+    containerStyle() {
+        const defaultPadding = 40;
+        return {
+            padding: `${this.props.containerPadding || defaultPadding}px`
+        };
+    }
+}
+```
+
+**Positioning Elements**
+For absolute-positioned elements (like centered values in gauges), use flexbox or absolute positioning with percentage offsets:
+
+```vue
+<!-- Centered text over gauge using absolute positioning -->
+<div class="absolute bottom-0 left-0 right-0 flex flex-col items-center gap-1">
+    <div v-if="props.showValue" :style="valueStyle" class="text-center leading-none">
+        {{ formattedValue }}
+    </div>
+    <div v-if="props.showTitle" class="text-center leading-tight" :style="titleStyle">
+        {{ displayTitle }}
+    </div>
+</div>
+```
+
+**Font Scaling**
+For responsive typography, use the object-based font size pattern with units:
+
+```javascript
+// Props allow users to choose units (px, rem, em, %)
+valueFontSize: {
+    type: Object,
+    default: () => ({ size: 40, unit: 'px' }),
+    label: 'Размер значения'
+}
+
+// In computed style
+const { size = 40, unit = 'px' } = this.props.valueFontSize || {};
+const fontSize = size && unit ? `${size}${unit}` : '40px';
+```
+
+This allows users to:
+- Use `px` for fixed sizes
+- Use `rem`/`em` for scalable typography
+- Use `%` for proportional sizing relative to parent
+
+## Text Positioning in Custom Visualizations
+
+When building custom visualizations (gauges, charts with SVG), text positioning requires special attention for responsiveness and accuracy.
+
+### Make Positioning Configurable
+
+For elements that need precise positioning (like text on a gauge's diameter line), make the position a configurable setting:
+
+```javascript
+// In descriptor.js
+textVerticalPosition: {
+    type: Number,
+    default: 70, // eslint-disable-line no-magic-numbers
+    label: 'Вертикальная позиция текста (%)'
+}
+
+// In config.js
+export const defaults = {
+    // ... other defaults
+    textVerticalPosition: 70
+};
+```
+
+Add to settings panel:
+
+```vue
+<!-- In SettingsPanel.vue -->
+<ui-input 
+    type="number" 
+    min="0" 
+    max="100" 
+    prop="textVerticalPosition" 
+    label="Позиция текста (%)" 
+    placeholder="70">
+</ui-input>
+```
+
+Use in component with dynamic computed style:
+
+```javascript
+// In ElemMyWidget.vue
+computed: {
+    textPositionStyle() {
+        const defaultPosition = 70;
+        const position = this.props.textVerticalPosition || defaultPosition;
+        return {
+            top: `${position}%`,
+            transform: 'translateY(0)'
+        };
+    }
+}
+```
+
+Apply to template:
+
+```vue
+<div class="absolute left-0 right-0 flex flex-col items-center" :style="textPositionStyle">
+    <div :style="valueStyle">{{ formattedValue }}</div>
+    <div :style="titleStyle">{{ displayTitle }}</div>
+</div>
+```
+
+### Font Settings Best Practices
+
+Ensure font settings are properly reactive and handle all edge cases:
+
+```javascript
+// ✅ GOOD: Safe property access with proper fallbacks
+valueStyle() {
+    const isDark = this.props.theme === 'dark';
+    const defaultColor = isDark ? '#ffffff' : '#0a0a0a';
+    const defaultValueSize = 40;
+    const defaultValueUnit = 'px';
+    
+    // Safely extract font size with fallbacks
+    const fontSizeObj = this.props.valueFontSize;
+    const size = fontSizeObj?.size ?? defaultValueSize;
+    const unit = fontSizeObj?.unit ?? defaultValueUnit;
+    
+    // Get font family and color from props
+    const fontFamily = this.props.valueFontFamily || 'sans-serif';
+    const color = this.props.valueFontColor || defaultColor;
+    
+    return {
+        color,
+        fontSize: `${size}${unit}`,
+        fontWeight: '700',
+        fontFamily,
+        lineHeight: '1'
+    };
+}
+
+// ❌ BAD: Unsafe destructuring without fallbacks
+valueStyle() {
+    const { size, unit } = this.props.valueFontSize; // May be undefined!
+    return {
+        fontSize: `${size}${unit}` // Crashes if props are missing
+    };
+}
+```
+
+**Key principles:**
+- Use optional chaining (`?.`) for nested property access
+- Use nullish coalescing (`??`) for default values
+- Extract values into named constants for clarity
+- Always provide fallbacks for font family and color
+- Match fallback values to descriptor defaults
+
+### Percentage-Based Positioning
+
+For responsive layouts that work at any size, use percentage-based positioning:
+
+```javascript
+// ✅ GOOD: Scales with container size
+textPositionStyle() {
+    return {
+        top: `${this.props.textVerticalPosition}%`
+    };
+}
+
+// ❌ BAD: Fixed pixel values break at different sizes
+textPositionStyle() {
+    return {
+        top: '170px' // Only works at specific container height
+    };
+}
+```
+
+### SVG Text vs HTML Text
+
+**Avoid SVG `<text>` elements for user-facing text:**
+
+```vue
+<!-- ❌ BAD: SVG text has font rendering issues -->
+<svg>
+    <text x="17" y="16.5" :style="textStyle">{{ value }}</text>
+</svg>
+
+<!-- ✅ GOOD: HTML text with absolute positioning -->
+<div class="relative">
+    <svg><!-- shapes only --></svg>
+    <div class="absolute" :style="textPositionStyle">
+        <div :style="valueStyle">{{ value }}</div>
+    </div>
+</div>
+```
+
+**Reasons to avoid SVG text:**
+- Font size calculations differ (need conversion to SVG units)
+- Font rendering quality varies across browsers
+- CSS font properties behave differently
+- Harder to style consistently
+- Poor support for font fallbacks
+
+## Widget Animations
+
+Animations enhance user experience by providing smooth transitions when data changes. Follow the ElemMultiSpline pattern for implementing configurable animations.
+
+### Animation Constants and Configuration
+
+Define animation options in `constants.js`:
+
+```javascript
+// In constants.js
+export const AnimationEasingTypes = [
+    { value: 'linear', label: 'Linear' },
+    { value: 'ease', label: 'Ease' },
+    { value: 'ease-in', label: 'Ease In' },
+    { value: 'ease-out', label: 'Ease Out' },
+    { value: 'ease-in-out', label: 'Ease In Out' }
+];
+
+const defaultAnimationDuration = 1000;
+const defaultAnimationDelay = 0;
+
+export { defaultAnimationDuration, defaultAnimationDelay };
+```
+
+Add to `config.js`:
+
+```javascript
+import {
+    AnimationEasingTypes,
+    defaultAnimationDuration,
+    defaultAnimationDelay
+} from './constants';
+
+export const options = {
+    // ... other options
+    animationEasings: AnimationEasingTypes
+};
+
+export const defaults = {
+    // ... other defaults
+    animation: true,
+    animationEasing: 'ease-out',
+    animationDuration: defaultAnimationDuration,
+    animationDelay: defaultAnimationDelay
+};
+```
+
+### Animation Props Pattern
+
+Define animation props in `descriptor.js`:
+
+```javascript
+export const descriptor = () => ({
+    props: {
+        // ... other props
+        animation: {
+            type: Boolean,
+            default: true,
+            label: 'Анимация'
+        },
+        animationEasing: {
+            type: String,
+            default: 'ease-out',
+            label: 'Тип анимации'
+        },
+        animationDuration: {
+            type: Number,
+            default: 1000, // eslint-disable-line no-magic-numbers
+            label: 'Длительность анимации (мс)'
+        },
+        animationDelay: {
+            type: Number,
+            default: 0,
+            label: 'Задержка анимации (мс)'
+        }
+    }
+});
+```
+
+### Animation Settings UI
+
+Add animation controls to settings panel using the checkbox with floating panel pattern:
+
+```vue
+<!-- In SettingsPanel.vue -->
+<ui-has-panel>
+    <ui-checkbox prop="animation">Анимация</ui-checkbox>
+    <template #panel>
+        <ui-panel :groups="[{ name: 'Настройка анимации', slot: 'animation' }]">
+            <template #animation>
+                <ui-container>
+                    <ui-select prop="animationEasing" :options="options.animationEasings" label="Тип анимации"></ui-select>
+                    <ui-input type="number" min="0" prop="animationDuration" label="Длительность (мс)" placeholder="1000"></ui-input>
+                    <ui-input type="number" min="0" prop="animationDelay" label="Задержка (мс)" placeholder="0"></ui-input>
+                </ui-container>
+            </template>
+        </ui-panel>
+    </template>
+</ui-has-panel>
+```
+
+### Animation Implementation
+
+Implement smooth value transitions using `requestAnimationFrame`:
+
+```javascript
+// In ElemMyWidget.vue
+export default {
+    data() {
+        return {
+            animatedValue: 0,
+            animationFrameId: null
+        };
+    },
+
+    computed: {
+        displayValue() {
+            // Use animated value when animation is enabled
+            return this.props.animation ? this.animatedValue : this.actualValue;
+        }
+    },
+
+    watch: {
+        actualValue: {
+            handler(newVal, oldVal) {
+                const from = oldVal || 0;
+                this.animateValue(from, newVal);
+            },
+            immediate: true
+        }
+    },
+
+    beforeDestroy() {
+        // Always clean up animation frames
+        if (this.animationFrameId == null) {
+            return;
+        }
+        cancelAnimationFrame(this.animationFrameId);
+    },
+
+    methods: {
+        animateValue(from, to) {
+            // Cancel any existing animation
+            if (this.animationFrameId != null) {
+                cancelAnimationFrame(this.animationFrameId);
+                this.animationFrameId = null;
+            }
+
+            // Skip animation if disabled
+            if (this.props.animation === false) {
+                this.animatedValue = to;
+                return;
+            }
+
+            const duration = this.props.animationDuration || 1000; // eslint-disable-line no-magic-numbers
+            const delay = this.props.animationDelay || 0;
+            const startTime = performance.now() + delay;
+            const delta = to - from;
+
+            const easing = this.getEasingFunction(this.props.animationEasing || 'ease-out');
+
+            const animate = (currentTime) => {
+                // Handle delay
+                if (currentTime < startTime) {
+                    this.animationFrameId = requestAnimationFrame(animate);
+                    return;
+                }
+
+                // Calculate progress
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easedProgress = easing(progress);
+
+                // Update animated value
+                this.animatedValue = from + delta * easedProgress;
+
+                // Continue or complete
+                if (progress < 1) {
+                    this.animationFrameId = requestAnimationFrame(animate);
+                } else {
+                    this.animatedValue = to;
+                    this.animationFrameId = null;
+                }
+            };
+
+            this.animationFrameId = requestAnimationFrame(animate);
+        },
+
+        getEasingFunction(type) {
+            const easingFunctions = {
+                linear: (progress) => progress,
+                'ease': (progress) => progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress, // eslint-disable-line no-magic-numbers
+                'ease-in': (progress) => progress * progress,
+                'ease-out': (progress) => progress * (2 - progress), // eslint-disable-line no-magic-numbers
+                'ease-in-out': (progress) => progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress // eslint-disable-line no-magic-numbers
+            };
+
+            return easingFunctions[type] || easingFunctions['ease-out'];
+        }
+    }
+};
+```
+
+### Animation Best Practices
+
+**requestAnimationFrame Over setTimeout**
+Always use `requestAnimationFrame` for smooth 60fps animations:
+
+```javascript
+// ✅ GOOD: Smooth animation tied to browser refresh rate
+this.animationFrameId = requestAnimationFrame(animate);
+
+// ❌ BAD: Choppy animation, not synced with browser
+this.timeoutId = setTimeout(animate, 16);
+```
+
+**Always Clean Up**
+Cancel animation frames in `beforeDestroy` to prevent memory leaks:
+
+```javascript
+// ✅ GOOD: Cleanup on component destruction
+beforeDestroy() {
+    if (this.animationFrameId == null) {
+        return;
+    }
+    cancelAnimationFrame(this.animationFrameId);
+}
+
+// ❌ BAD: Animation continues after component destroyed
+beforeDestroy() {
+    // Missing cleanup
+}
+```
+
+**Cancel Previous Animations**
+Always cancel existing animations before starting new ones:
+
+```javascript
+// ✅ GOOD: Cancel before starting new animation
+animateValue(from, to) {
+    if (this.animationFrameId != null) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+    }
+    // Start new animation...
+}
+
+// ❌ BAD: Multiple animations running simultaneously
+animateValue(from, to) {
+    // Directly starts new animation without canceling
+}
+```
+
+**Respect Animation Toggle**
+Provide instant updates when animation is disabled:
+
+```javascript
+// ✅ GOOD: Skip animation when disabled
+if (this.props.animation === false) {
+    this.animatedValue = to;
+    return;
+}
+
+// ❌ BAD: Using animation flag incorrectly
+if (!this.props.animation) { // Linter error: Use === false
+    this.animatedValue = to;
+}
+```
+
+**CSS Transitions for Visual Elements**
+Combine CSS transitions for element properties with JS animations for values:
+
+```vue
+<!-- ✅ GOOD: CSS transitions for color, JS for value -->
+<path
+    class="transition-colors duration-300"
+    :fill="segmentColor"
+/>
+<div>{{ animatedValue }}</div>
+
+<!-- Note: CSS handles smooth color changes, JS handles number counting -->
+```
+
+**Easing Function Parameters**
+Use descriptive parameter names, not single letters:
+
+```javascript
+// ✅ GOOD: Descriptive parameter name
+'ease-out': (progress) => progress * (2 - progress)
+
+// ❌ BAD: Single letter parameter (linter error)
+'ease-out': (t) => t * (2 - t)
+```
+
+### Animation for Different Widget Types
+
+**For Gauges/KPIs:**
+- Animate the displayed value (number counting)
+- Animate indicator position/segments
+- Use smooth easing like 'ease-out' for natural feel
+
+**For Charts (ECharts/D3):**
+- Use built-in chart library animations
+- Configure via animation props passed to chart options
+- ECharts example:
+
+```javascript
+series: [{
+    // ... series config
+    animationEasing: this.props.animationEasing,
+    animationDuration: this.props.animationDuration,
+    animationDelay: this.props.animationDelay,
+    animationEasingUpdate: this.props.animationEasing,
+    animationDurationUpdate: this.props.animationDuration,
+    animationDelayUpdate: this.props.animationDelay
+}]
+```
+
+**For Tables/Lists:**
+- Use CSS transitions for row/cell changes
+- Animate sorting/filtering with Vue transitions
+- Keep animations subtle to avoid distraction
+
+## Linter Compliance and Code Quality
+
+**Magic Numbers**
+Always add eslint-disable comments for necessary magic numbers in descriptor defaults:
+
+```javascript
+// ✅ GOOD: Disable linter for magic number in default
+valueFontSize: {
+    type: Object,
+    default: () => ({ size: 40, unit: 'px' }), // eslint-disable-line no-magic-numbers
+    label: 'Размер значения'
+}
+
+// ❌ BAD: Magic number without comment causes linter error
+default: () => ({ size: 40, unit: 'px' })
+```
+
+In computed properties, use named constants for magic numbers:
+
+```javascript
+// ✅ GOOD: Named constant for clarity
+computed: {
+    valueStyle() {
+        const defaultValueSize = 40;
+        const defaultTitleSize = 16;
+        const { size = defaultValueSize, unit = 'px' } = this.props.valueFontSize || {};
+        // ...
+    }
+}
+
+// ❌ BAD: Bare magic number
+const { size = 40, unit = 'px' } = this.props.valueFontSize || {};
+```
+
+**Null Checks**
+Use `== null` operator instead of `!` for nullable properties:
+
+```javascript
+// ✅ GOOD: Explicit null check
+if (this.props.valueMetric == null && metrics.length > 0) {
+    this.props.valueMetric = metrics[0];
+}
+
+// ❌ BAD: Using ! with non-boolean
+if (!this.props.valueMetric && metrics.length > 0) {
+    // Linter warning: Using ! with not Boolean type
+}
+```
+
+**Naming Conventions**
+Follow naming patterns for constants and variables:
+
+```javascript
+// ✅ GOOD: Arrays end with 's', constants are PascalCase
+export const GaugeRadiuses = [
+    { label: 'Малое', value: 'sm' },
+    { label: 'Среднее', value: 'md' },
+    { label: 'Большое', value: 'lg' }
+];
+
+// ❌ BAD: Inconsistent naming
+export const GAUGE_RADIUS = [ /* ... */ ];
+export const gaugeRadius = [ /* ... */ ];
+```
+
+Boolean properties in data should start with `is`, `has`, `can`, or `should`:
+
+```javascript
+// ✅ GOOD: Boolean naming
+data() {
+    return {
+        isLabelFontShown: false,
+        isValueFontShown: false,
+        hasError: false,
+        canSubmit: true
+    };
+}
+
+// ❌ BAD: Boolean without prefix
+data() {
+    return {
+        showLabelFont: false,  // Linter error
+        labelFontVisible: false  // Linter error
+    };
+}
+```
+
+**Unused Variables**
+Remove unused imports, data properties, and computed properties:
+
+```javascript
+// ✅ GOOD: Only used properties
+data() {
+    return {
+        options  // Used in template
+    };
+}
+
+// ❌ BAD: Unused data causes linter error
+data() {
+    return {
+        options,
+        defaults  // Never used - remove it
+    };
+}
+```
+
+**Long Property Chains**
+Avoid long chains for nested object access - use destructuring:
+
+```javascript
+// ✅ GOOD: Destructure nested properties
+const { size = 40, unit = 'px' } = this.props.valueFontSize || {};
+const fontSize = size && unit ? `${size}${unit}` : '40px';
+
+// ❌ BAD: Long chains trigger linter warning
+const fontSize = this.props.valueFontSize.size && this.props.valueFontSize.unit 
+    ? `${this.props.valueFontSize.size}${this.props.valueFontSize.unit}` 
+    : '40px';
+```
+
+**Template Expressions**
+Avoid template literal expressions in Vue templates - use computed properties:
+
+```vue
+<!-- ✅ GOOD: Computed property -->
+<div :style="containerStyle"></div>
+
+<script>
+computed: {
+    containerStyle() {
+        return {
+            padding: `${this.props.containerPadding}px`
+        };
+    }
+}
+</script>
+
+<!-- ❌ BAD: Template literal in template -->
+<div :style="{ padding: `${props.containerPadding}px` }"></div>
+```
+
+**Inline Style Attributes**
+Never use inline `style` attributes - always use computed properties or classes:
+
+```vue
+<!-- ✅ GOOD: Computed style -->
+<div :style="valueStyle">{{ formattedValue }}</div>
+
+<!-- ❌ BAD: Inline style attribute -->
+<div style="color: red; font-size: 20px;">{{ formattedValue }}</div>
+```
+
+## Best Practices and Gotchas
+- **Clone defaults**: wrap nested defaults in factory functions (`() => ({})`) or `cloneDeep` to avoid shared references.
+- **Use existing UI primitives**: palette components cover most UX cases; avoid building custom inputs unless absolutely necessary.
+- **Guard dataset interactions**: bail early if datasets are missing, and handle empty results gracefully with warnings or placeholders.
+- **Respect drilldown state**: always reset store variables when navigating up, and honour flags like `shouldSkipLevelWithOneValue`.
+- **Throttle expensive actions**: `_throttle` keeps resize and tooltip movement smooth without overloading the runtime.
+- **Default tooltip styling**: call `setDefaultTooltipStyle` after constructing series or root options to retain editor defaults.
+- **Testing**: run Playwright flows to verify palette controls update the visualization; validate neutral metrics, top mode toggles, and drilldown transitions with representative datasets.
+- **Fix all linter errors**: Always run and fix linter errors before considering the widget complete.
+- **TypeScript compliance**: Ensure all type definitions are complete and correct.
+
+### Common Pitfalls and Solutions
+
+**1. Shared Default References**
+```javascript
+// ❌ BAD: All widget instances share the same object
+props: {
+    legend: {
+        type: Object,
+        default: { show: false, position: 'top' }
+    }
+}
+
+// ✅ GOOD: Each instance gets a fresh copy
+props: {
+    legend: {
+        type: Object,
+        default: () => ({ show: false, position: 'top' })
+    }
+}
+```
+
+**2. Missing propChanged Calls**
+```javascript
+// ❌ BAD: Palette UI updates but widget doesn't redraw
+methods: {
+    changeLegend() {
+        this.props.legend.show = true;
+        // Missing: this.propChanged('legend');
+    }
+}
+
+// ✅ GOOD: Always notify after mutations
+methods: {
+    changeLegend() {
+        this.props.legend.show = true;
+        this.propChanged('legend');
+    }
+}
+```
+
+**3. Forgetting to Merge Defaults**
+```javascript
+// ❌ BAD: Old widgets missing new properties break
+const axis = props.axis;  // Might lack new 'additionalAxisLabel' field
+
+// ✅ GOOD: Merge with template defaults
+const axis = props.axis.map(item => _merge(AxisTemplate(), item));
+```
+
+**4. Drilldown State Not Reset**
+```javascript
+// ❌ BAD: Variables stay stale after drilldown pop
+onPrevBtnClick() {
+    this.drilldownPop();
+    // Missing: this.storeCommitNulls();
+}
+
+// ✅ GOOD: Clear state when navigating drilldown
+onPrevBtnClick() {
+    if (this.drilldownCanPush === false) {
+        this.storeCommitNulls();
+    }
+    this.drilldownPop();
+    if (this.drilldownCanPop === false) {
+        this.storeCommitNullsAtFirstLevel();
+    } else {
+        this.storeCommitNulls();
+    }
+}
+```
+
+**5. Missing CSS Variable Conversion**
+```javascript
+// ❌ BAD: ECharts receives CSS vars as-is (e.g., 'var(--color-primary)')
+this.chartInstance.setOption(opts);
+
+// ✅ GOOD: Convert vars to computed values before rendering
+this.chartInstance.setOption(convertCssVarToComputedValue(opts, this.computedStyle));
+```
+
+**6. Not Handling Empty Datasets**
+```javascript
+// ❌ BAD: Crashes when dataset is empty
+const { rows } = results[0];
+const dimValue = rows[0][dimName];  // Unchecked array access
+
+// ✅ GOOD: Guard with early returns and fallbacks
+if (!(results && results.length > 0 && dimName)) {
+    return;
+}
+const { rows } = results[0];
+if (rows.length === 0) {
+    this.error = 'Dataset returned no rows';
+    return;
+}
+```
+
+## Comprehensive AI Prompt Template
+
+When instructing an AI to generate a new Insight widget, provide a structured prompt covering these phases:
+
+### Phase 1: Widget Specification
+```
+Create an Insight widget named 'ElemMyChart' that displays [chart type] with the following features:
+- Visualization: [bar chart / line chart / pie chart / custom]
+- Interactivity: [drilldown support / top mode / click events / tooltips]
+- Datasets: [single dataset / multiple datasets / deviations support]
+- Styling: [legend / title / background / axis customization]
+```
+
+### Phase 2: Module Scaffolding
+```
+Generate the widget directory structure:
+- descriptor.js with props for [list specific props: dremio, dimensionOptions, metricsStyle, legend, tooltip]
+- ElemMyChart.vue extending @goodt-wcore/elem with [DatasetMixin, unit2PxMixin]
+- panels/: DimensionsPanel.vue, MetricsPanel.vue, OptionsPanel.vue
+- panels/DatasetPanelMixin.js to auto-sync metrics/dimensions
+- panels/config.js with dropdown options for [formats, sorting, positions]
+- utils/constants.js with factories for [SeriesTemplate, AxisTemplate, defaults]
+- utils/index.js with helpers for [formatting, aggregation, tooltip generation]
+- styles/css-vars.js exposing [chartTitleColor, legendTextColor, etc.]
+- styles/style.pcss for scoped component styles
+```
+
+### Phase 3: Descriptor Definition
+```
+In descriptor.js:
+- Define props with factory defaults for nested objects
+- Include dataset contract: { vars: { dimension: { operation: StoreOperation.ALL } } }
+- Register panels array and DatasetPanelMixin
+- Export meta via useDatasetMeta with isChildAllowed: [true/false], slotNames, cssVars
+```
+
+### Phase 4: Palette Implementation
+```
+Build panels using existing UI components:
+- DimensionsPanel.vue: ui-select for main/minor dimensions with format/sort options
+- MetricsPanel.vue: dynamic metric list with ui-collapse sections per metric
+- OptionsPanel.vue: ui-has-panel for legend, tooltip, dataZoom, background
+- Ensure all mutations call propChanged('propName')
+- Use computed get/set for complex nested props
+- Import static config from panels/config.js
+```
+
+### Phase 5: Dataset Integration
+```
+In ElemMyChart.vue:
+- Mix in useElemDatasetBaseMixin({ drilldown: [true/false], deviations: [true/false] })
+- Implement hooks.then to process results and trigger constructOpts
+- Define loadData to handle async requests, loading states, and errors
+- Add computed drilldownState, drilldownCanPop, drilldownCanPush
+- Implement storeCommitState, storeCommitNulls, drilldownPush, drilldownPop
+```
+
+### Phase 6: Visualization Logic
+```
+Build chart rendering pipeline:
+- Create computed options() merging props into ECharts config
+- Implement buildSeriesOptions to convert palette metrics to pixel-ready series
+- Define getSeries to aggregate classic/stacked/compared series
+- Write constructOpts to orchestrate axis, series, and final chart assembly
+- Implement drawChart with destroyChart, initChart, setOption
+- Add event listeners for click, mouseover, mouseout with throttling
+- Convert CSS vars via convertCssVarToComputedValue before rendering
+```
+
+### Phase 7: Utilities and Formatters
+```
+In utils/index.js export utils object with:
+- labelFormatter(this, { value }) binding to series config
+- tooltipSeriesFormatter(this, { seriesName, name, value })
+- addAgrData(seriesData, name, value, axisData, seriesOptions)
+- getDimValues(dataRows, dimName) extracting unique dimensions
+- sortArray(arr, sortOrder, dimFormat) for data ordering
+- uid() for unique ID generation
+- propsFixer(props) merging defaults with incoming props
+```
+
+### Phase 8: Error Handling and UX
+```
+Add robust guards:
+- Template: v-if="hasError", v-if="isLoading", v-if="!props.dremio"
+- Computed: hasError checking hasDataset && error != null
+- loadData: try/catch with this.$handleError(error) and finally cleanup
+- constructOpts: early return if !(results && results.length > 0 && dimName)
+- User-facing messages for missing datasets, empty results, API failures
+
+Implement custom empty state:
+- Computed: hasDatasetConfigured, shouldShowCustomEmptyState, emptyStateMessage
+- Hide platform placeholder: :placeholder="shouldShowCustomEmptyState ? false : $placeholder"
+- Empty state structure: custom SVG icon, title, description, optional CTA button
+- Responsive styling: use clamp() for all sizes (icon, gaps, typography)
+- Container-relative units: percentages based on container, not viewport
+- Dark mode variants for all colors and shadows
+- See "Empty State Pattern" section for complete implementation
+```
+
+### Phase 9: Watchers and Reactivity
+```
+Implement watchEditor:
+- Watch props with propsFixer transformation
+- Watch cssStyle, cssClass, PropNames array for redraw triggers
+- Use _isEqual to prevent redundant redraws
+- Call $nextTick before expensive chart operations
+```
+
+### Phase 10: Styling and Theming
+```
+In styles/css-vars.js:
+- Export cssVars function receiving { palette, typography }
+- Map theme variables to widget-specific names
+- Apply via <style src="./styles/style.pcss" lang="pcss" module></style>
+```
+
+### Example Concrete Prompt
+```
+Build an Insight widget 'ElemSalesKPI' displaying a multi-KPI card with:
+- 3 metric cards showing sales, revenue, profit
+- Each card: large number, label, trend indicator (up/down arrow)
+- Props: dremio (dataset), metricsStyle (array of 3 metric configs), cardLayout (grid/row)
+- Panels: MetricsPanel for selecting 3 metrics + formatting, StylePanel for colors/fonts
+- No drilldown, single dataset, deviations for trend calculation
+- Use TailwindCSS classes for card layout, Insight theme colors for indicators
+- Loading curtain, error handling, empty state message
+```
+
+---
+
+## Troubleshooting Common Issues
+
+### Editor Intercepting Interactive Elements (Dropdowns, Inputs)
+
+**Problem**: Native HTML elements like `<select>` dropdowns or `<input>` fields don't respond to mouse clicks in edit mode, even though they work with keyboard navigation.
+
+**Root Cause**: The Insight editor intercepts mouse events at the document level for drag-and-drop and selection functionality. Even with high `z-index` and `pointer-events: auto`, the editor's event handlers can prevent native interactions from working.
+
+**Solution**: Add event stoppers to prevent event propagation to the editor:
+
+```vue
+<select
+    class="my-dropdown"
+    :value="currentValue"
+    @change="handleChange"
+    @mousedown.stop
+    @click.stop
+>
+    <option value="1">Option 1</option>
+    <option value="2">Option 2</option>
+</select>
+```
+
+**Key Points**:
+- `@mousedown.stop` - Prevents the editor from intercepting the initial mouse press
+- `@click.stop` - Prevents the editor from intercepting the click event
+- Apply to the interactive element itself, not parent containers
+- Works for `<select>`, `<input>`, `<button>`, and other native form elements
+- Also ensure CSS has: `pointer-events: auto !important` and high `z-index` values
+
+**Example from ElemWowTable breadcrumb dropdowns**:
+```45:51:src/ElemWowTable/ElemWowTable.vue
+<select
+    class="breadcrumb-dimension-select"
+    :value="getCurrentLevelIndex(dimState)"
+    @change="(event) => handleDimensionLevelChange(dimState.name, event.target.value)"
+    @mousedown.stop
+    @click.stop
+>
+```
+
+---
+
+## Summary
+This playbook provides a complete blueprint for AI-driven Insight widget generation:
+
+1. **Module Architecture**: Descriptor → Panels → Component → Utils → Styles
+2. **Dataset Integration**: Mixins, hooks, drilldown, store commits
+3. **Palette UI**: Lazy panels, `ui-*` components, `propChanged` flow, static config
+4. **Visualization Pipeline**: Series building, axis generation, ECharts rendering, CSS var conversion
+5. **Robustness**: Error handling, loading states, prop watchers, throttling
+6. **Utilities**: Formatters, aggregation, sorting, unique IDs, defaults merging
+7. **Common Pitfalls**: Factory defaults, drilldown resets, empty dataset guards, CSS var conversion
+
+By following these patterns demonstrated in `ElemMultiSpline`, an AI can confidently scaffold production-ready Insight widgets with rich configuration palettes, responsive data handling, and polished user experiences.
+
+

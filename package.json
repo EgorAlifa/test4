@@ -1,82 +1,96 @@
 {
-  "name": "@goodt-widgets-package/vendor",
-  "version": "1.0.0",
-  "author": "",
-  "description": "",
-  "main": "./resolveEntry.js",
-  "files": [
-    "./resolveEntry.js",
-    "./src",
-    "./babel.config.js",
-    "./postcss.config.js",
-    "./tailwind.config.js",
-    "./vue.config.js",
-    "./vue.config.webpack.js"
-  ],
-  "scripts": {
-    "start": "npm run serve:webpack",
-    "create": "npx goodt-scaffold",
-    "serve": "vite --force",
-    "serve:webpack": "vue-cli-service serve",
-    "preview": "vite preview",
-    "build": "vue-cli-service build",
-    "prebuild": "npm run report:deps",
-    "update:platform-deps": "npx goodt-update-platform-deps",
-    "report:deps": "npx goodt-create-widgets-deps-report",
-    "rebirth": "node ./scripts/rebirth.js"
-  },
-  "devDependencies": {
-    "@goodt/build-deps": "^2.0.0",
-    "@goodt/common-deps": "^2.0.0",
-    "@goodt/dev-deps": "^2.0.0"
-  },
-  "peerDependencies": {
-    "@goodt/common-deps": "*",
-    "goodt-wcore": "1.14.x",
-    "vue": "^2.7.14"
-  },
-  "sharedDependencies": [
-    "goodt-wcore",
-    "vue"
-  ],
-  "externalDependencies": [],
-  "viteOptimizeExcludeDependencies": [
-    "@goodt-widgets",
-    "goodteditor-ui"
-  ],
-  "vuePlugins": {
-    "resolveFrom": "./node_modules/@goodt/build-deps"
-  },
-  "vendorOptions": {
-    "platformUrl": "https://insight-release-test.goodt.me/editor/",
-    "widgetsDir": "./src"
-  },
-  "gitHooks": {
-    "pre-commit": "lint-staged",
-    "pre-push1": "lint-prepush"
-  },
-  "lint-staged": {
-    "*.vue": [
-      "eslint"
+    "name": "@goodt-widgets-package/vendor",
+    "version": "1.0.0",
+    "author": "",
+    "description": "",
+    "main": "./resolveEntry.js",
+    "files": [
+        "./resolveEntry.js",
+        "./src",
+        "./babel.config.js",
+        "./postcss.config.js",
+        "./tailwind.config.js",
+        "./vue.config.js",
+        "./vue.config.webpack.js"
     ],
-    "*.js": [
-      "eslint"
-    ]
-  },
-  "lint-prepush": {
-    "base": "master",
-    "tasks": {
-      "*.vue": [
-        "prettier --write"
-      ],
-      "*.js": [
-        "prettier --write"
-      ]
+    "scripts": {
+        "start": "npm run serve:webpack",
+        "create": "npx goodt-scaffold",
+        "serve": "vite --force",
+        "serve:webpack": "vue-cli-service serve",
+        "preview": "vite preview",
+        "build": "vue-cli-service build",
+        "prebuild": "npm run report:deps",
+        "update:platform-deps": "npx goodt-update-platform-deps",
+        "report:deps": "npx goodt-create-widgets-deps-report",
+        "rebirth": "node ./scripts/rebirth.js"
+    },
+    "devDependencies": {
+        "@goodt-widgets-insight/utils": "file:./src/common/utils",
+        "@goodt/build-deps": "2.0.12",
+        "@goodt/common-deps": "^2.0.0",
+        "@goodt/dev-deps": "^2.0.0",
+        "@goodt/sandbox": "1.14.0",
+        "@goodt/webpack": "1.7.3",
+        "echarts": "^4.9.0",
+        "vue-template-compiler": "2.7.16"
+    },
+    "peerDependencies": {
+        "@goodt/common-deps": "*",
+        "goodt-wcore": "1.14.x",
+        "vue": "^2.7.14"
+    },
+    "sharedDependencies": [
+        "goodt-wcore",
+        "vue"
+    ],
+    "externalDependencies": [],
+    "viteOptimizeExcludeDependencies": [
+        "@goodt-widgets",
+        "goodteditor-ui"
+    ],
+    "vuePlugins": {
+        "resolveFrom": "./node_modules/@goodt/build-deps"
+    },
+    "vendorOptions": {
+        "platformUrl": "https://insight-release-test.goodt.me/editor/",
+        "widgetsDir": "./src"
+    },
+    "gitHooks": {
+        "pre-commit": "lint-staged",
+        "pre-push1": "lint-prepush"
+    },
+    "lint-staged": {
+        "*.vue": [
+            "eslint"
+        ],
+        "*.js": [
+            "eslint"
+        ]
+    },
+    "lint-prepush": {
+        "base": "master",
+        "tasks": {
+            "*.vue": [
+                "prettier --write"
+            ],
+            "*.js": [
+                "prettier --write"
+            ]
+        }
+    },
+    "license": "ISC",
+    "engines": {
+        "node": ">=18",
+        "npm": ">=9"
+    },
+    "dependencies": {
+        "@goodt/common-deps": "*",
+        "exceljs": "^4.4.0",
+        "goodt-dremio-sdk": "1.0.30",
+        "goodt-framework-css": "2.0.16",
+        "goodt-wcore": "1.14.x",
+        "goodteditor-ui": "1.0.81",
+        "vue": "^2.7.14"
     }
-  },
-  "license": "ISC",
-  "engines": {
-    "node": ">=18",
-    "npm": ">=9"
-  }
 }
