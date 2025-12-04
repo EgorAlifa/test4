@@ -273,7 +273,13 @@ export default {
             return JSON.parse(
                 [...matches].reduce((acc, [match, key]) => {
                     const storeValue = unwrapStoreValue(store.state[key]);
-                    return storeValue !== undefined ? acc.replace(match, storeValue) : acc;
+                    if (storeValue !== undefined) {
+                        // Экранируем специальные символы JSON (кавычки, слэши и т.д.)
+                        // JSON.stringify добавляет обрамляющие кавычки, поэтому убираем их
+                        const escapedValue = JSON.stringify(storeValue).slice(1, -1);
+                        return acc.replace(match, escapedValue);
+                    }
+                    return acc;
                 }, stringifyValue)
             );
         }
