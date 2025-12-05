@@ -923,9 +923,6 @@ export default {
         async loadRoutes(retryDelay = 0) {
             this.loadAttempts += 1;
 
-            // ВЕРСИЯ ВИДЖЕТА ДЛЯ ОТЛАДКИ
-            console.log('[ElemRoutesNavigator] 🚀 Version: 2025-11-28-v28-HierarchyOrder | Attempt:', this.loadAttempts);
-
             // Сначала проверяем глобальные объекты
             const globalSources = [
                 { name: 'window.__APP_CONFIG__', value: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null },
