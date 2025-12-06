@@ -292,6 +292,8 @@ export const descriptor = () => ({
 });
 
 export const meta = {
+    name: 'Навигация',
+    icon: 'mdi-sitemap',
     descriptor,
     panels
 };
