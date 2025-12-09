@@ -680,20 +680,12 @@ export default {
             console.log('[RoutesNavigator] window.parent:', typeof window?.parent);
             console.log('[RoutesNavigator] window === window.parent:', window === window.parent);
 
-            if (typeof window === 'undefined' || !window.parent) {
-                console.log('[RoutesNavigator] ❌ window или window.parent недоступны');
+            if (typeof window === 'undefined') {
+                console.log('[RoutesNavigator] ❌ window недоступен');
                 return;
             }
 
-            // Если это не режим редактора (нет iframe), не настраиваем watcher
-            if (window === window.parent) {
-                console.log('[RoutesNavigator] ℹ️ Не в iframe, пропускаем настройку store watcher');
-                return;
-            }
-
-            console.log('[RoutesNavigator] ✅ В iframe, продолжаем...');
-
-            // Пытаемся найти Vue instance и store в родительском окне
+            // Пытаемся найти Vuex store везде - и в parent, и в текущем окне
             const trySetupStoreWatcher = () => {
                 console.log('[RoutesNavigator] 🔍 trySetupStoreWatcher started');
                 try {
@@ -701,44 +693,89 @@ export default {
                     let storeSource = null;
 
                     // Пытаемся найти store разными способами
-                    // 1. Через глобальные переменные
-                    if (window.parent.$nuxt?.$store) {
-                        store = window.parent.$nuxt.$store;
-                        storeSource = 'window.parent.$nuxt.$store';
-                    } else if (window.parent.__NUXT__?.$store) {
-                        store = window.parent.__NUXT__.$store;
-                        storeSource = 'window.parent.__NUXT__.$store';
-                    } else if (window.parent.__VUE__?.$store) {
-                        store = window.parent.__VUE__.$store;
-                        storeSource = 'window.parent.__VUE__.$store';
+
+                    // 1. Проверяем компонент (this.$store)
+                    if (this.$store) {
+                        store = this.$store;
+                        storeSource = 'this.$store';
+                        console.log('[RoutesNavigator] 🎯 Нашли store в this.$store');
                     }
 
-                    // 2. Ищем через корневой элемент приложения
-                    if (!store) {
-                        const appEl = window.parent.document.getElementById('app') ||
-                                      window.parent.document.querySelector('[data-app]') ||
-                                      window.parent.document.querySelector('#__nuxt');
+                    // 2. Проверяем корневой компонент (this.$root.$store)
+                    if (!store && this.$root?.$store) {
+                        store = this.$root.$store;
+                        storeSource = 'this.$root.$store';
+                        console.log('[RoutesNavigator] 🎯 Нашли store в this.$root.$store');
+                    }
 
-                        if (appEl && appEl.__vue__) {
-                            store = appEl.__vue__.$store;
-                            storeSource = 'appEl.__vue__.$store';
+                    // 3. Проверяем текущее окно
+                    if (!store) {
+                        if (window.$nuxt?.$store) {
+                            store = window.$nuxt.$store;
+                            storeSource = 'window.$nuxt.$store';
+                            console.log('[RoutesNavigator] 🎯 Нашли store в window.$nuxt.$store');
+                        } else if (window.__NUXT__?.$store) {
+                            store = window.__NUXT__.$store;
+                            storeSource = 'window.__NUXT__.$store';
+                            console.log('[RoutesNavigator] 🎯 Нашли store в window.__NUXT__.$store');
+                        } else if (window.__VUE__?.$store) {
+                            store = window.__VUE__.$store;
+                            storeSource = 'window.__VUE__.$store';
+                            console.log('[RoutesNavigator] 🎯 Нашли store в window.__VUE__.$store');
                         }
                     }
 
-                    // 3. Ищем через любой Vue компонент в DOM
-                    if (!store) {
-                        const allElements = window.parent.document.querySelectorAll('*');
-                        for (const el of allElements) {
-                            if (el.__vue__ && el.__vue__.$store) {
-                                store = el.__vue__.$store;
-                                storeSource = 'DOM element.__vue__.$store';
-                                break;
+                    // 4. Проверяем parent window (если в iframe)
+                    if (!store && window.parent && window !== window.parent) {
+                        console.log('[RoutesNavigator] Виджет в iframe, проверяем parent window...');
+
+                        if (window.parent.$nuxt?.$store) {
+                            store = window.parent.$nuxt.$store;
+                            storeSource = 'window.parent.$nuxt.$store';
+                            console.log('[RoutesNavigator] 🎯 Нашли store в window.parent.$nuxt.$store');
+                        } else if (window.parent.__NUXT__?.$store) {
+                            store = window.parent.__NUXT__.$store;
+                            storeSource = 'window.parent.__NUXT__.$store';
+                            console.log('[RoutesNavigator] 🎯 Нашли store в window.parent.__NUXT__.$store');
+                        } else if (window.parent.__VUE__?.$store) {
+                            store = window.parent.__VUE__.$store;
+                            storeSource = 'window.parent.__VUE__.$store';
+                            console.log('[RoutesNavigator] 🎯 Нашли store в window.parent.__VUE__.$store');
+                        }
+
+                        // 5. Ищем через корневой элемент приложения в parent
+                        if (!store) {
+                            try {
+                                const appEl = window.parent.document.getElementById('app') ||
+                                              window.parent.document.querySelector('[data-app]') ||
+                                              window.parent.document.querySelector('#__nuxt');
+
+                                if (appEl && appEl.__vue__) {
+                                    store = appEl.__vue__.$store;
+                                    storeSource = 'window.parent appEl.__vue__.$store';
+                                    console.log('[RoutesNavigator] 🎯 Нашли store через parent appEl');
+                                }
+                            } catch (err) {
+                                console.log('[RoutesNavigator] Не удалось получить доступ к parent.document:', err.message);
                             }
                         }
                     }
 
+                    // 6. Ищем через DOM элементы текущего окна
                     if (!store) {
-                        console.log('[RoutesNavigator] Store не найден');
+                        const appEl = document.getElementById('app') ||
+                                      document.querySelector('[data-app]') ||
+                                      document.querySelector('#__nuxt');
+
+                        if (appEl && appEl.__vue__) {
+                            store = appEl.__vue__.$store;
+                            storeSource = 'appEl.__vue__.$store';
+                            console.log('[RoutesNavigator] 🎯 Нашли store через appEl в текущем окне');
+                        }
+                    }
+
+                    if (!store) {
+                        console.log('[RoutesNavigator] ❌ Store не найден нигде');
                         return false;
                     }
 
