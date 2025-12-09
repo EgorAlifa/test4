@@ -338,10 +338,8 @@ export default {
 
         canReorder() {
             // Перетаскивание доступно только в редакторе (не в плеере)
-            // Визуальные точки (⋮⋮) показываются только в панели эксперта
-            return !this.isPlayerMode &&
-                   this.props.orientation === 'vertical' &&
-                   this.props.enableHierarchy;
+            // Визуальные точки (⋮⋮) удалены из основного виджета и показываются только в панели эксперта
+            return !this.isPlayerMode;
         },
 
         containerStyle() {
