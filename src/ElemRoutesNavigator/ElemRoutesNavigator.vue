@@ -273,7 +273,9 @@ export default {
         closeMenuTimer: null,
         expandedRoutes: new Set(), // Для отслеживания развернутых разделов
         hierarchyUpdateKey: 0, // Ключ для принудительного обновления
-        currentPage: 1 // Текущая страница пагинации
+        currentPage: 1, // Текущая страница пагинации
+        mutationObserver: null, // Для отслеживания изменений в редакторе
+        routesReloadDebounce: null // Для дебаунса перезагрузки routes
     }),
 
     computed: {
@@ -579,9 +581,32 @@ export default {
             this.initializeExpandedState();
         }
 
+        // Настраиваем MutationObserver для отслеживания изменений в редакторе
+        this.setupRoutesObserver();
+
         // Небольшая задержка перед показом чтобы не мелькали моки
         await new Promise(resolve => setTimeout(resolve, 100)); // eslint-disable-line no-magic-numbers
         this.isReady = true;
+    },
+
+    beforeDestroy() {
+        // Очищаем MutationObserver
+        if (this.mutationObserver) {
+            this.mutationObserver.disconnect();
+            this.mutationObserver = null;
+        }
+
+        // Очищаем таймер дебаунса
+        if (this.routesReloadDebounce) {
+            clearTimeout(this.routesReloadDebounce);
+            this.routesReloadDebounce = null;
+        }
+
+        // Очищаем таймер закрытия меню
+        if (this.closeMenuTimer) {
+            clearTimeout(this.closeMenuTimer);
+            this.closeMenuTimer = null;
+        }
     },
 
     watch: {
@@ -642,6 +667,145 @@ export default {
     },
 
     methods: {
+        /**
+         * Настраивает MutationObserver для отслеживания изменений в панели редактора routes
+         * Панель появляется только когда пользователь открывает редактор маршрутов
+         */
+        setupRoutesObserver() {
+            if (typeof window === 'undefined' || !window.parent || !window.parent.document) {
+                return;
+            }
+
+            // Если это не режим редактора (нет iframe), не настраиваем observer
+            if (window === window.parent) {
+                return;
+            }
+
+            const parentDoc = window.parent.document;
+
+            // Создаем observer который следит за всем document.body
+            // чтобы поймать момент появления панели редактора routes
+            this.mutationObserver = new MutationObserver((mutations) => {
+                let hasRouteChanges = false;
+
+                mutations.forEach(mutation => {
+                    // Проверяем добавленные узлы
+                    Array.from(mutation.addedNodes).forEach(node => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            // Проверяем, это ли элемент списка routes или его родитель
+                            if (node.classList?.contains('ui-list-item') ||
+                                node.querySelector?.('.ui-list-item')) {
+                                hasRouteChanges = true;
+                            }
+                        }
+                    });
+
+                    // Проверяем удаленные узлы
+                    Array.from(mutation.removedNodes).forEach(node => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            if (node.classList?.contains('ui-list-item') ||
+                                node.querySelector?.('.ui-list-item')) {
+                                hasRouteChanges = true;
+                            }
+                        }
+                    });
+
+                    // Также проверяем изменения атрибутов и текста внутри ui-list-item
+                    if (mutation.type === 'characterData' || mutation.type === 'attributes') {
+                        let parent = mutation.target;
+                        while (parent && parent !== parentDoc) {
+                            if (parent.classList?.contains('ui-list-item')) {
+                                hasRouteChanges = true;
+                                break;
+                            }
+                            parent = parent.parentElement;
+                        }
+                    }
+                });
+
+                if (hasRouteChanges) {
+                    // Используем debounce для избежания множественных перезагрузок
+                    if (this.routesReloadDebounce) {
+                        clearTimeout(this.routesReloadDebounce);
+                    }
+
+                    this.routesReloadDebounce = setTimeout(() => {
+                        this.reloadRoutesFromEditor();
+                    }, 300); // eslint-disable-line no-magic-numbers
+                }
+            });
+
+            // Наблюдаем за всем body чтобы поймать появление панели редактора
+            this.mutationObserver.observe(parentDoc.body, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                characterData: true
+            });
+        },
+
+        /**
+         * Перезагружает список routes из панели редактора
+         * Парсит .ui-list-item элементы из открытой панели редактора маршрутов
+         */
+        async reloadRoutesFromEditor() {
+            if (typeof window === 'undefined' || !window.parent || !window.parent.document) {
+                return;
+            }
+
+            const parentDoc = window.parent.document;
+
+            // Ищем все элементы списка routes в панели редактора
+            const routeItems = parentDoc.querySelectorAll('.ui-list-item');
+
+            if (routeItems.length === 0) {
+                // Если элементов нет, панель закрыта - ничего не делаем
+                // Данные уже загружены из app.json при mounted()
+                return;
+            }
+
+            const newRoutes = [];
+
+            routeItems.forEach(item => {
+                // Ищем title внутри элемента (первый div с атрибутом title)
+                const titleEl = item.querySelector('.text-truncate > div[title]');
+                const title = titleEl ? titleEl.getAttribute('title') : null;
+
+                // Ищем slug (второй div с классом color-grey text-xsmall)
+                const slugEl = item.querySelector('.text-truncate > .color-grey.text-xsmall');
+                const slug = slugEl ? slugEl.textContent.trim() : null;
+
+                // Проверяем что есть и title и slug
+                if (title && slug) {
+                    // Генерируем временный ID на основе slug
+                    const routeId = slug.replace(/\//g, '_') || 'root';
+
+                    newRoutes.push({
+                        id: routeId,
+                        pageId: routeId, // В режиме редактора используем slug как ID
+                        title,
+                        slug,
+                        name: title,
+                        enabled: true
+                    });
+                }
+            });
+
+            // Обновляем routes если список изменился
+            const oldRoutesCount = this.routes.length;
+            if (newRoutes.length !== oldRoutesCount || newRoutes.length === 0) {
+                this.routes = newRoutes;
+
+                // Если количество изменилось и включена иерархия, пересчитываем expanded state
+                if (this.props.enableHierarchy) {
+                    this.initializeExpandedState();
+                }
+
+                // Форсируем обновление
+                this.hierarchyUpdateKey++;
+            }
+        },
+
         /**
          * Переход на указанную страницу пагинации
          */
