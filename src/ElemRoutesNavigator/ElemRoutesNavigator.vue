@@ -788,11 +788,11 @@ export default {
                         console.log('[RoutesNavigator] 🔔 Vuex mutation:', mutation.type, mutation.payload);
 
                         // Ищем мутации связанные с routes
-                        if (mutation.type.includes('ROUTE') ||
-                            mutation.type.includes('SET_ROUTES') ||
-                            mutation.type.includes('CREATE_ROUTE') ||
-                            mutation.type.includes('DELETE_ROUTE') ||
-                            mutation.type.includes('UPDATE_ROUTE')) {
+                        // Реальные мутации: deleteRouteItem, createRouteItem, createPage
+                        const mutationType = mutation.type.toLowerCase();
+                        if (mutationType.includes('route') ||
+                            mutationType.includes('page') ||
+                            mutationType.includes('setroutes')) {
 
                             console.log('[RoutesNavigator] ⚡ Routes mutation detected! Будет обновление через 300ms');
 
@@ -851,10 +851,12 @@ export default {
             try {
                 // Пытаемся получить routes из разных возможных путей в state
                 const possiblePaths = [
-                    { name: 'state.APP.app.data.routes', fn: () => state?.APP?.app?.data?.routes },
                     { name: 'state.app.data.routes', fn: () => state?.app?.data?.routes },
-                    { name: 'state.application.data.routes', fn: () => state?.application?.data?.routes },
-                    { name: 'state.routes', fn: () => state?.routes }
+                    { name: 'state.app.routes', fn: () => state?.app?.routes },
+                    { name: 'state.editor.data.routes', fn: () => state?.editor?.data?.routes },
+                    { name: 'state.editor.routes', fn: () => state?.editor?.routes },
+                    { name: 'state.routes', fn: () => state?.routes },
+                    { name: 'state.application.data.routes', fn: () => state?.application?.data?.routes }
                 ];
 
                 let newRoutes = null;
@@ -867,6 +869,7 @@ export default {
                         if (routes && Array.isArray(routes)) {
                             newRoutes = routes.filter(route => route.enabled !== false);
                             foundPath = path.name;
+                            console.log(`[RoutesNavigator] ✅ Нашли routes по пути ${path.name}!`);
                             break;
                         }
                     } catch (error) {
