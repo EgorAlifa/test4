@@ -668,8 +668,8 @@ export default {
 
     methods: {
         /**
-         * Настраивает MutationObserver для отслеживания изменений страниц в редакторе
-         * Следит за добавлением/удалением элементов .page-item в родительском документе
+         * Настраивает MutationObserver для отслеживания изменений в панели редактора routes
+         * Панель появляется только когда пользователь открывает редактор маршрутов
          */
         setupRoutesObserver() {
             if (typeof window === 'undefined' || !window.parent || !window.parent.document) {
@@ -683,51 +683,132 @@ export default {
 
             const parentDoc = window.parent.document;
 
-            // Ищем контейнер со списком страниц
-            const pagesContainer = parentDoc.querySelector('.pages-list, .sidebar-pages, [class*="page"]');
-
-            if (!pagesContainer) {
-                return;
-            }
-
-            // Создаем observer для отслеживания изменений
+            // Создаем observer который следит за всем document.body
+            // чтобы поймать момент появления панели редактора routes
             this.mutationObserver = new MutationObserver((mutations) => {
-                // Проверяем, есть ли изменения связанные со страницами
-                const hasPageChanges = mutations.some(mutation => {
+                let hasRouteChanges = false;
+
+                mutations.forEach(mutation => {
                     // Проверяем добавленные узлы
-                    const hasAddedPages = Array.from(mutation.addedNodes).some(node =>
-                        node.classList && (node.classList.contains('page-item') || node.querySelector?.('.page-item'))
-                    );
+                    Array.from(mutation.addedNodes).forEach(node => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            // Проверяем, это ли элемент списка routes или его родитель
+                            if (node.classList?.contains('ui-list-item') ||
+                                node.querySelector?.('.ui-list-item')) {
+                                hasRouteChanges = true;
+                            }
+                        }
+                    });
 
                     // Проверяем удаленные узлы
-                    const hasRemovedPages = Array.from(mutation.removedNodes).some(node =>
-                        node.classList && (node.classList.contains('page-item') || node.querySelector?.('.page-item'))
-                    );
+                    Array.from(mutation.removedNodes).forEach(node => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            if (node.classList?.contains('ui-list-item') ||
+                                node.querySelector?.('.ui-list-item')) {
+                                hasRouteChanges = true;
+                            }
+                        }
+                    });
 
-                    return hasAddedPages || hasRemovedPages;
+                    // Также проверяем изменения атрибутов и текста внутри ui-list-item
+                    if (mutation.type === 'characterData' || mutation.type === 'attributes') {
+                        let parent = mutation.target;
+                        while (parent && parent !== parentDoc) {
+                            if (parent.classList?.contains('ui-list-item')) {
+                                hasRouteChanges = true;
+                                break;
+                            }
+                            parent = parent.parentElement;
+                        }
+                    }
                 });
 
-                if (hasPageChanges) {
+                if (hasRouteChanges) {
                     // Используем debounce для избежания множественных перезагрузок
                     if (this.routesReloadDebounce) {
                         clearTimeout(this.routesReloadDebounce);
                     }
 
                     this.routesReloadDebounce = setTimeout(() => {
-                        this.reloadRoutes();
+                        this.reloadRoutesFromEditor();
                     }, 300); // eslint-disable-line no-magic-numbers
                 }
             });
 
-            // Настраиваем observer
-            this.mutationObserver.observe(pagesContainer, {
+            // Наблюдаем за всем body чтобы поймать появление панели редактора
+            this.mutationObserver.observe(parentDoc.body, {
                 childList: true,
-                subtree: true
+                subtree: true,
+                attributes: true,
+                characterData: true
             });
         },
 
         /**
-         * Перезагружает список routes (используется при изменениях в редакторе)
+         * Перезагружает список routes из панели редактора
+         * Парсит .ui-list-item элементы из открытой панели редактора маршрутов
+         */
+        async reloadRoutesFromEditor() {
+            if (typeof window === 'undefined' || !window.parent || !window.parent.document) {
+                return;
+            }
+
+            const parentDoc = window.parent.document;
+
+            // Ищем все элементы списка routes в панели редактора
+            const routeItems = parentDoc.querySelectorAll('.ui-list-item');
+
+            if (routeItems.length === 0) {
+                // Если элементов нет, возможно панель закрыта - пробуем загрузить из DOM
+                await this.reloadRoutes();
+                return;
+            }
+
+            const newRoutes = [];
+
+            routeItems.forEach(item => {
+                // Ищем title внутри элемента (первый div с атрибутом title)
+                const titleEl = item.querySelector('.text-truncate > div[title]');
+                const title = titleEl ? titleEl.getAttribute('title') : null;
+
+                // Ищем slug (второй div с классом color-grey text-xsmall)
+                const slugEl = item.querySelector('.text-truncate > .color-grey.text-xsmall');
+                const slug = slugEl ? slugEl.textContent.trim() : null;
+
+                // Проверяем что есть и title и slug
+                if (title && slug) {
+                    // Генерируем временный ID на основе slug
+                    const routeId = slug.replace(/\//g, '_') || 'root';
+
+                    newRoutes.push({
+                        id: routeId,
+                        pageId: routeId, // В режиме редактора используем slug как ID
+                        title,
+                        slug,
+                        name: title,
+                        enabled: true
+                    });
+                }
+            });
+
+            // Обновляем routes если список изменился
+            const oldRoutesCount = this.routes.length;
+            if (newRoutes.length !== oldRoutesCount || newRoutes.length === 0) {
+                this.routes = newRoutes;
+
+                // Если количество изменилось и включена иерархия, пересчитываем expanded state
+                if (this.props.enableHierarchy) {
+                    this.initializeExpandedState();
+                }
+
+                // Форсируем обновление
+                this.hierarchyUpdateKey++;
+            }
+        },
+
+        /**
+         * Перезагружает список routes из DOM (fallback метод)
+         * Используется когда панель редактора не открыта
          */
         async reloadRoutes() {
             const oldRoutesCount = this.routes.length;
