@@ -91,8 +91,8 @@ export const descriptor = () => ({
         activeColor: {
             type: String,
             default: '#3b82f6',
-            label: 'Цвет активного маршрута',
-            hint: 'Цвет подсветки текущей открытой страницы в навигации'
+            label: 'Цвет текущей страницы',
+            hint: 'Подсветка открытой страницы в навигации'
         },
         enableHoverColor: {
             type: Boolean,
