@@ -17,7 +17,7 @@
                 <ui-input-cp
                     v-if="props.paginationType === 'pages'"
                     prop="paginationActiveColor">
-                    Цвет активной страницы
+                    Цвет текущего номера
                 </ui-input-cp>
             </template>
 
@@ -45,7 +45,7 @@
 
             <template v-if="props.highlightActivePage">
                 <ui-input-cp prop="activeColor">
-                    Цвет активной кнопки
+                    Цвет текущей страницы
                     <template v-if="overriddenValues.activeColor" #hint>
                         <span :style="{ color: '#f59e0b', fontSize: '0.75rem' }">
                             ⚠️ Переопределено: {{ overriddenValues.activeColor }}
