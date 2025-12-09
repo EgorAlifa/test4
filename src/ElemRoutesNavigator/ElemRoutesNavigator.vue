@@ -759,8 +759,8 @@ export default {
             const routeItems = parentDoc.querySelectorAll('.ui-list-item');
 
             if (routeItems.length === 0) {
-                // Если элементов нет, возможно панель закрыта - пробуем загрузить из DOM
-                await this.reloadRoutes();
+                // Если элементов нет, панель закрыта - ничего не делаем
+                // Данные уже загружены из app.json при mounted()
                 return;
             }
 
@@ -793,30 +793,6 @@ export default {
 
             // Обновляем routes если список изменился
             const oldRoutesCount = this.routes.length;
-            if (newRoutes.length !== oldRoutesCount || newRoutes.length === 0) {
-                this.routes = newRoutes;
-
-                // Если количество изменилось и включена иерархия, пересчитываем expanded state
-                if (this.props.enableHierarchy) {
-                    this.initializeExpandedState();
-                }
-
-                // Форсируем обновление
-                this.hierarchyUpdateKey++;
-            }
-        },
-
-        /**
-         * Перезагружает список routes из DOM (fallback метод)
-         * Используется когда панель редактора не открыта
-         */
-        async reloadRoutes() {
-            const oldRoutesCount = this.routes.length;
-
-            // Перезагружаем routes из DOM
-            const newRoutes = this.parseRoutesFromDOM();
-
-            // Обновляем routes даже если список пустой (все страницы удалены)
             if (newRoutes.length !== oldRoutesCount || newRoutes.length === 0) {
                 this.routes = newRoutes;
 
