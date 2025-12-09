@@ -185,7 +185,6 @@
                     @dragend="onDragEnd"
                     type="button"
                 >
-                    <span v-if="canReorder" class="drag-handle" @mousedown.stop>⋮⋮</span>
                     <span
                         v-if="props.enableHierarchy && route.hasChildren"
                         class="expand-icon"
@@ -338,7 +337,8 @@ export default {
         },
 
         canReorder() {
-            // Перетаскивание доступно только в вертикальном режиме с включенной иерархией
+            // Перетаскивание доступно только в редакторе (не в плеере)
+            // Визуальные точки (⋮⋮) показываются только в панели эксперта
             return !this.isPlayerMode &&
                    this.props.orientation === 'vertical' &&
                    this.props.enableHierarchy;
