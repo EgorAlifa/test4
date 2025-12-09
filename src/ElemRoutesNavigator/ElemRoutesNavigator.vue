@@ -683,45 +683,44 @@ export default {
 
             const parentDoc = window.parent.document;
 
-            // Создаем observer который следит за всем document.body
-            // чтобы поймать момент появления панели редактора routes
+            // Создаем observer который следит за document.body
+            // чтобы поймать момент появления панели редактора routes и изменения в ней
             this.mutationObserver = new MutationObserver((mutations) => {
                 let hasRouteChanges = false;
 
-                mutations.forEach(mutation => {
+                for (const mutation of mutations) {
+                    // Проверяем только изменения в списке детей
+                    if (mutation.type !== 'childList') {
+                        continue;
+                    }
+
                     // Проверяем добавленные узлы
-                    Array.from(mutation.addedNodes).forEach(node => {
+                    for (const node of mutation.addedNodes) {
                         if (node.nodeType === Node.ELEMENT_NODE) {
                             // Проверяем, это ли элемент списка routes или его родитель
                             if (node.classList?.contains('ui-list-item') ||
                                 node.querySelector?.('.ui-list-item')) {
                                 hasRouteChanges = true;
+                                break;
                             }
                         }
-                    });
+                    }
+
+                    if (hasRouteChanges) break;
 
                     // Проверяем удаленные узлы
-                    Array.from(mutation.removedNodes).forEach(node => {
+                    for (const node of mutation.removedNodes) {
                         if (node.nodeType === Node.ELEMENT_NODE) {
                             if (node.classList?.contains('ui-list-item') ||
                                 node.querySelector?.('.ui-list-item')) {
                                 hasRouteChanges = true;
-                            }
-                        }
-                    });
-
-                    // Также проверяем изменения атрибутов и текста внутри ui-list-item
-                    if (mutation.type === 'characterData' || mutation.type === 'attributes') {
-                        let parent = mutation.target;
-                        while (parent && parent !== parentDoc) {
-                            if (parent.classList?.contains('ui-list-item')) {
-                                hasRouteChanges = true;
                                 break;
                             }
-                            parent = parent.parentElement;
                         }
                     }
-                });
+
+                    if (hasRouteChanges) break;
+                }
 
                 if (hasRouteChanges) {
                     // Используем debounce для избежания множественных перезагрузок
@@ -731,16 +730,15 @@ export default {
 
                     this.routesReloadDebounce = setTimeout(() => {
                         this.reloadRoutesFromEditor();
-                    }, 300); // eslint-disable-line no-magic-numbers
+                    }, 500); // eslint-disable-line no-magic-numbers
                 }
             });
 
             // Наблюдаем за всем body чтобы поймать появление панели редактора
+            // Следим только за childList, без attributes и characterData
             this.mutationObserver.observe(parentDoc.body, {
                 childList: true,
-                subtree: true,
-                attributes: true,
-                characterData: true
+                subtree: true
             });
         },
 
@@ -755,12 +753,20 @@ export default {
 
             const parentDoc = window.parent.document;
 
-            // Ищем все элементы списка routes в панели редактора
-            const routeItems = parentDoc.querySelectorAll('.ui-list-item');
+            // Ищем контейнер панели routes (с классом ui-container__content has-scroll)
+            // Это более специфичный селектор для панели редактора routes
+            const routesContainer = parentDoc.querySelector('.ui-container__content.has-scroll');
+
+            if (!routesContainer) {
+                // Панель не открыта или не найдена
+                return;
+            }
+
+            // Ищем все элементы списка routes внутри контейнера
+            const routeItems = routesContainer.querySelectorAll('.ui-list-item');
 
             if (routeItems.length === 0) {
-                // Если элементов нет, панель закрыта - ничего не делаем
-                // Данные уже загружены из app.json при mounted()
+                // Если элементов нет, панель пустая или закрыта
                 return;
             }
 
@@ -775,9 +781,9 @@ export default {
                 const slugEl = item.querySelector('.text-truncate > .color-grey.text-xsmall');
                 const slug = slugEl ? slugEl.textContent.trim() : null;
 
-                // Проверяем что есть и title и slug
+                // Проверяем что есть и title и slug (это валидный route)
                 if (title && slug) {
-                    // Генерируем временный ID на основе slug
+                    // Генерируем ID на основе slug
                     const routeId = slug.replace(/\//g, '_') || 'root';
 
                     newRoutes.push({
@@ -791,10 +797,14 @@ export default {
                 }
             });
 
-            // Обновляем routes если список изменился
+            // Обновляем routes только если список изменился
             const oldRoutesCount = this.routes.length;
-            if (newRoutes.length !== oldRoutesCount || newRoutes.length === 0) {
-                this.routes = newRoutes;
+            const hasChanges = newRoutes.length !== oldRoutesCount ||
+                JSON.stringify(newRoutes.map(r => r.slug)) !== JSON.stringify(this.routes.map(r => r.slug));
+
+            if (hasChanges) {
+                // Используем $set для гарантированной реактивности
+                this.$set(this, 'routes', newRoutes);
 
                 // Если количество изменилось и включена иерархия, пересчитываем expanded state
                 if (this.props.enableHierarchy) {
@@ -803,6 +813,9 @@ export default {
 
                 // Форсируем обновление
                 this.hierarchyUpdateKey++;
+
+                // Принудительно обновляем компонент
+                this.$forceUpdate();
             }
         },
 
