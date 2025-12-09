@@ -573,6 +573,7 @@ export default {
     },
 
     async mounted() {
+        console.log('[RoutesNavigator] 🚀 Widget mounted!');
         await this.loadRoutes();
         this.detectCurrentSlug();
 
@@ -582,11 +583,13 @@ export default {
         }
 
         // Настраиваем MutationObserver для отслеживания изменений в редакторе
+        console.log('[RoutesNavigator] 📡 Вызываем setupRoutesObserver()');
         this.setupRoutesObserver();
 
         // Небольшая задержка перед показом чтобы не мелькали моки
         await new Promise(resolve => setTimeout(resolve, 100)); // eslint-disable-line no-magic-numbers
         this.isReady = true;
+        console.log('[RoutesNavigator] ✅ Widget ready, routes:', this.routes.length);
     },
 
     beforeDestroy() {
@@ -672,17 +675,27 @@ export default {
          * Редактор использует Vuex store который обновляется ДО сохранения в app.json
          */
         setupRoutesObserver() {
+            console.log('[RoutesNavigator] 🔧 setupRoutesObserver started');
+            console.log('[RoutesNavigator] window:', typeof window);
+            console.log('[RoutesNavigator] window.parent:', typeof window?.parent);
+            console.log('[RoutesNavigator] window === window.parent:', window === window.parent);
+
             if (typeof window === 'undefined' || !window.parent) {
+                console.log('[RoutesNavigator] ❌ window или window.parent недоступны');
                 return;
             }
 
             // Если это не режим редактора (нет iframe), не настраиваем watcher
             if (window === window.parent) {
+                console.log('[RoutesNavigator] ℹ️ Не в iframe, пропускаем настройку store watcher');
                 return;
             }
 
+            console.log('[RoutesNavigator] ✅ В iframe, продолжаем...');
+
             // Пытаемся найти Vue instance и store в родительском окне
             const trySetupStoreWatcher = () => {
+                console.log('[RoutesNavigator] 🔍 trySetupStoreWatcher started');
                 try {
                     let store = null;
                     let storeSource = null;
