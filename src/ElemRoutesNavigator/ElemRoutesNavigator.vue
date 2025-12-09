@@ -684,9 +684,10 @@ export default {
             const parentDoc = window.parent.document;
 
             // Создаем observer который следит за document.body
-            // чтобы поймать момент появления панели редактора routes и изменения в ней
+            // чтобы поймать момент появления панели редактора routes (.ui-container__content.has-scroll)
+            // и изменения внутри неё
             this.mutationObserver = new MutationObserver((mutations) => {
-                let hasRouteChanges = false;
+                let hasRoutesPanelChange = false;
 
                 for (const mutation of mutations) {
                     // Проверяем только изменения в списке детей
@@ -696,33 +697,55 @@ export default {
 
                     // Проверяем добавленные узлы
                     for (const node of mutation.addedNodes) {
-                        if (node.nodeType === Node.ELEMENT_NODE) {
-                            // Проверяем, это ли элемент списка routes или его родитель
-                            if (node.classList?.contains('ui-list-item') ||
-                                node.querySelector?.('.ui-list-item')) {
-                                hasRouteChanges = true;
-                                break;
+                        if (node.nodeType !== Node.ELEMENT_NODE) continue;
+
+                        // 1. Это сам контейнер routes панели?
+                        if (node.classList?.contains('ui-container__content') &&
+                            node.classList?.contains('has-scroll')) {
+                            hasRoutesPanelChange = true;
+                            break;
+                        }
+
+                        // 2. Или это родитель который содержит контейнер?
+                        if (node.querySelector?.('.ui-container__content.has-scroll')) {
+                            hasRoutesPanelChange = true;
+                            break;
+                        }
+
+                        // 3. Или это .ui-list-item? Проверяем что он внутри routes контейнера
+                        if (node.classList?.contains('ui-list-item')) {
+                            let parent = node.parentElement;
+                            while (parent && parent !== parentDoc.body) {
+                                if (parent.classList?.contains('ui-container__content') &&
+                                    parent.classList?.contains('has-scroll')) {
+                                    hasRoutesPanelChange = true;
+                                    break;
+                                }
+                                parent = parent.parentElement;
                             }
+                            if (hasRoutesPanelChange) break;
                         }
                     }
 
-                    if (hasRouteChanges) break;
+                    if (hasRoutesPanelChange) break;
 
-                    // Проверяем удаленные узлы
+                    // Проверяем удаленные узлы аналогично
                     for (const node of mutation.removedNodes) {
-                        if (node.nodeType === Node.ELEMENT_NODE) {
-                            if (node.classList?.contains('ui-list-item') ||
-                                node.querySelector?.('.ui-list-item')) {
-                                hasRouteChanges = true;
-                                break;
-                            }
+                        if (node.nodeType !== Node.ELEMENT_NODE) continue;
+
+                        // Удален контейнер или .ui-list-item внутри него
+                        if ((node.classList?.contains('ui-container__content') && node.classList?.contains('has-scroll')) ||
+                            node.querySelector?.('.ui-container__content.has-scroll') ||
+                            node.classList?.contains('ui-list-item')) {
+                            hasRoutesPanelChange = true;
+                            break;
                         }
                     }
 
-                    if (hasRouteChanges) break;
+                    if (hasRoutesPanelChange) break;
                 }
 
-                if (hasRouteChanges) {
+                if (hasRoutesPanelChange) {
                     // Используем debounce для избежания множественных перезагрузок
                     if (this.routesReloadDebounce) {
                         clearTimeout(this.routesReloadDebounce);
@@ -730,7 +753,7 @@ export default {
 
                     this.routesReloadDebounce = setTimeout(() => {
                         this.reloadRoutesFromEditor();
-                    }, 500); // eslint-disable-line no-magic-numbers
+                    }, 300); // eslint-disable-line no-magic-numbers
                 }
             });
 
