@@ -91,7 +91,8 @@ export const descriptor = () => ({
         activeColor: {
             type: String,
             default: '#3b82f6',
-            label: 'Цвет активной кнопки'
+            label: 'Цвет активного маршрута',
+            hint: 'Цвет подсветки текущей открытой страницы в навигации'
         },
         enableHoverColor: {
             type: Boolean,
@@ -177,8 +178,8 @@ export const descriptor = () => ({
         paginationActiveColor: {
             type: String,
             default: '#3b82f6',
-            label: 'Цвет активной страницы (пагинация)',
-            hint: 'Цвет подсветки активного номера страницы'
+            label: 'Цвет активного номера пагинации',
+            hint: 'Цвет подсветки текущего номера страницы в пагинации снизу'
         },
         showMenuBorder: {
             type: Boolean,
