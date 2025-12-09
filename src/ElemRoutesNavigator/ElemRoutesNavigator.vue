@@ -865,7 +865,7 @@ export default {
             try {
                 // Пытаемся получить routes из разных возможных путей в state
                 const possiblePaths = [
-                    { name: 'state.app.app.data.routes', fn: () => state?.app?.data?.routes },
+                    { name: 'state.app.app.data.routes', fn: () => state?.app?.app?.data?.routes },
                     { name: 'state.app.routes', fn: () => state?.app?.routes },
                     { name: 'state.editor.data.routes', fn: () => state?.editor?.data?.routes },
                     { name: 'state.editor.routes', fn: () => state?.editor?.routes },
