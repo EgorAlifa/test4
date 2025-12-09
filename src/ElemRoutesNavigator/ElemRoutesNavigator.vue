@@ -684,15 +684,39 @@ export default {
             // Пытаемся найти Vue instance и store в родительском окне
             const trySetupStoreWatcher = () => {
                 try {
-                    // Ищем корневой Vue instance в родительском окне
-                    const parentVue = window.parent.__VUE__;
+                    let store = null;
 
-                    if (!parentVue) {
-                        return false;
+                    // Пытаемся найти store разными способами
+                    // 1. Через глобальные переменные
+                    if (window.parent.$nuxt?.$store) {
+                        store = window.parent.$nuxt.$store;
+                    } else if (window.parent.__NUXT__?.$store) {
+                        store = window.parent.__NUXT__.$store;
+                    } else if (window.parent.__VUE__?.$store) {
+                        store = window.parent.__VUE__.$store;
                     }
 
-                    // Ищем Vuex store
-                    const store = parentVue.$store || parentVue.config?.globalProperties?.$store;
+                    // 2. Ищем через корневой элемент приложения
+                    if (!store) {
+                        const appEl = window.parent.document.getElementById('app') ||
+                                      window.parent.document.querySelector('[data-app]') ||
+                                      window.parent.document.querySelector('#__nuxt');
+
+                        if (appEl && appEl.__vue__) {
+                            store = appEl.__vue__.$store;
+                        }
+                    }
+
+                    // 3. Ищем через любой Vue компонент в DOM
+                    if (!store) {
+                        const allElements = window.parent.document.querySelectorAll('*');
+                        for (const el of allElements) {
+                            if (el.__vue__ && el.__vue__.$store) {
+                                store = el.__vue__.$store;
+                                break;
+                            }
+                        }
+                    }
 
                     if (!store) {
                         return false;
