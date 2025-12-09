@@ -848,6 +848,20 @@ export default {
             console.log('[RoutesNavigator] 🔄 Начинаем reloadRoutesFromStore');
             console.log('[RoutesNavigator] State keys:', Object.keys(state));
 
+            // Детальное логирование структуры state для отладки
+            if (state.app) {
+                console.log('[RoutesNavigator] state.app существует, keys:', Object.keys(state.app));
+                if (state.app.data) {
+                    console.log('[RoutesNavigator] state.app.data существует, keys:', Object.keys(state.app.data));
+                }
+            }
+            if (state.editor) {
+                console.log('[RoutesNavigator] state.editor существует, keys:', Object.keys(state.editor));
+                if (state.editor.data) {
+                    console.log('[RoutesNavigator] state.editor.data существует, keys:', Object.keys(state.editor.data));
+                }
+            }
+
             try {
                 // Пытаемся получить routes из разных возможных путей в state
                 const possiblePaths = [
