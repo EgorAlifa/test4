@@ -192,7 +192,6 @@ export default {
             for (const source of globalSources) {
                 if (source.value && source.value.routes && Array.isArray(source.value.routes)) {
                     this.routes = source.value.routes.filter(route => route.enabled !== false);
-                    console.log('[ExpertPanel] Загружено routes из', source.name, ':', this.routes.length);
                     return;
                 }
             }
@@ -217,7 +216,6 @@ export default {
                     const appConfig = await response.json();
                     if (appConfig && appConfig.routes && Array.isArray(appConfig.routes)) {
                         this.routes = appConfig.routes.filter(route => route.enabled !== false);
-                        console.log('[ExpertPanel] Загружено routes из app.json:', path, this.routes.length);
                         return;
                     }
                 } catch (error) {
@@ -229,11 +227,9 @@ export default {
             const domRoutes = this.parseRoutesFromDOM();
             if (domRoutes.length > 0) {
                 this.routes = domRoutes;
-                console.log('[ExpertPanel] Загружено routes из DOM (fallback):', this.routes.length);
                 return;
             }
 
-            console.warn('[ExpertPanel] Не удалось загрузить routes');
             this.routes = [];
         },
 
