@@ -207,7 +207,7 @@
 
             <!-- Empty State -->
             <div v-if="displayRoutes.length === 0" class="empty-state">
-                <p>Страницы не найдены</p>
+                <p>⚠️ Страницы не найдены</p>
                 <p class="empty-state-hint">
                     Создайте страницы — они автоматически появятся в виджете
                 </p>
