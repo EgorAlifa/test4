@@ -274,7 +274,7 @@ export default {
         expandedRoutes: new Set(), // Для отслеживания развернутых разделов
         hierarchyUpdateKey: 0, // Ключ для принудительного обновления
         currentPage: 1, // Текущая страница пагинации
-        mutationObserver: null, // Для отслеживания изменений в редакторе
+        storeUnsubscribe: null, // Функция отписки от Vuex store
         routesReloadDebounce: null // Для дебаунса перезагрузки routes
     }),
 
@@ -590,10 +590,10 @@ export default {
     },
 
     beforeDestroy() {
-        // Очищаем MutationObserver
-        if (this.mutationObserver) {
-            this.mutationObserver.disconnect();
-            this.mutationObserver = null;
+        // Отписываемся от Vuex store
+        if (this.storeUnsubscribe) {
+            this.storeUnsubscribe();
+            this.storeUnsubscribe = null;
         }
 
         // Очищаем таймер дебаунса
@@ -668,177 +668,139 @@ export default {
 
     methods: {
         /**
-         * Настраивает MutationObserver для отслеживания изменений в панели редактора routes
-         * Панель появляется только когда пользователь открывает редактор маршрутов
+         * Настраивает отслеживание изменений routes в Vuex store редактора
+         * Редактор использует Vuex store который обновляется ДО сохранения в app.json
          */
         setupRoutesObserver() {
-            if (typeof window === 'undefined' || !window.parent || !window.parent.document) {
+            if (typeof window === 'undefined' || !window.parent) {
                 return;
             }
 
-            // Если это не режим редактора (нет iframe), не настраиваем observer
+            // Если это не режим редактора (нет iframe), не настраиваем watcher
             if (window === window.parent) {
                 return;
             }
 
-            const parentDoc = window.parent.document;
+            // Пытаемся найти Vue instance и store в родительском окне
+            const trySetupStoreWatcher = () => {
+                try {
+                    // Ищем корневой Vue instance в родительском окне
+                    const parentVue = window.parent.__VUE__;
 
-            // Создаем observer который следит за document.body
-            // чтобы поймать момент появления панели редактора routes (.ui-container__content.has-scroll)
-            // и изменения внутри неё
-            this.mutationObserver = new MutationObserver((mutations) => {
-                let hasRoutesPanelChange = false;
-
-                for (const mutation of mutations) {
-                    // Проверяем только изменения в списке детей
-                    if (mutation.type !== 'childList') {
-                        continue;
+                    if (!parentVue) {
+                        return false;
                     }
 
-                    // Проверяем добавленные узлы
-                    for (const node of mutation.addedNodes) {
-                        if (node.nodeType !== Node.ELEMENT_NODE) continue;
+                    // Ищем Vuex store
+                    const store = parentVue.$store || parentVue.config?.globalProperties?.$store;
 
-                        // 1. Это сам контейнер routes панели?
-                        if (node.classList?.contains('ui-container__content') &&
-                            node.classList?.contains('has-scroll')) {
-                            hasRoutesPanelChange = true;
-                            break;
-                        }
+                    if (!store) {
+                        return false;
+                    }
 
-                        // 2. Или это родитель который содержит контейнер?
-                        if (node.querySelector?.('.ui-container__content.has-scroll')) {
-                            hasRoutesPanelChange = true;
-                            break;
-                        }
+                    // Подписываемся на изменения в store
+                    // store.subscribe срабатывает после каждой мутации
+                    this.storeUnsubscribe = store.subscribe((mutation, state) => {
+                        // Ищем мутации связанные с routes
+                        if (mutation.type.includes('ROUTE') ||
+                            mutation.type.includes('SET_ROUTES') ||
+                            mutation.type.includes('CREATE_ROUTE') ||
+                            mutation.type.includes('DELETE_ROUTE') ||
+                            mutation.type.includes('UPDATE_ROUTE')) {
 
-                        // 3. Или это .ui-list-item? Проверяем что он внутри routes контейнера
-                        if (node.classList?.contains('ui-list-item')) {
-                            let parent = node.parentElement;
-                            while (parent && parent !== parentDoc.body) {
-                                if (parent.classList?.contains('ui-container__content') &&
-                                    parent.classList?.contains('has-scroll')) {
-                                    hasRoutesPanelChange = true;
-                                    break;
-                                }
-                                parent = parent.parentElement;
+                            // Используем debounce для избежания множественных обновлений
+                            if (this.routesReloadDebounce) {
+                                clearTimeout(this.routesReloadDebounce);
                             }
-                            if (hasRoutesPanelChange) break;
+
+                            this.routesReloadDebounce = setTimeout(() => {
+                                this.reloadRoutesFromStore(store, state);
+                            }, 300); // eslint-disable-line no-magic-numbers
                         }
-                    }
+                    });
 
-                    if (hasRoutesPanelChange) break;
-
-                    // Проверяем удаленные узлы аналогично
-                    for (const node of mutation.removedNodes) {
-                        if (node.nodeType !== Node.ELEMENT_NODE) continue;
-
-                        // Удален контейнер или .ui-list-item внутри него
-                        if ((node.classList?.contains('ui-container__content') && node.classList?.contains('has-scroll')) ||
-                            node.querySelector?.('.ui-container__content.has-scroll') ||
-                            node.classList?.contains('ui-list-item')) {
-                            hasRoutesPanelChange = true;
-                            break;
-                        }
-                    }
-
-                    if (hasRoutesPanelChange) break;
+                    return true;
+                } catch (error) {
+                    // Игнорируем ошибки доступа к parent window
+                    return false;
                 }
+            };
 
-                if (hasRoutesPanelChange) {
-                    // Используем debounce для избежания множественных перезагрузок
-                    if (this.routesReloadDebounce) {
-                        clearTimeout(this.routesReloadDebounce);
-                    }
+            // Пытаемся настроить watcher сразу
+            if (trySetupStoreWatcher()) {
+                return;
+            }
 
-                    this.routesReloadDebounce = setTimeout(() => {
-                        this.reloadRoutesFromEditor();
-                    }, 300); // eslint-disable-line no-magic-numbers
+            // Если не получилось, пробуем через небольшой интервал
+            // Store может быть не готов сразу при mounted()
+            let attempts = 0;
+            const maxAttempts = 10; // eslint-disable-line no-magic-numbers
+            const interval = setInterval(() => {
+                attempts++;
+
+                if (trySetupStoreWatcher() || attempts >= maxAttempts) {
+                    clearInterval(interval);
                 }
-            });
-
-            // Наблюдаем за всем body чтобы поймать появление панели редактора
-            // Следим только за childList, без attributes и characterData
-            this.mutationObserver.observe(parentDoc.body, {
-                childList: true,
-                subtree: true
-            });
+            }, 500); // eslint-disable-line no-magic-numbers
         },
 
         /**
-         * Перезагружает список routes из панели редактора
-         * Парсит .ui-list-item элементы из открытой панели редактора маршрутов
+         * Перезагружает список routes из Vuex store редактора
+         * @param {Object} store - Vuex store родительского окна
+         * @param {Object} state - Состояние store
          */
-        async reloadRoutesFromEditor() {
-            if (typeof window === 'undefined' || !window.parent || !window.parent.document) {
-                return;
-            }
+        async reloadRoutesFromStore(store, state) {
+            try {
+                // Пытаемся получить routes из разных возможных путей в state
+                const possiblePaths = [
+                    () => state?.APP?.app?.data?.routes,
+                    () => state?.app?.data?.routes,
+                    () => state?.application?.data?.routes,
+                    () => state?.routes
+                ];
 
-            const parentDoc = window.parent.document;
+                let newRoutes = null;
 
-            // Ищем контейнер панели routes (с классом ui-container__content has-scroll)
-            // Это более специфичный селектор для панели редактора routes
-            const routesContainer = parentDoc.querySelector('.ui-container__content.has-scroll');
-
-            if (!routesContainer) {
-                // Панель не открыта или не найдена
-                return;
-            }
-
-            // Ищем все элементы списка routes внутри контейнера
-            const routeItems = routesContainer.querySelectorAll('.ui-list-item');
-
-            if (routeItems.length === 0) {
-                // Если элементов нет, панель пустая или закрыта
-                return;
-            }
-
-            const newRoutes = [];
-
-            routeItems.forEach(item => {
-                // Ищем title внутри элемента (первый div с атрибутом title)
-                const titleEl = item.querySelector('.text-truncate > div[title]');
-                const title = titleEl ? titleEl.getAttribute('title') : null;
-
-                // Ищем slug (второй div с классом color-grey text-xsmall)
-                const slugEl = item.querySelector('.text-truncate > .color-grey.text-xsmall');
-                const slug = slugEl ? slugEl.textContent.trim() : null;
-
-                // Проверяем что есть и title и slug (это валидный route)
-                if (title && slug) {
-                    // Генерируем ID на основе slug
-                    const routeId = slug.replace(/\//g, '_') || 'root';
-
-                    newRoutes.push({
-                        id: routeId,
-                        pageId: routeId, // В режиме редактора используем slug как ID
-                        title,
-                        slug,
-                        name: title,
-                        enabled: true
-                    });
-                }
-            });
-
-            // Обновляем routes только если список изменился
-            const oldRoutesCount = this.routes.length;
-            const hasChanges = newRoutes.length !== oldRoutesCount ||
-                JSON.stringify(newRoutes.map(r => r.slug)) !== JSON.stringify(this.routes.map(r => r.slug));
-
-            if (hasChanges) {
-                // Используем $set для гарантированной реактивности
-                this.$set(this, 'routes', newRoutes);
-
-                // Если количество изменилось и включена иерархия, пересчитываем expanded state
-                if (this.props.enableHierarchy) {
-                    this.initializeExpandedState();
+                for (const getPath of possiblePaths) {
+                    try {
+                        const routes = getPath();
+                        if (routes && Array.isArray(routes)) {
+                            newRoutes = routes.filter(route => route.enabled !== false);
+                            break;
+                        }
+                    } catch (error) {
+                        // Пробуем следующий путь
+                        continue;
+                    }
                 }
 
-                // Форсируем обновление
-                this.hierarchyUpdateKey++;
+                if (!newRoutes || newRoutes.length === 0) {
+                    // Не удалось получить routes из store
+                    return;
+                }
 
-                // Принудительно обновляем компонент
-                this.$forceUpdate();
+                // Проверяем, изменились ли routes
+                const oldRoutesCount = this.routes.length;
+                const hasChanges = newRoutes.length !== oldRoutesCount ||
+                    JSON.stringify(newRoutes.map(r => r.slug)) !== JSON.stringify(this.routes.map(r => r.slug));
+
+                if (hasChanges) {
+                    // Используем $set для гарантированной реактивности
+                    this.$set(this, 'routes', newRoutes);
+
+                    // Если количество изменилось и включена иерархия, пересчитываем expanded state
+                    if (this.props.enableHierarchy) {
+                        this.initializeExpandedState();
+                    }
+
+                    // Форсируем обновление
+                    this.hierarchyUpdateKey++;
+
+                    // Принудительно обновляем компонент
+                    this.$forceUpdate();
+                }
+            } catch (error) {
+                // Игнорируем ошибки
             }
         },
 
