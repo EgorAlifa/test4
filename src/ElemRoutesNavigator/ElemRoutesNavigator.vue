@@ -573,7 +573,6 @@ export default {
     },
 
     async mounted() {
-        console.log('[RoutesNavigator] 🚀 Widget mounted!');
         await this.loadRoutes();
         this.detectCurrentSlug();
 
@@ -583,13 +582,11 @@ export default {
         }
 
         // Настраиваем MutationObserver для отслеживания изменений в редакторе
-        console.log('[RoutesNavigator] 📡 Вызываем setupRoutesObserver()');
         this.setupRoutesObserver();
 
         // Небольшая задержка перед показом чтобы не мелькали моки
         await new Promise(resolve => setTimeout(resolve, 100)); // eslint-disable-line no-magic-numbers
         this.isReady = true;
-        console.log('[RoutesNavigator] ✅ Widget ready, routes:', this.routes.length);
     },
 
     beforeDestroy() {
@@ -675,19 +672,12 @@ export default {
          * Редактор использует Vuex store который обновляется ДО сохранения в app.json
          */
         setupRoutesObserver() {
-            console.log('[RoutesNavigator] 🔧 setupRoutesObserver started');
-            console.log('[RoutesNavigator] window:', typeof window);
-            console.log('[RoutesNavigator] window.parent:', typeof window?.parent);
-            console.log('[RoutesNavigator] window === window.parent:', window === window.parent);
-
             if (typeof window === 'undefined') {
-                console.log('[RoutesNavigator] ❌ window недоступен');
                 return;
             }
 
             // Пытаемся найти Vuex store везде - и в parent, и в текущем окне
             const trySetupStoreWatcher = () => {
-                console.log('[RoutesNavigator] 🔍 trySetupStoreWatcher started');
                 try {
                     let store = null;
                     let storeSource = null;
@@ -698,14 +688,12 @@ export default {
                     if (this.$store) {
                         store = this.$store;
                         storeSource = 'this.$store';
-                        console.log('[RoutesNavigator] 🎯 Нашли store в this.$store');
                     }
 
                     // 2. Проверяем корневой компонент (this.$root.$store)
                     if (!store && this.$root?.$store) {
                         store = this.$root.$store;
                         storeSource = 'this.$root.$store';
-                        console.log('[RoutesNavigator] 🎯 Нашли store в this.$root.$store');
                     }
 
                     // 3. Проверяем текущее окно
@@ -713,34 +701,27 @@ export default {
                         if (window.$nuxt?.$store) {
                             store = window.$nuxt.$store;
                             storeSource = 'window.$nuxt.$store';
-                            console.log('[RoutesNavigator] 🎯 Нашли store в window.$nuxt.$store');
                         } else if (window.__NUXT__?.$store) {
                             store = window.__NUXT__.$store;
                             storeSource = 'window.__NUXT__.$store';
-                            console.log('[RoutesNavigator] 🎯 Нашли store в window.__NUXT__.$store');
                         } else if (window.__VUE__?.$store) {
                             store = window.__VUE__.$store;
                             storeSource = 'window.__VUE__.$store';
-                            console.log('[RoutesNavigator] 🎯 Нашли store в window.__VUE__.$store');
                         }
                     }
 
                     // 4. Проверяем parent window (если в iframe)
                     if (!store && window.parent && window !== window.parent) {
-                        console.log('[RoutesNavigator] Виджет в iframe, проверяем parent window...');
 
                         if (window.parent.$nuxt?.$store) {
                             store = window.parent.$nuxt.$store;
                             storeSource = 'window.parent.$nuxt.$store';
-                            console.log('[RoutesNavigator] 🎯 Нашли store в window.parent.$nuxt.$store');
                         } else if (window.parent.__NUXT__?.$store) {
                             store = window.parent.__NUXT__.$store;
                             storeSource = 'window.parent.__NUXT__.$store';
-                            console.log('[RoutesNavigator] 🎯 Нашли store в window.parent.__NUXT__.$store');
                         } else if (window.parent.__VUE__?.$store) {
                             store = window.parent.__VUE__.$store;
                             storeSource = 'window.parent.__VUE__.$store';
-                            console.log('[RoutesNavigator] 🎯 Нашли store в window.parent.__VUE__.$store');
                         }
 
                         // 5. Ищем через корневой элемент приложения в parent
@@ -753,10 +734,8 @@ export default {
                                 if (appEl && appEl.__vue__) {
                                     store = appEl.__vue__.$store;
                                     storeSource = 'window.parent appEl.__vue__.$store';
-                                    console.log('[RoutesNavigator] 🎯 Нашли store через parent appEl');
                                 }
                             } catch (err) {
-                                console.log('[RoutesNavigator] Не удалось получить доступ к parent.document:', err.message);
                             }
                         }
                     }
@@ -770,22 +749,17 @@ export default {
                         if (appEl && appEl.__vue__) {
                             store = appEl.__vue__.$store;
                             storeSource = 'appEl.__vue__.$store';
-                            console.log('[RoutesNavigator] 🎯 Нашли store через appEl в текущем окне');
                         }
                     }
 
                     if (!store) {
-                        console.log('[RoutesNavigator] ❌ Store не найден нигде');
                         return false;
                     }
 
-                    console.log('[RoutesNavigator] ✅ Store найден:', storeSource);
-                    console.log('[RoutesNavigator] Store state keys:', Object.keys(store.state));
 
                     // Подписываемся на изменения в store
                     // store.subscribe срабатывает после каждой мутации
                     this.storeUnsubscribe = store.subscribe((mutation, state) => {
-                        console.log('[RoutesNavigator] 🔔 Vuex mutation:', mutation.type, mutation.payload);
 
                         // Ищем мутации связанные с routes
                         // Реальные мутации: deleteRouteItem, createRouteItem, createPage
@@ -794,7 +768,6 @@ export default {
                             mutationType.includes('page') ||
                             mutationType.includes('setroutes')) {
 
-                            console.log('[RoutesNavigator] ⚡ Routes mutation detected! Будет обновление через 300ms');
 
                             // Используем debounce для избежания множественных обновлений
                             if (this.routesReloadDebounce) {
@@ -807,33 +780,27 @@ export default {
                         }
                     });
 
-                    console.log('[RoutesNavigator] ✅ Подписка на store установлена');
                     return true;
                 } catch (error) {
-                    console.error('[RoutesNavigator] ❌ Ошибка при настройке store watcher:', error);
                     return false;
                 }
             };
 
             // Пытаемся настроить watcher сразу
-            console.log('[RoutesNavigator] Пытаемся настроить Vuex store watcher...');
             if (trySetupStoreWatcher()) {
                 return;
             }
 
             // Если не получилось, пробуем через небольшой интервал
             // Store может быть не готов сразу при mounted()
-            console.log('[RoutesNavigator] Store не готов, пытаемся через интервал...');
             let attempts = 0;
             const maxAttempts = 10; // eslint-disable-line no-magic-numbers
             const interval = setInterval(() => {
                 attempts++;
-                console.log(`[RoutesNavigator] Попытка ${attempts}/${maxAttempts} найти store...`);
 
                 if (trySetupStoreWatcher() || attempts >= maxAttempts) {
                     clearInterval(interval);
                     if (attempts >= maxAttempts) {
-                        console.warn('[RoutesNavigator] ⚠️ Не удалось найти Vuex store после', maxAttempts, 'попыток');
                     }
                 }
             }, 500); // eslint-disable-line no-magic-numbers
@@ -845,20 +812,13 @@ export default {
          * @param {Object} state - Состояние store
          */
         async reloadRoutesFromStore(store, state) {
-            console.log('[RoutesNavigator] 🔄 Начинаем reloadRoutesFromStore');
-            console.log('[RoutesNavigator] State keys:', Object.keys(state));
-
             // Детальное логирование структуры state для отладки
             if (state.app) {
-                console.log('[RoutesNavigator] state.app существует, keys:', Object.keys(state.app));
                 if (state.app.data) {
-                    console.log('[RoutesNavigator] state.app.data существует, keys:', Object.keys(state.app.data));
                 }
             }
             if (state.editor) {
-                console.log('[RoutesNavigator] state.editor существует, keys:', Object.keys(state.editor));
                 if (state.editor.data) {
-                    console.log('[RoutesNavigator] state.editor.data существует, keys:', Object.keys(state.editor.data));
                 }
             }
 
@@ -879,15 +839,12 @@ export default {
                 for (const path of possiblePaths) {
                     try {
                         const routes = path.fn();
-                        console.log(`[RoutesNavigator] Проверяем путь ${path.name}:`, routes);
                         if (routes && Array.isArray(routes)) {
                             newRoutes = routes.filter(route => route.enabled !== false);
                             foundPath = path.name;
-                            console.log(`[RoutesNavigator] ✅ Нашли routes по пути ${path.name}!`);
                             break;
                         }
                     } catch (error) {
-                        console.log(`[RoutesNavigator] Ошибка при проверке ${path.name}:`, error.message);
                         continue;
                     }
                 }
@@ -897,7 +854,6 @@ export default {
                     return;
                 }
 
-                console.log(`[RoutesNavigator] ✅ Найдено routes из ${foundPath}:`, newRoutes.length, 'штук');
 
                 // Проверяем, изменились ли routes
                 const oldRoutesCount = this.routes.length;
@@ -905,9 +861,6 @@ export default {
                     JSON.stringify(newRoutes.map(r => r.slug)) !== JSON.stringify(this.routes.map(r => r.slug));
 
                 if (hasChanges) {
-                    console.log('[RoutesNavigator] 🔥 Routes изменились! Обновляем виджет');
-                    console.log('[RoutesNavigator] Старое количество:', oldRoutesCount);
-                    console.log('[RoutesNavigator] Новое количество:', newRoutes.length);
 
                     // Используем $set для гарантированной реактивности
                     this.$set(this, 'routes', newRoutes);
@@ -923,9 +876,7 @@ export default {
                     // Принудительно обновляем компонент
                     this.$forceUpdate();
 
-                    console.log('[RoutesNavigator] ✅ Виджет обновлен!');
                 } else {
-                    console.log('[RoutesNavigator] Routes не изменились, пропускаем обновление');
                 }
             } catch (error) {
                 console.error('[RoutesNavigator] ❌ Ошибка в reloadRoutesFromStore:', error);
