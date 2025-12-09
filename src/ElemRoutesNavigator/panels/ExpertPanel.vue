@@ -195,10 +195,17 @@ export default {
 
     methods: {
         /**
-         * Загружает routes используя ту же логику что и основной виджет
+         * Загружает routes из Vuex store (приоритет) или fallback на app.json
          */
         async loadRoutes() {
-            // Сначала проверяем глобальные объекты (режим плеера)
+            // Приоритет 1: Загружаем из Vuex store
+            const routesFromStore = this.loadRoutesFromVuexStore();
+            if (routesFromStore && routesFromStore.length > 0) {
+                this.routes = routesFromStore;
+                return;
+            }
+
+            // Приоритет 2: Проверяем глобальные объекты (режим плеера)
             const globalSources = [
                 { name: 'window.__APP_CONFIG__', value: typeof window !== 'undefined' ? window.__APP_CONFIG__ : null },
                 { name: 'window.appConfig', value: typeof window !== 'undefined' ? window.appConfig : null },
@@ -215,7 +222,7 @@ export default {
                 }
             }
 
-            // Попытка загрузить app.json из сети (как в основном виджете)
+            // Приоритет 3: Попытка загрузить app.json из сети (fallback)
             const smartUrl = this.buildAppJsonUrl();
             const possiblePaths = [
                 this.props.appJsonUrl,
@@ -242,7 +249,7 @@ export default {
                 }
             }
 
-            // Если не удалось загрузить из app.json, парсим из DOM как fallback
+            // Приоритет 4: Парсим из DOM как последний fallback
             const domRoutes = this.parseRoutesFromDOM();
             if (domRoutes.length > 0) {
                 this.routes = domRoutes;
@@ -250,6 +257,62 @@ export default {
             }
 
             this.routes = [];
+        },
+
+        /**
+         * Загружает routes напрямую из Vuex store
+         * @returns {Array|null} - Массив routes или null
+         */
+        loadRoutesFromVuexStore() {
+            try {
+                let store = null;
+
+                // Ищем store различными способами
+                if (this.$store) {
+                    store = this.$store;
+                } else if (this.$root?.$store) {
+                    store = this.$root.$store;
+                } else if (typeof window !== 'undefined') {
+                    if (window.$nuxt?.$store) {
+                        store = window.$nuxt.$store;
+                    } else if (window.__NUXT__?.$store) {
+                        store = window.__NUXT__.$store;
+                    } else if (window.__VUE__?.$store) {
+                        store = window.__VUE__.$store;
+                    }
+                }
+
+                if (!store || !store.state) {
+                    return null;
+                }
+
+                const state = store.state;
+
+                // Пытаемся получить routes из state.app.app.data.routes (основной путь)
+                const possiblePaths = [
+                    () => state?.app?.app?.data?.routes,
+                    () => state?.app?.data?.routes,
+                    () => state?.app?.routes,
+                    () => state?.editor?.data?.routes,
+                    () => state?.editor?.routes,
+                    () => state?.routes
+                ];
+
+                for (const pathFn of possiblePaths) {
+                    try {
+                        const routes = pathFn();
+                        if (routes && Array.isArray(routes) && routes.length > 0) {
+                            return routes.filter(route => route.enabled !== false);
+                        }
+                    } catch (error) {
+                        continue;
+                    }
+                }
+
+                return null;
+            } catch (error) {
+                return null;
+            }
         },
 
         /**
