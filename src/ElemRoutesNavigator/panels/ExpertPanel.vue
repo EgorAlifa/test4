@@ -110,12 +110,31 @@ export default {
         draggedRoute: null,
         dragOverRoute: null,
         routes: [],
-        dropTargetIndex: null
+        dropTargetIndex: null,
+        storeUnsubscribe: null, // Функция отписки от Vuex store
+        routesReloadDebounce: null // Таймер debounce для перезагрузки
     }),
 
     async mounted() {
         // Загружаем routes при монтировании панели
         await this.loadRoutes();
+
+        // Настраиваем отслеживание изменений в Vuex store
+        this.setupRoutesObserver();
+    },
+
+    beforeDestroy() {
+        // Отписываемся от Vuex store при размонтировании
+        if (this.storeUnsubscribe) {
+            this.storeUnsubscribe();
+            this.storeUnsubscribe = null;
+        }
+
+        // Очищаем таймер debounce
+        if (this.routesReloadDebounce) {
+            clearTimeout(this.routesReloadDebounce);
+            this.routesReloadDebounce = null;
+        }
     },
 
     watch: {
@@ -609,6 +628,173 @@ export default {
 
             // Сбрасываем иерархию (очищаем hierarchy)
             this.updateHierarchy({});
+        },
+
+        /**
+         * Настраивает отслеживание изменений routes в Vuex store
+         * Аналогично основному виджету, но без лишних console.log
+         */
+        setupRoutesObserver() {
+            if (typeof window === 'undefined') {
+                return;
+            }
+
+            const trySetupStoreWatcher = () => {
+                try {
+                    let store = null;
+
+                    // 1. Проверяем компонент (this.$store)
+                    if (this.$store) {
+                        store = this.$store;
+                    }
+
+                    // 2. Проверяем корневой компонент (this.$root.$store)
+                    if (!store && this.$root?.$store) {
+                        store = this.$root.$store;
+                    }
+
+                    // 3. Проверяем текущее окно
+                    if (!store) {
+                        if (window.$nuxt?.$store) {
+                            store = window.$nuxt.$store;
+                        } else if (window.__NUXT__?.$store) {
+                            store = window.__NUXT__.$store;
+                        } else if (window.__VUE__?.$store) {
+                            store = window.__VUE__.$store;
+                        }
+                    }
+
+                    // 4. Проверяем parent window (если в iframe)
+                    if (!store && window.parent && window !== window.parent) {
+                        if (window.parent.$nuxt?.$store) {
+                            store = window.parent.$nuxt.$store;
+                        } else if (window.parent.__NUXT__?.$store) {
+                            store = window.parent.__NUXT__.$store;
+                        } else if (window.parent.__VUE__?.$store) {
+                            store = window.parent.__VUE__.$store;
+                        }
+
+                        // 5. Ищем через корневой элемент приложения в parent
+                        if (!store) {
+                            try {
+                                const appEl = window.parent.document.getElementById('app') ||
+                                              window.parent.document.querySelector('[data-app]') ||
+                                              window.parent.document.querySelector('#__nuxt');
+
+                                if (appEl && appEl.__vue__) {
+                                    store = appEl.__vue__.$store;
+                                }
+                            } catch (err) {
+                                // Игнорируем ошибки доступа к parent.document
+                            }
+                        }
+                    }
+
+                    // 6. Ищем через DOM элементы текущего окна
+                    if (!store) {
+                        const appEl = document.getElementById('app') ||
+                                      document.querySelector('[data-app]') ||
+                                      document.querySelector('#__nuxt');
+
+                        if (appEl && appEl.__vue__) {
+                            store = appEl.__vue__.$store;
+                        }
+                    }
+
+                    if (!store) {
+                        return false;
+                    }
+
+                    // Подписываемся на изменения в store
+                    this.storeUnsubscribe = store.subscribe((mutation, state) => {
+                        // Ищем мутации связанные с routes
+                        const mutationType = mutation.type.toLowerCase();
+                        if (mutationType.includes('route') ||
+                            mutationType.includes('page') ||
+                            mutationType.includes('setroutes')) {
+
+                            // Используем debounce для избежания множественных обновлений
+                            if (this.routesReloadDebounce) {
+                                clearTimeout(this.routesReloadDebounce);
+                            }
+
+                            this.routesReloadDebounce = setTimeout(() => {
+                                this.reloadRoutesFromStore(store, state);
+                            }, 300); // eslint-disable-line no-magic-numbers
+                        }
+                    });
+
+                    return true;
+                } catch (error) {
+                    return false;
+                }
+            };
+
+            // Пытаемся настроить watcher сразу
+            if (trySetupStoreWatcher()) {
+                return;
+            }
+
+            // Если не получилось, пробуем через небольшой интервал
+            let attempts = 0;
+            const maxAttempts = 10; // eslint-disable-line no-magic-numbers
+            const interval = setInterval(() => {
+                attempts++;
+
+                if (trySetupStoreWatcher() || attempts >= maxAttempts) {
+                    clearInterval(interval);
+                }
+            }, 500); // eslint-disable-line no-magic-numbers
+        },
+
+        /**
+         * Перезагружает список routes из Vuex store
+         * @param {Object} store - Vuex store
+         * @param {Object} state - Состояние store
+         */
+        async reloadRoutesFromStore(store, state) {
+            try {
+                // Пытаемся получить routes из разных возможных путей в state
+                const possiblePaths = [
+                    { name: 'state.app.app.data.routes', fn: () => state?.app?.app?.data?.routes },
+                    { name: 'state.app.data.routes', fn: () => state?.app?.data?.routes },
+                    { name: 'state.app.routes', fn: () => state?.app?.routes },
+                    { name: 'state.editor.data.routes', fn: () => state?.editor?.data?.routes },
+                    { name: 'state.editor.routes', fn: () => state?.editor?.routes },
+                    { name: 'state.routes', fn: () => state?.routes }
+                ];
+
+                let newRoutes = null;
+
+                for (const path of possiblePaths) {
+                    try {
+                        const routes = path.fn();
+                        if (routes && Array.isArray(routes)) {
+                            newRoutes = routes.filter(route => route.enabled !== false);
+                            break;
+                        }
+                    } catch (error) {
+                        continue;
+                    }
+                }
+
+                if (!newRoutes || newRoutes.length === 0) {
+                    return;
+                }
+
+                // Проверяем, изменились ли routes
+                const oldRoutesCount = this.routes.length;
+                const hasChanges = newRoutes.length !== oldRoutesCount ||
+                    JSON.stringify(newRoutes.map(r => r.slug)) !== JSON.stringify(this.routes.map(r => r.slug));
+
+                if (hasChanges) {
+                    // Обновляем routes
+                    this.$set(this, 'routes', newRoutes);
+                    this.$forceUpdate();
+                }
+            } catch (error) {
+                // Игнорируем ошибки
+            }
         }
     }
 };
