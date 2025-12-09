@@ -273,7 +273,9 @@ export default {
         closeMenuTimer: null,
         expandedRoutes: new Set(), // Для отслеживания развернутых разделов
         hierarchyUpdateKey: 0, // Ключ для принудительного обновления
-        currentPage: 1 // Текущая страница пагинации
+        currentPage: 1, // Текущая страница пагинации
+        mutationObserver: null, // Для отслеживания изменений в редакторе
+        routesReloadDebounce: null // Для дебаунса перезагрузки routes
     }),
 
     computed: {
@@ -579,9 +581,32 @@ export default {
             this.initializeExpandedState();
         }
 
+        // Настраиваем MutationObserver для отслеживания изменений в редакторе
+        this.setupRoutesObserver();
+
         // Небольшая задержка перед показом чтобы не мелькали моки
         await new Promise(resolve => setTimeout(resolve, 100)); // eslint-disable-line no-magic-numbers
         this.isReady = true;
+    },
+
+    beforeDestroy() {
+        // Очищаем MutationObserver
+        if (this.mutationObserver) {
+            this.mutationObserver.disconnect();
+            this.mutationObserver = null;
+        }
+
+        // Очищаем таймер дебаунса
+        if (this.routesReloadDebounce) {
+            clearTimeout(this.routesReloadDebounce);
+            this.routesReloadDebounce = null;
+        }
+
+        // Очищаем таймер закрытия меню
+        if (this.closeMenuTimer) {
+            clearTimeout(this.closeMenuTimer);
+            this.closeMenuTimer = null;
+        }
     },
 
     watch: {
@@ -642,6 +667,88 @@ export default {
     },
 
     methods: {
+        /**
+         * Настраивает MutationObserver для отслеживания изменений страниц в редакторе
+         * Следит за добавлением/удалением элементов .page-item в родительском документе
+         */
+        setupRoutesObserver() {
+            if (typeof window === 'undefined' || !window.parent || !window.parent.document) {
+                return;
+            }
+
+            // Если это не режим редактора (нет iframe), не настраиваем observer
+            if (window === window.parent) {
+                return;
+            }
+
+            const parentDoc = window.parent.document;
+
+            // Ищем контейнер со списком страниц
+            const pagesContainer = parentDoc.querySelector('.pages-list, .sidebar-pages, [class*="page"]');
+
+            if (!pagesContainer) {
+                return;
+            }
+
+            // Создаем observer для отслеживания изменений
+            this.mutationObserver = new MutationObserver((mutations) => {
+                // Проверяем, есть ли изменения связанные со страницами
+                const hasPageChanges = mutations.some(mutation => {
+                    // Проверяем добавленные узлы
+                    const hasAddedPages = Array.from(mutation.addedNodes).some(node =>
+                        node.classList && (node.classList.contains('page-item') || node.querySelector?.('.page-item'))
+                    );
+
+                    // Проверяем удаленные узлы
+                    const hasRemovedPages = Array.from(mutation.removedNodes).some(node =>
+                        node.classList && (node.classList.contains('page-item') || node.querySelector?.('.page-item'))
+                    );
+
+                    return hasAddedPages || hasRemovedPages;
+                });
+
+                if (hasPageChanges) {
+                    // Используем debounce для избежания множественных перезагрузок
+                    if (this.routesReloadDebounce) {
+                        clearTimeout(this.routesReloadDebounce);
+                    }
+
+                    this.routesReloadDebounce = setTimeout(() => {
+                        this.reloadRoutes();
+                    }, 300); // eslint-disable-line no-magic-numbers
+                }
+            });
+
+            // Настраиваем observer
+            this.mutationObserver.observe(pagesContainer, {
+                childList: true,
+                subtree: true
+            });
+        },
+
+        /**
+         * Перезагружает список routes (используется при изменениях в редакторе)
+         */
+        async reloadRoutes() {
+            const oldRoutesCount = this.routes.length;
+
+            // Перезагружаем routes из DOM
+            const newRoutes = this.parseRoutesFromDOM();
+
+            // Обновляем routes даже если список пустой (все страницы удалены)
+            if (newRoutes.length !== oldRoutesCount || newRoutes.length === 0) {
+                this.routes = newRoutes;
+
+                // Если количество изменилось и включена иерархия, пересчитываем expanded state
+                if (this.props.enableHierarchy) {
+                    this.initializeExpandedState();
+                }
+
+                // Форсируем обновление
+                this.hierarchyUpdateKey++;
+            }
+        },
+
         /**
          * Переход на указанную страницу пагинации
          */
