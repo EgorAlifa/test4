@@ -865,6 +865,9 @@ export default {
                     // Используем $set для гарантированной реактивности
                     this.$set(this, 'routes', newRoutes);
 
+                    // Очищаем иерархию от ссылок на удаленные страницы
+                    this.cleanupHierarchy(newRoutes);
+
                     // Если количество изменилось и включена иерархия, пересчитываем expanded state
                     if (this.props.enableHierarchy) {
                         this.initializeExpandedState();
@@ -876,10 +879,46 @@ export default {
                     // Принудительно обновляем компонент
                     this.$forceUpdate();
 
-                } else {
                 }
             } catch (error) {
                 console.error('[RoutesNavigator] ❌ Ошибка в reloadRoutesFromStore:', error);
+            }
+        },
+
+        /**
+         * Очищает иерархию от ссылок на несуществующие страницы
+         * @param {Array} routes - Актуальный список routes
+         */
+        cleanupHierarchy(routes) {
+            const hierarchy = this.props.hierarchy || {};
+
+            // Если иерархия пустая, ничего не делаем
+            if (Object.keys(hierarchy).length === 0) {
+                return;
+            }
+
+            // Создаем Set из существующих ID для быстрого поиска
+            const existingIds = new Set(routes.map(r => r.id || r.pageId));
+
+            // Создаем новую иерархию, удаляя ссылки на несуществующие страницы
+            const newHierarchy = {};
+            let hasChanges = false;
+
+            Object.keys(hierarchy).forEach(childId => {
+                const parentId = hierarchy[childId];
+
+                // Проверяем что и child и parent существуют в routes
+                if (existingIds.has(childId) && existingIds.has(parentId)) {
+                    newHierarchy[childId] = parentId;
+                } else {
+                    // Страница удалена, не добавляем в новую иерархию
+                    hasChanges = true;
+                }
+            });
+
+            // Если были изменения, обновляем иерархию
+            if (hasChanges) {
+                this.$set(this.props, 'hierarchy', newHierarchy);
             }
         },
 
