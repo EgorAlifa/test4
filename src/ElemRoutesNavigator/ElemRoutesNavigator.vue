@@ -338,8 +338,10 @@ export default {
         },
 
         canReorder() {
-            // Перетаскивание доступно только в редакторе
-            return !this.isPlayerMode;
+            // Перетаскивание доступно только в вертикальном режиме с включенной иерархией
+            return !this.isPlayerMode &&
+                   this.props.orientation === 'vertical' &&
+                   this.props.enableHierarchy;
         },
 
         containerStyle() {
