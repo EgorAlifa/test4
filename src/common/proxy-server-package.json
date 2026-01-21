@@ -1,0 +1,39 @@
+{
+  "name": "http-tile-proxy",
+  "version": "1.0.0",
+  "description": "HTTPS прокси для HTTP tile серверов",
+  "main": "http-proxy-server.js",
+  "scripts": {
+    "start": "node http-proxy-server.js",
+    "dev": "nodemon http-proxy-server.js",
+    "generate-cert": "mkdir -p certs && openssl req -x509 -newkey rsa:2048 -nodes -keyout certs/key.pem -out certs/cert.pem -days 365 -subj '/CN=localhost'",
+    "pm2:start": "pm2 start http-proxy-server.js --name tile-proxy",
+    "pm2:stop": "pm2 stop tile-proxy",
+    "pm2:restart": "pm2 restart tile-proxy",
+    "pm2:logs": "pm2 logs tile-proxy"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "http-proxy-middleware": "^2.0.6",
+    "cors": "^2.8.5"
+  },
+  "optionalDependencies": {
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "proxy",
+    "https",
+    "http",
+    "tile",
+    "leaflet"
+  ],
+  "author": "",
+  "license": "MIT"
+}
