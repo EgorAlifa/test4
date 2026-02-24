@@ -1,0 +1,1 @@
+export const __webpack_id__=3618;export const __webpack_ids__=[3618];export const __webpack_modules__={515:(_,o,e)=>{e.d(o,{y:()=>t});var c=e(90277);const t=c.bP.create({name:"doc",topNode:!0,content:"block+"})}};

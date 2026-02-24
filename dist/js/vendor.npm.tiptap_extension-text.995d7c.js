@@ -1,0 +1,1 @@
+export const __webpack_id__=4796;export const __webpack_ids__=[4796];export const __webpack_modules__={53953:(_,e,t)=>{t.d(e,{E:()=>c});var o=t(90277);const c=o.bP.create({name:"text",group:"inline"})}};

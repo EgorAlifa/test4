@@ -1,0 +1,1 @@
+export const __webpack_id__=3217;export const __webpack_ids__=[3217];export const __webpack_modules__={23217:(_,e,t)=>{t.d(e,{ZV:()=>a});var o=t(69524);t(18878);const r=new o.NumberFormat({pattern:{modifiers:["f"]}}),a=(0,o.createFormatNumber)({format:r})}};

@@ -1,0 +1,1 @@
+export const __webpack_id__=4296;export const __webpack_ids__=[4296];export const __webpack_modules__={79181:(o,r,t)=>{t.d(r,{Q:()=>s});var _=t(90277),e=t(73337);const s=_.YY.create({name:"dropCursor",addOptions(){return{color:"currentColor",width:1,class:void 0}},addProseMirrorPlugins(){return[(0,e.A)(this.options)]}})}};

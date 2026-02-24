@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "name": "@goodt-widgets-package/vendor",
+  "date": "2025-10-20T18:03:46.849Z",
+  "dependencies": {
+    "@goodt/build-deps": "2.0.12",
+    "@goodt/common-deps": "2.1.2",
+    "@goodt/dev-deps": "2.0.5",
+    "@goodt/sandbox": "1.14.0",
+    "@goodt/webpack": "1.7.3",
+    "echarts": "4.9.0",
+    "exceljs": "4.4.0",
+    "goodt-dremio-sdk": "1.0.30",
+    "goodt-framework-css": "2.0.16",
+    "goodt-wcore": "1.14.47",
+    "goodteditor-ui": "1.0.81",
+    "vue": "2.7.16",
+    "vue-template-compiler": "2.7.16"
+  }
+}
