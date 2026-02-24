@@ -31,7 +31,7 @@
                     <ui-has-panel>
                         <div class="form-label form-label-small">
                             Кнопка
-                            <span :style="{ fontSize: '11px', opacity: '0.45', fontWeight: 'normal', marginLeft: '6px' }">.btn</span>
+                            <span :style="{ fontSize: '11px', opacity: '0.45', fontWeight: 'normal', marginLeft: '6px' }">.elem-btn</span>
                         </div>
                         <template #panel>
                             <ui-panel :groups="[{ name: 'CSS кнопки', slot: 'btn' }]">
@@ -74,7 +74,7 @@
                     <ui-has-panel>
                         <div class="form-label form-label-small">
                             При наведении
-                            <span :style="{ fontSize: '11px', opacity: '0.45', fontWeight: 'normal', marginLeft: '6px' }">.btn:hover</span>
+                            <span :style="{ fontSize: '11px', opacity: '0.45', fontWeight: 'normal', marginLeft: '6px' }">.elem-btn:hover</span>
                         </div>
                         <template #panel>
                             <ui-panel :groups="[{ name: 'CSS при наведении', slot: 'hover' }]">
@@ -83,7 +83,7 @@
                                         <textarea
                                             v-model="localHoverCss"
                                             spellcheck="false"
-                                            placeholder="background: #3b54f0;"
+                                            placeholder="background: #3b54f0; color: #fff;"
                                             :style="{ width: '100%', height: '80px', fontFamily: 'monospace', fontSize: '12px', padding: '8px', background: '#fff', color: '#111', border: '1px solid #d1d5db', borderRadius: '6px', resize: 'vertical', minHeight: '50px' }"
                                             @input="onHoverCssChange"
                                         />
