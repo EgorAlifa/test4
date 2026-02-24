@@ -1,43 +1,37 @@
 <template>
     <w-panel>
         <ui-container>
+            <!-- ── 1. Переход ──────────────────────────────────────────── -->
             <ui-input-url prop="url">Ссылка для перехода</ui-input-url>
 
+            <ui-switch v-show="!!props.url" prop="isTargetBlank">
+                Открыть в новой вкладке
+            </ui-switch>
+
+            <!-- ── 2. Событие при нажатии ──────────────────────────────── -->
             <ui-input-tags v-model="eventName">
-                События для отправки
+                Событие при нажатии
                 <ui-tooltip>
                     <template #target="{ events, binds }">
                         <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
                     </template>
                     <div>
-                        Вписанное событие добавляется по нажатию на "enter". Поддерживает отправку множества событий.
+                        Название события из виджета «Ивент-контейнер».
+                        <div>Введите название и нажмите Enter. Можно добавить несколько.</div>
                     </div>
                 </ui-tooltip>
             </ui-input-tags>
 
-            <ui-input-tags v-model="cutParams">Ключи для удаления из хранилища</ui-input-tags>
-
-            <ui-select
-                v-model="routeQueryParamNames"
-                multiple
-                :options="routeQueryParamOptions"
-                :disabled="!!props.url">
-                Запись в текущий url страницы
-                <ui-tooltip>
-                    <template #target="{ events, binds }">
-                        <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
-                    </template>
-                    <div>{{ props.url ? 'Недоступно при заполненной "Ссылке для перехода"' : 'Не работает с "Ссылка для перехода"' }}</div>
-                </ui-tooltip>
-            </ui-select>
-
+            <!-- ── 3. Переменные ───────────────────────────────────────── -->
             <ui-collapse>
-                <template #header>Фильтры хранилища</template>
+                <template #header>Переменные</template>
                 <ui-container>
                     <div v-for="(filter, i) in props.filters" :key="i">
                         <div class="row row-collapse">
                             <div class="col">
-                                <ui-input v-model="filter.name" @change="onFilterChange(filter, i)">имя</ui-input>
+                                <ui-input v-model="filter.name" @change="onFilterChange(filter, i)">
+                                    Переменная
+                                </ui-input>
                             </div>
                             <div class="col">
                                 <ui-input
@@ -45,7 +39,7 @@
                                     :value="getFilterData(filter)"
                                     @input="(val) => setFilterData(filter, val)"
                                     @change="onFilterChange(filter, i)">
-                                    значение
+                                    Значение
                                 </ui-input>
                             </div>
                             <div class="col col-auto col-vbot">
@@ -55,18 +49,65 @@
                             </div>
                         </div>
                     </div>
-                    <ui-button @click="onFilterAdd">Добавить</ui-button>
+                    <ui-button @click="onFilterAdd">Добавить переменную</ui-button>
+
+                    <ui-input-tags v-model="cutParams">
+                        Удалить переменные
+                        <ui-tooltip>
+                            <template #target="{ events, binds }">
+                                <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                            </template>
+                            <div>
+                                Переменные из этого списка будут полностью удалены при нажатии.
+                                <div>Введите название и нажмите Enter.</div>
+                            </div>
+                        </ui-tooltip>
+                    </ui-input-tags>
                 </ui-container>
             </ui-collapse>
 
+            <!-- ── 4. Параметры URL ────────────────────────────────────── -->
             <ui-collapse>
-                <template #header>Запись в url из хранилища</template>
+                <template #header>Параметры URL</template>
                 <ui-container>
+                    <ui-select
+                        v-model="routeQueryParamNames"
+                        multiple
+                        :options="routeQueryParamOptions"
+                        :disabled="!!props.url">
+                        Сохранить переменные в URL страницы
+                        <ui-tooltip>
+                            <template #target="{ events, binds }">
+                                <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                            </template>
+                            <div v-if="props.url">Недоступно при заполненной «Ссылке для перехода»</div>
+                            <div v-else-if="routeQueryParamOptions.length === 0">
+                                Сначала добавьте переменные в разделе «Переменные»
+                            </div>
+                            <div v-else>
+                                Выбранные переменные будут записаны в URL текущей страницы при нажатии.
+                                <div>Полезно для создания ссылок с примёнёнными фильтрами.</div>
+                            </div>
+                        </ui-tooltip>
+                    </ui-select>
+
                     <div v-for="(filter, i) in props.urlFilters" :key="i">
                         <div class="row row-collapse">
                             <div class="col">
                                 <ui-input v-model="filter.name" @change="onUrlFilterChange(filter, i)">
-                                    Имя переменной
+                                    Переменная в URL при переходе
+                                    <ui-tooltip>
+                                        <template #target="{ events, binds }">
+                                            <span
+                                                class="mdi mdi-help-circle-outline"
+                                                v-on="events"
+                                                v-bind="binds" />
+                                        </template>
+                                        <div>
+                                            Текущее значение этой переменной будет добавлено как параметр в «Ссылку для
+                                            перехода»
+                                        </div>
+                                    </ui-tooltip>
                                 </ui-input>
                             </div>
                             <div class="col col-auto col-vbot">
@@ -76,39 +117,30 @@
                             </div>
                         </div>
                     </div>
-                    <ui-button @click="onUrlFilterAdd">Добавить</ui-button>
+                    <ui-button @click="onUrlFilterAdd">Добавить параметр при переходе</ui-button>
                 </ui-container>
             </ui-collapse>
 
-            <ui-switch prop="isClickSelf">
-                Отменить нажатие через слот
-                <ui-tooltip>
-                    <template #target="{ events, binds }">
-                        <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
-                    </template>
-                    <div>
-                        Не позволяет активировать кнопку, когда в её слоте размещен другой виджет,
-                        <div>с которым происходит взаимодействие.</div>
-                    </div>
-                    <div>Настройка работает в режиме плеера</div>
-                </ui-tooltip>
-            </ui-switch>
+            <!-- ── 5. Дополнительно ────────────────────────────────────── -->
+            <ui-collapse>
+                <template #header>Дополнительно</template>
+                <ui-container>
+                    <ui-switch prop="isClickSelf">
+                        Не срабатывать при клике на вложенный элемент
+                        <template #hint>
+                            Кнопка не реагирует на нажатие, если пользователь кликнул по виджету внутри неё. Работает
+                            только в режиме плеера.
+                        </template>
+                    </ui-switch>
 
-            <ui-switch prop="isTargetBlank">Открытие в новой вкладке</ui-switch>
-
-            <ui-switch prop="isSaveUrlForStore">
-                Отправка ссылки в хранилище
-                <ui-tooltip>
-                    <template #target="{ events, binds }">
-                        <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
-                    </template>
-                    <div>
-                        Режим работы позволяет отправлять ссылку из поля "Ссылка для перехода" одновременно с отправкой
-                        события для виджета ElemHouseApi, чтобы ссылка записалась в Window.postMessage() и была
-                        корректно открыта.
-                    </div>
-                </ui-tooltip>
-            </ui-switch>
+                    <ui-switch prop="isSaveUrlForStore">
+                        Режим совместимости с ElemHouseApi
+                        <template #hint>
+                            Отправляет ссылку через Window.postMessage для корректной работы с виджетом ElemHouseApi.
+                        </template>
+                    </ui-switch>
+                </ui-container>
+            </ui-collapse>
         </ui-container>
     </w-panel>
 </template>

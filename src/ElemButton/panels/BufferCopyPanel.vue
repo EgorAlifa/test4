@@ -2,7 +2,13 @@
     <w-panel>
         <ui-container>
             <ui-switch prop="isCopyStore" :disabled="props.shouldCopyText" />
-            <ui-switch prop="shouldCopyText" :disabled="props.isCopyStore" />
+
+            <ui-switch prop="shouldCopyText" :disabled="props.isCopyStore">
+                <template v-if="props.isCopyStore" #hint>
+                    Недоступно при включённом «Копировать состояние экрана»
+                </template>
+            </ui-switch>
+
             <div v-if="props.shouldCopyText">
                 <ui-has-panel autoWidth>
                     <ui-label label-size="small">Текст для копирования</ui-label>
@@ -28,7 +34,7 @@ const ComponentInstanceTypeDescriptor = undefined;
 
 export default {
     extends: Panel,
-    meta: { name: 'Копирование в буфер', icon: 'copyright' },
+    meta: { name: 'Копирование в буфер', icon: 'content-copy' },
     data: () => ({
         ...ComponentInstanceTypeDescriptor
     }),
