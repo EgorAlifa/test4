@@ -1,0 +1,246 @@
+/* Include this file with <style scoped lang="pcss" src="./style.pcss"></style> in Widget Elem */
+
+.routes-navigator-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    position: relative;
+}
+
+.navigator-title {
+    margin: 0 0 12px 0;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.routes-nav {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.route-button {
+    font-family: inherit;
+    outline: none;
+    position: relative;
+    z-index: 2;
+}
+
+.route-button:hover {
+    transform: translateX(2px);
+}
+
+.route-button:active {
+    transform: scale(0.98);
+}
+
+.route-title {
+    flex: 1;
+    font-weight: 500;
+}
+
+.route-slug {
+    font-size: 0.85em;
+    opacity: 0.7;
+    font-family: monospace;
+}
+
+/* Drag & Drop Styles */
+.route-button.draggable {
+    cursor: move;
+}
+
+.route-button.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+.route-button.drag-over {
+    border: 2px dashed #3b82f6;
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.drag-handle {
+    font-size: 1.2em;
+    color: #9ca3af;
+    cursor: grab;
+    user-select: none;
+    line-height: 1;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.empty-state {
+    padding: 32px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.empty-state p {
+    margin: 8px 0;
+}
+
+.empty-state-hint {
+    font-size: 0.875em;
+    opacity: 0.8;
+}
+
+/* Burger Menu (Hamburger) Styles */
+.routes-nav-burger {
+    position: relative;
+}
+
+.burger-toggle {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: transparent;
+    border: none;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.burger-toggle:hover {
+    transform: scale(1.05);
+}
+
+.burger-line {
+    display: block;
+    width: 24px;
+    height: 3px;
+    background-color: currentColor;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.burger-icon {
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.burger-toggle-open .burger-line:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+
+.burger-toggle-open .burger-line:nth-child(2) {
+    opacity: 0;
+}
+
+.burger-toggle-open .burger-line:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -7px);
+}
+
+.burger-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 200px;
+    animation: burgerSlideIn 0.2s ease-out;
+}
+
+@keyframes burgerSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.burger-menu .route-button {
+    width: 100%;
+    justify-content: flex-start;
+}
+
+/* Dropdown Styles */
+.routes-nav-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dropdown-toggle:hover {
+    transform: none;
+    filter: brightness(0.95);
+}
+
+.dropdown-arrow {
+    font-size: 0.8em;
+    transition: transform 0.2s ease;
+}
+
+.dropdown-toggle-open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+    animation: dropdownSlideIn 0.2s ease-out;
+}
+
+@keyframes dropdownSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-menu .route-button {
+    width: 100%;
+    justify-content: flex-start;
+    border-radius: 0;
+}
+
+.dropdown-menu .route-button:first-child {
+    border-radius: 6px 6px 0 0;
+}
+
+.dropdown-menu .route-button:last-child {
+    border-radius: 0 0 6px 6px;
+}
+
+/* Hierarchy expand/collapse icon */
+.expand-icon {
+    font-size: 0.75em;
+    opacity: 0.7;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+    padding: 0 0.25rem;
+}
+
+.expand-icon:hover {
+    opacity: 1;
+    transform: scale(1.2);
+}
