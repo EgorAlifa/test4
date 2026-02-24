@@ -5,9 +5,7 @@
         :class="cssClass"
         :style="[cssStyle, buttonStyle]"
         @click.self="onClick">
-        <slot>
-            <span v-if="isEditorMode" class="elem-btn__placeholder">Кнопка</span>
-        </slot>
+        <slot />
         <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
     </div>
     <div
@@ -16,9 +14,7 @@
         :class="cssClass"
         :style="[cssStyle, buttonStyle]"
         @click="onClick">
-        <slot>
-            <span v-if="isEditorMode" class="elem-btn__placeholder">Кнопка</span>
-        </slot>
+        <slot />
         <ui-popover v-bind="popoverOptions" :show.sync="isPopupVisible">
             <div class="elem-btn__toast">{{ popupText }}</div>
         </ui-popover>
@@ -238,8 +234,7 @@ export default {
     cursor: pointer;
     user-select: none;
     overflow: hidden;
-    white-space: nowrap;
-    transition: box-shadow 0.2s ease, transform 0.12s ease;
+    transition: box-shadow 0.2s ease, transform 0.12s ease, background 0.15s ease;
     -webkit-font-smoothing: antialiased;
     outline: none;
 }
@@ -266,13 +261,6 @@ export default {
 
 .elem-btn:active::before {
     opacity: 0.15;
-}
-
-.elem-btn__placeholder {
-    pointer-events: none;
-    opacity: 0.55;
-    font-size: inherit;
-    font-style: italic;
 }
 
 .elem-btn__toast {
