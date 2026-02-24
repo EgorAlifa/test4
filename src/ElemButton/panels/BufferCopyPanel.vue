@@ -3,7 +3,7 @@
         <ui-container>
             <ui-switch prop="isCopyStore" :disabled="props.shouldCopyText" />
             <ui-switch prop="shouldCopyText" :disabled="props.isCopyStore" />
-            <div>
+            <div v-if="props.shouldCopyText">
                 <ui-has-panel autoWidth>
                     <ui-label label-size="small">Текст для копирования</ui-label>
                     <template #panel>

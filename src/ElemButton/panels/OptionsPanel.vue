@@ -17,13 +17,17 @@
 
             <ui-input-tags v-model="cutParams">Ключи для удаления из хранилища</ui-input-tags>
 
-            <ui-select v-model="routeQueryParamNames" multiple :options="routeQueryParamOptions">
+            <ui-select
+                v-model="routeQueryParamNames"
+                multiple
+                :options="routeQueryParamOptions"
+                :disabled="!!props.url">
                 Запись в текущий url страницы
                 <ui-tooltip>
                     <template #target="{ events, binds }">
                         <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
                     </template>
-                    <div>Не работает с "Ссылка для перехода"</div>
+                    <div>{{ props.url ? 'Недоступно при заполненной "Ссылке для перехода"' : 'Не работает с "Ссылка для перехода"' }}</div>
                 </ui-tooltip>
             </ui-select>
 
@@ -169,7 +173,7 @@ export default {
             },
             set(val) {
                 this.props.cutParams = val.map((el) => el.trim());
-                this.propChanged('curParams');
+                this.propChanged('cutParams');
             }
         }
     },
