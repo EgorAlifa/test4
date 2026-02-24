@@ -1,0 +1,91 @@
+/* Стили для виджета API */
+
+.api-widget {
+    --api-primary: #3b82f6;
+    --api-success: #10b981;
+    --api-error: #ef4444;
+    --api-warning: #f59e0b;
+    --api-bg: #ffffff;
+    --api-border: #e5e7eb;
+    --api-text: #1f2937;
+    --api-text-secondary: #6b7280;
+}
+
+/* Tailwind-like utilities для виджета */
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.gap-2 {
+    gap: 0.5rem;
+}
+
+.gap-4 {
+    gap: 1rem;
+}
+
+.p-4 {
+    padding: 1rem;
+}
+
+.rounded-lg {
+    border-radius: 0.5rem;
+}
+
+.border {
+    border: 1px solid var(--api-border);
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.font-medium {
+    font-weight: 500;
+}
+
+.font-semibold {
+    font-weight: 600;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .api-widget-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .api-widget-url {
+        width: 100%;
+    }
+}
+
+

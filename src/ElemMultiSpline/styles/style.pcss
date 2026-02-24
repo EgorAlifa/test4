@@ -1,0 +1,40 @@
+@b breadcrumb {
+    composes: pos-abs from global;
+    touch-action: none;
+    pointer-events: none;
+    top: var(--w-breadcrumb_top);
+    left: var(--w-breadcrumb_left);
+    right: var(--w-breadcrumb_right);
+    bottom: var(--w-breadcrumb_bottom);
+    font-size: var(--w-breadcrumb_font-size);
+    color: var(--w-breadcrumb_color);
+    font-weight: var(--w-breadcrumb_font-weight);
+    font-family: var(--w-breadcrumb_font-family);
+}
+
+@b message {
+    composes: alert d-flex from global;
+    @e icon {
+        composes: mdi cursor-pointer from global;
+        @m close {
+            composes: mdi-close-circle from global;
+        }
+    }
+    @m warn {
+        composes: alert-warn flex-center pad-7 from global;
+    }
+    @m error {
+        composes: alert-error flex-h-space-between pad-4 from global;
+    }
+}
+
+@b curtain {
+    composes: shim d-flex flex-center h-100 from global;
+    @e preloader {
+        composes: preloader pad-l1 color-primary from global;
+    }
+}
+
+@b muted {
+    composes: radius-1 pad-l1 bg-muted from global;
+}

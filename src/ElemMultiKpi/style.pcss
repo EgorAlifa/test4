@@ -1,0 +1,133 @@
+@b absolute-hint {
+    composes: pos-abs from global;
+    top: var(--w-hint_top);
+    left: var(--w-hint_left);
+    z-index: 1;
+}
+
+@b kpi-no-absolute-mode {
+    display: flex;
+    flex-direction: column;
+}
+
+@b kpi-data {
+    display: flex;
+    width: 100%;
+    font-weight: var(--w-metric_font-weight);
+    font-family: var(--w-kpi-data_font-family);
+}
+
+@b metric-center {
+    composes: pos-abs pos-center from global;
+    align-items: center;
+}
+
+@b metric-bottom {
+    composes: pos-abs pos-bot-center from global;
+    align-items: flex-end;
+}
+
+@b metric-top {
+    top: 0;
+    left: 0;
+}
+
+@b kpi-title {
+    text-overflow: ellipsis;
+    display: flex;
+    overflow: hidden;
+    font-weight: var(--w-title_font-weight);
+    font-family: var(--w-title_font-family);
+    font-size: var(--w-title_font-size);
+    color: var(--w-title_color);
+}
+
+@b prefix-icon {
+    color: var(--w-prefix-icon_color);
+    font-size: var(--w-prefix-icon_font-size);
+}
+
+@b prefix-text {
+    color: var(--w-prefix_color);
+    font-family: var(--w-prefix_font-family);
+    font-weight: var(--w-prefix_font-weight);
+    font-size: var(--w-prefix_font-size);
+    margin-right: var(--w-prefix_margin-right);
+}
+
+@b postfix-text {
+    color: var(--w-postfix_color);
+    font-family: var(--w-postfix_font-family);
+    font-size: var(--w-postfix_font-size);
+    font-weight: var(--w-postfix_font-weight);
+    margin-left: var(--w-postfix_margin-left);
+}
+
+@b bench-prefix-text {
+    color: var(--w-bench-prefix_color);
+    font-family: var(--w-bench-prefix_font-family);
+    font-size: var(--w-bench-prefix_font-size);
+    font-weight: var(--w-bench-prefix_font-weight);
+    margin-right: var(--w-bench-prefix_margin-right);
+}
+
+@b bench-postfix-text {
+    color: var(--w-bench-postfix_color);
+    font-family: var(--w-bench-postfix_font-family);
+    font-size: var(--w-bench-postfix_font-size);
+    font-weight: var(--w-bench-postfix_font-weight);
+    margin-left: var(--w-bench-postfix_margin-left);
+}
+
+@b metric-top-position {
+    top: 0;
+    left: 0;
+}
+
+@b metric-absolute-position {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+@b metric-icon {
+    composes: mdi from global;
+    @m up {
+        font-size: var(--w-indicator-metric-icon-up_font-size);
+        color: var(--w-indicator-metric-icon-up_color);
+    }
+
+    @m down {
+        font-size: var(--w-indicator-metric-icon-down_font-size);
+        color: var(--w-indicator-metric-icon-down_color);
+    }
+
+    @m by-rule {
+        font-size: var(--w-indicator-metric-icon--by-rule_font-size);
+    }
+}
+
+@b benchmark-value {
+    font-weight: var(--w-bench-value_font-weight);
+}
+
+@b benchmark-icon {
+    composes: mdi from global;
+    @m up {
+        font-size: var(--w-indicator-benchmark-icon-up_font-size);
+        color: var(--w-indicator-benchmark-icon-up_color);
+    }
+
+    @m down {
+        font-size: var(--w-indicator-benchmark-icon-down_font-size);
+        color: var(--w-indicator-benchmark-icon-down_color);
+    }
+
+    @m by-rule {
+        font-size: var(--w-indicator-benchmark-icon--by-rule_font-size);
+    }
+}
+
+@b number-animation {
+    height: var(--w-number-animation_height);
+}
