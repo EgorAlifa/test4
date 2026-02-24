@@ -2,24 +2,18 @@
     <w-panel>
         <ui-container>
 
-            <!-- ── 1. Переход ────────────────────────────────────────── -->
-            <ui-input-url prop="url">Открыть страницу</ui-input-url>
+            <!-- ── Переход ─────────────────────────────────────────────── -->
+            <ui-input-url prop="url">Ссылка для перехода</ui-input-url>
 
             <template v-if="props.url">
-                <ui-switch prop="isTargetBlank">В новой вкладке</ui-switch>
+                <ui-switch prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
 
-                <!-- Передать текущие значения переменных в ссылку -->
-                <ui-collapse>
+                <ui-collapse v-if="storeVarOptions.length">
                     <template #header>
-                        Передать в ссылку
+                        Передать переменные в ссылку
                         <span v-if="props.urlFilters.length" class="badge">{{ props.urlFilters.length }}</span>
                     </template>
                     <ui-container>
-                        <div
-                            v-if="!storeVarOptions.length"
-                            :style="{ fontSize: '12px', color: '#6b7280', padding: '4px 0 8px' }">
-                            Нет переменных в хранилище
-                        </div>
                         <div
                             v-for="(filter, i) in props.urlFilters"
                             :key="i"
@@ -38,34 +32,29 @@
                                 </ui-button>
                             </div>
                         </div>
-                        <ui-button @click="onUrlFilterAdd">Добавить переменную</ui-button>
+                        <ui-button @click="onUrlFilterAdd">Добавить</ui-button>
                     </ui-container>
                 </ui-collapse>
             </template>
 
-            <!-- ── 2. Событие ──────────────────────────────────────── -->
+            <!-- ── Событие ────────────────────────────────────────────── -->
             <ui-input-tags v-model="eventName">
                 Событие при нажатии
                 <ui-tooltip>
                     <template #target="{ events, binds }">
                         <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
                     </template>
-                    <div>
-                        Отправляет сигнал виджету «Событие».
-                        <div>Введите название и нажмите Enter.</div>
-                    </div>
+                    <div>Отправляет сигнал виджету «Событие». Введите название и нажмите Enter.</div>
                 </ui-tooltip>
             </ui-input-tags>
 
-            <!-- ── 3. Фильтры хранилища ───────────────────────────── -->
+            <!-- ── Переменные ─────────────────────────────────────────── -->
             <ui-collapse>
                 <template #header>
-                    Фильтры
+                    Установить переменные
                     <span v-if="props.filters.length" class="badge">{{ props.filters.length }}</span>
                 </template>
                 <ui-container>
-
-                    <!-- Установить переменные -->
                     <div
                         v-for="(filter, i) in props.filters"
                         :key="i"
@@ -94,14 +83,12 @@
                         </div>
                     </div>
 
-                    <!-- datalist даёт автодополнение из стора -->
                     <datalist :id="`store-vars-${_uid}`">
                         <option v-for="v in storeVarNames" :key="v" :value="v" />
                     </datalist>
 
-                    <ui-button @click="onFilterAdd">Добавить фильтр</ui-button>
+                    <ui-button @click="onFilterAdd">Добавить переменную</ui-button>
 
-                    <!-- Записать выбранные фильтры в URL текущей страницы -->
                     <ui-select
                         v-if="routeQueryParamOptions.length > 0 && !props.url"
                         v-model="routeQueryParamNames"
@@ -112,45 +99,33 @@
                             <template #target="{ events, binds }">
                                 <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
                             </template>
-                            <div>
-                                Выбранные фильтры запишутся в адрес страницы —
-                                ссылка будет «с применёнными фильтрами».
-                            </div>
+                            <div>Выбранные переменные добавятся в адрес страницы, чтобы ссылка сохраняла фильтры.</div>
                         </ui-tooltip>
                     </ui-select>
-
-                    <!-- Сбросить переменные — multi-select из стора -->
-                    <ui-select
-                        v-if="storeVarOptions.length > 0"
-                        v-model="cutParams"
-                        multiple
-                        :options="storeVarOptions">
-                        Очистить при нажатии
-                        <ui-tooltip>
-                            <template #target="{ events, binds }">
-                                <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
-                            </template>
-                            <div>Выбранные переменные будут удалены из хранилища при нажатии.</div>
-                        </ui-tooltip>
-                    </ui-select>
-
-                    <!-- Fallback: tags input когда стор пуст -->
-                    <ui-input-tags
-                        v-else
-                        v-model="cutParams">
-                        Очистить при нажатии
-                        <ui-tooltip>
-                            <template #target="{ events, binds }">
-                                <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
-                            </template>
-                            <div>Эти переменные будут удалены из хранилища при нажатии. Введите название и нажмите Enter.</div>
-                        </ui-tooltip>
-                    </ui-input-tags>
-
                 </ui-container>
             </ui-collapse>
 
-            <!-- ── 4. Дополнительно ───────────────────────────────── -->
+            <!-- ── Очистить переменные ────────────────────────────────── -->
+            <ui-select
+                v-if="storeVarOptions.length > 0"
+                v-model="cutParams"
+                multiple
+                :options="storeVarOptions">
+                Очистить при нажатии
+                <ui-tooltip>
+                    <template #target="{ events, binds }">
+                        <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                    </template>
+                    <div>Эти переменные удалятся из хранилища при нажатии на кнопку.</div>
+                </ui-tooltip>
+            </ui-select>
+            <ui-input-tags
+                v-else
+                v-model="cutParams">
+                Очистить при нажатии
+            </ui-input-tags>
+
+            <!-- ── Дополнительно ──────────────────────────────────────── -->
             <ui-collapse>
                 <template #header>Дополнительно</template>
                 <ui-container>
@@ -193,7 +168,6 @@ export default {
         ...ComponentInstanceTypeDescriptor
     }),
     computed: {
-        /** Все переменные из хранилища — для select и datalist */
         storeVarNames() {
             try {
                 return Object.keys(store.state || {}).filter(Boolean).sort();
@@ -204,7 +178,6 @@ export default {
         storeVarOptions() {
             return this.storeVarNames.map((k) => ({ label: k, value: k }));
         },
-
         routeQueryParamOptions() {
             return this.props.filters.map(({ name, data }) => ({ label: name, value: String(data) }));
         },
