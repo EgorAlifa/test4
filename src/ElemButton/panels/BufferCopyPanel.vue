@@ -9,17 +9,7 @@
                 </template>
             </ui-switch>
 
-            <div v-if="props.shouldCopyText">
-                <ui-has-panel autoWidth>
-                    <ui-label label-size="small">Текст для копирования</ui-label>
-                    <template #panel>
-                        <ui-panel :groups="[{ name: 'Текст для копирования', slot: 'default' }]">
-                            <ui-textarea resizeBoth class="textarea-panel" prop="textToCopy">{{ '' }}</ui-textarea>
-                        </ui-panel>
-                    </template>
-                </ui-has-panel>
-                <ui-textarea prop="textToCopy">{{ '' }}</ui-textarea>
-            </div>
+            <ui-textarea v-if="props.shouldCopyText" prop="textToCopy">Текст для копирования</ui-textarea>
         </ui-container>
     </w-panel>
 </template>
@@ -38,11 +28,5 @@ export default {
     data: () => ({
         ...ComponentInstanceTypeDescriptor
     }),
-    implicitCssModule: true
 };
 </script>
-<style module lang="pcss">
-.textarea-panel {
-    min-width: 17rem;
-}
-</style>

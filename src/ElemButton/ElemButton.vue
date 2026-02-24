@@ -1,16 +1,18 @@
 <template>
-    <div v-if="props.isClickSelf" class="btn" :class="cssClass" :style="cssStyle" @click.self="onClick">
+    <div v-if="props.isClickSelf" class="btn" :class="cssClass" :style="[cssStyle, buttonStyle]" @click.self="onClick">
         <slot>
-            <code v-if="isEditorMode">default slot</code>
+            <span v-if="isEditorMode" class="btn__placeholder">Кнопка</span>
         </slot>
+        <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
     </div>
-    <div v-else class="btn" :class="cssClass" :style="cssStyle" @click="onClick">
+    <div v-else class="btn" :class="cssClass" :style="[cssStyle, buttonStyle]" @click="onClick">
         <slot>
-            <code v-if="isEditorMode">default slot</code>
+            <span v-if="isEditorMode" class="btn__placeholder">Кнопка</span>
         </slot>
         <ui-popover v-bind="popoverOptions" :show.sync="isPopupVisible">
-            <div class="tooltip">{{ popupText }}</div>
+            <div class="btn__toast">{{ popupText }}</div>
         </ui-popover>
+        <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
     </div>
 </template>
 <script>
@@ -56,6 +58,39 @@ export default {
         }
     },
     computed: {
+        buttonStyle() {
+            const {
+                btnBg,
+                btnColor,
+                btnBorderRadius,
+                btnFontSize,
+                btnFontWeight,
+                btnPaddingV,
+                btnPaddingH,
+                btnShadow,
+                btnBorderWidth,
+                btnBorderColor
+            } = this.props;
+            return {
+                '--btn-bg': btnBg,
+                '--btn-color': btnColor,
+                '--btn-border-radius': btnBorderRadius,
+                '--btn-font-size': btnFontSize,
+                '--btn-font-weight': btnFontWeight,
+                '--btn-padding-v': btnPaddingV,
+                '--btn-padding-h': btnPaddingH,
+                '--btn-shadow': btnShadow,
+                '--btn-border-width': btnBorderWidth,
+                '--btn-border-color': btnBorderColor
+            };
+        },
+        customCssContent() {
+            const { btnCustomCss, btnHoverCss } = this.props;
+            let css = '';
+            if (btnCustomCss) css += `.btn { ${btnCustomCss} }`;
+            if (btnHoverCss) css += `.btn:hover { ${btnHoverCss} }`;
+            return css || null;
+        },
         /**
          * @return {string[]}
          */
@@ -243,3 +278,68 @@ export default {
     }
 };
 </script>
+<style>
+.btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: var(--btn-height, 40px);
+    padding: var(--btn-padding-v, 10px) var(--btn-padding-h, 20px);
+    border-radius: var(--btn-border-radius, 8px);
+    background: var(--btn-bg, #4f6aff);
+    color: var(--btn-color, #fff);
+    font-size: var(--btn-font-size, 14px);
+    font-weight: var(--btn-font-weight, 500);
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+    border: var(--btn-border-width, 0px) solid var(--btn-border-color, transparent);
+    box-shadow: var(--btn-shadow, 0 2px 12px rgba(79, 106, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.1));
+    cursor: pointer;
+    user-select: none;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: box-shadow 0.2s ease, transform 0.12s ease;
+    -webkit-font-smoothing: antialiased;
+    outline: none;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    pointer-events: none;
+}
+
+.btn:hover::before {
+    opacity: 0.1;
+}
+
+.btn:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: var(--btn-shadow, 0 1px 5px rgba(79, 106, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.08));
+}
+
+.btn:active::before {
+    opacity: 0.15;
+}
+
+.btn__placeholder {
+    pointer-events: none;
+    opacity: 0.55;
+    font-size: inherit;
+    font-style: italic;
+}
+
+.btn__toast {
+    padding: 4px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+</style>

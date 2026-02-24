@@ -85,6 +85,55 @@ export const descriptor = () => ({
         routeQueryParamNames: {
             type: Array,
             default: () => []
+        },
+        // ── Appearance ────────────────────────────────────────────────
+        btnBg: {
+            type: String,
+            default: '#4f6aff'
+        },
+        btnColor: {
+            type: String,
+            default: '#ffffff'
+        },
+        btnBorderRadius: {
+            type: String,
+            default: '8px'
+        },
+        btnFontSize: {
+            type: String,
+            default: '14px'
+        },
+        btnFontWeight: {
+            type: String,
+            default: '500'
+        },
+        btnPaddingV: {
+            type: String,
+            default: '10px'
+        },
+        btnPaddingH: {
+            type: String,
+            default: '20px'
+        },
+        btnShadow: {
+            type: String,
+            default: '0 2px 12px rgba(79, 106, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.1)'
+        },
+        btnBorderWidth: {
+            type: String,
+            default: '0px'
+        },
+        btnBorderColor: {
+            type: String,
+            default: 'transparent'
+        },
+        btnCustomCss: {
+            type: String,
+            default: ''
+        },
+        btnHoverCss: {
+            type: String,
+            default: ''
         }
     },
     vars: Object.values(Vars).reduce((acc, varName) => ({ ...acc, [varName]: { description: varName } }), {}),
