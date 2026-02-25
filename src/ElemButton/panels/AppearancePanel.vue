@@ -92,7 +92,7 @@
                     :key="s.value"
                     class="chip"
                     :class="{ 'chip--active': sizeSliderRem === s.rem }"
-                    @click="sizeSliderRem = s.rem">
+                    @click="applySizeRem(s.rem)">
                     {{ s.label }}
                 </button>
             </div>
@@ -102,7 +102,7 @@
                     class="slider"
                     :value="sizeSliderRem"
                     min="0.25"
-                    max="1.5"
+                    max="3"
                     step="0.125"
                     @input="onSizeSlider" />
                 <span class="slider-val">{{ sizeSliderRem }} rem</span>
@@ -308,7 +308,7 @@ export default {
 
         /** Current padding-v in rem, snapped to slider step */
         sizeSliderRem() {
-            return Math.min(1.5, Math.max(0.25, snapRem(toRem(this.props.btnPaddingV || '10px'))));
+            return Math.min(3, Math.max(0.25, snapRem(toRem(this.props.btnPaddingV || '10px'))));
         },
 
         /** Current border-radius in rem (capped at 2 for slider; pill returns 2) */
@@ -403,11 +403,15 @@ export default {
     methods: {
         /** Size slider: paddingV in rem → px, paddingH proportional, fontSize scaled */
         onSizeSlider(e) {
-            const rem = parseFloat(e.target.value);
+            this.applySizeRem(parseFloat(e.target.value));
+        },
+
+        /** Apply size preset rem value — used by both S/M/L chips and the slider */
+        applySizeRem(rem) {
             const pxV = Math.round(rem * 16);
             const pxH = Math.round(rem * 32);
-            // Font size: S=12px M=14px L=16px — scale linearly from paddingV
-            const fontSize = Math.round(12 + (rem - 0.25) / (1.5 - 0.25) * 6);
+            // Font size: 12px at min (0.25rem) → 24px at max (3rem)
+            const fontSize = Math.round(12 + (rem - 0.25) / (3 - 0.25) * 12);
             this.props.btnPaddingV = `${pxV}px`;
             this.propChanged('btnPaddingV');
             this.props.btnPaddingH = `${pxH}px`;

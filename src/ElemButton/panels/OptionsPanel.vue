@@ -2,44 +2,97 @@
     <w-panel>
         <ui-container>
 
-            <!-- ── Куда ведёт кнопка ──────────────────────────────────── -->
-            <ui-input-url prop="url">Ссылка для перехода</ui-input-url>
-            <ui-switch v-if="props.url" prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
+            <!-- ── Обзор: что делает кнопка ──────────────────────────────── -->
+            <div class="act-status">
+                <div
+                    v-for="a in actionSummary"
+                    :key="a.key"
+                    class="act-status__chip"
+                    :class="{ 'act-status__chip--on': a.active }">
+                    <i :class="['mdi', a.icon]" />
+                    <span>{{ a.label }}</span>
+                    <span v-if="a.count" class="act-status__count">{{ a.count }}</span>
+                </div>
+            </div>
 
-            <!-- ── Что делает кнопка ──────────────────────────────────── -->
-            <ui-input-tags v-model="eventName">
-                Событие при нажатии
-                <ui-tooltip>
-                    <template #target="{ events, binds }">
-                        <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
-                    </template>
-                    <div>Отправляет сигнал виджету «Событие».</div>
-                </ui-tooltip>
-            </ui-input-tags>
+            <!-- ── Ссылка ──────────────────────────────────────────────────── -->
+            <div class="sec-hd" @click="openLink = !openLink">
+                <span class="sec-hd__ico sec-hd__ico--blue">
+                    <i class="mdi mdi-link-variant" />
+                </span>
+                <div class="sec-hd__text">
+                    <div class="sec-hd__title">Ссылка для перехода</div>
+                    <div v-if="props.url" class="sec-hd__sub">{{ truncUrl(props.url) }}</div>
+                    <div v-else class="sec-hd__sub sec-hd__sub--dim">Не задана</div>
+                </div>
+                <i class="mdi sec-hd__chev" :class="openLink ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
+            </div>
+            <div v-show="openLink" class="sec-body">
+                <ui-input-url prop="url" />
+                <ui-switch v-if="props.url" prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
+            </div>
 
-            <!-- ── Toggle-режим ───────────────────────────────────────── -->
-            <ui-switch prop="btnIsToggle">
-                Кнопка-переключатель
-                <ui-tooltip>
-                    <template #target="{ events, binds }">
-                        <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
-                    </template>
-                    <div>Кнопка выглядит «нажатой», пока переменная равна заданному значению.</div>
-                </ui-tooltip>
-            </ui-switch>
-            <template v-if="props.btnIsToggle">
-                <ui-select
-                    v-if="storeVarOptions.length"
-                    v-model="toggleStoreVar"
-                    :options="toggleVarOptions">
-                    Переменная
-                </ui-select>
-                <ui-input prop="btnToggleActiveValue" placeholder="1">
-                    Значение «активно»
-                </ui-input>
-            </template>
+            <!-- ── Событие ────────────────────────────────────────────────── -->
+            <div class="sec-hd" @click="openEvent = !openEvent">
+                <span class="sec-hd__ico sec-hd__ico--amber">
+                    <i class="mdi mdi-lightning-bolt" />
+                </span>
+                <div class="sec-hd__text">
+                    <div class="sec-hd__title">Событие при нажатии</div>
+                    <div v-if="eventName.length" class="sec-hd__sub">{{ eventName.join(', ') }}</div>
+                    <div v-else class="sec-hd__sub sec-hd__sub--dim">Не задано</div>
+                </div>
+                <i class="mdi sec-hd__chev" :class="openEvent ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
+            </div>
+            <div v-show="openEvent" class="sec-body">
+                <ui-input-tags v-model="eventName">
+                    Событие
+                    <ui-tooltip>
+                        <template #target="{ events, binds }">
+                            <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                        </template>
+                        <div>Отправляет сигнал виджету «Событие».</div>
+                    </ui-tooltip>
+                </ui-input-tags>
+            </div>
 
-            <!-- ── Расширенные действия ───────────────────────────────── -->
+            <!-- ── Переключатель ──────────────────────────────────────────── -->
+            <div class="sec-hd" @click="openToggle = !openToggle">
+                <span class="sec-hd__ico" :class="props.btnIsToggle ? 'sec-hd__ico--green' : 'sec-hd__ico--grey'">
+                    <i :class="['mdi', props.btnIsToggle ? 'mdi-toggle-switch' : 'mdi-toggle-switch-off-outline']" />
+                </span>
+                <div class="sec-hd__text">
+                    <div class="sec-hd__title">Кнопка-переключатель</div>
+                    <div class="sec-hd__sub" :class="props.btnIsToggle ? '' : 'sec-hd__sub--dim'">
+                        {{ props.btnIsToggle ? 'Включён' : 'Выключен' }}
+                    </div>
+                </div>
+                <i class="mdi sec-hd__chev" :class="openToggle ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
+            </div>
+            <div v-show="openToggle" class="sec-body">
+                <ui-switch prop="btnIsToggle">
+                    Включить переключатель
+                    <ui-tooltip>
+                        <template #target="{ events, binds }">
+                            <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                        </template>
+                        <div>Кнопка выглядит «нажатой», пока переменная равна заданному значению.</div>
+                    </ui-tooltip>
+                </ui-switch>
+                <template v-if="props.btnIsToggle">
+                    <ui-select
+                        v-if="storeVarOptions.length"
+                        v-model="toggleStoreVar"
+                        :options="toggleVarOptions">
+                        Переменная
+                    </ui-select>
+                    <ui-input prop="btnToggleActiveValue" placeholder="1">
+                        Значение «активно»
+                    </ui-input>
+                </template>
+            </div>
+
+            <!-- ── Расширенные действия ───────────────────────────────────── -->
             <ui-collapse>
                 <template #header>
                     Расширенные действия
@@ -120,7 +173,7 @@
                 </ui-container>
             </ui-collapse>
 
-            <!-- ── Прочее ─────────────────────────────────────────────── -->
+            <!-- ── Прочее ─────────────────────────────────────────────────── -->
             <ui-collapse>
                 <template #header>Прочее</template>
                 <ui-container>
@@ -166,9 +219,14 @@ const { store } = Managers.StoreManager;
 
 export default {
     extends: Panel,
-    meta: { name: 'Настройки виджета', icon: 'settings' },
+    meta: { name: 'Настройки виджета', icon: 'cog' },
     components: { UiTooltip },
-    data: () => ({ ...ComponentInstanceTypeDescriptor }),
+    data: () => ({
+        ...ComponentInstanceTypeDescriptor,
+        openLink: false,
+        openEvent: false,
+        openToggle: false
+    }),
     computed: {
         storeVarNames() {
             try { return Object.keys(store.state || {}).filter(Boolean).sort(); } catch (e) { return []; }
@@ -194,6 +252,36 @@ export default {
             return this.props.filters.length +
                 this.cutParams.length +
                 this.props.urlFilters.length;
+        },
+        actionSummary() {
+            return [
+                {
+                    key: 'link',
+                    label: 'Ссылка',
+                    icon: 'mdi-link-variant',
+                    active: !!this.props.url
+                },
+                {
+                    key: 'event',
+                    label: 'Событие',
+                    icon: 'mdi-lightning-bolt',
+                    active: this.eventName.length > 0,
+                    count: this.eventName.length || null
+                },
+                {
+                    key: 'toggle',
+                    label: 'Тоггл',
+                    icon: 'mdi-toggle-switch',
+                    active: this.props.btnIsToggle
+                },
+                {
+                    key: 'adv',
+                    label: 'Действия',
+                    icon: 'mdi-filter-variant',
+                    active: this.hasAdvancedActions,
+                    count: this.hasAdvancedActions ? this.advancedActionsCount : null
+                }
+            ];
         },
         routeQueryParamNames: {
             get() { return this.props.routeQueryParamNames.map((p) => String(p.value)); },
@@ -222,7 +310,17 @@ export default {
             set(val) { this.props.btnDisableVar = val; this.propChanged('btnDisableVar'); }
         }
     },
+    mounted() {
+        this.openLink = !!this.props.url;
+        this.openEvent = this.eventName.length > 0;
+        this.openToggle = this.props.btnIsToggle;
+    },
     methods: {
+        truncUrl(url) {
+            if (!url) return '';
+            const max = 28;
+            return url.length > max ? `${url.slice(0, max)}…` : url;
+        },
         setFilterData(filter, data) {
             try { filter.data = JSON.parse(data); } catch (e) { /* noop */ }
         },
@@ -266,6 +364,107 @@ export default {
 </script>
 
 <style scoped>
+/* ── Action status strip ────────────────────────────────────────── */
+.act-status {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+.act-status__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1.5px solid #e2e8f0;
+    background: #f8fafc;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.act-status__chip--on {
+    border-color: #a5b4fc;
+    background: #eff2ff;
+    color: #4f6aff;
+}
+.act-status__chip .mdi { font-size: 13px; }
+.act-status__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    background: #4f6aff;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 0 3px;
+}
+
+/* ── Section accordion header ───────────────────────────────────── */
+.sec-hd {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    margin-top: 4px;
+    transition: border-color 0.15s, background 0.15s;
+    user-select: none;
+}
+.sec-hd:hover { border-color: #a5b4fc; background: #f5f7ff; }
+
+.sec-hd__ico {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    font-size: 16px;
+}
+.sec-hd__ico--blue  { background: #eff6ff; color: #3b82f6; }
+.sec-hd__ico--amber { background: #fffbeb; color: #f59e0b; }
+.sec-hd__ico--green { background: #f0fdf4; color: #22c55e; }
+.sec-hd__ico--grey  { background: #f1f5f9; color: #94a3b8; }
+
+.sec-hd__text { flex: 1; min-width: 0; }
+.sec-hd__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.3;
+}
+.sec-hd__sub {
+    font-size: 11px;
+    color: #475569;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 180px;
+}
+.sec-hd__sub--dim { color: #cbd5e1; }
+
+.sec-hd__chev { font-size: 18px; color: #94a3b8; flex-shrink: 0; }
+
+/* ── Section body (content inside each accordion) ──────────────── */
+.sec-body {
+    padding: 8px 4px 4px;
+    border-left: 2px solid #e2e8f0;
+    margin-left: 18px;
+    padding-left: 12px;
+    margin-bottom: 2px;
+}
+
+/* ── Advanced section labels ────────────────────────────────────── */
 .adv-section-label {
     font-size: 11px;
     font-weight: 600;
@@ -276,6 +475,7 @@ export default {
     margin-bottom: 4px;
 }
 
+/* ── Filter rows ────────────────────────────────────────────────── */
 .filter-row {
     display: flex;
     align-items: flex-end;
