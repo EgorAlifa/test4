@@ -51,9 +51,9 @@
                         v-for="p in colorPresets"
                         :key="p.label"
                         class="color-preset"
-                        :class="{ 'color-preset--active': props.btnBg === p.bg && props.btnColor === p.color }"
+                        :class="{ 'color-preset--active': isColorPresetActive(p) }"
                         :title="p.label"
-                        :style="{ background: p.bg, color: p.color, border: p.border || 'none' }"
+                        :style="colorPresetStyle(p)"
                         @click="applyColorPreset(p)">
                         {{ p.label }}
                     </button>
@@ -84,10 +84,12 @@
                 <div
                     v-for="e in hoverEffectOptions"
                     :key="e.value"
-                    class="opt-card"
+                    class="opt-card effect-card"
                     :class="{ 'opt-card--active': hoverEffect === e.value }"
                     @click="hoverEffect = e.value">
-                    <i :class="e.icon" class="opt-card__icon-lg" />
+                    <div class="effect-demo" :class="`effect-demo--${e.value}`">
+                        <span class="effect-demo__pill" />
+                    </div>
                     <div class="opt-card__label">{{ e.label }}</div>
                 </div>
             </div>
@@ -754,12 +756,60 @@ export default {
             const prop = this.iconPickerTarget === 'left' ? 'btnIconLeft' : 'btnIconRight';
             return this.props[prop] === `mdi mdi-${ico}`;
         },
+        /** Visual appearance of a preset chip — mirrors the current button style */
+        colorPresetStyle(p) {
+            const style = this.stylePreset;
+            const angle = this.props.btnGradientAngle || '135deg';
+            if (style === 'outlined') {
+                return { background: 'transparent', color: p.bg, border: `2px solid ${p.bg}` };
+            }
+            if (style === 'ghost') {
+                return { background: 'transparent', color: p.bg, border: '1.5px solid transparent' };
+            }
+            if (style === 'gradient') {
+                // Derive a complementary end colour (shift hue ~60°) for the mini gradient
+                return { background: `linear-gradient(${angle}, ${p.bg}, #7c3aed)`, color: '#fff', border: 'none' };
+            }
+            // filled / glass
+            return { background: p.bg, color: p.color, border: p.border || 'none' };
+        },
+        isColorPresetActive(p) {
+            const style = this.stylePreset;
+            if (style === 'outlined') {
+                return this.props.btnColor === p.bg && this.props.btnBorderColor === p.bg;
+            }
+            if (style === 'ghost') {
+                return this.props.btnColor === p.bg;
+            }
+            return this.props.btnBg === p.bg && this.props.btnColor === p.color;
+        },
+        /** Apply colour preset respecting the current button style variant */
         applyColorPreset(p) {
-            this.props.btnBg = p.bg;
-            this.propChanged('btnBg');
-            this.props.btnColor = p.color;
-            this.propChanged('btnColor');
-            // Reset gradient when applying a flat color preset
+            const style = this.stylePreset;
+            if (style === 'outlined') {
+                this.props.btnBg = 'transparent';      this.propChanged('btnBg');
+                this.props.btnColor = p.bg;            this.propChanged('btnColor');
+                this.props.btnBorderColor = p.bg;      this.propChanged('btnBorderColor');
+                return;
+            }
+            if (style === 'ghost') {
+                this.props.btnBg = 'transparent';      this.propChanged('btnBg');
+                this.props.btnColor = p.bg;            this.propChanged('btnColor');
+                return;
+            }
+            if (style === 'gradient') {
+                this.props.btnBg = p.bg;               this.propChanged('btnBg');
+                // Keep existing gradient end or provide a sensible default
+                if (!this.props.btnGradientTo) {
+                    this.props.btnGradientTo = '#7c3aed';
+                    this.propChanged('btnGradientTo');
+                }
+                this.props.btnColor = '#ffffff';       this.propChanged('btnColor');
+                return;
+            }
+            // filled / glass
+            this.props.btnBg = p.bg;                   this.propChanged('btnBg');
+            this.props.btnColor = p.color;             this.propChanged('btnColor');
             if (this.props.btnGradientTo) {
                 this.props.btnGradientTo = '';
                 this.propChanged('btnGradientTo');
@@ -844,6 +894,48 @@ export default {
     line-height: 1.2;
 }
 .opt-card__icon-lg { font-size: 18px; line-height: 1; }
+
+/* ── Hover effect live demos ────────────────────────────────────── */
+.effect-card { gap: 4px; padding-top: 10px; padding-bottom: 8px; }
+.effect-demo {
+    width: 38px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.effect-demo__pill {
+    display: block;
+    width: 34px;
+    height: 14px;
+    background: #4f6aff;
+    border-radius: 4px;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.18s ease, opacity 0.18s ease;
+    box-shadow: 0 2px 6px rgba(79, 106, 255, 0.3);
+}
+/* default: dim on hover */
+.opt-card:hover .effect-demo--default .effect-demo__pill { filter: brightness(0.82); }
+/* lift */
+.opt-card:hover .effect-demo--lift .effect-demo__pill {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.22);
+}
+/* glow */
+.opt-card:hover .effect-demo--glow .effect-demo__pill {
+    box-shadow: 0 0 0 3px rgba(79, 106, 255, 0.22), 0 0 14px rgba(79, 106, 255, 0.7);
+}
+/* scale */
+.opt-card:hover .effect-demo--scale .effect-demo__pill { transform: scale(1.22); }
+/* pulse — always animated */
+.effect-demo--pulse .effect-demo__pill { animation: effect-pill-pulse 1.8s ease-in-out infinite; }
+/* none — no change at all */
+.opt-card:hover .effect-demo--none .effect-demo__pill { /* intentionally empty */ }
+
+@keyframes effect-pill-pulse {
+    0%,  100% { box-shadow: 0 2px 6px rgba(79,106,255,0.3), 0 0 0 0 rgba(79,106,255,0.45); }
+    50%       { box-shadow: 0 2px 6px rgba(79,106,255,0.3), 0 0 0 6px rgba(79,106,255,0); }
+}
 
 /* ── Variant preview ───────────────────────────────────────────── */
 .opt-card__variant-preview {
