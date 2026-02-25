@@ -340,7 +340,7 @@ function snapRem(val, step = 0.125) {
 
 export default {
     extends: Panel,
-    meta: { name: 'Стили', icon: 'palette' },
+    meta: { name: 'Оформление', icon: 'code-braces' },
     data: () => ({
         iconPickerOpen: false,
         iconPickerTarget: 'left',

@@ -351,11 +351,13 @@ export default {
 <style scoped>
 .elem-btn {
     position: relative;
-    display: inline-flex;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-height: var(--btn-height, 40px);
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    min-height: var(--btn-height, 40px);
     padding: var(--btn-padding-v, 10px) var(--btn-padding-h, 20px);
     border-radius: var(--btn-border-radius, 8px);
     background: var(--btn-bg, #4f6aff);

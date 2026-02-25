@@ -65,7 +65,7 @@ import { Panel } from 'goodt-wcore';
 
 export default {
     extends: Panel,
-    meta: { name: 'Я дизайнер', icon: 'code-braces' },
+    meta: { name: 'Я дизайнер', icon: 'palette' },
     data: () => ({
         localStyles: { btn: '', hover: '' },
         cssElOpen:   { btn: false, hover: false },
