@@ -494,27 +494,55 @@ export default {
         copyToClipboard(text) {
             try { navigator.clipboard.writeText(text); } catch (e) { /* noop */ }
         },
-        /** Load available routes from the parent window's Vuex store */
+        /** Full store discovery — mirrors ElemRoutesNavigator logic */
+        _findVuexStore() {
+            // 1. Component's own store
+            if (this.$store) return this.$store;
+            if (this.$root?.$store) return this.$root.$store;
+            // 2. Global Nuxt/Vue hooks in current window
+            for (const src of [window.$nuxt, window.__NUXT__, window.__VUE__]) {
+                if (src?.$store) return src.$store;
+            }
+            // 3. Parent window Nuxt/Vue hooks
+            if (window.parent && window !== window.parent) {
+                for (const src of [window.parent.$nuxt, window.parent.__NUXT__, window.parent.__VUE__]) {
+                    if (src?.$store) return src.$store;
+                }
+                // 4. Parent window DOM root
+                try {
+                    const el = window.parent.document.getElementById('app') ||
+                               window.parent.document.querySelector('[data-app]') ||
+                               window.parent.document.querySelector('#__nuxt');
+                    if (el?.__vue__?.$store) return el.__vue__.$store;
+                } catch (e) { /* cross-origin */ }
+            }
+            // 5. Current window DOM root
+            const el = document.getElementById('app') ||
+                       document.querySelector('[data-app]') ||
+                       document.querySelector('#__nuxt');
+            if (el?.__vue__?.$store) return el.__vue__.$store;
+            return null;
+        },
+        /** Extract routes array from Vuex state — tries all known paths */
+        _routesFromState(state) {
+            if (!state) return null;
+            const fns = [
+                () => state?.app?.app?.data?.routes,
+                () => state?.app?.routes,
+                () => state?.editor?.data?.routes,
+                () => state?.editor?.routes,
+                () => state?.routes,
+                () => state?.application?.data?.routes
+            ];
+            for (const fn of fns) {
+                try { const r = fn(); if (Array.isArray(r) && r.length) return r; } catch (e) { /* noop */ }
+            }
+            return null;
+        },
         loadRoutes() {
             try {
-                const tryState = (state) => {
-                    if (!state) return null;
-                    const paths = [
-                        () => state?.app?.app?.data?.routes,
-                        () => state?.app?.routes,
-                        () => state?.editor?.data?.routes,
-                        () => state?.editor?.routes,
-                        () => state?.routes,
-                        () => state?.application?.data?.routes
-                    ];
-                    for (const fn of paths) {
-                        try { const r = fn(); if (r && Array.isArray(r)) return r; } catch (e) { /* noop */ }
-                    }
-                    return null;
-                };
-                const parentStore = window.parent?.__vue_store__;
-                const ownStore = window.__vue_store__;
-                const routes = tryState(parentStore?.state) || tryState(ownStore?.state);
+                const vuexStore = this._findVuexStore();
+                const routes = this._routesFromState(vuexStore?.state);
                 if (routes) {
                     this.availableRoutes = routes
                         .filter((r) => r.enabled !== false && r.slug)

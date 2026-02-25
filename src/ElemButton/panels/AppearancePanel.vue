@@ -48,7 +48,7 @@
                 <div class="section-label">Цветовые пресеты</div>
                 <div class="color-presets">
                     <button
-                        v-for="p in colorPresets"
+                        v-for="p in visibleColorPresets"
                         :key="p.label"
                         class="color-preset"
                         :class="{ 'color-preset--active': isColorPresetActive(p) }"
@@ -527,6 +527,11 @@ export default {
         isGlass() { return this.stylePreset === 'glass'; },
         isGradient() { return this.stylePreset === 'gradient'; },
         iconOnlyMode() { return this.props.btnShowText === false; },
+        /** In gradient mode hide near-white presets — they create an ugly "white veil" */
+        visibleColorPresets() {
+            if (!this.isGradient) return this.colorPresets;
+            return this.colorPresets.filter((p) => p.bg !== '#f1f5f9' && p.bg !== '#ffffff');
+        },
 
         /** Full-size live preview style (mirrors ElemButton.vue buttonStyle) */
         fullPreviewStyle() {
@@ -1195,7 +1200,8 @@ export default {
     gap: 8px;
     margin-bottom: 2px;
 }
-.icon-field { display: flex; flex-direction: column; gap: 3px; }
+/* min-width: 0 is critical — without it grid cells don't shrink below content size */
+.icon-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow: hidden; }
 .icon-field__lbl { font-size: 10px; font-weight: 500; color: #94a3b8; text-align: center; }
 
 .icon-preview {
