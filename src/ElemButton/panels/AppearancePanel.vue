@@ -315,29 +315,41 @@
                         </button>
                     </div>
 
-                    <div class="css-section">
-                        <div class="css-section__header">
-                            <span class="form-label form-label-small">CSS кнопки</span>
-                            <code class="css-section__tag">.elem-btn</code>
+                    <!-- Per-element editors (ElemRoutesNavigator style) -->
+                    <div v-for="el in cssElements" :key="el.key" class="css-el-wrap">
+                        <div class="css-el-hd" @click="cssElOpen[el.key] = !cssElOpen[el.key]">
+                            <span class="css-el-hd__label">{{ el.label }}</span>
+                            <code class="css-el-hd__sel">{{ el.selector }}</code>
+                            <i class="mdi" :class="cssElOpen[el.key] ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
                         </div>
-                        <textarea
-                            v-model="localBtnCss"
-                            class="css-section__textarea"
-                            spellcheck="false"
-                            placeholder="color: red; border: 2px dashed blue;"
-                            @input="onBtnCssChange" />
-                    </div>
-                    <div class="css-section">
-                        <div class="css-section__header">
-                            <span class="form-label form-label-small">CSS при наведении</span>
-                            <code class="css-section__tag">.elem-btn:hover</code>
+                        <div v-if="cssElOpen[el.key]" class="css-el-body">
+                            <div class="css-info-box">
+                                <div class="css-info-box__title">Текущие настройки из панели:</div>
+                                <pre class="css-info-box__pre">{{ getElementDefaultStyles(el.key) }}</pre>
+                            </div>
+                            <div class="css-el-editor-hd">
+                                <span class="form-label form-label-small">CSS свойства</span>
+                                <button class="css-fill-btn" type="button" @click="fillWithCurrentStyles(el.key)">
+                                    <i class="mdi mdi-keyboard-outline" /> Заполнить текущими
+                                </button>
+                            </div>
+                            <textarea
+                                v-model="localStyles[el.key]"
+                                class="css-section__textarea"
+                                spellcheck="false"
+                                :placeholder="el.placeholder"
+                                @input="onStyleChange(el.key)" />
+                            <div class="css-hint-box">
+                                <i class="mdi mdi-information-outline" />
+                                <div>
+                                    <strong>Совет:</strong> Вводите CSS свойства без селекторов.
+                                    Например: <code>color: red; font-weight: bold;</code>
+                                </div>
+                            </div>
+                            <button class="css-reset-el-btn" type="button" @click="resetElement(el.key)">
+                                Сбросить {{ el.label.toLowerCase() }}
+                            </button>
                         </div>
-                        <textarea
-                            v-model="localHoverCss"
-                            class="css-section__textarea"
-                            spellcheck="false"
-                            placeholder="opacity: 0.85; transform: scale(1.02);"
-                            @input="onHoverCssChange" />
                     </div>
                 </ui-container>
             </ui-collapse>
@@ -403,8 +415,22 @@ export default {
     meta: { name: 'Я дизайнер', icon: 'palette' },
     data: () => ({
         ...ComponentInstanceTypeDescriptor,
-        localBtnCss: '',
-        localHoverCss: '',
+        localStyles: { btn: '', hover: '' },
+        cssElOpen: { btn: false, hover: false },
+        cssElements: [
+            {
+                key: 'btn',
+                label: 'Кнопка',
+                selector: '.elem-btn',
+                placeholder: 'text-transform: uppercase;\nletter-spacing: 0.08em;'
+            },
+            {
+                key: 'hover',
+                label: 'Кнопка при наведении',
+                selector: '.elem-btn:hover',
+                placeholder: 'opacity: 0.85;\ntransform: scale(1.02);'
+            }
+        ],
         debounceTimer: null,
         iconPickerOpen: false,
         iconPickerTarget: 'left',
@@ -665,8 +691,8 @@ export default {
         }
     },
     mounted() {
-        this.localBtnCss = this.props.btnCustomCss || '';
-        this.localHoverCss = this.props.btnHoverCss || '';
+        this.localStyles.btn = this.props.btnCustomCss || '';
+        this.localStyles.hover = this.props.btnHoverCss || '';
     },
     beforeUnmount() {
         if (this.debounceTimer) clearTimeout(this.debounceTimer);
@@ -726,19 +752,53 @@ export default {
             this.propChanged('btnBorderRadius');
         },
 
-        onBtnCssChange() {
+        /** Save localStyles[key] → prop after debounce */
+        onStyleChange(key) {
             clearTimeout(this.debounceTimer);
             this.debounceTimer = setTimeout(() => {
-                this.props.btnCustomCss = this.localBtnCss;
-                this.propChanged('btnCustomCss');
+                if (key === 'btn') {
+                    this.props.btnCustomCss = this.localStyles.btn;
+                    this.propChanged('btnCustomCss');
+                } else if (key === 'hover') {
+                    this.props.btnHoverCss = this.localStyles.hover;
+                    this.propChanged('btnHoverCss');
+                }
             }, 300);
         },
-        onHoverCssChange() {
-            clearTimeout(this.debounceTimer);
-            this.debounceTimer = setTimeout(() => {
-                this.props.btnHoverCss = this.localHoverCss;
+        /** Generate human-readable CSS from current panel props for the given element */
+        getElementDefaultStyles(key) {
+            const p = this.props;
+            const resolvedBg = p.btnGradientTo
+                ? `linear-gradient(${p.btnGradientAngle || '135deg'}, ${p.btnBg || '#4f6aff'}, ${p.btnGradientTo})`
+                : (p.btnBg || '#4f6aff');
+            if (key === 'btn') {
+                let s = `background: ${resolvedBg};\ncolor: ${p.btnColor || '#ffffff'};\nborder-radius: ${p.btnBorderRadius || '8px'};\nfont-size: ${p.btnFontSize || '14px'};\nfont-weight: ${p.btnFontWeight || '500'};\npadding: ${p.btnPaddingV || '10px'} ${p.btnPaddingH || '20px'};\ncursor: pointer;`;
+                if (p.btnShadow) s += `\nbox-shadow: ${p.btnShadow};`;
+                if (p.btnBorderWidth && p.btnBorderWidth !== '0px') {
+                    s += `\nborder: ${p.btnBorderWidth} solid ${p.btnBorderColor || 'transparent'};`;
+                }
+                return s;
+            }
+            if (key === 'hover') {
+                return `/* Эффект: ${p.btnHoverEffect || 'default'} */\nfilter: brightness(0.9);`;
+            }
+            return '';
+        },
+        /** Pre-fill the textarea with the current computed styles */
+        fillWithCurrentStyles(key) {
+            this.localStyles[key] = this.getElementDefaultStyles(key);
+            this.onStyleChange(key);
+        },
+        /** Clear custom CSS for one element */
+        resetElement(key) {
+            this.localStyles[key] = '';
+            if (key === 'btn') {
+                this.props.btnCustomCss = '';
+                this.propChanged('btnCustomCss');
+            } else if (key === 'hover') {
+                this.props.btnHoverCss = '';
                 this.propChanged('btnHoverCss');
-            }, 300);
+            }
         },
         /** Strip mdi prefix so user sees only the icon name */
         iconNameOnly(cls) {
@@ -832,10 +892,10 @@ export default {
             }
         },
         applyCssPreset(p) {
-            this.localBtnCss = p.btn;
+            this.localStyles.btn = p.btn;
             this.props.btnCustomCss = p.btn;
             this.propChanged('btnCustomCss');
-            this.localHoverCss = p.hover;
+            this.localStyles.hover = p.hover;
             this.props.btnHoverCss = p.hover;
             this.propChanged('btnHoverCss');
         },
@@ -849,10 +909,10 @@ export default {
                 this.props[key] = val;
                 this.propChanged(key);
             });
-            this.localBtnCss = '';
+            this.localStyles.btn = '';
             this.props.btnCustomCss = '';
             this.propChanged('btnCustomCss');
-            this.localHoverCss = '';
+            this.localStyles.hover = '';
             this.props.btnHoverCss = '';
             this.propChanged('btnHoverCss');
         }
@@ -1328,19 +1388,129 @@ export default {
 }
 .css-preset-chip:hover { border-color: #a5b4fc; color: #4f6aff; background: #f5f7ff; }
 
-/* ── Custom CSS ────────────────────────────────────────────────── */
-.css-section { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
-.css-section__header { display: flex; align-items: center; justify-content: space-between; }
-.css-section__header .form-label { margin: 0; }
-.css-section__tag {
-    font-size: 11px;
-    opacity: 0.45;
-    font-weight: normal;
-    font-family: monospace;
-    background: transparent;
-    border: none;
-    padding: 0;
+/* ── Per-element CSS editor ─────────────────────────────────────── */
+.css-el-wrap {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 6px;
 }
+.css-el-hd {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 11px;
+    background: #f8fafc;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.12s;
+}
+.css-el-hd:hover { background: #f1f5ff; }
+.css-el-hd__label {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+}
+.css-el-hd__sel {
+    font-family: monospace;
+    font-size: 10px;
+    color: #64748b;
+    background: #e2e8f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+.css-el-hd .mdi { font-size: 16px; color: #94a3b8; flex-shrink: 0; }
+.css-el-body {
+    padding: 10px 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid #e2e8f0;
+    background: #fff;
+}
+/* Yellow info box */
+.css-info-box {
+    padding: 8px 10px;
+    background: #fef3c7;
+    border-radius: 6px;
+    border: 1px solid #fde68a;
+}
+.css-info-box__title {
+    font-size: 11px;
+    font-weight: 500;
+    color: #92400e;
+    margin-bottom: 4px;
+}
+.css-info-box__pre {
+    font-family: monospace;
+    font-size: 11px;
+    color: #78350f;
+    white-space: pre-wrap;
+    line-height: 1.4;
+    margin: 0;
+}
+/* Editor header row */
+.css-el-editor-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.css-el-editor-hd .form-label { margin: 0; }
+.css-fill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 9px;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.css-fill-btn:hover { background: #2563eb; }
+.css-fill-btn .mdi { font-size: 13px; }
+/* Blue hint box */
+.css-hint-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 8px 10px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #1e40af;
+    line-height: 1.5;
+}
+.css-hint-box .mdi { font-size: 15px; color: #2563eb; flex-shrink: 0; margin-top: 1px; }
+.css-hint-box code {
+    padding: 1px 5px;
+    background: #dbeafe;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 11px;
+    white-space: nowrap;
+}
+.css-reset-el-btn {
+    align-self: flex-start;
+    padding: 5px 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+    background: #fff;
+    color: #64748b;
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+.css-reset-el-btn:hover { border-color: #fca5a5; color: #dc2626; background: #fef2f2; }
+
+/* ── CSS textarea (shared) ──────────────────────────────────────── */
 .css-section__textarea {
     width: 100%;
     height: 72px;
