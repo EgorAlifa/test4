@@ -32,6 +32,29 @@
                 <transition name="sec-expand">
                     <div v-if="openLink" class="sec-body">
                         <ui-input-url prop="url" />
+                        <!-- Route chips from parent Vuex store -->
+                        <template v-if="availableRoutes.length">
+                            <div class="route-chips-hd">
+                                <span class="route-chips-hd__label">Страницы проекта</span>
+                                <button class="route-chips-hd__btn" title="Обновить список" @click="loadRoutes">
+                                    <i class="mdi mdi-refresh" />
+                                </button>
+                                <button v-if="props.url" class="route-chips-hd__btn route-chips-hd__btn--red" title="Очистить ссылку" @click="setUrl('')">
+                                    <i class="mdi mdi-link-off" />
+                                </button>
+                            </div>
+                            <div class="route-chips">
+                                <button
+                                    v-for="r in availableRoutes"
+                                    :key="r.slug"
+                                    class="route-chip"
+                                    :class="{ 'route-chip--active': props.url === r.slug }"
+                                    :title="r.slug"
+                                    @click="setUrl(r.slug)">
+                                    {{ r.title || r.name || r.slug }}
+                                </button>
+                            </div>
+                        </template>
                         <ui-switch v-if="props.url" prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
                     </div>
                 </transition>
@@ -306,7 +329,8 @@ export default {
         openEvent: false,
         openToggle: false,
         /** per-row mode: true = manual input, false = store select */
-        filterManualModes: {}
+        filterManualModes: {},
+        availableRoutes: []
     }),
     computed: {
         storeVarNames() {
@@ -431,6 +455,7 @@ export default {
         this.openLink = !!this.props.url;
         this.openEvent = this.eventName.length > 0;
         this.openToggle = this.props.btnIsToggle;
+        this.loadRoutes();
     },
     methods: {
         isFilterManual(i) {
@@ -468,6 +493,38 @@ export default {
         },
         copyToClipboard(text) {
             try { navigator.clipboard.writeText(text); } catch (e) { /* noop */ }
+        },
+        /** Load available routes from the parent window's Vuex store */
+        loadRoutes() {
+            try {
+                const tryState = (state) => {
+                    if (!state) return null;
+                    const paths = [
+                        () => state?.app?.app?.data?.routes,
+                        () => state?.app?.routes,
+                        () => state?.editor?.data?.routes,
+                        () => state?.editor?.routes,
+                        () => state?.routes,
+                        () => state?.application?.data?.routes
+                    ];
+                    for (const fn of paths) {
+                        try { const r = fn(); if (r && Array.isArray(r)) return r; } catch (e) { /* noop */ }
+                    }
+                    return null;
+                };
+                const parentStore = window.parent?.__vue_store__;
+                const ownStore = window.__vue_store__;
+                const routes = tryState(parentStore?.state) || tryState(ownStore?.state);
+                if (routes) {
+                    this.availableRoutes = routes
+                        .filter((r) => r.enabled !== false && r.slug)
+                        .slice(0, 40);
+                }
+            } catch (e) { /* noop — panel still works without route list */ }
+        },
+        setUrl(url) {
+            this.props.url = url;
+            this.propChanged('url');
         },
         setFilterData(filter, data) {
             try { filter.data = JSON.parse(data); } catch (e) { /* noop */ }
@@ -793,4 +850,63 @@ export default {
 .store-row__val--null  { color: #94a3b8; background: #f8fafc; font-style: italic; }
 .store-row__val--array { background: #eff6ff; color: #2563eb; }
 .store-row__val--obj   { background: #faf5ff; color: #7c3aed; }
+
+/* ── Route chips (URL section) ──────────────────────────────────── */
+.route-chips-hd {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    margin-bottom: 5px;
+}
+.route-chips-hd__label {
+    flex: 1;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+.route-chips-hd__btn {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    background: #fff;
+    color: #94a3b8;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
+    padding: 0;
+}
+.route-chips-hd__btn:hover { background: #f0f4ff; color: #4f6aff; border-color: #a5b4fc; }
+.route-chips-hd__btn--red:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+.route-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+    max-height: 96px;
+    overflow-y: auto;
+}
+.route-chip {
+    padding: 3px 9px;
+    border-radius: 16px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, color 0.12s;
+    white-space: nowrap;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.route-chip:hover { border-color: #93c5fd; color: #2563eb; background: #eff6ff; }
+.route-chip--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
 </style>

@@ -113,13 +113,14 @@ export default {
             return val === null || val === undefined || val === '';
         },
         buttonDynamicClass() {
-            const { btnHoverEffect, btnIsGlass } = this.props;
+            const { btnHoverEffect, btnIsGlass, btnShowText, btnIconLeft, btnIconRight } = this.props;
             return {
                 [`elem-btn--hover-${btnHoverEffect}`]: btnHoverEffect && btnHoverEffect !== 'default',
                 'elem-btn--loading': this.isLoading,
                 'elem-btn--toggle-active': this.isToggleActive,
                 'elem-btn--glass': btnIsGlass,
-                'elem-btn--disabled': this.isDisabled
+                'elem-btn--disabled': this.isDisabled,
+                'elem-btn--icon-only': btnShowText === false && !this.isLoading && (btnIconLeft || btnIconRight)
             };
         },
         buttonStyle() {
@@ -448,6 +449,9 @@ export default {
 }
 .elem-btn__icon--left { margin-right: 6px; }
 .elem-btn__icon--right { margin-left: 6px; }
+/* In icon-only mode (no text) remove directional margins so icon stays centred */
+.elem-btn--icon-only .elem-btn__icon--left,
+.elem-btn--icon-only .elem-btn__icon--right { margin: 0; }
 
 /* ── Spinner ────────────────────────────────────────────────────── */
 .elem-btn__spinner {
