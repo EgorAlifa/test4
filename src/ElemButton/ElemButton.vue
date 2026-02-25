@@ -1,51 +1,49 @@
 <template>
-    <w-elem :placeholder="$placeholder">
-        <div
-            class="elem-btn"
-            :class="buttonDynamicClass"
-            :style="buttonStyle"
-            @click="handleClick">
-            <span v-if="isLoading" class="elem-btn__spinner" />
-            <i
-                v-if="props.btnIconLeft && !isLoading"
-                :class="props.btnIconLeft"
-                class="elem-btn__icon elem-btn__icon--left" />
-            <slot>{{ props.btnShowText !== false ? props.btnText : '' }}</slot>
-            <i
-                v-if="props.btnIconRight"
-                :class="props.btnIconRight"
-                class="elem-btn__icon elem-btn__icon--right" />
-            <ui-popover v-bind="popoverOptions" :show.sync="isPopupVisible">
-                <div class="elem-btn__toast">{{ popupText }}</div>
-            </ui-popover>
-            <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
+    <div
+        class="elem-btn"
+        :class="[cssClass, buttonDynamicClass]"
+        :style="[cssStyle, buttonStyle]"
+        @click="handleClick">
+        <span v-if="isLoading" class="elem-btn__spinner" />
+        <i
+            v-if="props.btnIconLeft && !isLoading"
+            :class="props.btnIconLeft"
+            class="elem-btn__icon elem-btn__icon--left" />
+        <slot>{{ props.btnShowText !== false ? props.btnText : '' }}</slot>
+        <i
+            v-if="props.btnIconRight"
+            :class="props.btnIconRight"
+            class="elem-btn__icon elem-btn__icon--right" />
+        <ui-popover v-bind="popoverOptions" :show.sync="isPopupVisible">
+            <div class="elem-btn__toast">{{ popupText }}</div>
+        </ui-popover>
+        <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
 
-            <!-- ── Canvas quick-edit bar (editor only) ──────────────────── -->
-            <div v-if="isEditorMode" class="elem-btn__canvas-bar" @click.stop @mousedown.stop>
-                <div class="cbar__section">
-                    <button
-                        v-for="color in canvasQuickColors"
-                        :key="color"
-                        class="cbar__dot"
-                        :class="{ 'cbar__dot--active': props.btnBg === color }"
-                        :style="{ background: color }"
-                        :title="color"
-                        @click="setCanvasColor(color)" />
-                </div>
-                <div class="cbar__sep" />
-                <div class="cbar__section">
-                    <button
-                        v-for="s in canvasSizes"
-                        :key="s.key"
-                        class="cbar__size"
-                        :class="{ 'cbar__size--active': canvasCurrentSize === s.key }"
-                        @click="setCanvasSize(s)">
-                        {{ s.key }}
-                    </button>
-                </div>
+        <!-- ── Canvas quick-edit bar (editor only) ──────────────────── -->
+        <div v-if="isEditorMode" class="elem-btn__canvas-bar" @click.stop @mousedown.stop>
+            <div class="cbar__section">
+                <button
+                    v-for="color in canvasQuickColors"
+                    :key="color"
+                    class="cbar__dot"
+                    :class="{ 'cbar__dot--active': props.btnBg === color }"
+                    :style="{ background: color }"
+                    :title="color"
+                    @click="setCanvasColor(color)" />
+            </div>
+            <div class="cbar__sep" />
+            <div class="cbar__section">
+                <button
+                    v-for="s in canvasSizes"
+                    :key="s.key"
+                    class="cbar__size"
+                    :class="{ 'cbar__size--active': canvasCurrentSize === s.key }"
+                    @click="setCanvasSize(s)">
+                    {{ s.key }}
+                </button>
             </div>
         </div>
-    </w-elem>
+    </div>
 </template>
 
 <script>
@@ -353,13 +351,11 @@ export default {
 <style scoped>
 .elem-btn {
     position: relative;
-    display: flex;
-    width: 100%;
-    height: 100%;
-    min-height: var(--btn-height, 40px);
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
+    min-height: var(--btn-height, 40px);
     padding: var(--btn-padding-v, 10px) var(--btn-padding-h, 20px);
     border-radius: var(--btn-border-radius, 8px);
     background: var(--btn-bg, #4f6aff);
