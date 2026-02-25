@@ -32,27 +32,27 @@
                 <transition name="sec-expand">
                     <div v-if="openLink" class="sec-body">
                         <ui-input-url prop="url" />
-                        <!-- Route chips from parent Vuex store -->
+                        <!-- Route dropdown from parent Vuex store (auto-updated) -->
                         <template v-if="availableRoutes.length">
                             <div class="route-chips-hd">
                                 <span class="route-chips-hd__label">Страницы проекта</span>
-                                <button class="route-chips-hd__btn" title="Обновить список" @click="loadRoutes">
-                                    <i class="mdi mdi-refresh" />
-                                </button>
                                 <button v-if="props.url" class="route-chips-hd__btn route-chips-hd__btn--red" title="Очистить ссылку" @click="setUrl('')">
                                     <i class="mdi mdi-link-off" />
                                 </button>
                             </div>
-                            <div class="route-chips">
-                                <button
-                                    v-for="r in availableRoutes"
-                                    :key="r.slug"
-                                    class="route-chip"
-                                    :class="{ 'route-chip--active': props.url === r.slug }"
-                                    :title="r.slug"
-                                    @click="setUrl(r.slug)">
-                                    {{ r.title || r.name || r.slug }}
-                                </button>
+                            <div class="route-select-wrap">
+                                <i class="mdi mdi-file-tree-outline route-select-ico" />
+                                <select class="route-select" @change="onRouteSelect">
+                                    <option value="">— выбрать страницу —</option>
+                                    <option
+                                        v-for="r in availableRoutes"
+                                        :key="r.slug"
+                                        :value="r.slug"
+                                        :selected="props.url === r.slug">
+                                        {{ r.title || r.name || r.slug }}  ({{ r.slug }})
+                                    </option>
+                                </select>
+                                <i class="mdi mdi-chevron-down route-select-chev" />
                             </div>
                         </template>
                         <ui-switch v-if="props.url" prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
@@ -330,7 +330,9 @@ export default {
         openToggle: false,
         /** per-row mode: true = manual input, false = store select */
         filterManualModes: {},
-        availableRoutes: []
+        availableRoutes: [],
+        /** Vuex unsubscribe fn — cleaned up in beforeDestroy */
+        storeUnsubscribe: null
     }),
     computed: {
         storeVarNames() {
@@ -456,6 +458,26 @@ export default {
         this.openEvent = this.eventName.length > 0;
         this.openToggle = this.props.btnIsToggle;
         this.loadRoutes();
+        // Subscribe to Vuex mutations so the route list updates automatically
+        try {
+            const vuexStore = this._findVuexStore();
+            if (vuexStore) {
+                this.storeUnsubscribe = vuexStore.subscribe((mutation, state) => {
+                    const newRoutes = this._routesFromState(state);
+                    if (newRoutes) {
+                        this.availableRoutes = newRoutes
+                            .filter((r) => r.enabled !== false && r.slug)
+                            .slice(0, 40);
+                    }
+                });
+            }
+        } catch (e) { /* noop */ }
+    },
+    beforeDestroy() {
+        if (this.storeUnsubscribe) {
+            this.storeUnsubscribe();
+            this.storeUnsubscribe = null;
+        }
     },
     methods: {
         isFilterManual(i) {
@@ -553,6 +575,9 @@ export default {
         setUrl(url) {
             this.props.url = url;
             this.propChanged('url');
+        },
+        onRouteSelect(e) {
+            this.setUrl(e.target.value);
         },
         setFilterData(filter, data) {
             try { filter.data = JSON.parse(data); } catch (e) { /* noop */ }
@@ -879,7 +904,7 @@ export default {
 .store-row__val--array { background: #eff6ff; color: #2563eb; }
 .store-row__val--obj   { background: #faf5ff; color: #7c3aed; }
 
-/* ── Route chips (URL section) ──────────────────────────────────── */
+/* ── Route dropdown (URL section) ───────────────────────────────── */
 .route-chips-hd {
     display: flex;
     align-items: center;
@@ -912,29 +937,48 @@ export default {
 }
 .route-chips-hd__btn:hover { background: #f0f4ff; color: #4f6aff; border-color: #a5b4fc; }
 .route-chips-hd__btn--red:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
-.route-chips {
+
+/* Select wrapper with icon */
+.route-select-wrap {
+    position: relative;
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
+    align-items: center;
     margin-bottom: 8px;
-    max-height: 96px;
-    overflow-y: auto;
 }
-.route-chip {
-    padding: 3px 9px;
-    border-radius: 16px;
+.route-select-ico {
+    position: absolute;
+    left: 9px;
+    font-size: 14px;
+    color: #94a3b8;
+    pointer-events: none;
+    z-index: 1;
+}
+.route-select-chev {
+    position: absolute;
+    right: 8px;
+    font-size: 16px;
+    color: #94a3b8;
+    pointer-events: none;
+    z-index: 1;
+}
+.route-select {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 7px 30px 7px 30px;
     border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
     background: #fff;
-    color: #475569;
-    font-size: 11px;
-    font-weight: 500;
+    color: #334155;
+    font-size: 12px;
+    font-family: inherit;
     cursor: pointer;
-    transition: border-color 0.12s, background 0.12s, color 0.12s;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
     white-space: nowrap;
-    max-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.route-chip:hover { border-color: #93c5fd; color: #2563eb; background: #eff6ff; }
-.route-chip--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
+.route-select:hover { border-color: #a5b4fc; }
+.route-select:focus { border-color: #4f6aff; box-shadow: 0 0 0 3px rgba(79,106,255,0.12); }
 </style>
