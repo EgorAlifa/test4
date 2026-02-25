@@ -44,6 +44,21 @@
 
             <!-- ── Цвета ──────────────────────────────────────────────── -->
             <template v-if="!isGlass">
+                <!-- Цветовые пресеты -->
+                <div class="section-label">Цветовые пресеты</div>
+                <div class="color-presets">
+                    <button
+                        v-for="p in colorPresets"
+                        :key="p.label"
+                        class="color-preset"
+                        :class="{ 'color-preset--active': props.btnBg === p.bg && props.btnColor === p.color }"
+                        :title="p.label"
+                        :style="{ background: p.bg, color: p.color, border: p.border || 'none' }"
+                        @click="applyColorPreset(p)">
+                        {{ p.label }}
+                    </button>
+                </div>
+
                 <ui-input-cp prop="btnBg">{{ isGradient ? 'Начало градиента' : 'Фон кнопки' }}</ui-input-cp>
                 <template v-if="isGradient">
                     <ui-input-cp prop="btnGradientTo">Конец градиента</ui-input-cp>
@@ -97,14 +112,14 @@
                 <div class="icon-field">
                     <div class="icon-preview">
                         <i v-if="props.btnIconLeft" :class="props.btnIconLeft" />
-                        <span v-else class="icon-empty">←</span>
+                        <span v-else class="icon-empty"><i class="mdi mdi-minus-circle-outline" /></span>
                     </div>
                     <ui-input prop="btnIconLeft" placeholder="mdi mdi-arrow-left">Слева</ui-input>
                 </div>
                 <div class="icon-field">
                     <div class="icon-preview">
                         <i v-if="props.btnIconRight" :class="props.btnIconRight" />
-                        <span v-else class="icon-empty">→</span>
+                        <span v-else class="icon-empty"><i class="mdi mdi-minus-circle-outline" /></span>
                     </div>
                     <ui-input prop="btnIconRight" placeholder="mdi mdi-arrow-right">Справа</ui-input>
                 </div>
@@ -193,6 +208,19 @@
             <ui-collapse>
                 <template #header>Свой CSS</template>
                 <ui-container>
+                    <!-- CSS пресеты -->
+                    <div class="section-label">Пресеты стилей</div>
+                    <div class="css-presets">
+                        <button
+                            v-for="p in cssPresets"
+                            :key="p.label"
+                            class="css-preset-chip"
+                            :title="p.label"
+                            @click="applyCssPreset(p)">
+                            {{ p.label }}
+                        </button>
+                    </div>
+
                     <div class="css-section">
                         <div class="css-section__header">
                             <span class="form-label form-label-small">CSS кнопки</span>
@@ -316,6 +344,50 @@ export default {
         textPresets: [
             'Подробнее', 'Сохранить', 'Далее', 'Назад',
             'Войти', 'Отправить', 'Купить', 'Скачать'
+        ],
+        colorPresets: [
+            { label: 'Синий',      bg: '#4f6aff', color: '#ffffff' },
+            { label: 'Фиолет.',    bg: '#7c3aed', color: '#ffffff' },
+            { label: 'Голубой',    bg: '#0ea5e9', color: '#ffffff' },
+            { label: 'Зелёный',    bg: '#10b981', color: '#ffffff' },
+            { label: 'Янтарный',   bg: '#f59e0b', color: '#ffffff' },
+            { label: 'Красный',    bg: '#ef4444', color: '#ffffff' },
+            { label: 'Розовый',    bg: '#ec4899', color: '#ffffff' },
+            { label: 'Тёмный',     bg: '#1e293b', color: '#ffffff' },
+            { label: 'Светлый',    bg: '#f1f5f9', color: '#334155', border: '1px solid #e2e8f0' },
+            { label: 'Белый',      bg: '#ffffff',  color: '#1e293b', border: '1px solid #e2e8f0' }
+        ],
+        cssPresets: [
+            {
+                label: 'Неон',
+                btn: 'text-transform: uppercase;\nletter-spacing: 0.12em;\nborder: 2px solid currentColor;\nbox-shadow: 0 0 8px currentColor, inset 0 0 8px rgba(255,255,255,0.1);',
+                hover: 'box-shadow: 0 0 18px currentColor, inset 0 0 18px rgba(255,255,255,0.15);\nfilter: brightness(1.15);'
+            },
+            {
+                label: '3D',
+                btn: 'box-shadow: 0 6px 0 rgba(0,0,0,0.25), 0 8px 12px rgba(0,0,0,0.2);\ntransform: translateY(-3px);',
+                hover: 'box-shadow: 0 3px 0 rgba(0,0,0,0.25), 0 4px 8px rgba(0,0,0,0.2);\ntransform: translateY(0);'
+            },
+            {
+                label: 'Пунктир',
+                btn: 'background: transparent;\nborder: 2px dashed currentColor;\ncolor: var(--btn-bg);',
+                hover: 'background: var(--btn-bg);\ncolor: #fff;'
+            },
+            {
+                label: 'Заглавные',
+                btn: 'text-transform: uppercase;\nletter-spacing: 0.1em;\nfont-weight: 700;',
+                hover: ''
+            },
+            {
+                label: 'Подчёрк.',
+                btn: 'background: transparent;\ncolor: var(--btn-bg);\nborder-radius: 0;\nborder-bottom: 2px solid currentColor;',
+                hover: 'opacity: 0.75;'
+            },
+            {
+                label: 'Сброс',
+                btn: '',
+                hover: ''
+            }
         ],
         sizePresets: [
             { label: 'Малая',   rem: 0.375 },
@@ -535,6 +607,25 @@ export default {
                 this.props.btnHoverCss = this.localHoverCss;
                 this.propChanged('btnHoverCss');
             }, 300);
+        },
+        applyColorPreset(p) {
+            this.props.btnBg = p.bg;
+            this.propChanged('btnBg');
+            this.props.btnColor = p.color;
+            this.propChanged('btnColor');
+            // Reset gradient when applying a flat color preset
+            if (this.props.btnGradientTo) {
+                this.props.btnGradientTo = '';
+                this.propChanged('btnGradientTo');
+            }
+        },
+        applyCssPreset(p) {
+            this.localBtnCss = p.btn;
+            this.props.btnCustomCss = p.btn;
+            this.propChanged('btnCustomCss');
+            this.localHoverCss = p.hover;
+            this.props.btnHoverCss = p.hover;
+            this.propChanged('btnHoverCss');
         },
         setBtnText(text) {
             this.props.btnText = text;
@@ -786,6 +877,47 @@ export default {
     color: #475569;
 }
 .icon-empty { font-size: 13px; color: #cbd5e1; }
+
+/* ── Color presets ──────────────────────────────────────────────── */
+.color-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 6px;
+}
+.color-preset {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s, opacity 0.1s;
+    white-space: nowrap;
+    outline: none;
+}
+.color-preset:hover { transform: scale(1.07); box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+.color-preset--active { box-shadow: 0 0 0 2px #4f6aff, 0 2px 8px rgba(79,106,255,0.3); transform: scale(1.05); }
+
+/* ── CSS presets ────────────────────────────────────────────────── */
+.css-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 8px;
+}
+.css-preset-chip {
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, color 0.12s;
+    white-space: nowrap;
+}
+.css-preset-chip:hover { border-color: #a5b4fc; color: #4f6aff; background: #f5f7ff; }
 
 /* ── Custom CSS ────────────────────────────────────────────────── */
 .css-section { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
