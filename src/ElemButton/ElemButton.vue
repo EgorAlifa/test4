@@ -20,7 +20,8 @@
         <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
 
         <!-- ── Canvas quick-edit bar (editor only) ──────────────────── -->
-        <div v-if="isEditorMode" class="elem-btn__canvas-bar" @click.stop @mousedown.stop>
+        <div v-if="isEditorMode" class="elem-btn__canvas-bar"
+             @click.stop.prevent @mousedown.stop.prevent @mouseup.stop.prevent @pointerdown.stop.prevent>
             <div class="cbar__section">
                 <button
                     v-for="color in canvasQuickColors"
@@ -29,7 +30,9 @@
                     :class="{ 'cbar__dot--active': props.btnBg === color }"
                     :style="{ background: color }"
                     :title="color"
-                    @click="setCanvasColor(color)" />
+                    @mousedown.stop.prevent
+                    @mouseup.stop.prevent="setCanvasColor(color)"
+                    @click.stop.prevent />
             </div>
             <div class="cbar__sep" />
             <div class="cbar__section">
@@ -38,7 +41,9 @@
                     :key="s.key"
                     class="cbar__size"
                     :class="{ 'cbar__size--active': canvasCurrentSize === s.key }"
-                    @click="setCanvasSize(s)">
+                    @mousedown.stop.prevent
+                    @mouseup.stop.prevent="setCanvasSize(s)"
+                    @click.stop.prevent>
                     {{ s.key }}
                 </button>
             </div>
@@ -329,12 +334,14 @@ export default {
         /** Canvas bar: set background color */
         setCanvasColor(color) {
             this.props.btnBg = color;
+            this.propChanged();
         },
         /** Canvas bar: set S/M/L size */
         setCanvasSize(s) {
             this.props.btnPaddingV = s.paddingV;
             this.props.btnPaddingH = s.paddingH;
             this.props.btnFontSize = s.fontSize;
+            this.propChanged();
         },
         buildNavigateQueryParams() {
             const { urlFilters } = this.props;
