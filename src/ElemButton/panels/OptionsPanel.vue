@@ -32,27 +32,41 @@
                 <transition name="sec-expand">
                     <div v-if="openLink" class="sec-body">
                         <ui-input-url prop="url" />
-                        <!-- Route dropdown from parent Vuex store (auto-updated) -->
+                        <!-- Route custom dropdown (auto-updated via store subscription) -->
                         <template v-if="availableRoutes.length">
-                            <div class="route-chips-hd">
-                                <span class="route-chips-hd__label">Страницы проекта</span>
-                                <button v-if="props.url" class="route-chips-hd__btn route-chips-hd__btn--red" title="Очистить ссылку" @click="setUrl('')">
-                                    <i class="mdi mdi-link-off" />
-                                </button>
+                            <div class="route-dd-label">
+                                <i class="mdi mdi-file-tree-outline" />
+                                Страницы проекта
                             </div>
-                            <div class="route-select-wrap">
-                                <i class="mdi mdi-file-tree-outline route-select-ico" />
-                                <select class="route-select" @change="onRouteSelect">
-                                    <option value="">— выбрать страницу —</option>
-                                    <option
+                            <div class="route-dd" :class="{ 'route-dd--open': routeDdOpen }">
+                                <button
+                                    type="button"
+                                    class="route-dd__trigger"
+                                    @click.stop="routeDdOpen = !routeDdOpen">
+                                    <span class="route-dd__val" :class="{ 'route-dd__val--ph': !props.url }">
+                                        {{ currentRouteLabel }}
+                                    </span>
+                                    <i class="mdi route-dd__chev" :class="routeDdOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
+                                </button>
+                                <div v-if="routeDdOpen" class="route-dd__list">
+                                    <button
+                                        type="button"
+                                        class="route-dd__item route-dd__item--clear"
+                                        @click.stop="pickRoute('')">
+                                        <i class="mdi mdi-minus-circle-outline" />
+                                        <span>— без страницы —</span>
+                                    </button>
+                                    <button
                                         v-for="r in availableRoutes"
                                         :key="r.slug"
-                                        :value="r.slug"
-                                        :selected="props.url === r.slug">
-                                        {{ r.title || r.name || r.slug }}  ({{ r.slug }})
-                                    </option>
-                                </select>
-                                <i class="mdi mdi-chevron-down route-select-chev" />
+                                        type="button"
+                                        class="route-dd__item"
+                                        :class="{ 'route-dd__item--on': props.url === r.slug }"
+                                        @click.stop="pickRoute(r.slug)">
+                                        <span class="route-dd__item-name">{{ r.title || r.name || r.slug }}</span>
+                                        <span class="route-dd__item-slug">{{ r.slug }}</span>
+                                    </button>
+                                </div>
                             </div>
                         </template>
                         <ui-switch v-if="props.url" prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
@@ -331,6 +345,7 @@ export default {
         /** per-row mode: true = manual input, false = store select */
         filterManualModes: {},
         availableRoutes: [],
+        routeDdOpen: false,
         /** Vuex unsubscribe fn — cleaned up in beforeDestroy */
         storeUnsubscribe: null
     }),
@@ -368,6 +383,11 @@ export default {
         },
         disableVarOptions() {
             return [{ label: '— Нет —', value: '' }, ...this.storeVarOptions];
+        },
+        currentRouteLabel() {
+            if (!this.props.url) return '— выбрать страницу —';
+            const r = this.availableRoutes.find((rt) => rt.slug === this.props.url);
+            return r ? `${r.title || r.name || r.slug}  (${r.slug})` : this.props.url;
         },
         routeQueryParamOptions() {
             return this.props.filters.map(({ name, data }) => ({ label: name, value: String(data) }));
@@ -458,6 +478,11 @@ export default {
         this.openEvent = this.eventName.length > 0;
         this.openToggle = this.props.btnIsToggle;
         this.loadRoutes();
+        // Close dropdown when clicking outside the panel
+        this._closeDd = (e) => {
+            if (this.$el && !this.$el.contains(e.target)) this.routeDdOpen = false;
+        };
+        window.addEventListener('click', this._closeDd);
         // Subscribe to Vuex mutations so the route list updates automatically
         try {
             const vuexStore = this._findVuexStore();
@@ -474,6 +499,7 @@ export default {
         } catch (e) { /* noop */ }
     },
     beforeDestroy() {
+        if (this._closeDd) window.removeEventListener('click', this._closeDd);
         if (this.storeUnsubscribe) {
             this.storeUnsubscribe();
             this.storeUnsubscribe = null;
@@ -576,8 +602,9 @@ export default {
             this.props.url = url;
             this.propChanged('url');
         },
-        onRouteSelect(e) {
-            this.setUrl(e.target.value);
+        pickRoute(slug) {
+            this.setUrl(slug);
+            this.routeDdOpen = false;
         },
         setFilterData(filter, data) {
             try { filter.data = JSON.parse(data); } catch (e) { /* noop */ }
@@ -904,81 +931,113 @@ export default {
 .store-row__val--array { background: #eff6ff; color: #2563eb; }
 .store-row__val--obj   { background: #faf5ff; color: #7c3aed; }
 
-/* ── Route dropdown (URL section) ───────────────────────────────── */
-.route-chips-hd {
+/* ── Route custom dropdown (URL section) ────────────────────────── */
+.route-dd-label {
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-top: 8px;
-    margin-bottom: 5px;
-}
-.route-chips-hd__label {
-    flex: 1;
+    gap: 5px;
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
     color: #94a3b8;
+    margin-top: 8px;
+    margin-bottom: 5px;
 }
-.route-chips-hd__btn {
-    width: 22px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #e2e8f0;
-    border-radius: 5px;
-    background: #fff;
-    color: #94a3b8;
-    font-size: 13px;
-    cursor: pointer;
-    transition: background 0.1s, color 0.1s, border-color 0.1s;
-    padding: 0;
-}
-.route-chips-hd__btn:hover { background: #f0f4ff; color: #4f6aff; border-color: #a5b4fc; }
-.route-chips-hd__btn--red:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+.route-dd-label .mdi { font-size: 13px; }
 
-/* Select wrapper with icon */
-.route-select-wrap {
-    position: relative;
+.route-dd { margin-bottom: 8px; }
+
+.route-dd__trigger {
+    width: 100%;
     display: flex;
     align-items: center;
-    margin-bottom: 8px;
-}
-.route-select-ico {
-    position: absolute;
-    left: 9px;
-    font-size: 14px;
-    color: #94a3b8;
-    pointer-events: none;
-    z-index: 1;
-}
-.route-select-chev {
-    position: absolute;
-    right: 8px;
-    font-size: 16px;
-    color: #94a3b8;
-    pointer-events: none;
-    z-index: 1;
-}
-.route-select {
-    width: 100%;
-    appearance: none;
-    -webkit-appearance: none;
-    padding: 7px 30px 7px 30px;
+    gap: 7px;
+    padding: 8px 10px;
     border: 1.5px solid #e2e8f0;
     border-radius: 8px;
     background: #fff;
     color: #334155;
-    font-size: 12px;
-    font-family: inherit;
     cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    font-size: 12px;
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
+}
+.route-dd__trigger:hover { border-color: #a5b4fc; }
+.route-dd--open .route-dd__trigger {
+    border-color: #4f6aff;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 0 0 3px rgba(79,106,255,0.1);
+}
+.route-dd__val {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
+    font-weight: 500;
+}
+.route-dd__val--ph { color: #94a3b8; font-weight: 400; }
+.route-dd__chev { color: #94a3b8; font-size: 16px; flex-shrink: 0; transition: transform 0.15s; }
+.route-dd--open .route-dd__chev { transform: rotate(180deg); }
+
+.route-dd__list {
+    width: 100%;
+    background: #fff;
+    border: 1.5px solid #4f6aff;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 4px;
+    box-sizing: border-box;
+}
+.route-dd__item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 9px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #334155;
+    cursor: pointer;
+    text-align: left;
+    font-size: 12px;
+    font-family: inherit;
+    transition: background 0.1s, color 0.1s;
+    box-sizing: border-box;
+}
+.route-dd__item:hover { background: #f0f4ff; color: #1e293b; }
+.route-dd__item--clear { color: #94a3b8; gap: 6px; }
+.route-dd__item--clear .mdi { font-size: 14px; flex-shrink: 0; }
+.route-dd__item--clear:hover { background: #fef2f2; color: #dc2626; }
+.route-dd__item--on { background: #eff2ff; color: #4f6aff; }
+.route-dd__item--on:hover { background: #e0e7ff; }
+.route-dd__item-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+}
+.route-dd__item-slug {
+    font-family: monospace;
+    font-size: 10px;
+    color: #94a3b8;
+    background: #f1f5f9;
+    padding: 1px 5px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    max-width: 90px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.route-select:hover { border-color: #a5b4fc; }
-.route-select:focus { border-color: #4f6aff; box-shadow: 0 0 0 3px rgba(79,106,255,0.12); }
+.route-dd__item--on .route-dd__item-slug { background: #dbeafe; color: #3b82f6; }
 </style>

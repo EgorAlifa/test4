@@ -374,24 +374,13 @@ export default {
     outline: none;
 }
 
-/* ── Base hover overlay ─────────────────────────────────────────── */
-.elem-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: rgba(0, 0, 0, 0.12);
-    opacity: 0;
-    transition: opacity 0.18s ease;
-    pointer-events: none;
-}
-
-.elem-btn:hover::before { opacity: 1; }
-.elem-btn:active { transform: translateY(1px) scale(0.98); }
-.elem-btn:active::before { background: rgba(0, 0, 0, 0.2); opacity: 1; }
+/* ── Default hover: brightness filter — clean on gradients, no color veil ── */
+.elem-btn:hover { filter: brightness(0.9); }
+.elem-btn:active { transform: translateY(1px) scale(0.98); filter: brightness(0.82); }
 
 /* ── Hover: lift ────────────────────────────────────────────────── */
 .elem-btn--hover-lift:hover {
+    filter: none;
     transform: translateY(-3px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 3px 8px rgba(0, 0, 0, 0.1);
 }
@@ -399,22 +388,23 @@ export default {
 
 /* ── Hover: glow ────────────────────────────────────────────────── */
 .elem-btn--hover-glow:hover {
+    filter: none;
     box-shadow: 0 0 0 3px rgba(79, 106, 255, 0.25), 0 0 24px rgba(79, 106, 255, 0.5);
     transform: none;
 }
 
 /* ── Hover: scale ───────────────────────────────────────────────── */
-.elem-btn--hover-scale:hover { transform: scale(1.05); }
+.elem-btn--hover-scale:hover { filter: none; transform: scale(1.05); }
 .elem-btn--hover-scale:active { transform: scale(0.97); }
 
 /* ── Hover: pulse (idle animation) ─────────────────────────────── */
 .elem-btn--hover-pulse { animation: elem-btn-pulse 2s ease-in-out infinite; }
-.elem-btn--hover-pulse:hover { animation: none; transform: scale(1.03); }
+.elem-btn--hover-pulse:hover { filter: none; animation: none; transform: scale(1.03); }
 
 /* ── Hover: none ────────────────────────────────────────────────── */
-.elem-btn--hover-none:hover::before { opacity: 0; }
 .elem-btn--hover-none:hover,
 .elem-btn--hover-none:active {
+    filter: none;
     transform: none;
     box-shadow: var(--btn-shadow);
 }
