@@ -6,11 +6,27 @@
             <div class="btn-preview-wrap">
                 <div class="btn-preview" :style="fullPreviewStyle">
                     <i v-if="props.btnIconLeft" :class="props.btnIconLeft" />
-                    {{ props.btnText || 'Кнопка' }}
+                    <span v-if="props.btnShowText !== false">{{ props.btnText || 'Подробнее' }}</span>
+                    <span v-else-if="!props.btnIconLeft && !props.btnIconRight" class="preview-icon-only">
+                        <i class="mdi mdi-gesture-tap" />
+                    </span>
                     <i v-if="props.btnIconRight" :class="props.btnIconRight" />
                 </div>
             </div>
-            <ui-input prop="btnText" placeholder="Кнопка">Текст кнопки</ui-input>
+            <ui-switch prop="btnShowText">Показывать текст</ui-switch>
+            <template v-if="props.btnShowText !== false">
+                <div class="text-presets">
+                    <button
+                        v-for="t in textPresets"
+                        :key="t"
+                        class="text-preset"
+                        :class="{ 'text-preset--active': props.btnText === t }"
+                        @click="setBtnText(t)">
+                        {{ t }}
+                    </button>
+                </div>
+                <ui-input prop="btnText" placeholder="Подробнее">Свой текст</ui-input>
+            </template>
 
             <!-- ── Вариант стиля ───────────────────────────────────────── -->
             <div class="section-label">Стиль кнопки</div>
@@ -297,6 +313,10 @@ export default {
             { label: 'Помощь',  value: 'help',      icon: 'mdi mdi-help-circle-outline' },
             { label: 'Захват',  value: 'grab',      icon: 'mdi mdi-hand-back-left-outline' }
         ],
+        textPresets: [
+            'Подробнее', 'Сохранить', 'Далее', 'Назад',
+            'Войти', 'Отправить', 'Купить', 'Скачать'
+        ],
         sizePresets: [
             { label: 'Малая',   rem: 0.375 },
             { label: 'Средняя', rem: 0.625 },
@@ -516,6 +536,11 @@ export default {
                 this.propChanged('btnHoverCss');
             }, 300);
         },
+        setBtnText(text) {
+            this.props.btnText = text;
+            this.propChanged('btnText');
+        },
+
         resetAll() {
             Object.entries(DEFAULTS).forEach(([key, val]) => {
                 this.props[key] = val;
@@ -807,4 +832,30 @@ export default {
 .btn-preview {
     transition: all 0.15s;
 }
+.preview-icon-only {
+    opacity: 0.35;
+    font-size: 18px;
+}
+
+/* ── Text presets ───────────────────────────────────────────────── */
+.text-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+.text-preset {
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, color 0.12s;
+    white-space: nowrap;
+}
+.text-preset:hover { border-color: #a5b4fc; color: #4f6aff; }
+.text-preset--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
 </style>
