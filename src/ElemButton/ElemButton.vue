@@ -478,6 +478,21 @@ export default {
 }
 
 /* ── Canvas quick-edit bar ──────────────────────────────────────── */
+
+/* Bridge the gap so cursor doesn't lose hover moving button→bar */
+.elem-btn::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    height: 16px;
+    pointer-events: none;
+}
+.elem-btn:hover::after {
+    pointer-events: auto;
+}
+
 .elem-btn__canvas-bar {
     position: absolute;
     bottom: calc(100% + 8px);
@@ -497,7 +512,8 @@ export default {
     white-space: nowrap;
 }
 
-.elem-btn:hover .elem-btn__canvas-bar {
+.elem-btn:hover .elem-btn__canvas-bar,
+.elem-btn__canvas-bar:hover {
     opacity: 1;
     pointer-events: auto;
     transform: translateX(-50%) translateY(0);
