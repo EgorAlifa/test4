@@ -395,7 +395,7 @@ export default {
                     icon: 'mdi-filter-variant',
                     color: 'purple',
                     active: this.hasAdvancedActions,
-                    status: this.hasAdvancedActions ? `${this.advancedActionsCount} правил` : 'Нет',
+                    status: this.hasAdvancedActions ? this.ruPlural(this.advancedActionsCount, 'правило', 'правила', 'правил') : 'Нет',
                     toggle: () => {}
                 }
             ];
@@ -447,6 +447,14 @@ export default {
             const max = 26;
             return url.length > max ? `${url.slice(0, max)}…` : url;
         },
+        /** Russian plural: ruPlural(5, 'правило', 'правила', 'правил') → '5 правил' */
+        ruPlural(n, one, few, many) {
+            const m10 = n % 10;
+            const m100 = n % 100;
+            if (m10 === 1 && m100 !== 11) return `${n} ${one}`;
+            if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return `${n} ${few}`;
+            return `${n} ${many}`;
+        },
         formatStoreVal(val) {
             if (val === null || val === undefined) return '∅';
             if (typeof val === 'boolean') return val ? 'true' : 'false';
@@ -480,7 +488,7 @@ export default {
         },
         onFilterDelete(filter) {
             this.props.filters = this.props.filters.filter((el) => el !== filter);
-            this.saveFilters();
+            this.propChanged('filters');
         },
         onFilterAdd() {
             this.props.filters.push(this.descriptor.props.filters.factory());
