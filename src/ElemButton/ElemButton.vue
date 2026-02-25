@@ -244,8 +244,8 @@ export default {
 
             if (urlModel.isRelative && urlModel.hash === '') {
                 const { path, query } = urlModel;
-                navigate({ route: { path, query: { ...query, ...queryParams } } }, { isNewWindow: isTargetBlank })
-                    ?.catch?.((err) => { if (err?.name !== 'NavigationDuplicated') throw err; });
+                if (Managers.RouteManager?.instance?.route?.path === path) return;
+                navigate({ route: { path, query: { ...query, ...queryParams } } }, { isNewWindow: isTargetBlank });
                 return;
             }
 
@@ -257,10 +257,12 @@ export default {
 
             const { path, query } = Url.create(urlModel.hash.replace('#', ''));
             urlModel.hash = '';
-            navigate(
-                { url: urlModel.href, route: { path, query: { ...query, ...queryParams } } },
-                { isNewWindow: isTargetBlank }
-            )?.catch?.((err) => { if (err?.name !== 'NavigationDuplicated') throw err; });
+            if (Managers.RouteManager?.instance?.route?.path !== path) {
+                navigate(
+                    { url: urlModel.href, route: { path, query: { ...query, ...queryParams } } },
+                    { isNewWindow: isTargetBlank }
+                );
+            }
         },
         saveUrlInStorage() {
             if (this.props.isSaveUrlForStore) {

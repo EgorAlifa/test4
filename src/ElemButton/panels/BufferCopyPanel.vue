@@ -16,13 +16,21 @@
                 </button>
             </div>
 
-            <!-- Подсказка: ссылка -->
+            <!-- Подсказка: ссылка со состоянием -->
             <div v-if="copyMode === 'url'" class="copy-hint">
-                <i class="mdi mdi-information-outline copy-hint__ico" />
-                <span>
-                    Кнопка скопирует адрес страницы вместе со всеми
-                    активными значениями фильтров — удобно для «поделиться»
-                </span>
+                <div class="copy-hint__row">
+                    <i class="mdi mdi-share-variant copy-hint__ico" />
+                    <strong>Поделиться состоянием страницы</strong>
+                </div>
+                <p class="copy-hint__text">
+                    Кнопка сохраняет в буфер ссылку, по которой страница
+                    откроется <em>точно такой же</em> — с теми же
+                    выбранными значениями (даты, категории, параметры).
+                </p>
+                <div class="copy-hint__example">
+                    <i class="mdi mdi-link copy-hint__ex-ico" />
+                    <span class="copy-hint__ex-url">/page<span class="copy-hint__ex-qs">?city=Москва&amp;from=2024-01</span></span>
+                </div>
             </div>
 
             <!-- Поле: свой текст -->
@@ -46,7 +54,7 @@ export default {
     data: () => ({
         copyModes: [
             { value: '',     label: 'Ничего',    icon: 'mdi-minus-circle-outline' },
-            { value: 'url',  label: 'Ссылку',    icon: 'mdi-link-variant' },
+            { value: 'url',  label: 'Снимок',    icon: 'mdi-share-variant' },
             { value: 'text', label: 'Свой текст', icon: 'mdi-text-box-outline' }
         ]
     }),
@@ -125,20 +133,42 @@ export default {
 /* ── Подсказка для режима «ссылка» ──────────────────────────────── */
 .copy-hint {
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
     gap: 7px;
-    padding: 9px 11px;
-    border-radius: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
     background: #eff6ff;
     border: 1px solid #bfdbfe;
     font-size: 12px;
-    color: #1e40af;
+    color: #1e3a8a;
     line-height: 1.5;
 }
-.copy-hint__ico {
-    font-size: 15px;
-    color: #3b82f6;
-    flex-shrink: 0;
-    margin-top: 1px;
+.copy-hint__row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    font-size: 12px;
+    color: #1e40af;
 }
+.copy-hint__ico { font-size: 15px; color: #3b82f6; }
+.copy-hint__text { margin: 0; color: #1e40af; }
+.copy-hint__text em { font-style: normal; font-weight: 600; }
+
+/* пример URL */
+.copy-hint__example {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    background: #dbeafe;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 11px;
+    color: #1d4ed8;
+    overflow: hidden;
+}
+.copy-hint__ex-ico { font-size: 13px; color: #3b82f6; flex-shrink: 0; }
+.copy-hint__ex-url { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.copy-hint__ex-qs  { color: #6366f1; }
 </style>
