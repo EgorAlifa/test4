@@ -9,7 +9,7 @@
             v-if="props.btnIconLeft && !isLoading"
             :class="props.btnIconLeft"
             class="elem-btn__icon elem-btn__icon--left" />
-        <slot>{{ props.btnText }}</slot>
+        <slot>{{ props.btnShowText !== false ? props.btnText : '' }}</slot>
         <i
             v-if="props.btnIconRight"
             :class="props.btnIconRight"

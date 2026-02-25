@@ -87,9 +87,13 @@ export const descriptor = () => ({
             default: () => []
         },
         // ── Label ─────────────────────────────────────────────────────
+        btnShowText: {
+            type: Boolean,
+            default: true
+        },
         btnText: {
             type: String,
-            default: 'Кнопка'
+            default: 'Подробнее'
         },
         // ── Appearance ────────────────────────────────────────────────
         btnBg: {
