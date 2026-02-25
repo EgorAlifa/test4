@@ -2,6 +2,16 @@
     <w-panel>
         <ui-container>
 
+            <!-- ── Текст кнопки ────────────────────────────────────────── -->
+            <div class="btn-preview-wrap">
+                <div class="btn-preview" :style="fullPreviewStyle">
+                    <i v-if="props.btnIconLeft" :class="props.btnIconLeft" />
+                    {{ props.btnText || 'Кнопка' }}
+                    <i v-if="props.btnIconRight" :class="props.btnIconRight" />
+                </div>
+            </div>
+            <ui-input prop="btnText" placeholder="Кнопка">Текст кнопки</ui-input>
+
             <!-- ── Вариант стиля ───────────────────────────────────────── -->
             <div class="section-label">Стиль кнопки</div>
             <div class="opt-grid opt-grid--5">
@@ -309,6 +319,39 @@ export default {
     computed: {
         isGlass() { return this.stylePreset === 'glass'; },
         isGradient() { return this.stylePreset === 'gradient'; },
+
+        /** Full-size live preview style (mirrors ElemButton.vue buttonStyle) */
+        fullPreviewStyle() {
+            const {
+                btnBg, btnColor, btnBorderRadius, btnFontSize, btnFontWeight,
+                btnPaddingV, btnPaddingH, btnBorderWidth, btnBorderColor,
+                btnGradientTo, btnGradientAngle, btnIsGlass
+            } = this.props;
+            let bg = btnBg || '#4f6aff';
+            if (btnGradientTo) bg = `linear-gradient(${btnGradientAngle || '135deg'}, ${bg}, ${btnGradientTo})`;
+            if (btnIsGlass) bg = 'rgba(255,255,255,0.15)';
+            return {
+                background: bg,
+                color: btnColor || '#fff',
+                borderRadius: btnBorderRadius || '8px',
+                fontSize: btnFontSize || '14px',
+                fontWeight: btnFontWeight || '500',
+                padding: `${btnPaddingV || '10px'} ${btnPaddingH || '20px'}`,
+                border: (btnBorderWidth && btnBorderWidth !== '0px')
+                    ? `${btnBorderWidth} solid ${btnBorderColor || 'currentColor'}`
+                    : 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                lineHeight: '1.4',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                boxSizing: 'border-box',
+                pointerEvents: 'none'
+            };
+        },
 
         /** Current padding-v in rem, snapped to slider step */
         sizeSliderRem() {
@@ -748,4 +791,20 @@ export default {
     line-height: 1.5;
 }
 .css-section__textarea:focus { outline: none; border-color: #4f6aff; }
+
+/* ── Live button preview ────────────────────────────────────────── */
+.btn-preview-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 8px;
+    background: repeating-conic-gradient(#f0f0f0 0% 25%, #fafafa 0% 50%) 0 0 / 12px 12px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 4px;
+    min-height: 56px;
+}
+.btn-preview {
+    transition: all 0.15s;
+}
 </style>
