@@ -244,7 +244,8 @@ export default {
 
             if (urlModel.isRelative && urlModel.hash === '') {
                 const { path, query } = urlModel;
-                navigate({ route: { path, query: { ...query, ...queryParams } } }, { isNewWindow: isTargetBlank });
+                navigate({ route: { path, query: { ...query, ...queryParams } } }, { isNewWindow: isTargetBlank })
+                    ?.catch?.((err) => { if (err?.name !== 'NavigationDuplicated') throw err; });
                 return;
             }
 
@@ -259,7 +260,7 @@ export default {
             navigate(
                 { url: urlModel.href, route: { path, query: { ...query, ...queryParams } } },
                 { isNewWindow: isTargetBlank }
-            );
+            )?.catch?.((err) => { if (err?.name !== 'NavigationDuplicated') throw err; });
         },
         saveUrlInStorage() {
             if (this.props.isSaveUrlForStore) {
