@@ -59,9 +59,14 @@
                     </button>
                 </div>
 
-                <ui-input-cp prop="btnBg">{{ isGradient ? 'Начало градиента' : 'Фон кнопки' }}</ui-input-cp>
+                <ui-input-cp prop="btnBg">{{ isGradient ? 'Цвет начала' : 'Фон кнопки' }}</ui-input-cp>
                 <template v-if="isGradient">
-                    <ui-input-cp prop="btnGradientTo">Конец градиента</ui-input-cp>
+                    <!-- Visual gradient strip between the two color pickers -->
+                    <div class="gradient-strip-row">
+                        <div class="gradient-strip" :style="gradientStripStyle" />
+                        <span class="gradient-strip-arrow">→</span>
+                    </div>
+                    <ui-input-cp prop="btnGradientTo">Цвет конца</ui-input-cp>
                     <div class="section-label">Угол градиента</div>
                     <div class="opt-grid opt-grid--4">
                         <div
@@ -527,6 +532,12 @@ export default {
         isGlass() { return this.stylePreset === 'glass'; },
         isGradient() { return this.stylePreset === 'gradient'; },
         iconOnlyMode() { return this.props.btnShowText === false; },
+        gradientStripStyle() {
+            const { btnBg, btnGradientTo, btnGradientAngle } = this.props;
+            return {
+                background: `linear-gradient(to right, ${btnBg || '#4f6aff'}, ${btnGradientTo || '#7c3aed'})`
+            };
+        },
         /** In gradient mode hide near-white presets — they create an ugly "white veil" */
         visibleColorPresets() {
             if (!this.isGradient) return this.colorPresets;
@@ -1346,6 +1357,26 @@ export default {
     line-height: 1.5;
 }
 .css-section__textarea:focus { outline: none; border-color: #4f6aff; }
+
+/* ── Gradient color picker strip ────────────────────────────────── */
+.gradient-strip-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 2px 0 2px;
+}
+.gradient-strip {
+    flex: 1;
+    height: 18px;
+    border-radius: 6px;
+    border: 1px solid rgba(0,0,0,0.08);
+}
+.gradient-strip-arrow {
+    font-size: 16px;
+    color: #94a3b8;
+    flex-shrink: 0;
+    line-height: 1;
+}
 
 /* ── Live button preview ────────────────────────────────────────── */
 .btn-preview-wrap {

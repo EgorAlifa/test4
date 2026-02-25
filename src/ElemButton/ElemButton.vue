@@ -380,15 +380,15 @@ export default {
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: currentColor;
+    background: rgba(0, 0, 0, 0.12);
     opacity: 0;
     transition: opacity 0.18s ease;
     pointer-events: none;
 }
 
-.elem-btn:hover::before { opacity: 0.1; }
+.elem-btn:hover::before { opacity: 1; }
 .elem-btn:active { transform: translateY(1px) scale(0.98); }
-.elem-btn:active::before { opacity: 0.15; }
+.elem-btn:active::before { background: rgba(0, 0, 0, 0.2); opacity: 1; }
 
 /* ── Hover: lift ────────────────────────────────────────────────── */
 .elem-btn--hover-lift:hover {
