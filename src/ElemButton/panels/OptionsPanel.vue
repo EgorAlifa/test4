@@ -16,7 +16,10 @@
             </div>
 
             <!-- ── Ссылка ──────────────────────────────────────────────────── -->
-            <div class="sec-hd" @click="openLink = !openLink">
+            <div
+                class="sec-hd"
+                :class="{ 'sec-hd--accent-blue': props.url }"
+                @click="openLink = !openLink">
                 <span class="sec-hd__ico sec-hd__ico--blue">
                     <i class="mdi mdi-link-variant" />
                 </span>
@@ -27,13 +30,16 @@
                 </div>
                 <i class="mdi sec-hd__chev" :class="openLink ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
             </div>
-            <div v-show="openLink" class="sec-body">
+            <div v-show="openLink" class="sec-body sec-body--blue">
                 <ui-input-url prop="url" />
                 <ui-switch v-if="props.url" prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
             </div>
 
             <!-- ── Событие ────────────────────────────────────────────────── -->
-            <div class="sec-hd" @click="openEvent = !openEvent">
+            <div
+                class="sec-hd"
+                :class="{ 'sec-hd--accent-amber': eventName.length }"
+                @click="openEvent = !openEvent">
                 <span class="sec-hd__ico sec-hd__ico--amber">
                     <i class="mdi mdi-lightning-bolt" />
                 </span>
@@ -44,7 +50,7 @@
                 </div>
                 <i class="mdi sec-hd__chev" :class="openEvent ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
             </div>
-            <div v-show="openEvent" class="sec-body">
+            <div v-show="openEvent" class="sec-body sec-body--amber">
                 <ui-input-tags v-model="eventName">
                     Событие
                     <ui-tooltip>
@@ -57,7 +63,10 @@
             </div>
 
             <!-- ── Переключатель ──────────────────────────────────────────── -->
-            <div class="sec-hd" @click="openToggle = !openToggle">
+            <div
+                class="sec-hd"
+                :class="{ 'sec-hd--accent-green': props.btnIsToggle }"
+                @click="openToggle = !openToggle">
                 <span class="sec-hd__ico" :class="props.btnIsToggle ? 'sec-hd__ico--green' : 'sec-hd__ico--grey'">
                     <i :class="['mdi', props.btnIsToggle ? 'mdi-toggle-switch' : 'mdi-toggle-switch-off-outline']" />
                 </span>
@@ -69,7 +78,7 @@
                 </div>
                 <i class="mdi sec-hd__chev" :class="openToggle ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
             </div>
-            <div v-show="openToggle" class="sec-body">
+            <div v-show="openToggle" class="sec-body sec-body--green">
                 <ui-switch prop="btnIsToggle">
                     Включить переключатель
                     <ui-tooltip>
@@ -100,27 +109,48 @@
                 </template>
                 <ui-container>
 
-                    <!-- Установить переменные -->
-                    <div class="adv-section-label">Установить переменные хранилища</div>
+                    <!-- Установить переменные хранилища -->
+                    <div class="adv-label">
+                        <i class="mdi mdi-database-edit-outline" />
+                        Установить переменные
+                    </div>
                     <div
                         v-for="(filter, i) in props.filters"
                         :key="i"
-                        class="filter-row">
-                        <ui-input
-                            v-model="filter.name"
-                            :list="`store-vars-${_uid}`"
-                            class="filter-row__name"
-                            @change="onFilterChange(filter, i)">
-                            Переменная
-                        </ui-input>
-                        <ui-input
-                            :value="getFilterData(filter)"
-                            class="filter-row__val"
-                            @input="(val) => setFilterData(filter, val)"
-                            @change="onFilterChange(filter, i)">
-                            Значение
-                        </ui-input>
-                        <button class="filter-row__del" @click="onFilterDelete(filter)">
+                        class="var-row">
+                        <!-- Variable name: select from store if vars available, else free text -->
+                        <div class="var-row__name">
+                            <ui-select
+                                v-if="storeEntries.length"
+                                v-model="filter.name"
+                                :options="filterVarOptions"
+                                @change="onFilterChange(filter, i)">
+                                Переменная
+                            </ui-select>
+                            <ui-input
+                                v-else
+                                v-model="filter.name"
+                                :list="`store-vars-${_uid}`"
+                                @change="onFilterChange(filter, i)">
+                                Переменная
+                            </ui-input>
+                            <div
+                                v-if="filter.name && storeEntries.some(e => e.name === filter.name)"
+                                class="var-row__current">
+                                <i class="mdi mdi-database-arrow-right-outline" />
+                                Сейчас: <strong>{{ getStoreVal(filter.name) }}</strong>
+                            </div>
+                        </div>
+                        <!-- Value -->
+                        <div class="var-row__val">
+                            <ui-input
+                                :value="getFilterData(filter)"
+                                @input="(val) => setFilterData(filter, val)"
+                                @change="onFilterChange(filter, i)">
+                                Значение
+                            </ui-input>
+                        </div>
+                        <button class="var-row__del" @click="onFilterDelete(filter)">
                             <i class="mdi mdi-close" />
                         </button>
                     </div>
@@ -130,7 +160,10 @@
                     <ui-button type="ghost" @click="onFilterAdd">+ Добавить</ui-button>
 
                     <!-- Очистить переменные -->
-                    <div class="adv-section-label">Очистить при нажатии</div>
+                    <div class="adv-label">
+                        <i class="mdi mdi-database-remove-outline" />
+                        Очистить при нажатии
+                    </div>
                     <ui-select
                         v-if="storeVarOptions.length"
                         v-model="cutParams"
@@ -142,19 +175,23 @@
 
                     <!-- Передать в URL -->
                     <template v-if="props.url && storeVarOptions.length">
-                        <div class="adv-section-label">Передать переменные в ссылку</div>
+                        <div class="adv-label">
+                            <i class="mdi mdi-link-plus" />
+                            Передать переменные в ссылку
+                        </div>
                         <div
                             v-for="(filter, i) in props.urlFilters"
                             :key="i"
-                            class="filter-row">
-                            <ui-select
-                                v-model="filter.name"
-                                :options="storeVarOptions"
-                                class="filter-row__name"
-                                @change="onUrlFilterChange">
-                                Переменная
-                            </ui-select>
-                            <button class="filter-row__del" @click="onUrlFilterDelete(i)">
+                            class="var-row">
+                            <div class="var-row__name">
+                                <ui-select
+                                    v-model="filter.name"
+                                    :options="storeVarOptions"
+                                    @change="onUrlFilterChange">
+                                    Переменная
+                                </ui-select>
+                            </div>
+                            <button class="var-row__del" @click="onUrlFilterDelete(i)">
                                 <i class="mdi mdi-close" />
                             </button>
                         </div>
@@ -169,6 +206,33 @@
                         :options="routeQueryParamOptions">
                         Сохранить в URL страницы
                     </ui-select>
+
+                    <!-- Хранилище: мини-обзор -->
+                    <ui-collapse v-if="storeEntries.length">
+                        <template #header>
+                            <i class="mdi mdi-database-eye-outline" />
+                            Хранилище
+                            <span class="badge">{{ storeEntries.length }}</span>
+                        </template>
+                        <div class="store-table">
+                            <div
+                                v-for="entry in storeEntries"
+                                :key="entry.name"
+                                class="store-row"
+                                @click="copyToClipboard(entry.name)">
+                                <span class="store-row__name">{{ entry.name }}</span>
+                                <span
+                                    class="store-row__val"
+                                    :class="{
+                                        'store-row__val--null':  entry.isNull,
+                                        'store-row__val--array': entry.isArray,
+                                        'store-row__val--obj':   entry.isObject
+                                    }">
+                                    {{ entry.display }}
+                                </span>
+                            </div>
+                        </div>
+                    </ui-collapse>
 
                 </ui-container>
             </ui-collapse>
@@ -233,6 +297,36 @@ export default {
         },
         storeVarOptions() {
             return this.storeVarNames.map((k) => ({ label: k, value: k }));
+        },
+        /** Full store entries with formatted display values */
+        storeEntries() {
+            try {
+                return Object.entries(store.state || {})
+                    .filter(([k]) => k)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([name, val]) => {
+                        const isNull = val === null || val === undefined;
+                        const isArray = Array.isArray(val);
+                        const isObject = !isNull && !isArray && typeof val === 'object';
+                        return {
+                            name,
+                            isNull,
+                            isArray,
+                            isObject,
+                            display: this.formatStoreVal(val)
+                        };
+                    });
+            } catch (e) { return []; }
+        },
+        /** Options for filter variable select with current value in label */
+        filterVarOptions() {
+            return [
+                { label: '— выбрать переменную —', value: '' },
+                ...this.storeEntries.map(({ name, display }) => ({
+                    value: name,
+                    label: `${name}  (${display})`
+                }))
+            ];
         },
         toggleVarOptions() {
             return [{ label: '—', value: '' }, ...this.storeVarOptions];
@@ -321,6 +415,20 @@ export default {
             const max = 28;
             return url.length > max ? `${url.slice(0, max)}…` : url;
         },
+        formatStoreVal(val) {
+            if (val === null || val === undefined) return '∅';
+            if (typeof val === 'boolean') return val ? 'true' : 'false';
+            if (Array.isArray(val)) return `[${val.length} эл.]`;
+            if (typeof val === 'object') return `{${Object.keys(val).length} кл.}`;
+            const s = String(val);
+            return s.length > 22 ? `${s.slice(0, 22)}…` : s || '—';
+        },
+        getStoreVal(name) {
+            try { return this.formatStoreVal(store.state[name]); } catch (e) { return '—'; }
+        },
+        copyToClipboard(text) {
+            try { navigator.clipboard.writeText(text); } catch (e) { /* noop */ }
+        },
         setFilterData(filter, data) {
             try { filter.data = JSON.parse(data); } catch (e) { /* noop */ }
         },
@@ -367,15 +475,15 @@ export default {
 /* ── Action status strip ────────────────────────────────────────── */
 .act-status {
     display: flex;
-    gap: 6px;
+    gap: 5px;
     flex-wrap: wrap;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 .act-status__chip {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 8px;
+    padding: 4px 9px;
     border-radius: 20px;
     border: 1.5px solid #e2e8f0;
     background: #f8fafc;
@@ -409,31 +517,42 @@ export default {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 9px 10px;
+    padding: 10px 12px;
     border-radius: 10px;
     cursor: pointer;
-    background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
-    margin-top: 4px;
-    transition: border-color 0.15s, background 0.15s;
+    background: #fff;
+    border: 1.5px solid #e0e6ef;
+    margin-top: 5px;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.1s;
     user-select: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
-.sec-hd:hover { border-color: #a5b4fc; background: #f5f7ff; }
+.sec-hd:hover {
+    border-color: #a5b4fc;
+    background: #f7f9ff;
+    box-shadow: 0 3px 10px rgba(79,106,255,0.1);
+    transform: translateY(-1px);
+}
+/* Colored left accent when configured */
+.sec-hd--accent-blue  { border-left: 3px solid #3b82f6; }
+.sec-hd--accent-amber { border-left: 3px solid #f59e0b; }
+.sec-hd--accent-green { border-left: 3px solid #22c55e; }
 
 .sec-hd__ico {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     border-radius: 8px;
     flex-shrink: 0;
-    font-size: 16px;
+    font-size: 17px;
 }
-.sec-hd__ico--blue  { background: #eff6ff; color: #3b82f6; }
-.sec-hd__ico--amber { background: #fffbeb; color: #f59e0b; }
-.sec-hd__ico--green { background: #f0fdf4; color: #22c55e; }
-.sec-hd__ico--grey  { background: #f1f5f9; color: #94a3b8; }
+/* Vivid icon backgrounds */
+.sec-hd__ico--blue  { background: #dbeafe; color: #2563eb; }
+.sec-hd__ico--amber { background: #fef3c7; color: #d97706; }
+.sec-hd__ico--green { background: #dcfce7; color: #16a34a; }
+.sec-hd__ico--grey  { background: #f1f5f9; color: #64748b; }
 
 .sec-hd__text { flex: 1; min-width: 0; }
 .sec-hd__title {
@@ -451,11 +570,11 @@ export default {
     white-space: nowrap;
     max-width: 180px;
 }
-.sec-hd__sub--dim { color: #cbd5e1; }
+.sec-hd__sub--dim { color: #c8d5e8; }
 
 .sec-hd__chev { font-size: 18px; color: #94a3b8; flex-shrink: 0; }
 
-/* ── Section body (content inside each accordion) ──────────────── */
+/* ── Section body ───────────────────────────────────────────────── */
 .sec-body {
     padding: 8px 4px 4px;
     border-left: 2px solid #e2e8f0;
@@ -463,31 +582,56 @@ export default {
     padding-left: 12px;
     margin-bottom: 2px;
 }
+.sec-body--blue  { border-left-color: #bfdbfe; }
+.sec-body--amber { border-left-color: #fde68a; }
+.sec-body--green { border-left-color: #bbf7d0; }
 
 /* ── Advanced section labels ────────────────────────────────────── */
-.adv-section-label {
+.adv-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: #94a3b8;
-    margin-top: 6px;
-    margin-bottom: 4px;
+    color: #64748b;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #f1f5f9;
 }
+.adv-label .mdi { font-size: 14px; }
 
-/* ── Filter rows ────────────────────────────────────────────────── */
-.filter-row {
+/* ── Variable rows (filter rows with store values) ──────────────── */
+.var-row {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 6px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
-.filter-row__name { flex: 1; }
-.filter-row__val  { flex: 1; }
-.filter-row__del {
+.var-row__name { flex: 1; min-width: 0; }
+.var-row__val  { flex: 1; min-width: 0; }
+.var-row__current {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin-top: 3px;
+    line-height: 1.4;
+}
+.var-row__current .mdi { font-size: 11px; color: #94a3b8; }
+.var-row__current strong { color: #1e293b; font-weight: 600; }
+.var-row__del {
     flex-shrink: 0;
     width: 28px;
     height: 28px;
+    margin-top: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -499,9 +643,55 @@ export default {
     transition: background 0.12s, color 0.12s;
     padding: 0;
 }
-.filter-row__del:hover {
+.var-row__del:hover {
     background: #fee2e2;
     border-color: #fca5a5;
     color: #dc2626;
 }
+
+/* ── Store explorer table ───────────────────────────────────────── */
+.store-table {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 4px 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.store-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.1s;
+    font-size: 12px;
+}
+.store-row:hover { background: #f0f4ff; }
+.store-row__name {
+    flex: 1;
+    font-weight: 500;
+    color: #334155;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: monospace;
+    font-size: 11px;
+}
+.store-row__val {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: #f1f5f9;
+    color: #475569;
+}
+.store-row__val--null   { color: #94a3b8; background: #f8fafc; font-style: italic; }
+.store-row__val--array  { background: #eff6ff; color: #2563eb; }
+.store-row__val--obj    { background: #faf5ff; color: #7c3aed; }
 </style>
