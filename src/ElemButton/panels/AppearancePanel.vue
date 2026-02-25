@@ -108,22 +108,109 @@
 
             <!-- ── Иконки ─────────────────────────────────────────────── -->
             <div class="section-label">Иконки</div>
-            <div class="icon-row">
-                <div class="icon-field">
-                    <div class="icon-preview">
-                        <i v-if="props.btnIconLeft" :class="props.btnIconLeft" />
-                        <span v-else class="icon-empty"><i class="mdi mdi-minus-circle-outline" /></span>
-                    </div>
-                    <ui-input prop="btnIconLeft" placeholder="mdi mdi-arrow-left">Слева</ui-input>
+
+            <!-- Quick icon picker panel (toggleable) -->
+            <div v-if="iconPickerOpen" class="icon-picker">
+                <div class="icon-picker__hd">
+                    <span class="icon-picker__title">
+                        {{ iconPickerTarget === 'left'
+                            ? (iconOnlyMode ? 'Иконка по центру' : 'Левая иконка')
+                            : 'Правая иконка' }}
+                    </span>
+                    <button class="icon-picker__close" @click="iconPickerOpen = false">
+                        <i class="mdi mdi-close" />
+                    </button>
                 </div>
-                <div class="icon-field">
-                    <div class="icon-preview">
-                        <i v-if="props.btnIconRight" :class="props.btnIconRight" />
-                        <span v-else class="icon-empty"><i class="mdi mdi-minus-circle-outline" /></span>
-                    </div>
-                    <ui-input prop="btnIconRight" placeholder="mdi mdi-arrow-right">Справа</ui-input>
+                <div class="icon-picker__grid">
+                    <button
+                        v-for="ico in quickIcons"
+                        :key="ico"
+                        class="icon-picker__btn"
+                        :class="{ 'icon-picker__btn--on': isActivePickerIcon(ico) }"
+                        :title="ico"
+                        @click="pickIcon(ico)">
+                        <i :class="`mdi mdi-${ico}`" />
+                    </button>
                 </div>
             </div>
+
+            <!-- Icon-only mode: single centered icon (text hidden) -->
+            <template v-if="iconOnlyMode">
+                <div class="icon-solo">
+                    <button
+                        class="icon-solo__preview"
+                        :class="{ 'icon-solo__preview--empty': !props.btnIconLeft }"
+                        :title="iconPickerOpen && iconPickerTarget === 'left' ? 'Закрыть' : 'Открыть палитру'"
+                        @click="openIconPicker('left')">
+                        <i v-if="props.btnIconLeft" :class="props.btnIconLeft" />
+                        <i v-else class="mdi mdi-plus-circle-outline" />
+                    </button>
+                    <div class="icon-solo__right">
+                        <div class="icon-smart-wrap">
+                            <span class="icon-pfx">mdi-</span>
+                            <input
+                                class="icon-txt"
+                                :value="iconNameOnly(props.btnIconLeft)"
+                                placeholder="home, star, arrow-right…"
+                                @input="onIconInput('left', $event)" />
+                            <button v-if="props.btnIconLeft" class="icon-x" @click="setIconProp('btnIconLeft', '')">
+                                <i class="mdi mdi-close-circle" />
+                            </button>
+                        </div>
+                        <div class="icon-solo__hint">Иконка центрируется автоматически</div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Left + right icons (text visible) -->
+            <template v-else>
+                <div class="icon-row">
+                    <div class="icon-field">
+                        <button
+                            class="icon-preview icon-preview--pick"
+                            :class="{ 'icon-preview--empty': !props.btnIconLeft }"
+                            :title="iconPickerOpen && iconPickerTarget === 'left' ? 'Закрыть' : 'Открыть палитру'"
+                            @click="openIconPicker('left')">
+                            <i v-if="props.btnIconLeft" :class="props.btnIconLeft" />
+                            <i v-else class="mdi mdi-plus" />
+                        </button>
+                        <div class="icon-smart-wrap">
+                            <span class="icon-pfx">mdi-</span>
+                            <input
+                                class="icon-txt"
+                                :value="iconNameOnly(props.btnIconLeft)"
+                                @input="onIconInput('left', $event)"
+                                placeholder="home" />
+                            <button v-if="props.btnIconLeft" class="icon-x" @click="setIconProp('btnIconLeft', '')">
+                                <i class="mdi mdi-close-circle" />
+                            </button>
+                        </div>
+                        <div class="icon-field__lbl">Слева</div>
+                    </div>
+                    <div class="icon-field">
+                        <button
+                            class="icon-preview icon-preview--pick"
+                            :class="{ 'icon-preview--empty': !props.btnIconRight }"
+                            :title="iconPickerOpen && iconPickerTarget === 'right' ? 'Закрыть' : 'Открыть палитру'"
+                            @click="openIconPicker('right')">
+                            <i v-if="props.btnIconRight" :class="props.btnIconRight" />
+                            <i v-else class="mdi mdi-plus" />
+                        </button>
+                        <div class="icon-smart-wrap">
+                            <span class="icon-pfx">mdi-</span>
+                            <input
+                                class="icon-txt"
+                                :value="iconNameOnly(props.btnIconRight)"
+                                @input="onIconInput('right', $event)"
+                                placeholder="arrow-right" />
+                            <button v-if="props.btnIconRight" class="icon-x" @click="setIconProp('btnIconRight', '')">
+                                <i class="mdi mdi-close-circle" />
+                            </button>
+                        </div>
+                        <div class="icon-field__lbl">Справа</div>
+                    </div>
+                </div>
+            </template>
 
             <!-- ── Размер ─────────────────────────────────────────────── -->
             <div class="section-label">Размер</div>
@@ -312,6 +399,32 @@ export default {
         localBtnCss: '',
         localHoverCss: '',
         debounceTimer: null,
+        iconPickerOpen: false,
+        iconPickerTarget: 'left',
+        quickIcons: [
+            // Navigation
+            'home', 'arrow-left', 'arrow-right', 'arrow-up', 'arrow-down',
+            'chevron-left', 'chevron-right', 'chevron-up', 'chevron-down',
+            // Actions
+            'plus', 'minus', 'close', 'check', 'pencil', 'delete-outline',
+            'download', 'upload', 'share-variant', 'send', 'refresh', 'magnify',
+            // UI
+            'star-outline', 'heart-outline', 'bookmark-outline', 'bell-outline',
+            'eye-outline', 'eye-off-outline', 'lock-outline', 'account-circle-outline',
+            // Settings & filter
+            'cog-outline', 'filter-variant', 'menu', 'dots-vertical',
+            // Communication
+            'email-outline', 'phone-outline', 'chat-outline',
+            // Media
+            'play', 'pause', 'stop', 'skip-next', 'volume-high',
+            // Info & status
+            'information-outline', 'alert-circle-outline', 'help-circle-outline',
+            'check-circle-outline', 'close-circle-outline',
+            // Misc
+            'link-variant', 'map-marker-outline', 'calendar-outline',
+            'clock-outline', 'lightning-bolt', 'cart-outline',
+            'file-document-outline', 'image-outline', 'camera-outline', 'qrcode'
+        ],
         variantOptions: [
             { label: 'Заливка',    value: 'filled',   previewClass: 'preview--filled' },
             { label: 'Обводка',    value: 'outlined', previewClass: 'preview--outlined' },
@@ -411,6 +524,7 @@ export default {
     computed: {
         isGlass() { return this.stylePreset === 'glass'; },
         isGradient() { return this.stylePreset === 'gradient'; },
+        iconOnlyMode() { return this.props.btnShowText === false; },
 
         /** Full-size live preview style (mirrors ElemButton.vue buttonStyle) */
         fullPreviewStyle() {
@@ -607,6 +721,38 @@ export default {
                 this.props.btnHoverCss = this.localHoverCss;
                 this.propChanged('btnHoverCss');
             }, 300);
+        },
+        /** Strip mdi prefix so user sees only the icon name */
+        iconNameOnly(cls) {
+            if (!cls) return '';
+            return cls.replace(/^mdi\s+mdi-/, '').replace(/^mdi-/, '');
+        },
+        /** Smart icon input: user types 'home' or 'mdi-home', we store 'mdi mdi-home' */
+        onIconInput(target, e) {
+            const raw = (e.target.value || '').trim();
+            const name = raw.replace(/^mdi\s+mdi-/, '').replace(/^mdi-/, '');
+            const full = name ? `mdi mdi-${name}` : '';
+            this.setIconProp(target === 'left' ? 'btnIconLeft' : 'btnIconRight', full);
+        },
+        setIconProp(prop, val) {
+            this.props[prop] = val;
+            this.propChanged(prop);
+        },
+        openIconPicker(target) {
+            if (this.iconPickerOpen && this.iconPickerTarget === target) {
+                this.iconPickerOpen = false;
+            } else {
+                this.iconPickerTarget = target;
+                this.iconPickerOpen = true;
+            }
+        },
+        pickIcon(ico) {
+            const prop = this.iconPickerTarget === 'left' ? 'btnIconLeft' : 'btnIconRight';
+            this.setIconProp(prop, `mdi mdi-${ico}`);
+        },
+        isActivePickerIcon(ico) {
+            const prop = this.iconPickerTarget === 'left' ? 'btnIconLeft' : 'btnIconRight';
+            return this.props[prop] === `mdi mdi-${ico}`;
         },
         applyColorPreset(p) {
             this.props.btnBg = p.bg;
@@ -857,26 +1003,180 @@ export default {
     text-align: right;
 }
 
-/* ── Icon inputs ───────────────────────────────────────────────── */
+/* ── Icon picker ────────────────────────────────────────────────── */
+.icon-picker {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+.icon-picker__hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px 6px;
+    background: #f8fafc;
+    border-bottom: 1px solid #f0f4f8;
+}
+.icon-picker__title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.icon-picker__close {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: background 0.1s, color 0.1s;
+    padding: 0;
+}
+.icon-picker__close:hover { background: #fee2e2; color: #dc2626; }
+.icon-picker__grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+    padding: 6px;
+    max-height: 168px;
+    overflow-y: auto;
+}
+.icon-picker__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    border: 1.5px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: #475569;
+    font-size: 17px;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
+    padding: 0;
+}
+.icon-picker__btn:hover { background: #eff2ff; color: #4f6aff; }
+.icon-picker__btn--on { background: #eff2ff; color: #4f6aff; border-color: #4f6aff; }
+
+/* ── Icon-only (centre) mode ─────────────────────────────────────── */
+.icon-solo {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+.icon-solo__preview {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 24px;
+    color: #475569;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    padding: 0;
+}
+.icon-solo__preview:hover { border-color: #a5b4fc; color: #4f6aff; background: #f5f7ff; }
+.icon-solo__preview--empty { color: #c8d5e8; }
+.icon-solo__right { flex: 1; display: flex; flex-direction: column; gap: 5px; padding-top: 4px; }
+.icon-solo__hint { font-size: 10px; color: #94a3b8; }
+
+/* ── Left/right icon fields ─────────────────────────────────────── */
 .icon-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
     margin-bottom: 2px;
 }
-.icon-field { display: flex; flex-direction: column; gap: 4px; }
+.icon-field { display: flex; flex-direction: column; gap: 3px; }
+.icon-field__lbl { font-size: 10px; font-weight: 500; color: #94a3b8; text-align: center; }
+
 .icon-preview {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 32px;
+    height: 36px;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 18px;
+    border-radius: 7px;
+    font-size: 20px;
     color: #475569;
 }
-.icon-empty { font-size: 13px; color: #cbd5e1; }
+.icon-preview--pick {
+    cursor: pointer;
+    border-style: dashed;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    padding: 0;
+    width: 100%;
+}
+.icon-preview--pick:hover { border-color: #a5b4fc; color: #4f6aff; background: #f5f7ff; }
+.icon-preview--empty { color: #c8d5e8; }
+
+/* ── Smart icon input row ───────────────────────────────────────── */
+.icon-smart-wrap {
+    display: flex;
+    align-items: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    background: #fff;
+    overflow: hidden;
+    transition: border-color 0.15s;
+}
+.icon-smart-wrap:focus-within { border-color: #4f6aff; }
+.icon-pfx {
+    font-size: 11px;
+    font-family: monospace;
+    color: #94a3b8;
+    padding: 0 0 0 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1;
+    user-select: none;
+}
+.icon-txt {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 12px;
+    font-family: monospace;
+    color: #1e293b;
+    padding: 5px 4px;
+    min-width: 0;
+}
+.icon-x {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-right: 2px;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+    padding: 0;
+    transition: color 0.1s;
+}
+.icon-x:hover { color: #dc2626; }
 
 /* ── Color presets ──────────────────────────────────────────────── */
 .color-presets {
