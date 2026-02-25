@@ -86,15 +86,18 @@
 
             <!-- ── Размер ─────────────────────────────────────────────── -->
             <div class="section-label">Размер</div>
-            <div class="chip-row">
-                <button
+            <div class="size-grid">
+                <div
                     v-for="s in sizePresets"
-                    :key="s.value"
-                    class="chip"
-                    :class="{ 'chip--active': sizeSliderRem === s.rem }"
+                    :key="s.label"
+                    class="size-card"
+                    :class="{ 'size-card--active': Math.abs(sizeSliderRem - s.rem) < 0.063 }"
                     @click="applySizeRem(s.rem)">
-                    {{ s.label }}
-                </button>
+                    <div class="size-card__stage">
+                        <span class="size-card__btn" :style="sizePreviewStyle(s)">Кн</span>
+                    </div>
+                    <div class="size-card__name">{{ s.label }}</div>
+                </div>
             </div>
             <div class="slider-row">
                 <input
@@ -285,9 +288,10 @@ export default {
             { label: 'Захват',  value: 'grab',      icon: 'mdi mdi-hand-back-left-outline' }
         ],
         sizePresets: [
-            { label: 'S', rem: 0.375 },
-            { label: 'M', rem: 0.625 },
-            { label: 'L', rem: 0.875 }
+            { label: 'Малая',   rem: 0.375 },
+            { label: 'Средняя', rem: 0.625 },
+            { label: 'Обычная', rem: 0.875 },
+            { label: 'Крупная', rem: 1.25 }
         ],
         radiusPresets: [
             { label: 'Острые',  shape: '0',     rem: 0,    css: '0rem' },
@@ -420,6 +424,29 @@ export default {
             this.propChanged('btnFontSize');
         },
 
+        /** Generate inline styles for the size preview mini-button (uses real button props) */
+        sizePreviewStyle(s) {
+            const { btnBg, btnColor, btnBorderRadius, btnBorderWidth, btnBorderColor } = this.props;
+            const pxV = Math.max(2, Math.round(s.rem * 9));
+            const pxH = Math.max(5, Math.round(s.rem * 18));
+            const fs = Math.max(8, Math.round(9 + (s.rem - 0.25) / (3 - 0.25) * 5));
+            return {
+                background: btnBg || '#4f6aff',
+                color: btnColor || '#fff',
+                borderRadius: btnBorderRadius || '8px',
+                border: (btnBorderWidth && btnBorderWidth !== '0px')
+                    ? `1px solid ${btnBorderColor || '#4f6aff'}`
+                    : 'none',
+                padding: `${pxV}px ${pxH}px`,
+                fontSize: `${fs}px`,
+                fontWeight: '500',
+                lineHeight: '1.3',
+                display: 'inline-block',
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none'
+            };
+        },
+
         /** Radius slider: value in rem */
         onRadiusSlider(e) {
             const rem = parseFloat(e.target.value);
@@ -536,7 +563,59 @@ export default {
     flex-shrink: 0;
 }
 
-/* ── Chip row (S/M/L + radius presets) ────────────────────────── */
+/* ── Size preview cards ─────────────────────────────────────────── */
+.size-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    margin-bottom: 6px;
+}
+.size-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 3px 5px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.12s;
+    background: #fff;
+    overflow: hidden;
+}
+.size-card:hover {
+    border-color: #a5b4fc;
+    background: #f5f7ff;
+    box-shadow: 0 2px 8px rgba(79,106,255,0.1);
+}
+.size-card--active {
+    border-color: #4f6aff;
+    background: #eff2ff;
+    box-shadow: 0 0 0 1px #4f6aff33;
+}
+.size-card__stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    width: 100%;
+    overflow: hidden;
+}
+.size-card__name {
+    font-size: 10px;
+    font-weight: 500;
+    color: #64748b;
+    text-align: center;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    padding: 0 2px;
+}
+.size-card--active .size-card__name { color: #4f6aff; font-weight: 600; }
+
+/* ── Chip row (radius presets) ──────────────────────────────────── */
 .chip-row {
     display: flex;
     gap: 6px;
