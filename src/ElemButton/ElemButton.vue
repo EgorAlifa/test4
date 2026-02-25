@@ -1,20 +1,19 @@
 <template>
     <div
-        v-if="props.isClickSelf"
         class="elem-btn"
-        :class="cssClass"
+        :class="[cssClass, buttonDynamicClass]"
         :style="[cssStyle, buttonStyle]"
-        @click.self="onClick">
+        @click="handleClick">
+        <span v-if="isLoading" class="elem-btn__spinner" />
+        <i
+            v-if="props.btnIconLeft && !isLoading"
+            :class="props.btnIconLeft"
+            class="elem-btn__icon elem-btn__icon--left" />
         <slot />
-        <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
-    </div>
-    <div
-        v-else
-        class="elem-btn"
-        :class="cssClass"
-        :style="[cssStyle, buttonStyle]"
-        @click="onClick">
-        <slot />
+        <i
+            v-if="props.btnIconRight"
+            :class="props.btnIconRight"
+            class="elem-btn__icon elem-btn__icon--right" />
         <ui-popover v-bind="popoverOptions" :show.sync="isPopupVisible">
             <div class="elem-btn__toast">{{ popupText }}</div>
         </ui-popover>
@@ -52,6 +51,7 @@ export default {
     data: () => ({
         isPopupVisible: false,
         popupText: '',
+        isLoading: false,
         ...ComponentInstanceTypeDescriptor
     }),
     static: {
@@ -65,13 +65,46 @@ export default {
         }
     },
     computed: {
+        isToggleActive() {
+            const { btnIsToggle, btnToggleStoreVar, btnToggleActiveValue } = this.props;
+            if (!btnIsToggle || !btnToggleStoreVar) return false;
+            const storeVal = store.state[btnToggleStoreVar]?.value;
+            const noValueSet = btnToggleActiveValue === '' || btnToggleActiveValue === null || btnToggleActiveValue === undefined;
+            if (noValueSet) {
+                return storeVal !== null && storeVal !== undefined && storeVal !== '';
+            }
+            return String(storeVal) === String(btnToggleActiveValue);
+        },
+        isDisabled() {
+            const { btnDisableVar } = this.props;
+            if (!btnDisableVar) return false;
+            const val = store.state[btnDisableVar]?.value;
+            return val === null || val === undefined || val === '';
+        },
+        buttonDynamicClass() {
+            const { btnHoverEffect, btnIsGlass } = this.props;
+            return {
+                [`elem-btn--hover-${btnHoverEffect}`]: btnHoverEffect && btnHoverEffect !== 'default',
+                'elem-btn--loading': this.isLoading,
+                'elem-btn--toggle-active': this.isToggleActive,
+                'elem-btn--glass': btnIsGlass,
+                'elem-btn--disabled': this.isDisabled
+            };
+        },
         buttonStyle() {
             const {
                 btnBg, btnColor, btnBorderRadius, btnFontSize, btnFontWeight,
-                btnPaddingV, btnPaddingH, btnShadow, btnBorderWidth, btnBorderColor
+                btnPaddingV, btnPaddingH, btnShadow, btnBorderWidth, btnBorderColor,
+                btnGradientTo, btnGradientAngle, btnCursor,
+                btnToggleBg, btnToggleColor
             } = this.props;
-            return {
-                '--btn-bg': btnBg,
+
+            const resolvedBg = btnGradientTo
+                ? `linear-gradient(${btnGradientAngle || '135deg'}, ${btnBg}, ${btnGradientTo})`
+                : btnBg;
+
+            const style = {
+                '--btn-bg': resolvedBg,
                 '--btn-color': btnColor,
                 '--btn-border-radius': btnBorderRadius,
                 '--btn-font-size': btnFontSize,
@@ -80,8 +113,16 @@ export default {
                 '--btn-padding-h': btnPaddingH,
                 '--btn-shadow': btnShadow,
                 '--btn-border-width': btnBorderWidth,
-                '--btn-border-color': btnBorderColor
+                '--btn-border-color': btnBorderColor,
+                '--btn-cursor': btnCursor || 'pointer'
             };
+
+            if (this.isToggleActive) {
+                style['--btn-bg'] = btnToggleBg || '#1e293b';
+                style['--btn-color'] = btnToggleColor || '#ffffff';
+            }
+
+            return style;
         },
         customCssContent() {
             const { btnCustomCss, btnHoverCss } = this.props;
@@ -100,6 +141,11 @@ export default {
         }
     },
     methods: {
+        handleClick(event) {
+            if (this.isDisabled || this.isLoading) return;
+            if (this.props.isClickSelf && event.target !== event.currentTarget) return;
+            this.onClick();
+        },
         buildStateFromFilters(filters) {
             return filters.reduce(
                 (acc, { name, data }) => ({ ...acc, [name]: new ValueObject(data, store.state[name]?.meta) }),
@@ -117,6 +163,26 @@ export default {
             const { filters } = this.props;
             if (filters.length > 0) {
                 store.commit(this.buildStateFromFilters(filters), { context: this });
+            }
+        },
+        applyToggle() {
+            const { btnIsToggle, btnToggleStoreVar, btnToggleActiveValue } = this.props;
+            if (!btnIsToggle || !btnToggleStoreVar) return;
+
+            const currentVal = store.state[btnToggleStoreVar]?.value;
+            const activeVal = btnToggleActiveValue || '1';
+            const noValueSet = btnToggleActiveValue === '' || btnToggleActiveValue === null || btnToggleActiveValue === undefined;
+            const isCurrentlyActive = noValueSet
+                ? (currentVal !== null && currentVal !== undefined && currentVal !== '')
+                : String(currentVal) === String(btnToggleActiveValue);
+
+            if (isCurrentlyActive) {
+                store.commit({ [btnToggleStoreVar]: undefined }, { context: this });
+            } else {
+                store.commit(
+                    { [btnToggleStoreVar]: new ValueObject(activeVal, store.state[btnToggleStoreVar]?.meta) },
+                    { context: this }
+                );
             }
         },
         triggerCustomEvent() {
@@ -163,8 +229,18 @@ export default {
                 this.$storeCommit({ [Vars.ROUTE]: this.props.url });
             }
         },
+        startLoading() {
+            const { btnLoadingOnClick, btnLoadingDuration } = this.props;
+            if (!btnLoadingOnClick) return;
+            this.isLoading = true;
+            setTimeout(() => { this.isLoading = false; }, btnLoadingDuration || 1500);
+        },
         onClick() {
             const { isCopyStore, shouldCopyText } = this.props;
+
+            this.applyToggle();
+            this.startLoading();
+
             const commonMethods = [
                 this.applyCutParams,
                 this.applyStoreFilters,
@@ -231,14 +307,15 @@ export default {
     letter-spacing: 0.02em;
     border: var(--btn-border-width, 0px) solid var(--btn-border-color, transparent);
     box-shadow: var(--btn-shadow, 0 2px 12px rgba(79, 106, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.1));
-    cursor: pointer;
+    cursor: var(--btn-cursor, pointer);
     user-select: none;
     overflow: hidden;
-    transition: box-shadow 0.2s ease, transform 0.12s ease, background 0.15s ease;
+    transition: box-shadow 0.2s ease, transform 0.15s ease, background 0.2s ease, opacity 0.15s ease;
     -webkit-font-smoothing: antialiased;
     outline: none;
 }
 
+/* ── Base hover overlay ─────────────────────────────────────────── */
 .elem-btn::before {
     content: '';
     position: absolute;
@@ -250,23 +327,98 @@ export default {
     pointer-events: none;
 }
 
-.elem-btn:hover::before {
-    opacity: 0.1;
+.elem-btn:hover::before { opacity: 0.1; }
+.elem-btn:active { transform: translateY(1px) scale(0.98); }
+.elem-btn:active::before { opacity: 0.15; }
+
+/* ── Hover: lift ────────────────────────────────────────────────── */
+.elem-btn--hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+.elem-btn--hover-lift:active { transform: translateY(0) scale(0.98); }
+
+/* ── Hover: glow ────────────────────────────────────────────────── */
+.elem-btn--hover-glow:hover {
+    box-shadow: 0 0 0 3px rgba(79, 106, 255, 0.25), 0 0 24px rgba(79, 106, 255, 0.5);
+    transform: none;
 }
 
-.elem-btn:active {
-    transform: translateY(1px) scale(0.98);
-    box-shadow: var(--btn-shadow, 0 1px 5px rgba(79, 106, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.08));
+/* ── Hover: scale ───────────────────────────────────────────────── */
+.elem-btn--hover-scale:hover { transform: scale(1.05); }
+.elem-btn--hover-scale:active { transform: scale(0.97); }
+
+/* ── Hover: pulse (idle animation) ─────────────────────────────── */
+.elem-btn--hover-pulse { animation: elem-btn-pulse 2s ease-in-out infinite; }
+.elem-btn--hover-pulse:hover { animation: none; transform: scale(1.03); }
+
+/* ── Hover: none ────────────────────────────────────────────────── */
+.elem-btn--hover-none:hover::before { opacity: 0; }
+.elem-btn--hover-none:hover,
+.elem-btn--hover-none:active {
+    transform: none;
+    box-shadow: var(--btn-shadow);
 }
 
-.elem-btn:active::before {
-    opacity: 0.15;
+/* ── Glass variant ──────────────────────────────────────────────── */
+.elem-btn--glass {
+    background: rgba(255, 255, 255, 0.12) !important;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
 }
 
+/* ── Loading state ──────────────────────────────────────────────── */
+.elem-btn--loading {
+    cursor: wait;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+/* ── Disabled state ─────────────────────────────────────────────── */
+.elem-btn--disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ── Icons ──────────────────────────────────────────────────────── */
+.elem-btn__icon {
+    font-size: inherit;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.elem-btn__icon--left { margin-right: 6px; }
+.elem-btn__icon--right { margin-left: 6px; }
+
+/* ── Spinner ────────────────────────────────────────────────────── */
+.elem-btn__spinner {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: elem-btn-spin 0.65s linear infinite;
+    margin-right: 8px;
+}
+
+/* ── Toast ──────────────────────────────────────────────────────── */
 .elem-btn__toast {
     padding: 4px 10px;
     font-size: 13px;
     white-space: nowrap;
     line-height: 1.4;
+}
+
+/* ── Keyframes ──────────────────────────────────────────────────── */
+@keyframes elem-btn-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes elem-btn-pulse {
+    0%, 100% { box-shadow: var(--btn-shadow, 0 2px 12px rgba(79, 106, 255, 0.3)); }
+    50% { box-shadow: 0 0 0 6px rgba(79, 106, 255, 0), 0 0 20px rgba(79, 106, 255, 0.5); }
 }
 </style>

@@ -125,6 +125,48 @@
                 Очистить при нажатии
             </ui-input-tags>
 
+            <!-- ── Режим переключателя (Toggle) ──────────────────────── -->
+            <ui-collapse>
+                <template #header>
+                    Режим переключателя
+                    <span v-if="props.btnIsToggle" class="badge">Вкл</span>
+                </template>
+                <ui-container>
+                    <ui-switch prop="btnIsToggle">
+                        Включить Toggle-режим
+                        <template #hint>
+                            Кнопка будет выглядеть «нажатой», пока переменная хранилища равна заданному значению.
+                            Цвета активного состояния настраиваются в панели «Оформление».
+                        </template>
+                    </ui-switch>
+                    <template v-if="props.btnIsToggle">
+                        <ui-select
+                            v-if="storeVarOptions.length"
+                            v-model="toggleStoreVar"
+                            :options="toggleVarOptions">
+                            Переменная хранилища
+                            <ui-tooltip>
+                                <template #target="{ events, binds }">
+                                    <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                                </template>
+                                <div>Кнопка визуально «нажата», пока эта переменная равна заданному значению.</div>
+                            </ui-tooltip>
+                        </ui-select>
+                        <ui-input
+                            prop="btnToggleActiveValue"
+                            placeholder="1">
+                            Значение «активно»
+                            <ui-tooltip>
+                                <template #target="{ events, binds }">
+                                    <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                                </template>
+                                <div>Оставьте пустым, чтобы считать кнопку активной при любом непустом значении переменной.</div>
+                            </ui-tooltip>
+                        </ui-input>
+                    </template>
+                </ui-container>
+            </ui-collapse>
+
             <!-- ── Дополнительно ──────────────────────────────────────── -->
             <ui-collapse>
                 <template #header>Дополнительно</template>
@@ -141,6 +183,24 @@
                             Передаёт ссылку через postMessage для совместимости с ElemHouseApi.
                         </template>
                     </ui-switch>
+                    <ui-switch prop="btnLoadingOnClick">
+                        Показать индикатор загрузки
+                        <template #hint>
+                            После нажатия кнопка показывает спиннер на заданное время.
+                        </template>
+                    </ui-switch>
+                    <ui-select
+                        v-if="storeVarOptions.length"
+                        v-model="disableVar"
+                        :options="disableVarOptions">
+                        Заблокировать если переменная пуста
+                        <ui-tooltip>
+                            <template #target="{ events, binds }">
+                                <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                            </template>
+                            <div>Кнопка становится недоступной (disabled), пока выбранная переменная хранилища пуста.</div>
+                        </ui-tooltip>
+                    </ui-select>
                 </ui-container>
             </ui-collapse>
 
@@ -178,6 +238,12 @@ export default {
         storeVarOptions() {
             return this.storeVarNames.map((k) => ({ label: k, value: k }));
         },
+        toggleVarOptions() {
+            return [{ label: '—', value: '' }, ...this.storeVarOptions];
+        },
+        disableVarOptions() {
+            return [{ label: '— Нет —', value: '' }, ...this.storeVarOptions];
+        },
         routeQueryParamOptions() {
             return this.props.filters.map(({ name, data }) => ({ label: name, value: String(data) }));
         },
@@ -208,6 +274,20 @@ export default {
             set(val) {
                 this.props.cutParams = Array.isArray(val) ? val.map((el) => el.trim()) : [];
                 this.propChanged('cutParams');
+            }
+        },
+        toggleStoreVar: {
+            get() { return this.props.btnToggleStoreVar || ''; },
+            set(val) {
+                this.props.btnToggleStoreVar = val;
+                this.propChanged('btnToggleStoreVar');
+            }
+        },
+        disableVar: {
+            get() { return this.props.btnDisableVar || ''; },
+            set(val) {
+                this.props.btnDisableVar = val;
+                this.propChanged('btnDisableVar');
             }
         }
     },
