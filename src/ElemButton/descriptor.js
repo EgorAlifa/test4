@@ -134,6 +134,72 @@ export const descriptor = () => ({
         btnHoverCss: {
             type: String,
             default: ''
+        },
+        // ── Appearance: gradient & glass ──────────────────────────────
+        btnGradientTo: {
+            type: String,
+            default: ''
+        },
+        btnGradientAngle: {
+            type: String,
+            default: '135deg'
+        },
+        btnIsGlass: {
+            type: Boolean,
+            default: false
+        },
+        // ── Appearance: effects & cursor ──────────────────────────────
+        btnHoverEffect: {
+            type: String,
+            default: 'default'
+        },
+        btnCursor: {
+            type: String,
+            default: 'pointer'
+        },
+        // ── Appearance: icons ─────────────────────────────────────────
+        btnIconLeft: {
+            type: String,
+            default: ''
+        },
+        btnIconRight: {
+            type: String,
+            default: ''
+        },
+        // ── Toggle mode ───────────────────────────────────────────────
+        btnIsToggle: {
+            type: Boolean,
+            default: false
+        },
+        btnToggleStoreVar: {
+            type: String,
+            default: ''
+        },
+        btnToggleActiveValue: {
+            type: String,
+            default: ''
+        },
+        btnToggleBg: {
+            type: String,
+            default: '#1e293b'
+        },
+        btnToggleColor: {
+            type: String,
+            default: '#ffffff'
+        },
+        // ── Loading state ─────────────────────────────────────────────
+        btnLoadingOnClick: {
+            type: Boolean,
+            default: false
+        },
+        btnLoadingDuration: {
+            type: Number,
+            default: 1500
+        },
+        // ── Conditional disable ───────────────────────────────────────
+        btnDisableVar: {
+            type: String,
+            default: ''
         }
     },
     vars: Object.values(Vars).reduce((acc, varName) => ({ ...acc, [varName]: { description: varName } }), {}),
