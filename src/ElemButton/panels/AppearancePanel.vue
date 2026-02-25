@@ -84,32 +84,53 @@
                 </div>
             </div>
 
-            <!-- ── Форма ───────────────────────────────────────────────── -->
-            <div class="section-label">Скругление</div>
-            <div class="opt-grid opt-grid--3">
-                <div
-                    v-for="r in radiusOptions"
-                    :key="r.value"
-                    class="opt-card"
-                    :class="{ 'opt-card--active': radiusPreset === r.value }"
-                    @click="radiusPreset = r.value">
-                    <div class="opt-card__shape" :style="{ borderRadius: r.value }" />
-                    <div class="opt-card__label">{{ r.label }}</div>
-                </div>
+            <!-- ── Размер ─────────────────────────────────────────────── -->
+            <div class="section-label">Размер</div>
+            <div class="chip-row">
+                <button
+                    v-for="s in sizePresets"
+                    :key="s.value"
+                    class="chip"
+                    :class="{ 'chip--active': sizeSliderRem === s.rem }"
+                    @click="sizeSliderRem = s.rem">
+                    {{ s.label }}
+                </button>
+            </div>
+            <div class="slider-row">
+                <input
+                    type="range"
+                    class="slider"
+                    :value="sizeSliderRem"
+                    min="0.25"
+                    max="1.5"
+                    step="0.125"
+                    @input="onSizeSlider" />
+                <span class="slider-val">{{ sizeSliderRem }} rem</span>
             </div>
 
-            <!-- ── Размер ──────────────────────────────────────────────── -->
-            <div class="section-label">Размер</div>
-            <div class="opt-grid opt-grid--3">
-                <div
-                    v-for="s in sizeOptions"
-                    :key="s.value"
-                    class="opt-card"
-                    :class="{ 'opt-card--active': sizePreset === s.value }"
-                    @click="sizePreset = s.value">
-                    <div class="opt-card__size-bar" :style="s.barStyle" />
-                    <div class="opt-card__label">{{ s.label }}</div>
-                </div>
+            <!-- ── Скругление ─────────────────────────────────────────── -->
+            <div class="section-label">Скругление углов</div>
+            <div class="chip-row">
+                <button
+                    v-for="r in radiusPresets"
+                    :key="r.label"
+                    class="chip"
+                    :class="{ 'chip--active': radiusChipActive === r.label }"
+                    @click="applyRadiusPreset(r)">
+                    <span class="chip__shape" :style="{ borderRadius: r.shape }"></span>
+                    {{ r.label }}
+                </button>
+            </div>
+            <div class="slider-row">
+                <input
+                    type="range"
+                    class="slider"
+                    :value="radiusSliderRem"
+                    min="0"
+                    max="2"
+                    step="0.125"
+                    @input="onRadiusSlider" />
+                <span class="slider-val">{{ radiusSliderRem }} rem</span>
             </div>
 
             <!-- ── Тень ───────────────────────────────────────────────── -->
@@ -212,15 +233,23 @@ const SHADOWS = {
     lg: '0 8px 24px rgba(79,106,255,0.4), 0 3px 8px rgba(0,0,0,0.15)'
 };
 
-const SIZES = {
-    sm: { btnFontSize: '12px', btnFontWeight: '500', btnPaddingV: '6px',  btnPaddingH: '14px' },
-    md: { btnFontSize: '14px', btnFontWeight: '500', btnPaddingV: '10px', btnPaddingH: '20px' },
-    lg: { btnFontSize: '16px', btnFontWeight: '600', btnPaddingV: '14px', btnPaddingH: '28px' }
-};
+/** Parse px/rem string → rem number */
+function toRem(cssVal) {
+    if (!cssVal) return 0;
+    const s = String(cssVal).trim();
+    if (s.endsWith('rem')) return parseFloat(s) || 0;
+    if (s.endsWith('px')) return Math.round((parseFloat(s) / 16) * 1000) / 1000;
+    return parseFloat(s) || 0;
+}
+
+/** Round to nearest slider step */
+function snapRem(val, step = 0.125) {
+    return Math.round(val / step) * step;
+}
 
 export default {
     extends: Panel,
-    meta: { name: 'Оформление', icon: 'palette' },
+    meta: { name: 'Я дизайнер', icon: 'palette' },
     data: () => ({
         ...ComponentInstanceTypeDescriptor,
         localBtnCss: '',
@@ -255,15 +284,16 @@ export default {
             { label: 'Помощь',  value: 'help',      icon: 'mdi mdi-help-circle-outline' },
             { label: 'Захват',  value: 'grab',      icon: 'mdi mdi-hand-back-left-outline' }
         ],
-        radiusOptions: [
-            { label: 'Острые',      value: '0px',   previewRadius: '0px' },
-            { label: 'Скруглённые', value: '8px',   previewRadius: '8px' },
-            { label: 'Пилюля',      value: '999px', previewRadius: '999px' }
+        sizePresets: [
+            { label: 'S', rem: 0.375 },
+            { label: 'M', rem: 0.625 },
+            { label: 'L', rem: 0.875 }
         ],
-        sizeOptions: [
-            { label: 'S', value: 'sm', barStyle: { height: '10px', width: '22px', background: '#4f6aff', borderRadius: '3px' } },
-            { label: 'M', value: 'md', barStyle: { height: '14px', width: '32px', background: '#4f6aff', borderRadius: '4px' } },
-            { label: 'L', value: 'lg', barStyle: { height: '18px', width: '44px', background: '#4f6aff', borderRadius: '5px' } }
+        radiusPresets: [
+            { label: 'Острые',  shape: '0',     rem: 0,    css: '0rem' },
+            { label: 'Мягкие',  shape: '4px',   rem: 0.5,  css: '0.5rem' },
+            { label: 'Круглые', shape: '10px',  rem: 1,    css: '1rem' },
+            { label: 'Пилюля',  shape: '999px', rem: null, css: '999px' }
         ],
         shadowOptions: [
             { label: 'Нет',      value: 'none', previewShadow: 'none' },
@@ -275,6 +305,30 @@ export default {
     computed: {
         isGlass() { return this.stylePreset === 'glass'; },
         isGradient() { return this.stylePreset === 'gradient'; },
+
+        /** Current padding-v in rem, snapped to slider step */
+        sizeSliderRem() {
+            return Math.min(1.5, Math.max(0.25, snapRem(toRem(this.props.btnPaddingV || '10px'))));
+        },
+
+        /** Current border-radius in rem (capped at 2 for slider; pill returns 2) */
+        radiusSliderRem() {
+            const raw = this.props.btnBorderRadius || '8px';
+            if (parseFloat(raw) >= 100) return 2;
+            return Math.min(2, snapRem(toRem(raw)));
+        },
+
+        /** Active chip label for radius */
+        radiusChipActive() {
+            const raw = this.props.btnBorderRadius || '8px';
+            if (parseFloat(raw) >= 100) return 'Пилюля';
+            const r = snapRem(toRem(raw));
+            if (r === 0) return 'Острые';
+            if (r === 0.5) return 'Мягкие';
+            if (r === 1) return 'Круглые';
+            return null;
+        },
+
         stylePreset: {
             get() {
                 const { btnIsGlass, btnGradientTo, btnBg, btnBorderWidth } = this.props;
@@ -304,52 +358,15 @@ export default {
         },
         gradientAngle: {
             get() { return this.props.btnGradientAngle || '135deg'; },
-            set(val) {
-                this.props.btnGradientAngle = val;
-                this.propChanged('btnGradientAngle');
-            }
+            set(val) { this.props.btnGradientAngle = val; this.propChanged('btnGradientAngle'); }
         },
         hoverEffect: {
             get() { return this.props.btnHoverEffect || 'default'; },
-            set(val) {
-                this.props.btnHoverEffect = val;
-                this.propChanged('btnHoverEffect');
-            }
+            set(val) { this.props.btnHoverEffect = val; this.propChanged('btnHoverEffect'); }
         },
         cursorValue: {
             get() { return this.props.btnCursor || 'pointer'; },
-            set(val) {
-                this.props.btnCursor = val;
-                this.propChanged('btnCursor');
-            }
-        },
-        radiusPreset: {
-            get() {
-                const v = this.props.btnBorderRadius || '8px';
-                if (v === '0px' || v === '0') return '0px';
-                if (parseFloat(v) >= 100) return '999px';
-                return '8px';
-            },
-            set(val) {
-                this.props.btnBorderRadius = val;
-                this.propChanged('btnBorderRadius');
-            }
-        },
-        sizePreset: {
-            get() {
-                const v = this.props.btnPaddingV;
-                if (v === '6px') return 'sm';
-                if (v === '14px') return 'lg';
-                return 'md';
-            },
-            set(val) {
-                const s = SIZES[val];
-                if (!s) return;
-                Object.entries(s).forEach(([key, value]) => {
-                    this.props[key] = value;
-                    this.propChanged(key);
-                });
-            }
+            set(val) { this.props.btnCursor = val; this.propChanged('btnCursor'); }
         },
         shadowPreset: {
             get() {
@@ -365,9 +382,7 @@ export default {
             }
         },
         hasBorder: {
-            get() {
-                return (this.props.btnBorderWidth || '0px') !== '0px';
-            },
+            get() { return (this.props.btnBorderWidth || '0px') !== '0px'; },
             set(val) {
                 this.props.btnBorderWidth = val ? '1px' : '0px';
                 this.propChanged('btnBorderWidth');
@@ -386,6 +401,33 @@ export default {
         if (this.debounceTimer) clearTimeout(this.debounceTimer);
     },
     methods: {
+        /** Size slider: paddingV in rem → px, paddingH proportional, fontSize scaled */
+        onSizeSlider(e) {
+            const rem = parseFloat(e.target.value);
+            const pxV = Math.round(rem * 16);
+            const pxH = Math.round(rem * 32);
+            // Font size: S=12px M=14px L=16px — scale linearly from paddingV
+            const fontSize = Math.round(12 + (rem - 0.25) / (1.5 - 0.25) * 6);
+            this.props.btnPaddingV = `${pxV}px`;
+            this.propChanged('btnPaddingV');
+            this.props.btnPaddingH = `${pxH}px`;
+            this.propChanged('btnPaddingH');
+            this.props.btnFontSize = `${fontSize}px`;
+            this.propChanged('btnFontSize');
+        },
+
+        /** Radius slider: value in rem */
+        onRadiusSlider(e) {
+            const rem = parseFloat(e.target.value);
+            this.props.btnBorderRadius = `${rem}rem`;
+            this.propChanged('btnBorderRadius');
+        },
+
+        applyRadiusPreset(r) {
+            this.props.btnBorderRadius = r.css;
+            this.propChanged('btnBorderRadius');
+        },
+
         onBtnCssChange() {
             clearTimeout(this.debounceTimer);
             this.debounceTimer = setTimeout(() => {
@@ -453,15 +495,8 @@ export default {
     color: #64748b;
     background: #fff;
 }
-.opt-card:hover {
-    border-color: #a5b4fc;
-    color: #334155;
-}
-.opt-card--active {
-    border-color: #4f6aff;
-    background: #eff2ff;
-    color: #4f6aff;
-}
+.opt-card:hover { border-color: #a5b4fc; color: #334155; }
+.opt-card--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; }
 
 .opt-card__label {
     font-size: 10px;
@@ -472,13 +507,9 @@ export default {
     max-width: 100%;
     line-height: 1.2;
 }
+.opt-card__icon-lg { font-size: 18px; line-height: 1; }
 
-.opt-card__icon-lg {
-    font-size: 18px;
-    line-height: 1;
-}
-
-/* ── Variant preview mini-buttons ──────────────────────────────── */
+/* ── Variant preview ───────────────────────────────────────────── */
 .opt-card__variant-preview {
     width: 32px;
     height: 16px;
@@ -491,19 +522,6 @@ export default {
 .preview--gradient { background: linear-gradient(135deg, #4f6aff, #7c3aed); }
 .preview--glass    { background: rgba(79,106,255,0.15); border: 1px solid rgba(79,106,255,0.35); }
 
-/* ── Shape preview ─────────────────────────────────────────────── */
-.opt-card__shape {
-    width: 32px;
-    height: 14px;
-    background: #4f6aff;
-    flex-shrink: 0;
-}
-
-/* ── Size preview ──────────────────────────────────────────────── */
-.opt-card__size-bar {
-    flex-shrink: 0;
-}
-
 /* ── Shadow preview ────────────────────────────────────────────── */
 .opt-card__shadow-dot {
     width: 22px;
@@ -514,18 +532,97 @@ export default {
     flex-shrink: 0;
 }
 
-/* ── Icon inputs row ───────────────────────────────────────────── */
+/* ── Chip row (S/M/L + radius presets) ────────────────────────── */
+.chip-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.chip {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border: 2px solid #e2e8f0;
+    border-radius: 6px;
+    background: #fff;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+.chip:hover { border-color: #a5b4fc; color: #334155; }
+.chip--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; }
+
+.chip__shape {
+    display: inline-block;
+    width: 14px;
+    height: 10px;
+    background: currentColor;
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+/* ── Slider row ────────────────────────────────────────────────── */
+.slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 2px;
+}
+.slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: #e2e8f0;
+    outline: none;
+    cursor: pointer;
+}
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #4f6aff;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(79,106,255,0.4);
+    transition: transform 0.1s;
+}
+.slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #4f6aff;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(79,106,255,0.4);
+}
+.slider-val {
+    font-size: 11px;
+    font-weight: 600;
+    color: #4f6aff;
+    white-space: nowrap;
+    min-width: 52px;
+    text-align: right;
+}
+
+/* ── Icon inputs ───────────────────────────────────────────────── */
 .icon-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
     margin-bottom: 2px;
 }
-.icon-field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
+.icon-field { display: flex; flex-direction: column; gap: 4px; }
 .icon-preview {
     display: flex;
     align-items: center;
@@ -537,23 +634,11 @@ export default {
     font-size: 18px;
     color: #475569;
 }
-.icon-empty {
-    font-size: 13px;
-    color: #cbd5e1;
-}
+.icon-empty { font-size: 13px; color: #cbd5e1; }
 
-/* ── Custom CSS section ────────────────────────────────────────── */
-.css-section {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-top: 4px;
-}
-.css-section__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
+/* ── Custom CSS ────────────────────────────────────────────────── */
+.css-section { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.css-section__header { display: flex; align-items: center; justify-content: space-between; }
 .css-section__header .form-label { margin: 0; }
 .css-section__tag {
     font-size: 11px;
@@ -579,8 +664,5 @@ export default {
     box-sizing: border-box;
     line-height: 1.5;
 }
-.css-section__textarea:focus {
-    outline: none;
-    border-color: #4f6aff;
-}
+.css-section__textarea:focus { outline: none; border-color: #4f6aff; }
 </style>

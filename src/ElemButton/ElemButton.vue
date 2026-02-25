@@ -18,6 +18,31 @@
             <div class="elem-btn__toast">{{ popupText }}</div>
         </ui-popover>
         <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
+
+        <!-- ── Canvas quick-edit bar (editor only) ──────────────────── -->
+        <div v-if="isEditorMode" class="elem-btn__canvas-bar" @click.stop @mousedown.stop>
+            <div class="cbar__section">
+                <button
+                    v-for="color in canvasQuickColors"
+                    :key="color"
+                    class="cbar__dot"
+                    :class="{ 'cbar__dot--active': props.btnBg === color }"
+                    :style="{ background: color }"
+                    :title="color"
+                    @click="setCanvasColor(color)" />
+            </div>
+            <div class="cbar__sep" />
+            <div class="cbar__section">
+                <button
+                    v-for="s in canvasSizes"
+                    :key="s.key"
+                    class="cbar__size"
+                    :class="{ 'cbar__size--active': canvasCurrentSize === s.key }"
+                    @click="setCanvasSize(s)">
+                    {{ s.key }}
+                </button>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -52,7 +77,13 @@ export default {
         isPopupVisible: false,
         popupText: '',
         isLoading: false,
-        ...ComponentInstanceTypeDescriptor
+        ...ComponentInstanceTypeDescriptor,
+        canvasQuickColors: ['#4f6aff', '#7c3aed', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#0f172a', '#ffffff'],
+        canvasSizes: [
+            { key: 'S', paddingV: '6px',  paddingH: '14px', fontSize: '12px' },
+            { key: 'M', paddingV: '10px', paddingH: '20px', fontSize: '14px' },
+            { key: 'L', paddingV: '14px', paddingH: '28px', fontSize: '16px' }
+        ]
     }),
     static: {
         popoverOptions: {
@@ -138,6 +169,12 @@ export default {
         /** @return {string[]} */
         cutParams() {
             return this.descriptor.props.cutParams.getCompat(this.props.cutParams);
+        },
+        canvasCurrentSize() {
+            const v = this.props.btnPaddingV;
+            if (v === '6px') return 'S';
+            if (v === '14px') return 'L';
+            return 'M';
         }
     },
     methods: {
@@ -276,6 +313,16 @@ export default {
                 {}
             );
             addRouteQueryParams(queryParams);
+        },
+        /** Canvas bar: set background color */
+        setCanvasColor(color) {
+            this.props.btnBg = color;
+        },
+        /** Canvas bar: set S/M/L size */
+        setCanvasSize(s) {
+            this.props.btnPaddingV = s.paddingV;
+            this.props.btnPaddingH = s.paddingH;
+            this.props.btnFontSize = s.fontSize;
         },
         buildNavigateQueryParams() {
             const { urlFilters } = this.props;
@@ -420,5 +467,83 @@ export default {
 @keyframes elem-btn-pulse {
     0%, 100% { box-shadow: var(--btn-shadow, 0 2px 12px rgba(79, 106, 255, 0.3)); }
     50% { box-shadow: 0 0 0 6px rgba(79, 106, 255, 0), 0 0 20px rgba(79, 106, 255, 0.5); }
+}
+
+/* ── Canvas quick-edit bar ──────────────────────────────────────── */
+.elem-btn__canvas-bar {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 8px;
+    background: #1e293b;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    z-index: 9999;
+    white-space: nowrap;
+}
+
+.elem-btn:hover .elem-btn__canvas-bar {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+}
+
+.cbar__section {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cbar__sep {
+    width: 1px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
+    margin: 0 2px;
+}
+
+/* Color dots */
+.cbar__dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.1s;
+    padding: 0;
+    flex-shrink: 0;
+}
+.cbar__dot:hover { transform: scale(1.25); border-color: rgba(255, 255, 255, 0.6); }
+.cbar__dot--active { border-color: #fff; transform: scale(1.15); }
+
+/* Size chips */
+.cbar__size {
+    padding: 2px 7px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
+    letter-spacing: 0.04em;
+}
+.cbar__size:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+.cbar__size--active {
+    background: #4f6aff;
+    color: #fff;
+    border-color: #4f6aff;
 }
 </style>

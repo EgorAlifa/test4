@@ -2,192 +2,130 @@
     <w-panel>
         <ui-container>
 
-            <!-- ── Переход ─────────────────────────────────────────────── -->
+            <!-- ── Куда ведёт кнопка ──────────────────────────────────── -->
             <ui-input-url prop="url">Ссылка для перехода</ui-input-url>
+            <ui-switch v-if="props.url" prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
 
-            <template v-if="props.url">
-                <ui-switch prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
-
-                <ui-collapse v-if="storeVarOptions.length">
-                    <template #header>
-                        Передать переменные в ссылку
-                        <span v-if="props.urlFilters.length" class="badge">{{ props.urlFilters.length }}</span>
-                    </template>
-                    <ui-container>
-                        <div
-                            v-for="(filter, i) in props.urlFilters"
-                            :key="i"
-                            class="row row-collapse">
-                            <div class="col">
-                                <ui-select
-                                    v-model="filter.name"
-                                    :options="storeVarOptions"
-                                    @change="onUrlFilterChange">
-                                    Переменная
-                                </ui-select>
-                            </div>
-                            <div class="col col-auto col-vbot">
-                                <ui-button type="ghost" inline icon @click="onUrlFilterDelete(i)">
-                                    <i class="mdi mdi-delete" />
-                                </ui-button>
-                            </div>
-                        </div>
-                        <ui-button @click="onUrlFilterAdd">Добавить</ui-button>
-                    </ui-container>
-                </ui-collapse>
-            </template>
-
-            <!-- ── Событие ────────────────────────────────────────────── -->
+            <!-- ── Что делает кнопка ──────────────────────────────────── -->
             <ui-input-tags v-model="eventName">
                 Событие при нажатии
                 <ui-tooltip>
                     <template #target="{ events, binds }">
                         <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
                     </template>
-                    <div>Отправляет сигнал виджету «Событие». Введите название и нажмите Enter.</div>
+                    <div>Отправляет сигнал виджету «Событие».</div>
                 </ui-tooltip>
             </ui-input-tags>
 
-            <!-- ── Переменные ─────────────────────────────────────────── -->
+            <!-- ── Toggle-режим ───────────────────────────────────────── -->
+            <ui-switch prop="btnIsToggle">
+                Кнопка-переключатель
+                <ui-tooltip>
+                    <template #target="{ events, binds }">
+                        <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                    </template>
+                    <div>Кнопка выглядит «нажатой», пока переменная равна заданному значению.</div>
+                </ui-tooltip>
+            </ui-switch>
+            <template v-if="props.btnIsToggle">
+                <ui-select
+                    v-if="storeVarOptions.length"
+                    v-model="toggleStoreVar"
+                    :options="toggleVarOptions">
+                    Переменная
+                </ui-select>
+                <ui-input prop="btnToggleActiveValue" placeholder="1">
+                    Значение «активно»
+                </ui-input>
+            </template>
+
+            <!-- ── Расширенные действия ───────────────────────────────── -->
             <ui-collapse>
                 <template #header>
-                    Установить переменные
-                    <span v-if="props.filters.length" class="badge">{{ props.filters.length }}</span>
+                    Расширенные действия
+                    <span v-if="hasAdvancedActions" class="badge">{{ advancedActionsCount }}</span>
                 </template>
                 <ui-container>
+
+                    <!-- Установить переменные -->
+                    <div class="adv-section-label">Установить переменные хранилища</div>
                     <div
                         v-for="(filter, i) in props.filters"
                         :key="i"
-                        class="row row-collapse">
-                        <div class="col">
-                            <ui-input
-                                v-model="filter.name"
-                                :list="`store-vars-${_uid}`"
-                                @change="onFilterChange(filter, i)">
-                                Переменная
-                            </ui-input>
-                        </div>
-                        <div class="col">
-                            <ui-input
-                                class="mar-left-3"
-                                :value="getFilterData(filter)"
-                                @input="(val) => setFilterData(filter, val)"
-                                @change="onFilterChange(filter, i)">
-                                Значение
-                            </ui-input>
-                        </div>
-                        <div class="col col-auto col-vbot">
-                            <ui-button type="ghost" inline icon @click="onFilterDelete(filter)">
-                                <i class="mdi mdi-delete" />
-                            </ui-button>
-                        </div>
+                        class="filter-row">
+                        <ui-input
+                            v-model="filter.name"
+                            :list="`store-vars-${_uid}`"
+                            class="filter-row__name"
+                            @change="onFilterChange(filter, i)">
+                            Переменная
+                        </ui-input>
+                        <ui-input
+                            :value="getFilterData(filter)"
+                            class="filter-row__val"
+                            @input="(val) => setFilterData(filter, val)"
+                            @change="onFilterChange(filter, i)">
+                            Значение
+                        </ui-input>
+                        <button class="filter-row__del" @click="onFilterDelete(filter)">
+                            <i class="mdi mdi-close" />
+                        </button>
                     </div>
-
                     <datalist :id="`store-vars-${_uid}`">
                         <option v-for="v in storeVarNames" :key="v" :value="v" />
                     </datalist>
+                    <ui-button type="ghost" @click="onFilterAdd">+ Добавить</ui-button>
 
-                    <ui-button @click="onFilterAdd">Добавить переменную</ui-button>
+                    <!-- Очистить переменные -->
+                    <div class="adv-section-label">Очистить при нажатии</div>
+                    <ui-select
+                        v-if="storeVarOptions.length"
+                        v-model="cutParams"
+                        multiple
+                        :options="storeVarOptions">
+                        Переменные для очистки
+                    </ui-select>
+                    <ui-input-tags v-else v-model="cutParams">Переменные для очистки</ui-input-tags>
 
+                    <!-- Передать в URL -->
+                    <template v-if="props.url && storeVarOptions.length">
+                        <div class="adv-section-label">Передать переменные в ссылку</div>
+                        <div
+                            v-for="(filter, i) in props.urlFilters"
+                            :key="i"
+                            class="filter-row">
+                            <ui-select
+                                v-model="filter.name"
+                                :options="storeVarOptions"
+                                class="filter-row__name"
+                                @change="onUrlFilterChange">
+                                Переменная
+                            </ui-select>
+                            <button class="filter-row__del" @click="onUrlFilterDelete(i)">
+                                <i class="mdi mdi-close" />
+                            </button>
+                        </div>
+                        <ui-button type="ghost" @click="onUrlFilterAdd">+ Добавить</ui-button>
+                    </template>
+
+                    <!-- Сохранить в URL страницы -->
                     <ui-select
                         v-if="routeQueryParamOptions.length > 0 && !props.url"
                         v-model="routeQueryParamNames"
                         multiple
                         :options="routeQueryParamOptions">
                         Сохранить в URL страницы
-                        <ui-tooltip>
-                            <template #target="{ events, binds }">
-                                <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
-                            </template>
-                            <div>Выбранные переменные добавятся в адрес страницы, чтобы ссылка сохраняла фильтры.</div>
-                        </ui-tooltip>
                     </ui-select>
+
                 </ui-container>
             </ui-collapse>
 
-            <!-- ── Очистить переменные ────────────────────────────────── -->
-            <ui-select
-                v-if="storeVarOptions.length > 0"
-                v-model="cutParams"
-                multiple
-                :options="storeVarOptions">
-                Очистить при нажатии
-                <ui-tooltip>
-                    <template #target="{ events, binds }">
-                        <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
-                    </template>
-                    <div>Эти переменные удалятся из хранилища при нажатии на кнопку.</div>
-                </ui-tooltip>
-            </ui-select>
-            <ui-input-tags
-                v-else
-                v-model="cutParams">
-                Очистить при нажатии
-            </ui-input-tags>
-
-            <!-- ── Режим переключателя (Toggle) ──────────────────────── -->
+            <!-- ── Прочее ─────────────────────────────────────────────── -->
             <ui-collapse>
-                <template #header>
-                    Режим переключателя
-                    <span v-if="props.btnIsToggle" class="badge">Вкл</span>
-                </template>
+                <template #header>Прочее</template>
                 <ui-container>
-                    <ui-switch prop="btnIsToggle">
-                        Включить Toggle-режим
-                        <template #hint>
-                            Кнопка будет выглядеть «нажатой», пока переменная хранилища равна заданному значению.
-                            Цвета активного состояния настраиваются в панели «Оформление».
-                        </template>
-                    </ui-switch>
-                    <template v-if="props.btnIsToggle">
-                        <ui-select
-                            v-if="storeVarOptions.length"
-                            v-model="toggleStoreVar"
-                            :options="toggleVarOptions">
-                            Переменная хранилища
-                            <ui-tooltip>
-                                <template #target="{ events, binds }">
-                                    <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
-                                </template>
-                                <div>Кнопка визуально «нажата», пока эта переменная равна заданному значению.</div>
-                            </ui-tooltip>
-                        </ui-select>
-                        <ui-input
-                            prop="btnToggleActiveValue"
-                            placeholder="1">
-                            Значение «активно»
-                            <ui-tooltip>
-                                <template #target="{ events, binds }">
-                                    <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
-                                </template>
-                                <div>Оставьте пустым, чтобы считать кнопку активной при любом непустом значении переменной.</div>
-                            </ui-tooltip>
-                        </ui-input>
-                    </template>
-                </ui-container>
-            </ui-collapse>
-
-            <!-- ── Дополнительно ──────────────────────────────────────── -->
-            <ui-collapse>
-                <template #header>Дополнительно</template>
-                <ui-container>
-                    <ui-switch prop="isClickSelf">
-                        Игнорировать клики внутри
-                        <template #hint>
-                            Кнопка не срабатывает, если кликнули по виджету внутри неё.
-                        </template>
-                    </ui-switch>
-                    <ui-switch prop="isSaveUrlForStore">
-                        Режим ElemHouseApi
-                        <template #hint>
-                            Передаёт ссылку через postMessage для совместимости с ElemHouseApi.
-                        </template>
-                    </ui-switch>
                     <ui-switch prop="btnLoadingOnClick">
-                        Показать индикатор загрузки
-                        <template #hint>
-                            После нажатия кнопка показывает спиннер на заданное время.
-                        </template>
+                        Индикатор загрузки после нажатия
                     </ui-switch>
                     <ui-select
                         v-if="storeVarOptions.length"
@@ -198,9 +136,15 @@
                             <template #target="{ events, binds }">
                                 <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
                             </template>
-                            <div>Кнопка становится недоступной (disabled), пока выбранная переменная хранилища пуста.</div>
+                            <div>Кнопка становится недоступной, пока переменная пуста.</div>
                         </ui-tooltip>
                     </ui-select>
+                    <ui-switch prop="isClickSelf">
+                        Игнорировать клики внутри виджета
+                    </ui-switch>
+                    <ui-switch prop="isSaveUrlForStore">
+                        Режим ElemHouseApi
+                    </ui-switch>
                 </ui-container>
             </ui-collapse>
 
@@ -222,18 +166,12 @@ const { store } = Managers.StoreManager;
 
 export default {
     extends: Panel,
-    meta: { name: 'Настройки', icon: 'widgets' },
+    meta: { name: 'Настройки виджета', icon: 'settings' },
     components: { UiTooltip },
-    data: () => ({
-        ...ComponentInstanceTypeDescriptor
-    }),
+    data: () => ({ ...ComponentInstanceTypeDescriptor }),
     computed: {
         storeVarNames() {
-            try {
-                return Object.keys(store.state || {}).filter(Boolean).sort();
-            } catch (e) {
-                return [];
-            }
+            try { return Object.keys(store.state || {}).filter(Boolean).sort(); } catch (e) { return []; }
         },
         storeVarOptions() {
             return this.storeVarNames.map((k) => ({ label: k, value: k }));
@@ -247,30 +185,29 @@ export default {
         routeQueryParamOptions() {
             return this.props.filters.map(({ name, data }) => ({ label: name, value: String(data) }));
         },
+        hasAdvancedActions() {
+            return this.props.filters.length > 0 ||
+                this.cutParams.length > 0 ||
+                this.props.urlFilters.length > 0;
+        },
+        advancedActionsCount() {
+            return this.props.filters.length +
+                this.cutParams.length +
+                this.props.urlFilters.length;
+        },
         routeQueryParamNames: {
-            get() {
-                return this.props.routeQueryParamNames.map((p) => String(p.value));
-            },
+            get() { return this.props.routeQueryParamNames.map((p) => String(p.value)); },
             set(value) {
-                this.props.routeQueryParamNames = this.routeQueryParamOptions.filter((o) =>
-                    value.includes(o.value)
-                );
+                this.props.routeQueryParamNames = this.routeQueryParamOptions.filter((o) => value.includes(o.value));
                 this.propChanged('routeQueryParamNames');
             }
         },
         eventName: {
-            get() {
-                return this.descriptor.props.eventName.getCompat(this.props.eventName);
-            },
-            set(val) {
-                this.props.eventName = val.map((el) => el.trim());
-                this.propChanged('eventName');
-            }
+            get() { return this.descriptor.props.eventName.getCompat(this.props.eventName); },
+            set(val) { this.props.eventName = val.map((el) => el.trim()); this.propChanged('eventName'); }
         },
         cutParams: {
-            get() {
-                return this.descriptor.props.cutParams.getCompat(this.props.cutParams);
-            },
+            get() { return this.descriptor.props.cutParams.getCompat(this.props.cutParams); },
             set(val) {
                 this.props.cutParams = Array.isArray(val) ? val.map((el) => el.trim()) : [];
                 this.propChanged('cutParams');
@@ -278,17 +215,11 @@ export default {
         },
         toggleStoreVar: {
             get() { return this.props.btnToggleStoreVar || ''; },
-            set(val) {
-                this.props.btnToggleStoreVar = val;
-                this.propChanged('btnToggleStoreVar');
-            }
+            set(val) { this.props.btnToggleStoreVar = val; this.propChanged('btnToggleStoreVar'); }
         },
         disableVar: {
             get() { return this.props.btnDisableVar || ''; },
-            set(val) {
-                this.props.btnDisableVar = val;
-                this.propChanged('btnDisableVar');
-            }
+            set(val) { this.props.btnDisableVar = val; this.propChanged('btnDisableVar'); }
         }
     },
     methods: {
@@ -333,3 +264,44 @@ export default {
     }
 };
 </script>
+
+<style scoped>
+.adv-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-top: 6px;
+    margin-bottom: 4px;
+}
+
+.filter-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+.filter-row__name { flex: 1; }
+.filter-row__val  { flex: 1; }
+.filter-row__del {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #94a3b8;
+    transition: background 0.12s, color 0.12s;
+    padding: 0;
+}
+.filter-row__del:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #dc2626;
+}
+</style>
