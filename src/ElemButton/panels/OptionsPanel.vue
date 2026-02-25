@@ -2,103 +2,109 @@
     <w-panel>
         <ui-container>
 
-            <!-- ── Обзор: что делает кнопка ──────────────────────────────── -->
-            <div class="act-status">
+            <!-- ── 2×2 карточки: что делает кнопка ──────────────────────── -->
+            <div class="action-grid">
                 <div
-                    v-for="a in actionSummary"
+                    v-for="a in actionCards"
                     :key="a.key"
-                    class="act-status__chip"
-                    :class="{ 'act-status__chip--on': a.active }">
-                    <i :class="['mdi', a.icon]" />
-                    <span>{{ a.label }}</span>
-                    <span v-if="a.count" class="act-status__count">{{ a.count }}</span>
+                    class="action-card"
+                    :class="[`action-card--${a.color}`, { 'action-card--on': a.active }]"
+                    @click="a.toggle()">
+                    <i :class="['mdi', a.icon, 'action-card__icon']" />
+                    <div class="action-card__title">{{ a.title }}</div>
+                    <div class="action-card__status">{{ a.status }}</div>
                 </div>
             </div>
 
             <!-- ── Ссылка ──────────────────────────────────────────────────── -->
-            <div
-                class="sec-hd"
-                :class="{ 'sec-hd--accent-blue': props.url }"
-                @click="openLink = !openLink">
-                <span class="sec-hd__ico sec-hd__ico--blue">
-                    <i class="mdi mdi-link-variant" />
-                </span>
-                <div class="sec-hd__text">
-                    <div class="sec-hd__title">Ссылка для перехода</div>
-                    <div v-if="props.url" class="sec-hd__sub">{{ truncUrl(props.url) }}</div>
-                    <div v-else class="sec-hd__sub sec-hd__sub--dim">Не задана</div>
+            <div class="sec-wrap" :class="{ 'sec-wrap--blue': props.url }">
+                <div class="sec-hd" @click="openLink = !openLink">
+                    <span class="sec-hd__ico sec-hd__ico--blue">
+                        <i class="mdi mdi-link-variant" />
+                    </span>
+                    <div class="sec-hd__text">
+                        <div class="sec-hd__title">Ссылка для перехода</div>
+                        <div v-if="props.url" class="sec-hd__sub">{{ truncUrl(props.url) }}</div>
+                        <div v-else class="sec-hd__sub sec-hd__sub--dim">Не задана</div>
+                    </div>
+                    <i class="mdi sec-hd__chev" :class="openLink ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
                 </div>
-                <i class="mdi sec-hd__chev" :class="openLink ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
-            </div>
-            <div v-show="openLink" class="sec-body sec-body--blue">
-                <ui-input-url prop="url" />
-                <ui-switch v-if="props.url" prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
+                <transition name="sec-expand">
+                    <div v-if="openLink" class="sec-body">
+                        <ui-input-url prop="url" />
+                        <ui-switch v-if="props.url" prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
+                    </div>
+                </transition>
             </div>
 
             <!-- ── Событие ────────────────────────────────────────────────── -->
-            <div
-                class="sec-hd"
-                :class="{ 'sec-hd--accent-amber': eventName.length }"
-                @click="openEvent = !openEvent">
-                <span class="sec-hd__ico sec-hd__ico--amber">
-                    <i class="mdi mdi-lightning-bolt" />
-                </span>
-                <div class="sec-hd__text">
-                    <div class="sec-hd__title">Событие при нажатии</div>
-                    <div v-if="eventName.length" class="sec-hd__sub">{{ eventName.join(', ') }}</div>
-                    <div v-else class="sec-hd__sub sec-hd__sub--dim">Не задано</div>
+            <div class="sec-wrap" :class="{ 'sec-wrap--amber': eventName.length }">
+                <div class="sec-hd" @click="openEvent = !openEvent">
+                    <span class="sec-hd__ico sec-hd__ico--amber">
+                        <i class="mdi mdi-lightning-bolt" />
+                    </span>
+                    <div class="sec-hd__text">
+                        <div class="sec-hd__title">Событие при нажатии</div>
+                        <div v-if="eventName.length" class="sec-hd__sub">{{ eventName.join(', ') }}</div>
+                        <div v-else class="sec-hd__sub sec-hd__sub--dim">Не задано</div>
+                    </div>
+                    <i class="mdi sec-hd__chev" :class="openEvent ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
                 </div>
-                <i class="mdi sec-hd__chev" :class="openEvent ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
-            </div>
-            <div v-show="openEvent" class="sec-body sec-body--amber">
-                <ui-input-tags v-model="eventName">
-                    Событие
-                    <ui-tooltip>
-                        <template #target="{ events, binds }">
-                            <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
-                        </template>
-                        <div>Отправляет сигнал виджету «Событие».</div>
-                    </ui-tooltip>
-                </ui-input-tags>
+                <transition name="sec-expand">
+                    <div v-if="openEvent" class="sec-body">
+                        <ui-input-tags v-model="eventName">
+                            Событие
+                            <ui-tooltip>
+                                <template #target="{ events, binds }">
+                                    <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                                </template>
+                                <div>Отправляет сигнал виджету «Событие».</div>
+                            </ui-tooltip>
+                        </ui-input-tags>
+                    </div>
+                </transition>
             </div>
 
             <!-- ── Переключатель ──────────────────────────────────────────── -->
-            <div
-                class="sec-hd"
-                :class="{ 'sec-hd--accent-green': props.btnIsToggle }"
-                @click="openToggle = !openToggle">
-                <span class="sec-hd__ico" :class="props.btnIsToggle ? 'sec-hd__ico--green' : 'sec-hd__ico--grey'">
-                    <i :class="['mdi', props.btnIsToggle ? 'mdi-toggle-switch' : 'mdi-toggle-switch-off-outline']" />
-                </span>
-                <div class="sec-hd__text">
-                    <div class="sec-hd__title">Кнопка-переключатель</div>
-                    <div class="sec-hd__sub" :class="props.btnIsToggle ? '' : 'sec-hd__sub--dim'">
-                        {{ props.btnIsToggle ? 'Включён' : 'Выключен' }}
+            <div class="sec-wrap" :class="{ 'sec-wrap--green': props.btnIsToggle }">
+                <div class="sec-hd" @click="openToggle = !openToggle">
+                    <span
+                        class="sec-hd__ico"
+                        :class="props.btnIsToggle ? 'sec-hd__ico--green' : 'sec-hd__ico--grey'">
+                        <i :class="['mdi', props.btnIsToggle ? 'mdi-toggle-switch' : 'mdi-toggle-switch-off-outline']" />
+                    </span>
+                    <div class="sec-hd__text">
+                        <div class="sec-hd__title">Кнопка-переключатель</div>
+                        <div class="sec-hd__sub" :class="props.btnIsToggle ? '' : 'sec-hd__sub--dim'">
+                            {{ props.btnIsToggle ? 'Включён' : 'Выключен' }}
+                        </div>
                     </div>
+                    <i class="mdi sec-hd__chev" :class="openToggle ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
                 </div>
-                <i class="mdi sec-hd__chev" :class="openToggle ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
-            </div>
-            <div v-show="openToggle" class="sec-body sec-body--green">
-                <ui-switch prop="btnIsToggle">
-                    Включить переключатель
-                    <ui-tooltip>
-                        <template #target="{ events, binds }">
-                            <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                <transition name="sec-expand">
+                    <div v-if="openToggle" class="sec-body">
+                        <ui-switch prop="btnIsToggle">
+                            Включить переключатель
+                            <ui-tooltip>
+                                <template #target="{ events, binds }">
+                                    <span class="mdi mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                                </template>
+                                <div>Кнопка выглядит «нажатой», пока переменная равна заданному значению.</div>
+                            </ui-tooltip>
+                        </ui-switch>
+                        <template v-if="props.btnIsToggle">
+                            <ui-select
+                                v-if="storeVarOptions.length"
+                                v-model="toggleStoreVar"
+                                :options="toggleVarOptions">
+                                Переменная
+                            </ui-select>
+                            <ui-input prop="btnToggleActiveValue" placeholder="1">
+                                Значение «активно»
+                            </ui-input>
                         </template>
-                        <div>Кнопка выглядит «нажатой», пока переменная равна заданному значению.</div>
-                    </ui-tooltip>
-                </ui-switch>
-                <template v-if="props.btnIsToggle">
-                    <ui-select
-                        v-if="storeVarOptions.length"
-                        v-model="toggleStoreVar"
-                        :options="toggleVarOptions">
-                        Переменная
-                    </ui-select>
-                    <ui-input prop="btnToggleActiveValue" placeholder="1">
-                        Значение «активно»
-                    </ui-input>
-                </template>
+                    </div>
+                </transition>
             </div>
 
             <!-- ── Расширенные действия ───────────────────────────────────── -->
@@ -109,50 +115,58 @@
                 </template>
                 <ui-container>
 
-                    <!-- Установить переменные хранилища -->
+                    <!-- Установить переменные -->
                     <div class="adv-label">
-                        <i class="mdi mdi-database-edit-outline" />
-                        Установить переменные
+                        <i class="mdi mdi-database-edit-outline" /> Установить переменные
                     </div>
                     <div
                         v-for="(filter, i) in props.filters"
                         :key="i"
-                        class="var-row">
-                        <!-- Variable name: select from store if vars available, else free text -->
-                        <div class="var-row__name">
-                            <ui-select
-                                v-if="storeEntries.length"
-                                v-model="filter.name"
-                                :options="filterVarOptions"
-                                @change="onFilterChange(filter, i)">
-                                Переменная
-                            </ui-select>
-                            <ui-input
-                                v-else
-                                v-model="filter.name"
-                                :list="`store-vars-${_uid}`"
-                                @change="onFilterChange(filter, i)">
-                                Переменная
-                            </ui-input>
-                            <div
-                                v-if="filter.name && storeEntries.some(e => e.name === filter.name)"
-                                class="var-row__current">
-                                <i class="mdi mdi-database-arrow-right-outline" />
-                                Сейчас: <strong>{{ getStoreVal(filter.name) }}</strong>
+                        class="filter-item">
+                        <div class="filter-item__row">
+                            <!-- Variable name: store select OR manual input, toggled per-row -->
+                            <div class="mode-field">
+                                <ui-select
+                                    v-if="storeEntries.length && !isFilterManual(i)"
+                                    v-model="filter.name"
+                                    :options="filterVarOptions"
+                                    @change="onFilterChange(filter, i)">
+                                    Переменная
+                                </ui-select>
+                                <ui-input
+                                    v-else
+                                    v-model="filter.name"
+                                    :list="`store-vars-${_uid}`"
+                                    @change="onFilterChange(filter, i)">
+                                    Переменная
+                                </ui-input>
+                                <button
+                                    v-if="storeEntries.length"
+                                    class="mode-btn"
+                                    :class="{ 'mode-btn--manual': isFilterManual(i) }"
+                                    :title="isFilterManual(i) ? 'Выбрать из хранилища' : 'Ввести вручную'"
+                                    @click="toggleFilterMode(i)">
+                                    <i :class="['mdi', isFilterManual(i) ? 'mdi-database-search-outline' : 'mdi-pencil-outline']" />
+                                </button>
                             </div>
+                            <!-- Value -->
+                            <div class="filter-item__val">
+                                <ui-input
+                                    :value="getFilterData(filter)"
+                                    @input="(val) => setFilterData(filter, val)"
+                                    @change="onFilterChange(filter, i)">
+                                    Значение
+                                </ui-input>
+                            </div>
+                            <button class="del-btn" @click="onFilterDelete(filter)">
+                                <i class="mdi mdi-close" />
+                            </button>
                         </div>
-                        <!-- Value -->
-                        <div class="var-row__val">
-                            <ui-input
-                                :value="getFilterData(filter)"
-                                @input="(val) => setFilterData(filter, val)"
-                                @change="onFilterChange(filter, i)">
-                                Значение
-                            </ui-input>
+                        <!-- Current store value hint -->
+                        <div v-if="filter.name && storeHasVar(filter.name)" class="filter-item__hint">
+                            <i class="mdi mdi-arrow-right-thin" />
+                            Сейчас в хранилище: <strong>{{ getStoreVal(filter.name) }}</strong>
                         </div>
-                        <button class="var-row__del" @click="onFilterDelete(filter)">
-                            <i class="mdi mdi-close" />
-                        </button>
                     </div>
                     <datalist :id="`store-vars-${_uid}`">
                         <option v-for="v in storeVarNames" :key="v" :value="v" />
@@ -161,8 +175,7 @@
 
                     <!-- Очистить переменные -->
                     <div class="adv-label">
-                        <i class="mdi mdi-database-remove-outline" />
-                        Очистить при нажатии
+                        <i class="mdi mdi-database-remove-outline" /> Очистить при нажатии
                     </div>
                     <ui-select
                         v-if="storeVarOptions.length"
@@ -176,24 +189,25 @@
                     <!-- Передать в URL -->
                     <template v-if="props.url && storeVarOptions.length">
                         <div class="adv-label">
-                            <i class="mdi mdi-link-plus" />
-                            Передать переменные в ссылку
+                            <i class="mdi mdi-link-plus" /> Передать переменные в ссылку
                         </div>
                         <div
                             v-for="(filter, i) in props.urlFilters"
                             :key="i"
-                            class="var-row">
-                            <div class="var-row__name">
-                                <ui-select
-                                    v-model="filter.name"
-                                    :options="storeVarOptions"
-                                    @change="onUrlFilterChange">
-                                    Переменная
-                                </ui-select>
+                            class="filter-item">
+                            <div class="filter-item__row">
+                                <div class="mode-field">
+                                    <ui-select
+                                        v-model="filter.name"
+                                        :options="storeVarOptions"
+                                        @change="onUrlFilterChange">
+                                        Переменная
+                                    </ui-select>
+                                </div>
+                                <button class="del-btn" @click="onUrlFilterDelete(i)">
+                                    <i class="mdi mdi-close" />
+                                </button>
                             </div>
-                            <button class="var-row__del" @click="onUrlFilterDelete(i)">
-                                <i class="mdi mdi-close" />
-                            </button>
                         </div>
                         <ui-button type="ghost" @click="onUrlFilterAdd">+ Добавить</ui-button>
                     </template>
@@ -207,7 +221,7 @@
                         Сохранить в URL страницы
                     </ui-select>
 
-                    <!-- Хранилище: мини-обзор -->
+                    <!-- Store Explorer -->
                     <ui-collapse v-if="storeEntries.length">
                         <template #header>
                             <i class="mdi mdi-database-eye-outline" />
@@ -219,6 +233,7 @@
                                 v-for="entry in storeEntries"
                                 :key="entry.name"
                                 class="store-row"
+                                :title="`Копировать «${entry.name}»`"
                                 @click="copyToClipboard(entry.name)">
                                 <span class="store-row__name">{{ entry.name }}</span>
                                 <span
@@ -289,7 +304,9 @@ export default {
         ...ComponentInstanceTypeDescriptor,
         openLink: false,
         openEvent: false,
-        openToggle: false
+        openToggle: false,
+        /** per-row mode: true = manual input, false = store select */
+        filterManualModes: {}
     }),
     computed: {
         storeVarNames() {
@@ -298,7 +315,6 @@ export default {
         storeVarOptions() {
             return this.storeVarNames.map((k) => ({ label: k, value: k }));
         },
-        /** Full store entries with formatted display values */
         storeEntries() {
             try {
                 return Object.entries(store.state || {})
@@ -308,17 +324,10 @@ export default {
                         const isNull = val === null || val === undefined;
                         const isArray = Array.isArray(val);
                         const isObject = !isNull && !isArray && typeof val === 'object';
-                        return {
-                            name,
-                            isNull,
-                            isArray,
-                            isObject,
-                            display: this.formatStoreVal(val)
-                        };
+                        return { name, isNull, isArray, isObject, display: this.formatStoreVal(val) };
                     });
             } catch (e) { return []; }
         },
-        /** Options for filter variable select with current value in label */
         filterVarOptions() {
             return [
                 { label: '— выбрать переменную —', value: '' },
@@ -347,33 +356,47 @@ export default {
                 this.cutParams.length +
                 this.props.urlFilters.length;
         },
-        actionSummary() {
+        actionCards() {
+            const url = this.props.url || '';
+            const evCount = this.eventName.length;
             return [
                 {
                     key: 'link',
-                    label: 'Ссылка',
+                    title: 'Ссылка',
                     icon: 'mdi-link-variant',
-                    active: !!this.props.url
+                    color: 'blue',
+                    active: !!url,
+                    status: url ? this.truncUrl(url) : 'Не задана',
+                    toggle: () => { this.openLink = !this.openLink; }
                 },
                 {
                     key: 'event',
-                    label: 'Событие',
+                    title: 'Событие',
                     icon: 'mdi-lightning-bolt',
-                    active: this.eventName.length > 0,
-                    count: this.eventName.length || null
+                    color: 'amber',
+                    active: evCount > 0,
+                    status: evCount > 0
+                        ? this.eventName[0] + (evCount > 1 ? ` +${evCount - 1}` : '')
+                        : 'Не задано',
+                    toggle: () => { this.openEvent = !this.openEvent; }
                 },
                 {
                     key: 'toggle',
-                    label: 'Тоггл',
-                    icon: 'mdi-toggle-switch',
-                    active: this.props.btnIsToggle
+                    title: 'Тоггл',
+                    icon: this.props.btnIsToggle ? 'mdi-toggle-switch' : 'mdi-toggle-switch-off-outline',
+                    color: 'green',
+                    active: this.props.btnIsToggle,
+                    status: this.props.btnIsToggle ? 'Включён' : 'Выключен',
+                    toggle: () => { this.openToggle = !this.openToggle; }
                 },
                 {
                     key: 'adv',
-                    label: 'Действия',
+                    title: 'Действия',
                     icon: 'mdi-filter-variant',
+                    color: 'purple',
                     active: this.hasAdvancedActions,
-                    count: this.hasAdvancedActions ? this.advancedActionsCount : null
+                    status: this.hasAdvancedActions ? `${this.advancedActionsCount} правил` : 'Нет',
+                    toggle: () => {}
                 }
             ];
         },
@@ -410,9 +433,18 @@ export default {
         this.openToggle = this.props.btnIsToggle;
     },
     methods: {
+        isFilterManual(i) {
+            return !!this.filterManualModes[i];
+        },
+        toggleFilterMode(i) {
+            this.filterManualModes = { ...this.filterManualModes, [i]: !this.filterManualModes[i] };
+        },
+        storeHasVar(name) {
+            return name && this.storeVarNames.includes(name);
+        },
         truncUrl(url) {
             if (!url) return '';
-            const max = 28;
+            const max = 26;
             return url.length > max ? `${url.slice(0, max)}…` : url;
         },
         formatStoreVal(val) {
@@ -472,71 +504,108 @@ export default {
 </script>
 
 <style scoped>
-/* ── Action status strip ────────────────────────────────────────── */
-.act-status {
+/* ── 2×2 Action cards ───────────────────────────────────────────── */
+.action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.action-card {
     display: flex;
-    gap: 5px;
-    flex-wrap: wrap;
-    margin-bottom: 6px;
-}
-.act-status__chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 9px;
-    border-radius: 20px;
-    border: 1.5px solid #e2e8f0;
-    background: #f8fafc;
-    color: #94a3b8;
-    font-size: 11px;
-    font-weight: 600;
-    transition: border-color 0.15s, background 0.15s, color 0.15s;
-}
-.act-status__chip--on {
-    border-color: #a5b4fc;
-    background: #eff2ff;
-    color: #4f6aff;
-}
-.act-status__chip .mdi { font-size: 13px; }
-.act-status__count {
-    display: inline-flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-width: 16px;
-    height: 16px;
-    border-radius: 8px;
-    background: #4f6aff;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 0 3px;
+    gap: 3px;
+    padding: 12px 6px 10px;
+    border-radius: 10px;
+    border: 1.5px solid #e2e8f0;
+    cursor: pointer;
+    background: #fafbfc;
+    text-align: center;
+    user-select: none;
+    transition: transform 0.12s, box-shadow 0.12s, border-color 0.15s, background 0.15s;
 }
+.action-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    border-color: #c7d0e0;
+}
+.action-card__icon { font-size: 22px; color: #94a3b8; transition: color 0.15s; line-height: 1; }
+.action-card__title { font-size: 11px; font-weight: 700; color: #64748b; line-height: 1.2; }
+.action-card__status {
+    font-size: 10px;
+    color: #94a3b8;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    padding: 0 4px;
+}
+/* Active: blue */
+.action-card--on.action-card--blue {
+    background: linear-gradient(145deg, #eff6ff, #dbeafe);
+    border-color: #93c5fd;
+    box-shadow: 0 2px 8px rgba(59,130,246,0.15);
+}
+.action-card--on.action-card--blue .action-card__icon  { color: #2563eb; }
+.action-card--on.action-card--blue .action-card__title { color: #1e40af; }
+.action-card--on.action-card--blue .action-card__status { color: #3b82f6; }
+/* Active: amber */
+.action-card--on.action-card--amber {
+    background: linear-gradient(145deg, #fffbeb, #fef3c7);
+    border-color: #fcd34d;
+    box-shadow: 0 2px 8px rgba(245,158,11,0.15);
+}
+.action-card--on.action-card--amber .action-card__icon  { color: #d97706; }
+.action-card--on.action-card--amber .action-card__title { color: #92400e; }
+.action-card--on.action-card--amber .action-card__status { color: #f59e0b; }
+/* Active: green */
+.action-card--on.action-card--green {
+    background: linear-gradient(145deg, #f0fdf4, #dcfce7);
+    border-color: #86efac;
+    box-shadow: 0 2px 8px rgba(34,197,94,0.15);
+}
+.action-card--on.action-card--green .action-card__icon  { color: #16a34a; }
+.action-card--on.action-card--green .action-card__title { color: #14532d; }
+.action-card--on.action-card--green .action-card__status { color: #22c55e; }
+/* Active: purple */
+.action-card--on.action-card--purple {
+    background: linear-gradient(145deg, #faf5ff, #ede9fe);
+    border-color: #c4b5fd;
+    box-shadow: 0 2px 8px rgba(124,58,237,0.15);
+}
+.action-card--on.action-card--purple .action-card__icon  { color: #7c3aed; }
+.action-card--on.action-card--purple .action-card__title { color: #4c1d95; }
+.action-card--on.action-card--purple .action-card__status { color: #8b5cf6; }
 
-/* ── Section accordion header ───────────────────────────────────── */
+/* ── Accordion wrapper ──────────────────────────────────────────── */
+.sec-wrap {
+    border: 1.5px solid #e0e6ef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 5px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.sec-wrap:hover { border-color: #c0cfe0; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+.sec-wrap--blue  { border-left: 3px solid #3b82f6; }
+.sec-wrap--amber { border-left: 3px solid #f59e0b; }
+.sec-wrap--green { border-left: 3px solid #22c55e; }
+
+/* ── Section header ─────────────────────────────────────────────── */
 .sec-hd {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    border-radius: 10px;
     cursor: pointer;
-    background: #fff;
-    border: 1.5px solid #e0e6ef;
-    margin-top: 5px;
-    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.1s;
+    transition: background 0.12s;
     user-select: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
-.sec-hd:hover {
-    border-color: #a5b4fc;
-    background: #f7f9ff;
-    box-shadow: 0 3px 10px rgba(79,106,255,0.1);
-    transform: translateY(-1px);
-}
-/* Colored left accent when configured */
-.sec-hd--accent-blue  { border-left: 3px solid #3b82f6; }
-.sec-hd--accent-amber { border-left: 3px solid #f59e0b; }
-.sec-hd--accent-green { border-left: 3px solid #22c55e; }
+.sec-hd:hover { background: #f7f9ff; }
 
 .sec-hd__ico {
     display: flex;
@@ -548,19 +617,13 @@ export default {
     flex-shrink: 0;
     font-size: 17px;
 }
-/* Vivid icon backgrounds */
 .sec-hd__ico--blue  { background: #dbeafe; color: #2563eb; }
 .sec-hd__ico--amber { background: #fef3c7; color: #d97706; }
 .sec-hd__ico--green { background: #dcfce7; color: #16a34a; }
 .sec-hd__ico--grey  { background: #f1f5f9; color: #64748b; }
 
 .sec-hd__text { flex: 1; min-width: 0; }
-.sec-hd__title {
-    font-size: 13px;
-    font-weight: 600;
-    color: #1e293b;
-    line-height: 1.3;
-}
+.sec-hd__title { font-size: 13px; font-weight: 600; color: #1e293b; line-height: 1.3; }
 .sec-hd__sub {
     font-size: 11px;
     color: #475569;
@@ -571,20 +634,20 @@ export default {
     max-width: 180px;
 }
 .sec-hd__sub--dim { color: #c8d5e8; }
-
 .sec-hd__chev { font-size: 18px; color: #94a3b8; flex-shrink: 0; }
 
 /* ── Section body ───────────────────────────────────────────────── */
 .sec-body {
-    padding: 8px 4px 4px;
-    border-left: 2px solid #e2e8f0;
-    margin-left: 18px;
-    padding-left: 12px;
-    margin-bottom: 2px;
+    padding: 6px 12px 10px;
+    border-top: 1px solid #f0f4f8;
+    background: #fafcff;
 }
-.sec-body--blue  { border-left-color: #bfdbfe; }
-.sec-body--amber { border-left-color: #fde68a; }
-.sec-body--green { border-left-color: #bbf7d0; }
+
+/* ── Expand/collapse animation ──────────────────────────────────── */
+.sec-expand-enter-active { transition: opacity 0.18s ease, transform 0.18s ease; }
+.sec-expand-leave-active { transition: opacity 0.12s ease; }
+.sec-expand-enter        { opacity: 0; transform: translateY(-6px); }
+.sec-expand-leave-to     { opacity: 0; }
 
 /* ── Advanced section labels ────────────────────────────────────── */
 .adv-label {
@@ -603,35 +666,50 @@ export default {
 }
 .adv-label .mdi { font-size: 14px; }
 
-/* ── Variable rows (filter rows with store values) ──────────────── */
-.var-row {
+/* ── Filter items ───────────────────────────────────────────────── */
+.filter-item { margin-bottom: 6px; }
+.filter-item__row {
     display: flex;
-    align-items: flex-start;
-    gap: 6px;
-    margin-bottom: 6px;
+    align-items: flex-end;
+    gap: 5px;
 }
-.var-row__name { flex: 1; min-width: 0; }
-.var-row__val  { flex: 1; min-width: 0; }
-.var-row__current {
+.filter-item__val { flex: 1; min-width: 0; }
+
+/* mode-field: input/select + toggle button side by side */
+.mode-field {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+}
+.mode-field > :first-child { flex: 1; min-width: 0; }
+
+.mode-btn {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
     display: flex;
     align-items: center;
-    gap: 3px;
-    font-size: 10px;
-    color: #64748b;
-    background: #f8fafc;
+    justify-content: center;
+    background: #f1f5f9;
     border: 1px solid #e2e8f0;
-    border-radius: 4px;
-    padding: 2px 6px;
-    margin-top: 3px;
-    line-height: 1.4;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #64748b;
+    font-size: 13px;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    padding: 0;
+    margin-bottom: 1px;
 }
-.var-row__current .mdi { font-size: 11px; color: #94a3b8; }
-.var-row__current strong { color: #1e293b; font-weight: 600; }
-.var-row__del {
+.mode-btn:hover { background: #e0e7ff; border-color: #a5b4fc; color: #4f6aff; }
+.mode-btn--manual { background: #eff2ff; border-color: #a5b4fc; color: #4f6aff; }
+
+.del-btn {
     flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-    margin-top: 18px;
+    width: 26px;
+    height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -640,33 +718,46 @@ export default {
     border-radius: 6px;
     cursor: pointer;
     color: #94a3b8;
+    font-size: 13px;
     transition: background 0.12s, color 0.12s;
     padding: 0;
+    margin-bottom: 1px;
 }
-.var-row__del:hover {
-    background: #fee2e2;
-    border-color: #fca5a5;
-    color: #dc2626;
-}
+.del-btn:hover { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
 
-/* ── Store explorer table ───────────────────────────────────────── */
+.filter-item__hint {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 2px 7px;
+    margin-top: 3px;
+    line-height: 1.5;
+}
+.filter-item__hint .mdi { font-size: 12px; color: #94a3b8; }
+.filter-item__hint strong { color: #1e293b; font-weight: 600; }
+
+/* ── Store explorer ─────────────────────────────────────────────── */
 .store-table {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
     margin: 4px 0;
-    max-height: 200px;
+    max-height: 190px;
     overflow-y: auto;
 }
 .store-row {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 8px;
+    padding: 4px 7px;
     border-radius: 5px;
     cursor: pointer;
     transition: background 0.1s;
-    font-size: 12px;
 }
 .store-row:hover { background: #f0f4ff; }
 .store-row__name {
@@ -691,7 +782,7 @@ export default {
     background: #f1f5f9;
     color: #475569;
 }
-.store-row__val--null   { color: #94a3b8; background: #f8fafc; font-style: italic; }
-.store-row__val--array  { background: #eff6ff; color: #2563eb; }
-.store-row__val--obj    { background: #faf5ff; color: #7c3aed; }
+.store-row__val--null  { color: #94a3b8; background: #f8fafc; font-style: italic; }
+.store-row__val--array { background: #eff6ff; color: #2563eb; }
+.store-row__val--obj   { background: #faf5ff; color: #7c3aed; }
 </style>
