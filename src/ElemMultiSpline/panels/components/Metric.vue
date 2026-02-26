@@ -545,7 +545,7 @@
             </ui-has-panel>
         </template>
 
-        <template v-if="['bar', 'line'].includes(currentOptions.customType)">
+        <template v-if="['bar', 'line', 'step line'].includes(currentOptions.customType)">
             <ui-has-panel>
                 <ui-checkbox v-model="currentOptions.styleConditions.enable" @change="collectSettings">
                     Задать стили условием
@@ -656,6 +656,14 @@
         </template>
 
         <template v-if="currentOptions.type === 'line'">
+            <ui-select
+                v-if="currentOptions.customType === 'step line'"
+                v-model="currentOptions.stepType"
+                :options="stepTypeOptions"
+                @change="collectSettings">
+                Тип ступеньки
+            </ui-select>
+
             <ui-has-panel>
                 <ui-checkbox
                     v-model="currentOptions.fillLine"
@@ -1092,6 +1100,7 @@ import {
     LINE_TYPES,
     SYMBOL_TYPES,
     ANIMATION_TYPES,
+    STEP_TYPE_OPTIONS,
     LabelAlignOptions,
     SortOptions,
     VerticalAlignOptions,
@@ -1318,7 +1327,8 @@ export default {
         compareSourceOptions: [
             { label: 'Число', value: 'value' },
             { label: 'Метрика', value: 'metric' }
-        ]
+        ],
+        stepTypeOptions: STEP_TYPE_OPTIONS
     },
 
     watch: {
@@ -1446,10 +1456,11 @@ export default {
                     }
                     break;
                 case 'line':
+                case 'step line':
                     if (currentOptions.type === 'bar') {
                         currentOptions.colorForLine = currentOptions.colorForBar;
                     }
-                    this.currentOptions.type = seriesType;
+                    this.currentOptions.type = 'line';
                     this.currentOptions.itemStyle = {};
                     break;
                 case 'bar':

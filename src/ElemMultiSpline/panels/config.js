@@ -110,7 +110,14 @@ export const CHART_TYPES = [
     { value: 'plan', label: 'Compared plan' },
     { value: 'fact', label: 'Compared fact' },
     { value: 'stacked', label: 'Stacked bar' },
-    { value: 'stacked line', label: 'Stacked line' }
+    { value: 'stacked line', label: 'Stacked line' },
+    { value: 'step line', label: 'Step line' }
+];
+
+export const STEP_TYPE_OPTIONS = [
+    { value: 'start', label: 'Start' },
+    { value: 'middle', label: 'Middle' },
+    { value: 'end', label: 'End' }
 ];
 
 export const LABEL_POS_OPTIONS = [

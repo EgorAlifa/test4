@@ -494,7 +494,7 @@ export default {
 
         formSeriesTop(seriesOptions, data, curAxis) {
             const { enable, type, rest, metrics, number, dir } = this.props.topOptions;
-            if (!['bar', 'line'].includes(seriesOptions.customType) || type === TopType.METRIC) {
+            if (!['bar', 'line', 'step line'].includes(seriesOptions.customType) || type === TopType.METRIC) {
                 return data;
             }
             if (enable && this.hasTopMode) {
@@ -771,8 +771,9 @@ export default {
                 animationEasingUpdate: seriesItem.animationEasing,
                 animationDurationUpdate: seriesItem.animationDuration,
                 animationDelayUpdate: seriesItem.animationDelay,
-                ...(seriesItem.customType === 'line'
+                ...(['line', 'step line'].includes(seriesItem.customType)
                     ? {
+                          ...(seriesItem.customType === 'step line' ? { step: seriesItem.stepType || 'start' } : {}),
                           itemStyle: {
                               ...itemStyle,
                               ...(() => {
