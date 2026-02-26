@@ -660,9 +660,28 @@
                 v-if="currentOptions.customType === 'step line'"
                 v-model="currentOptions.stepType"
                 :options="stepTypeOptions"
+                :disabled="currentOptions.disconnectLine"
                 @change="collectSettings">
                 Тип ступеньки
             </ui-select>
+
+            <template v-if="currentOptions.customType === 'step line'">
+                <ui-switch v-model="currentOptions.disconnectLine" @change="collectSettings">
+                    Без соединения (маркеры)
+                    <template #hint>
+                        Скрывает соединяющие линии между точками. Каждая точка отображается как отдельный
+                        горизонтальный штрих. Настройте ширину ниже и цвет через "Настройки символов".
+                    </template>
+                </ui-switch>
+                <ui-input
+                    v-if="currentOptions.disconnectLine"
+                    type="number"
+                    min="1"
+                    v-model.number="currentOptions.markerWidth"
+                    @change="collectSettings">
+                    Ширина маркера (px)
+                </ui-input>
+            </template>
 
             <ui-has-panel>
                 <ui-checkbox

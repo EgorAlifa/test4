@@ -318,6 +318,8 @@ const SeriesTemplate = {
     type: 'line',
     smooth: true,
     stepType: 'start',
+    disconnectLine: false,
+    markerWidth: 30,
     seriesLayoutBy: 'column',
     excess: {
         color: 'black',

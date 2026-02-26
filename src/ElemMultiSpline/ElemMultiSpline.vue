@@ -773,7 +773,15 @@ export default {
                 animationDelayUpdate: seriesItem.animationDelay,
                 ...(['line', 'step line'].includes(seriesItem.customType)
                     ? {
-                          ...(seriesItem.customType === 'step line' ? { step: seriesItem.stepType || 'start' } : {}),
+                          ...(seriesItem.customType === 'step line' && !seriesItem.disconnectLine
+                              ? { step: seriesItem.stepType || 'start' }
+                              : {}),
+                          ...(seriesItem.customType === 'step line' && seriesItem.disconnectLine
+                              ? {
+                                    symbol: 'rect',
+                                    symbolSize: [Number(seriesItem.markerWidth) || 30, Number(seriesItem.symbolSize) || 3]
+                                }
+                              : {}),
                           itemStyle: {
                               ...itemStyle,
                               ...(() => {
@@ -793,7 +801,10 @@ export default {
                               shadowOffsetX,
                               shadowOffsetY,
                               color: seriesItem.color,
-                              shadowColor: seriesItem.shouldSyncShadowColor ? seriesItem.color : shadowColor
+                              shadowColor: seriesItem.shouldSyncShadowColor ? seriesItem.color : shadowColor,
+                              ...(seriesItem.customType === 'step line' && seriesItem.disconnectLine
+                                  ? { opacity: 0 }
+                                  : {})
                           }
                       }
                     : {
