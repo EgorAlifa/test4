@@ -605,75 +605,99 @@
                                     :key="`cond-${idx}`">
                                     <template #header>{{ `Условие ${idx + 1}` }}</template>
                                     <ui-container>
-                                        <ui-has-two-columns>
-                                            <template #left>
-                                                <ui-select
-                                                    v-model="cond.type"
-                                                    :options="condStyleTypes"
-                                                    @change="collectCondition(cond)">
-                                                    Условие
-                                                </ui-select>
-                                            </template>
-                                            <template #right>
-                                                <ui-input
-                                                    type="number"
-                                                    v-model.number="cond.value"
-                                                    :disabled="cond.type === 'ALL' || cond.dimValues.length > 0"
-                                                    @change="collectCondition(cond)">
-                                                    Значение
-                                                </ui-input>
-                                            </template>
-                                        </ui-has-two-columns>
+                                        <ui-select
+                                            v-model="cond.type"
+                                            :options="condStyleTypes"
+                                            @change="collectCondition(cond)">
+                                            Условие
+                                        </ui-select>
+                                        <ui-select
+                                            v-model="cond.conditionSource"
+                                            :options="conditionSourceOptions"
+                                            @change="collectCondition(cond)">
+                                            Сравнивать с
+                                        </ui-select>
+                                        <ui-input
+                                            v-if="!cond.conditionSource || cond.conditionSource === 'value'"
+                                            type="number"
+                                            v-model.number="cond.value"
+                                            :disabled="cond.type === 'ALL' || cond.dimValues.length > 0"
+                                            @change="collectCondition(cond)">
+                                            Значение
+                                        </ui-input>
+                                        <ui-select
+                                            v-if="cond.conditionSource === 'metric'"
+                                            v-model="cond.condMetric"
+                                            :options="metricNamesOptions"
+                                            :disabled="cond.type === 'ALL' || cond.dimValues.length > 0"
+                                            @change="collectCondition(cond)">
+                                            Метрика для сравнения
+                                        </ui-select>
                                         <ui-select
                                             multiple
                                             v-model="cond.dimValues"
                                             :options="dimValueNames"
-                                            :disabled="cond.value !== ''"
+                                            :disabled="cond.value !== '' || cond.condMetric !== ''"
                                             @change="collectCondition(cond)">
                                             Значение измерения
                                         </ui-select>
-                                        <ui-switch v-model="cond.useGradient" @change="collectCondition(cond)">
-                                            Градиент
-                                        </ui-switch>
-                                        <ui-container v-if="cond.useGradient">
-                                            <ui-input-cp
-                                                v-model="cond.gradient.firstColor"
-                                                @change="collectCondition(cond)">
-                                                Первый цвет
+                                        <ui-select
+                                            v-model="cond.colorSource"
+                                            :options="colorSourceOptions"
+                                            @change="collectCondition(cond)">
+                                            Источник цвета
+                                        </ui-select>
+                                        <ui-select
+                                            v-if="cond.colorSource === 'metric'"
+                                            v-model="cond.colorMetric"
+                                            :options="metricNamesOptions"
+                                            @change="collectCondition(cond)">
+                                            Метрика для цвета
+                                        </ui-select>
+                                        <template v-if="!cond.colorSource || cond.colorSource === 'fixed'">
+                                            <ui-switch v-model="cond.useGradient" @change="collectCondition(cond)">
+                                                Градиент
+                                            </ui-switch>
+                                            <ui-container v-if="cond.useGradient">
+                                                <ui-input-cp
+                                                    v-model="cond.gradient.firstColor"
+                                                    @change="collectCondition(cond)">
+                                                    Первый цвет
+                                                </ui-input-cp>
+                                                <ui-input
+                                                    type="number"
+                                                    min="0"
+                                                    max="1"
+                                                    step="0.1"
+                                                    v-model="cond.gradient.firstOffset"
+                                                    @change="collectCondition(cond)">
+                                                    Смещение цвета
+                                                </ui-input>
+                                                <ui-input-cp
+                                                    v-model="cond.gradient.secondColor"
+                                                    @change="collectCondition(cond)">
+                                                    Второй цвет
+                                                </ui-input-cp>
+                                                <ui-input
+                                                    type="number"
+                                                    min="0"
+                                                    max="1"
+                                                    step="0.1"
+                                                    v-model="cond.gradient.secondOffset"
+                                                    @change="collectCondition(cond)">
+                                                    Смещение цвета
+                                                </ui-input>
+                                                <ui-select
+                                                    v-model="cond.gradient.pos"
+                                                    :options="gradientPosOptions"
+                                                    @change="collectCondition(cond)">
+                                                    Направление градиента
+                                                </ui-select>
+                                            </ui-container>
+                                            <ui-input-cp v-else v-model="cond.color" @change="collectCondition(cond)">
+                                                Цвет
                                             </ui-input-cp>
-                                            <ui-input
-                                                type="number"
-                                                min="0"
-                                                max="1"
-                                                step="0.1"
-                                                v-model="cond.gradient.firstOffset"
-                                                @change="collectCondition(cond)">
-                                                Смещение цвета
-                                            </ui-input>
-                                            <ui-input-cp
-                                                v-model="cond.gradient.secondColor"
-                                                @change="collectCondition(cond)">
-                                                Второй цвет
-                                            </ui-input-cp>
-                                            <ui-input
-                                                type="number"
-                                                min="0"
-                                                max="1"
-                                                step="0.1"
-                                                v-model="cond.gradient.secondOffset"
-                                                @change="collectCondition(cond)">
-                                                Смещение цвета
-                                            </ui-input>
-                                            <ui-select
-                                                v-model="cond.gradient.pos"
-                                                :options="gradientPosOptions"
-                                                @change="collectCondition(cond)">
-                                                Направление градиента
-                                            </ui-select>
-                                        </ui-container>
-                                        <ui-input-cp v-else v-model="cond.color" @change="collectCondition(cond)">
-                                            Цвет
-                                        </ui-input-cp>
+                                        </template>
 
                                         <ui-button type="error" @click="deleteCondition(idx)">Удалить</ui-button>
                                     </ui-container>
@@ -1361,7 +1385,15 @@ export default {
         VerticalAlignOptions,
         SortOptions,
         CommonSizeFirstPxUnits,
-        FontSizeFirstPxUnits
+        FontSizeFirstPxUnits,
+        conditionSourceOptions: [
+            { label: 'Значение', value: 'value' },
+            { label: 'Метрика', value: 'metric' }
+        ],
+        colorSourceOptions: [
+            { label: 'Фиксированный цвет', value: 'fixed' },
+            { label: 'Значение метрики', value: 'metric' }
+        ]
     },
 
     watch: {

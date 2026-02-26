@@ -506,16 +506,61 @@ export const utils = {
         });
     },
 
-    resolveStyleDataItems(seriesOptions, data) {
+    resolveStyleDataItems(seriesOptions, data, dataRows = [], dimName = '') {
         const { customType, styleConditions, shouldSyncShadowColor, label } = seriesOptions;
 
-        const styleDataItem = (item, { type, value, dimValues, color, useGradient, gradientColor }) => {
+        const dimMetricValues = dataRows.reduce((acc, row) => {
+            const dimVal = row[dimName];
+            if (dimVal == null) {
+                return acc;
+            }
+            if (!acc[dimVal]) {
+                acc[dimVal] = {};
+            }
+            Object.entries(row).forEach(([key, val]) => {
+                if (key === dimName || val == null) {
+                    return;
+                }
+                const numVal = Number(val);
+                if (!Number.isNaN(numVal) && key in acc[dimVal]) {
+                    acc[dimVal][key] = Number(acc[dimVal][key] || 0) + numVal;
+                } else {
+                    acc[dimVal][key] = val;
+                }
+            });
+            return acc;
+        }, {});
+
+        const styleDataItem = (item, condition) => {
+            const {
+                type,
+                value,
+                dimValues,
+                color,
+                useGradient,
+                gradientColor,
+                conditionSource = 'value',
+                condMetric = '',
+                colorSource = 'fixed',
+                colorMetric = ''
+            } = condition;
             const styleInfo = condStyleTypes[type];
             const isDimValuesCondition = dimValues && dimValues.includes(item.name);
-            const isValueCondition = styleInfo && styleInfo.handler(item.value, value);
+
+            const compValue =
+                conditionSource === 'metric' && condMetric
+                    ? dimMetricValues[item.name]?.[condMetric] ?? 0
+                    : value;
+
+            const isValueCondition = styleInfo && styleInfo.handler(item.value, compValue);
 
             if (isDimValuesCondition || isValueCondition) {
-                const itemColor = useGradient ? gradientColor : color;
+                let itemColor;
+                if (colorSource === 'metric' && colorMetric) {
+                    itemColor = dimMetricValues[item.name]?.[colorMetric] ?? color;
+                } else {
+                    itemColor = useGradient ? gradientColor : color;
+                }
                 return _merge(item, {
                     itemStyle: {
                         color: itemColor,
@@ -1026,7 +1071,11 @@ export const condStyleFactory = () => ({
         firstOffset: '0',
         secondOffset: '1',
         pos: '0 0 0 1'
-    }
+    },
+    conditionSource: 'value',
+    condMetric: '',
+    colorSource: 'fixed',
+    colorMetric: ''
 });
 
 export const propsFixer = (props) => {
