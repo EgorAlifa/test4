@@ -779,6 +779,7 @@ export default {
                           ...(seriesItem.customType === 'step line' && seriesItem.disconnectLine
                               ? {
                                     symbol: 'rect',
+                                    showSymbol: true,
                                     symbolSize: [Number(seriesItem.markerWidth) || 30, Number(seriesItem.markerHeight) || 3]
                                 }
                               : {}),
