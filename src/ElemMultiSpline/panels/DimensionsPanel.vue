@@ -1,11 +1,11 @@
 <template>
-    <w-panel>
+    <div>
         <ui-collapse class="p">
             <template #header>Основное измерение</template>
             <ui-select
                 class="p"
                 v-model="props.dimensionOptions.main.name"
-                :options="dimensionsOptions"
+                :options="dimNamesOptions"
                 @change="propChanged('dimensionOptions')">
                 Наименование
             </ui-select>
@@ -28,7 +28,7 @@
             <ui-select
                 class="p"
                 v-model="props.dimensionOptions.minor.name"
-                :options="dimensionsOptions"
+                :options="dimNamesOptions"
                 @change="propChanged('dimensionOptions')">
                 Наименование
             </ui-select>
@@ -46,42 +46,66 @@
                 Сортировка
             </ui-select>
         </ui-collapse>
-    </w-panel>
+    </div>
 </template>
 <script>
 /**
  * @typedef {import('./DimensionsPanel').IComponentOptions} IComponentOptions
  * @typedef {import('./DimensionsPanel').IInstance} IInstance
- *
  */
-import { Panel } from '@goodt-wcore/panel';
-import { usePanelDatasetMixin, PanelDatasetMixinTypes } from '@goodt-common/data';
+import { Panel } from 'goodt-wcore';
 import { DIM_VALUE_FORMATS, SORT_OPTIONS } from './config';
 /**
  * @type {IComponentOptions}
  */
 export default {
     extends: Panel,
-    mixins: [usePanelDatasetMixin()],
 
-    meta: { name: 'Измерения', icon: 'altimeter' },
+    data() {
+        return {
+            $meta: { name: 'Измерения', icon: 'altimeter' }
+        };
+    },
+
+    computed: {
+        /**
+         * @return {object[]}
+         */
+        queryHelper() {
+            return this.elementInstance && this.elementInstance.getQueryHelper
+                ? this.elementInstance.getQueryHelper()
+                : [];
+        },
+        /**
+         * @return {string[]}
+         */
+        dimensionNames() {
+            return [
+                ...this.queryHelper.reduce((set, { dimensionList }) => {
+                    Object.keys(dimensionList).forEach((dim) => {
+                        set.add(dim);
+                    });
+                    return set;
+                }, new Set())
+            ];
+        },
+        /**
+         * @return {{ label: string, value: any }[]}
+         */
+        dimNamesOptions() {
+            return [
+                { label: '', value: null },
+                ...this.dimensionNames.map((value) => ({
+                    label: value,
+                    value
+                }))
+            ];
+        }
+    },
 
     static: {
         dimValueFormats: DIM_VALUE_FORMATS,
         sortOptions: SORT_OPTIONS
-    },
-    data() {
-        return {
-            ...PanelDatasetMixinTypes
-        };
-    },
-    computed: {
-        /**
-         * @return {{ label: string, value: any }[]}
-         */
-        dimensionsOptions() {
-            return this.buildOptions(this.dimensions, { empty: { label: '', value: null } })
-        }
     }
 };
 </script>

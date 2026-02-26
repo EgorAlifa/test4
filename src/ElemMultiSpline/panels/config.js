@@ -206,25 +206,5 @@ export const LegendIconOptions = [
     { label: 'Без иконки', value: 'none' }
 ];
 
-export const DataZoomDirectionOptions = [
-    { label: 'Слева', value: false },
-    { label: 'Справа', value: true }
-];
-
-export const SeriesTypeOptions = [
-    { label: 'Без шаблона', value: null },
-    { label: 'Все линии', value: 'line' },
-    { label: 'Все бары', value: 'bar' }
-];
-
-export const TopType = {
-    DIMENSION: 'dimension',
-    METRIC: 'metric'
-};
-export const TopTypeOptions = [
-    { label: 'Измерение', value: TopType.DIMENSION },
-    { label: 'Метрика', value: TopType.METRIC }
-];
-
 export const FontSizeFirstPxUnits = ['px', 'rem', 'em', '%'];
 export const CommonSizeFirstPxUnits = ['px', 'rem', 'em', 'vh', 'vw', '%'];

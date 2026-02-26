@@ -1,198 +1,299 @@
 <template>
-    <ui-container>
-        <ui-switch v-model="currentOptions.showDataSet" @change="collectSettings">Отображать метрику</ui-switch>
+    <ui-collapse>
+        <template #header>{{ currentOptions.marker }}</template>
 
-        <ui-select
-            v-model="currentOptions.customType"
-            :options="chartTypes"
-            :disabled="seriesType != null"
-            @change="changeSeriesType">
-            Тип отображения
-        </ui-select>
+        <ui-container>
+            <ui-switch v-model="currentOptions.showDataSet" @change="collectSettings">Отображать метрику</ui-switch>
 
-        <ui-select v-model="currentOptions.originIdx" :options="datasetOptions" @change="collectSettings">
-            Источник данных
-        </ui-select>
+            <ui-select v-model="currentOptions.originIdx" :options="datasetOptions" @change="collectSettings">
+                Источник данных
+            </ui-select>
 
-        <ui-select v-model="currentOptions.metricName" :options="metricNamesOptions" @change="onMetricNameChange">
-            Отображаемая метрика
-        </ui-select>
+            <ui-select v-model="currentOptions.metricName" :options="metricNamesOptions" @change="collectSettings">
+                Отображаемая метрика
+            </ui-select>
 
-        <ui-has-panel>
-            <ui-checkbox v-model="currentOptions.multiMetricMode.enable" @change="collectSettings">
-                Режим мульти-метрики
-                <template #hint>
-                    При использовании сложного измерения позволяет отображать на каждом уровне проваливания конкретную
-                    метрику
-                </template>
-            </ui-checkbox>
+            <ui-has-panel>
+                <ui-checkbox v-model="currentOptions.multiMetricMode.enable" @change="collectSettings">
+                    Режим мульти-метрики
+                    <ui-tooltip position="top">
+                        <template #target="{ events, binds }">
+                            <i class="mdi mdi-18px mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                        </template>
+                        <div>
+                            При использовании сложного измерения позволяет отображать на каждом уровне проваливания
+                            конкретную метрику
+                        </div>
+                    </ui-tooltip>
+                </ui-checkbox>
 
-            <template #panel>
-                <ui-panel :groups="[{ name: 'Список метрик', slot: 'metrics' }]">
-                    <template #metrics>
-                        <p class="text-small">Расположите элементы в порядке уровней drill-down</p>
-                        <ui-container>
-                            <draggable v-model="multiMetricMap" v-bind="dragOptions" @change="collectSettings">
-                                <div
-                                    class="p"
-                                    v-for="(_, idx) of currentOptions.multiMetricMode.metricNames"
-                                    :key="idx">
-                                    <div class="row row-collapse flex-nowrap">
-                                        <div class="col col-auto col-vmid">
-                                            <div class="icon cursor-move drag-handle">
-                                                <i class="mdi mdi-drag mdi-18px"></i>
+                <template #panel>
+                    <ui-panel :groups="[{ name: 'Список метрик', slot: 'metrics' }]">
+                        <template #metrics>
+                            <p class="text-small">Расположите элементы в порядке уровней drill-down</p>
+                            <ui-container>
+                                <draggable v-model="multiMetricMap" v-bind="dragOptions" @change="collectSettings">
+                                    <div
+                                        class="p"
+                                        v-for="(_, idx) of currentOptions.multiMetricMode.metricNames"
+                                        :key="idx">
+                                        <div class="row row-collapse flex-nowrap">
+                                            <div class="col col-auto col-vmid">
+                                                <div class="icon cursor-move drag-handle">
+                                                    <i class="mdi mdi-drag mdi-18px"></i>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="col">
-                                            <ui-collapse label="">
-                                                <template #header>
-                                                    {{ currentOptions.multiMetricMode.metricNames[idx] }}
-                                                </template>
-                                                <template #default>
-                                                    <ui-container>
-                                                        <ui-select
-                                                            v-model="currentOptions.multiMetricMode.metricDatasets[idx]"
-                                                            :options="datasetOptions"
-                                                            @change="collectSettings">
-                                                            Источник данных
-                                                        </ui-select>
-                                                        <ui-select
-                                                            v-model="currentOptions.multiMetricMode.metricNames[idx]"
-                                                            :options="
-                                                                datasetMetricNamesOptions[
+                                            <div class="col">
+                                                <ui-collapse label="">
+                                                    <template #header>
+                                                        {{ currentOptions.multiMetricMode.metricNames[idx] }}
+                                                    </template>
+                                                    <template #default>
+                                                        <ui-container>
+                                                            <ui-select
+                                                                v-model="
                                                                     currentOptions.multiMetricMode.metricDatasets[idx]
-                                                                ]
-                                                            "
-                                                            @change="collectSettings">
-                                                            Метрика
-                                                        </ui-select>
-                                                        <ui-select
-                                                            v-model="currentOptions.multiMetricMode.metricSorts[idx]"
-                                                            :options="SortOptions"
-                                                            @change="collectSettings">
-                                                            Сортировка
-                                                        </ui-select>
-                                                    </ui-container>
-                                                </template>
-                                            </ui-collapse>
-                                        </div>
-                                        <div class="col col-auto col-vmid">
-                                            <div class="icon" @click="deleteMetricName(idx)">
-                                                <i class="mdi mdi-close mdi-18px"></i>
+                                                                "
+                                                                :options="datasetOptions"
+                                                                @change="collectSettings">
+                                                                Источник данных
+                                                            </ui-select>
+                                                            <ui-select
+                                                                v-model="
+                                                                    currentOptions.multiMetricMode.metricNames[idx]
+                                                                "
+                                                                :options="
+                                                                    datasetMetricNamesOptions[
+                                                                        currentOptions.multiMetricMode.metricDatasets[
+                                                                            idx
+                                                                        ]
+                                                                    ]
+                                                                "
+                                                                @change="collectSettings">
+                                                                Метрика
+                                                            </ui-select>
+                                                            <ui-select
+                                                                v-model="
+                                                                    currentOptions.multiMetricMode.metricSorts[idx]
+                                                                "
+                                                                :options="SortOptions"
+                                                                @change="collectSettings">
+                                                                Сортировка
+                                                            </ui-select>
+                                                        </ui-container>
+                                                    </template>
+                                                </ui-collapse>
+                                            </div>
+                                            <div class="col col-auto col-vmid">
+                                                <div class="icon" @click="deleteMetricName(idx)">
+                                                    <i class="mdi mdi-close mdi-18px"></i>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </draggable>
-                            <ui-button @click="addMetricName">Добавить метрику</ui-button>
-                        </ui-container>
-                    </template>
-                </ui-panel>
-            </template>
-        </ui-has-panel>
-
-        <ui-input-auto v-model.trim="currentOptions.marker" @change="collectSettings">Маркер метрики</ui-input-auto>
-
-        <ui-input-auto v-model.trim="currentOptions.name" @change="collectSettings">Наименование метрики</ui-input-auto>
-
-        <ui-switch v-model="currentOptions.nullValues" @change="collectSettings">
-            Убрать нулевые значения
-            <template #hint>Скрывает графики, величина которых равна нулю</template>
-        </ui-switch>
-
-        <ui-switch v-model="currentOptions.voidValues" @change="collectSettings">
-            Убрать пустые значения
-            <template #hint>При включении настройки, пустые значения не будут отображаться на диаграмме.</template>
-        </ui-switch>
-
-        <ui-switch v-model="currentOptions.connectNulls" @change="collectSettings">
-            Соединять пропуская пустые
-            <template #hint>При выключении настройки, пустые значения будут обрывать диаграмму.</template>
-        </ui-switch>
-
-        <ui-switch v-model="currentOptions.isAbsoluteValue" @change="collectSettings">
-            Выводить абсолютное значение
-        </ui-switch>
-
-        <ui-switch v-model="currentOptions.isAutoRound" @change="collectSettings">
-            Авто-округление
-            <template #hint>
-                Активирует округление метрики по следующему алгоритму, где х - значение метрики:
-                <br />
-                а) если x>=1, то округление до целого значения;
-                <br />
-                б) если 0.1<=x<1, то отображение с 1 знаком после запятой;
-                <br />
-                в) если 0.01<=x<0.1, то отображение с 2 знаками после запятой;
-                <br />
-                г) если x<0.01, то отображение с 3 знаками после запятой.
-            </template>
-        </ui-switch>
-
-        <ui-select
-            :disabled="currentOptions.isAutoRound"
-            v-model="currentOptions.metricFormat"
-            :options="formatOptions"
-            @change="collectSettings">
-            Формат метрики
-        </ui-select>
-
-        <ui-select
-            :disabled="currentOptions.isAutoRound"
-            v-model="currentOptions.metricSeparator"
-            :options="separatorOptions"
-            @change="collectSettings">
-            Формат разделителя разрядов
-        </ui-select>
-
-        <ui-has-two-columns>
-            <template #left>
-                <ui-input-auto v-model="currentOptions.metricPrefix" @change="collectSettings">Префикс</ui-input-auto>
-            </template>
-            <template #right>
-                <ui-input-auto v-model="currentOptions.metricPostfix" @change="collectSettings">Постфикс</ui-input-auto>
-            </template>
-        </ui-has-two-columns>
-
-        <template v-if="['line', 'bar'].includes(currentOptions.type)">
-            <ui-switch
-                v-model="currentOptions.isCumulativeTotal"
-                :disabled="currentOptions.isCumulativeDifference"
-                @change="collectSettings">
-                Накопительный итог
-                <template #hint>
-                    Прибавляет к текущему значению графика его предыдущее значение. Корректное отображение происходит
-                    при отключенной сортировке
+                                </draggable>
+                                <ui-button @click="addMetricName">Добавить метрику</ui-button>
+                            </ui-container>
+                        </template>
+                    </ui-panel>
                 </template>
-            </ui-switch>
-            <ui-switch
-                v-model="currentOptions.isCumulativeDifference"
-                :disabled="currentOptions.isCumulativeTotal"
-                @change="collectSettings">
-                Разница
-            </ui-switch>
-        </template>
+            </ui-has-panel>
 
-        <template v-if="currentOptions.customType === 'stacked line'">
-            <ui-switch v-model="currentOptions.stackLines" @change="collectSettings">Складывать линии</ui-switch>
-        </template>
+            <ui-input-auto v-model.trim="currentOptions.marker" @change="collectSettings">Маркер метрики</ui-input-auto>
 
-        <template v-if="currentOptions.customType === 'plan'">
-            <ui-input-auto v-model="currentOptions.nameExcess" @change="collectSettings">
-                Наименование избытка
+            <ui-input-auto v-model.trim="currentOptions.name" @change="collectSettings">
+                Наименование метрики
             </ui-input-auto>
 
-            <ui-has-panel>
-                <ui-checkbox v-model="currentOptions.excess.gradient" @change="collectComparedColors('excess')">
-                    Градиент избытка
-                </ui-checkbox>
-                <template #panel>
-                    <ui-panel :groups="[{ name: 'Градиент избытка', slot: 'gradient' }]">
-                        <template #gradient>
+            <ui-switch v-model="currentOptions.nullValues" @change="collectSettings">
+                Убрать нулевые значения
+                <ui-tooltip position="top">
+                    <template #target="{ events, binds }">
+                        <i class="mdi mdi-18px mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                    </template>
+                    <div>Скрывает графики, величина которых равна нулю</div>
+                </ui-tooltip>
+            </ui-switch>
+
+            <ui-switch v-model="currentOptions.voidValues" @change="collectSettings">
+                Убрать пустые значения
+                <ui-tooltip position="top">
+                    <template #target="{ events, binds }">
+                        <i class="mdi mdi-18px mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                    </template>
+                    <div>При включении настройки, пустые значения не будут отображаться на диаграмме.</div>
+                </ui-tooltip>
+            </ui-switch>
+
+            <ui-switch v-model="currentOptions.connectNulls" @change="collectSettings">
+                Соединять пропуская пустые
+                <ui-tooltip position="top">
+                    <template #target="{ events, binds }">
+                        <i class="mdi mdi-18px mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                    </template>
+                    <div>При выключении настройки, пустые значения будут обрывать диаграмму.</div>
+                </ui-tooltip>
+            </ui-switch>
+
+            <ui-switch v-model="currentOptions.isAbsoluteValue" @change="collectSettings">
+                Выводить абсолютное значение
+            </ui-switch>
+
+            <ui-switch v-model="currentOptions.isAutoRound" @change="collectSettings">
+                Авто-округление
+                <ui-tooltip position="top">
+                    <template #target="{ events, binds }">
+                        <i class="mdi mdi-18px mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                    </template>
+                    <div>
+                        Активирует округление метрики по следующему алгоритму, где х - значение метрики:
+                        <br />
+                        а) если x>=1, то округление до целого значения;
+                        <br />
+                        б) если 0.1<=x<1, то отображение с 1 знаком после запятой;
+                        <br />
+                        в) если 0.01<=x<0.1, то отображение с 2 знаками после запятой;
+                        <br />
+                        г) если x<0.01, то отображение с 3 знаками после запятой.
+                    </div>
+                </ui-tooltip>
+            </ui-switch>
+
+            <ui-select
+                :disabled="currentOptions.isAutoRound"
+                v-model="currentOptions.metricFormat"
+                :options="formatOptions"
+                @change="collectSettings">
+                Формат метрики
+            </ui-select>
+
+            <ui-select
+                :disabled="currentOptions.isAutoRound"
+                v-model="currentOptions.metricSeparator"
+                :options="separatorOptions"
+                @change="collectSettings">
+                Формат разделителя разрядов
+            </ui-select>
+
+            <ui-has-two-columns>
+                <template #left>
+                    <ui-input-auto v-model="currentOptions.metricPrefix" @change="collectSettings">
+                        Префикс
+                    </ui-input-auto>
+                </template>
+                <template #right>
+                    <ui-input-auto v-model="currentOptions.metricPostfix" @change="collectSettings">
+                        Постфикс
+                    </ui-input-auto>
+                </template>
+            </ui-has-two-columns>
+
+            <ui-select v-model="currentOptions.customType" :options="chartTypes" @change="changeSeriesType">
+                Тип отображения
+            </ui-select>
+
+            <template v-if="['line', 'bar'].includes(currentOptions.type)">
+                <ui-switch
+                    v-model="currentOptions.isCumulativeTotal"
+                    :disabled="currentOptions.isCumulativeDifference"
+                    @change="collectSettings">
+                    Накопительный итог
+                    <ui-tooltip position="top">
+                        <template #target="{ events, binds }">
+                            <i class="mdi mdi-18px mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                        </template>
+                        <div>
+                            Прибавляет к текущему значению графика его предыдущее значение. Корректное отображение
+                            происходит при отключенной сортировке
+                        </div>
+                    </ui-tooltip>
+                </ui-switch>
+                <ui-switch
+                    v-model="currentOptions.isCumulativeDifference"
+                    :disabled="currentOptions.isCumulativeTotal"
+                    @change="collectSettings">
+                    Разница
+                </ui-switch>
+            </template>
+
+            <template v-if="currentOptions.customType === 'stacked line'">
+                <ui-switch v-model="currentOptions.stackLines" @change="collectSettings">Складывать линии</ui-switch>
+            </template>
+
+            <template v-if="currentOptions.customType === 'plan'">
+                <ui-input-auto v-model="currentOptions.nameExcess" @change="collectSettings">
+                    Наименование избытка
+                </ui-input-auto>
+
+                <ui-has-panel>
+                    <ui-checkbox v-model="currentOptions.excess.gradient" @change="collectComparedColors('excess')">
+                        Градиент избытка
+                    </ui-checkbox>
+                    <template #panel>
+                        <ui-panel :groups="[{ name: 'Градиент избытка', slot: 'gradient' }]">
+                            <template #gradient>
+                                <ui-container>
+                                    <ui-input-cp
+                                        v-model="currentOptions.excess.firstColor"
+                                        @change="collectComparedColors('excess')">
+                                        Первый цвет
+                                    </ui-input-cp>
+                                    <ui-input
+                                        type="number"
+                                        min="0"
+                                        max="1"
+                                        step="0.1"
+                                        v-model="currentOptions.excess.firstOffSet"
+                                        @change="collectComparedColors('excess')">
+                                        Смещение цвета
+                                    </ui-input>
+                                    <ui-input-cp
+                                        v-model="currentOptions.excess.secondColor"
+                                        @change="collectComparedColors('excess')">
+                                        Второй цвет
+                                    </ui-input-cp>
+                                    <ui-input
+                                        type="number"
+                                        min="0"
+                                        max="1"
+                                        step="0.1"
+                                        v-model="currentOptions.excess.secondOffSet"
+                                        @change="collectComparedColors('excess')">
+                                        Смещение цвета
+                                    </ui-input>
+                                    <ui-select
+                                        v-model="currentOptions.excess.gradPos"
+                                        :options="gradientPosOptions"
+                                        @change="collectComparedColors('excess')">
+                                        Направление градиента
+                                    </ui-select>
+                                </ui-container>
+                            </template>
+                        </ui-panel>
+                    </template>
+                </ui-has-panel>
+
+                <ui-input-cp
+                    v-model="currentOptions.excess.color"
+                    @change="collectComparedColors('excess')"
+                    v-if="!currentOptions.excess.gradient">
+                    Цвет избытка
+                </ui-input-cp>
+
+                <ui-input-auto v-model="currentOptions.nameLack" @change="collectSettings">
+                    Наименование недостатка
+                </ui-input-auto>
+
+                <ui-has-panel>
+                    <ui-checkbox v-model="currentOptions.lack.gradient" @change="collectComparedColors('lack')">
+                        Градиент недостатка
+                    </ui-checkbox>
+                    <template #panel>
+                        <ui-panel :groups="[{ name: 'Градиент недостатка', slot: 'default' }]">
                             <ui-container>
                                 <ui-input-cp
-                                    v-model="currentOptions.excess.firstColor"
-                                    @change="collectComparedColors('excess')">
+                                    v-model="currentOptions.lack.firstColor"
+                                    @change="collectComparedColors('lack')">
                                     Первый цвет
                                 </ui-input-cp>
                                 <ui-input
@@ -200,13 +301,13 @@
                                     min="0"
                                     max="1"
                                     step="0.1"
-                                    v-model="currentOptions.excess.firstOffSet"
-                                    @change="collectComparedColors('excess')">
+                                    v-model="currentOptions.lack.firstOffSet"
+                                    @change="collectComparedColors('lack')">
                                     Смещение цвета
                                 </ui-input>
                                 <ui-input-cp
-                                    v-model="currentOptions.excess.secondColor"
-                                    @change="collectComparedColors('excess')">
+                                    v-model="currentOptions.lack.secondColor"
+                                    @change="collectComparedColors('lack')">
                                     Второй цвет
                                 </ui-input-cp>
                                 <ui-input
@@ -214,140 +315,604 @@
                                     min="0"
                                     max="1"
                                     step="0.1"
-                                    v-model="currentOptions.excess.secondOffSet"
-                                    @change="collectComparedColors('excess')">
+                                    v-model="currentOptions.lack.secondOffSet"
+                                    @change="collectComparedColors('lack')">
                                     Смещение цвета
                                 </ui-input>
                                 <ui-select
-                                    v-model="currentOptions.excess.gradPos"
+                                    v-model="currentOptions.lack.gradPos"
                                     :options="gradientPosOptions"
-                                    @change="collectComparedColors('excess')">
+                                    @change="collectComparedColors('lack')">
                                     Направление градиента
                                 </ui-select>
                             </ui-container>
-                        </template>
-                    </ui-panel>
-                </template>
-            </ui-has-panel>
+                        </ui-panel>
+                    </template>
+                </ui-has-panel>
 
-            <ui-input-cp
-                v-model="currentOptions.excess.color"
-                @change="collectComparedColors('excess')"
-                v-if="!currentOptions.excess.gradient">
-                Цвет избытка
-            </ui-input-cp>
+                <ui-input-cp
+                    v-model="currentOptions.lack.color"
+                    @change="collectComparedColors('lack')"
+                    v-if="!currentOptions.lack.gradient">
+                    Цвет недостатка
+                </ui-input-cp>
 
-            <ui-input-auto v-model="currentOptions.nameLack" @change="collectSettings">
-                Наименование недостатка
-            </ui-input-auto>
+                <ui-has-panel>
+                    <ui-checkbox v-model="currentOptions.excessLackLabel.show" @change="collectSettings">
+                        Подписи избытка и недостатка
+                    </ui-checkbox>
+                    <template #panel>
+                        <ui-panel :groups="[{ name: 'Подписи избытка и недостатка', slot: 'default' }]">
+                            <ui-container>
+                                <ui-input-cp
+                                    v-model="currentOptions.excessLackLabel.color"
+                                    @change="collectSettings"
+                                    v-if="!currentOptions.lack.gradient">
+                                    Цвет подписи
+                                </ui-input-cp>
+                                <ui-input-auto
+                                    v-model="currentOptions.excessLackLabel.fontFamily"
+                                    @change="collectSettings">
+                                    Шрифт подписи
+                                </ui-input-auto>
+                                <ui-input
+                                    type="number"
+                                    min="0"
+                                    v-model="currentOptions.excessLackLabel.fontSize"
+                                    @change="collectSettings">
+                                    Размер подписи
+                                </ui-input>
+                                <ui-select
+                                    v-model="currentOptions.excessLackLabel.position"
+                                    :options="labelPosOptions"
+                                    @change="collectSettings">
+                                    Расположение подписей
+                                </ui-select>
+                                <ui-input
+                                    type="number"
+                                    min="-90"
+                                    max="90"
+                                    v-model.number="currentOptions.excessLackLabel.rotate"
+                                    @change="collectSettings">
+                                    Угол поворота подписей
+                                </ui-input>
+                                <ui-has-two-columns>
+                                    <template #left>
+                                        <ui-input
+                                            type="number"
+                                            v-model.number="currentOptions.excessLackLabel.offset[0]"
+                                            @change="collectSettings">
+                                            Отступ по оси X
+                                        </ui-input>
+                                    </template>
+                                    <template #right>
+                                        <ui-input
+                                            type="number"
+                                            v-model.number="currentOptions.excessLackLabel.offset[1]"
+                                            @change="collectSettings">
+                                            Отступ по оси Y
+                                        </ui-input>
+                                    </template>
+                                </ui-has-two-columns>
+                            </ui-container>
+                        </ui-panel>
+                    </template>
+                </ui-has-panel>
+            </template>
 
-            <ui-has-panel>
-                <ui-checkbox v-model="currentOptions.lack.gradient" @change="collectComparedColors('lack')">
-                    Градиент недостатка
-                </ui-checkbox>
-                <template #panel>
-                    <ui-panel :groups="[{ name: 'Градиент недостатка', slot: 'default' }]">
+            <template v-if="currentOptions.type !== 'line'">
+                <ui-has-panel>
+                    <div class="form-label form-label-small">Настройка величины баров</div>
+
+                    <template #panel>
+                        <ui-panel :groups="[{ name: 'Размер бара', slot: 'default' }]">
+                            <ui-container>
+                                <ui-input-units
+                                    :units="CommonSizeFirstPxUnits"
+                                    v-model="barMinHeight"
+                                    @change="collectSettings">
+                                    Минимальная высота столбца
+                                </ui-input-units>
+
+                                <ui-input-units
+                                    :units="CommonSizeFirstPxUnits"
+                                    v-model="barWidth"
+                                    @change="collectSettings">
+                                    Ширина столбца
+                                </ui-input-units>
+
+                                <ui-input-units
+                                    :units="CommonSizeFirstPxUnits"
+                                    v-model="barMinWidth"
+                                    @change="collectSettings">
+                                    Мин. ширина столбца
+                                    <template #hint>
+                                        <div>Минимальная ширина столбца задает нижний предел для Ширины столбца.</div>
+                                        <div>
+                                            В случае, если Ширина столбца < Минимальной, то применяется минимальная
+                                        </div>
+                                    </template>
+                                </ui-input-units>
+
+                                <ui-input-units
+                                    :units="CommonSizeFirstPxUnits"
+                                    v-model="barMaxWidth"
+                                    @change="collectSettings">
+                                    Макс. ширина
+                                    <template #hint>
+                                        <div>Максимальная ширина столбца задает верхний предел для Ширины столбца.</div>
+                                        <div>
+                                            В случае, если Ширина столбца > Максимальной, то применяется максимальная
+                                        </div>
+                                    </template>
+                                </ui-input-units>
+                            </ui-container>
+                        </ui-panel>
+                    </template>
+                </ui-has-panel>
+            </template>
+            <template v-if="['stacked', 'bar'].includes(currentOptions.type)">
+                <ui-has-panel>
+                    <div class="form-label form-label-small">Настройка границы баров</div>
+                    <template #panel>
                         <ui-container>
-                            <ui-input-cp
-                                v-model="currentOptions.lack.firstColor"
-                                @change="collectComparedColors('lack')">
-                                Первый цвет
-                            </ui-input-cp>
-                            <ui-input
-                                type="number"
-                                min="0"
-                                max="1"
-                                step="0.1"
-                                v-model="currentOptions.lack.firstOffSet"
-                                @change="collectComparedColors('lack')">
-                                Смещение цвета
-                            </ui-input>
-                            <ui-input-cp
-                                v-model="currentOptions.lack.secondColor"
-                                @change="collectComparedColors('lack')">
-                                Второй цвет
-                            </ui-input-cp>
-                            <ui-input
-                                type="number"
-                                min="0"
-                                max="1"
-                                step="0.1"
-                                v-model="currentOptions.lack.secondOffSet"
-                                @change="collectComparedColors('lack')">
-                                Смещение цвета
-                            </ui-input>
-                            <ui-select
-                                v-model="currentOptions.lack.gradPos"
-                                :options="gradientPosOptions"
-                                @change="collectComparedColors('lack')">
-                                Направление градиента
-                            </ui-select>
-                        </ui-container>
-                    </ui-panel>
-                </template>
-            </ui-has-panel>
-
-            <ui-input-cp
-                v-model="currentOptions.lack.color"
-                @change="collectComparedColors('lack')"
-                v-if="!currentOptions.lack.gradient">
-                Цвет недостатка
-            </ui-input-cp>
-
-            <ui-has-panel>
-                <ui-checkbox v-model="currentOptions.excessLackLabel.show" @change="collectSettings">
-                    Подписи избытка и недостатка
-                </ui-checkbox>
-                <template #panel>
-                    <ui-panel :groups="[{ name: 'Подписи избытка и недостатка', slot: 'default' }]">
-                        <ui-container>
-                            <ui-input-cp
-                                v-model="currentOptions.excessLackLabel.color"
-                                @change="collectSettings"
-                                v-if="!currentOptions.lack.gradient">
-                                Цвет подписи
-                            </ui-input-cp>
-                            <ui-input-auto
-                                v-model="currentOptions.excessLackLabel.fontFamily"
-                                @change="collectSettings">
-                                Шрифт подписи
-                            </ui-input-auto>
-                            <ui-input
-                                type="number"
-                                min="0"
-                                v-model="currentOptions.excessLackLabel.fontSize"
-                                @change="collectSettings">
-                                Размер подписи
-                            </ui-input>
-                            <ui-select
-                                v-model="currentOptions.excessLackLabel.position"
-                                :options="labelPosOptions"
-                                @change="collectSettings">
-                                Расположение подписей
-                            </ui-select>
-                            <ui-input
-                                type="number"
-                                min="-90"
-                                max="90"
-                                v-model.number="currentOptions.excessLackLabel.rotate"
-                                @change="collectSettings">
-                                Угол поворота подписей
-                            </ui-input>
                             <ui-has-two-columns>
                                 <template #left>
                                     <ui-input
                                         type="number"
-                                        v-model.number="currentOptions.excessLackLabel.offset[0]"
+                                        v-model.number="currentOptions.itemStyle.borderWidth"
                                         @change="collectSettings">
-                                        Отступ по оси X
+                                        Толщина границы
+                                    </ui-input>
+                                </template>
+                                <template #right>
+                                    <ui-input-cp
+                                        type="number"
+                                        v-model.number="currentOptions.itemStyle.borderColor"
+                                        @change="collectSettings">
+                                        Цвет границы
+                                    </ui-input-cp>
+                                </template>
+                            </ui-has-two-columns>
+                            <ui-switch v-model="currentOptions.isRoundedBarBorder" @change="collectSettings">
+                                Округление границ
+                            </ui-switch>
+                            <ui-has-two-columns>
+                                <template #left>
+                                    <ui-input
+                                        type="number"
+                                        v-model.number="currentOptions.roundedBarBorder.leftTop"
+                                        @change="collectSettings">
+                                        Слева сверху
                                     </ui-input>
                                 </template>
                                 <template #right>
                                     <ui-input
                                         type="number"
-                                        v-model.number="currentOptions.excessLackLabel.offset[1]"
+                                        v-model.number="currentOptions.roundedBarBorder.rightTop"
                                         @change="collectSettings">
-                                        Отступ по оси Y
+                                        Справа сверху
+                                    </ui-input>
+                                </template>
+                            </ui-has-two-columns>
+                            <ui-has-two-columns>
+                                <template #left>
+                                    <ui-input
+                                        type="number"
+                                        v-model.number="currentOptions.roundedBarBorder.leftBottom"
+                                        @change="collectSettings">
+                                        Слева снизу
+                                    </ui-input>
+                                </template>
+                                <template #right>
+                                    <ui-input
+                                        type="number"
+                                        v-model.number="currentOptions.roundedBarBorder.rightBottom"
+                                        @change="collectSettings">
+                                        Справа снизу
+                                    </ui-input>
+                                </template>
+                            </ui-has-two-columns>
+                        </ui-container>
+                    </template>
+                </ui-has-panel>
+            </template>
+
+            <ui-input-cp
+                v-model="currentOptions.colorForLine"
+                @change="collectAndUpdateColorsForLine"
+                v-if="currentOptions.type === 'line'">
+                Цвет линии
+            </ui-input-cp>
+
+            <ui-input-cp v-model="currentOptions.colorForBar" @change="collectColorForBar" v-else>
+                Цвет бара
+            </ui-input-cp>
+
+            <template v-if="isStackedType">
+                <ui-input type="number" min="1" v-model.number="currentOptions.colorStep" @change="collectSettings">
+                    Шаг цвета
+                </ui-input>
+
+                <ui-has-panel>
+                    <div class="form-label form-label-small">Кастомные цвета</div>
+
+                    <template #panel>
+                        <ui-panel :groups="[{ name: 'Кастомные цвета', slot: 'default' }]">
+                            <ui-container>
+                                <ui-select v-model="customColor.name" :options="minorDimensionNamesOptions">
+                                    Измерение
+                                </ui-select>
+                                <ui-input-cp v-model="customColor.color" @change="changeCustomColor">Цвет</ui-input-cp>
+                            </ui-container>
+                        </ui-panel>
+                    </template>
+                </ui-has-panel>
+            </template>
+
+            <template v-if="currentOptions.type === 'bar'">
+                <ui-has-panel>
+                    <ui-checkbox v-model="currentOptions.gradientForBar" @change="collectColorForBar">
+                        Градиент бара
+                    </ui-checkbox>
+                    <template #panel>
+                        <ui-panel :groups="[{ name: 'Градиент бара', slot: 'default' }]">
+                            <ui-container>
+                                <ui-input-cp v-model="currentOptions.barFirstColor" @change="collectColorForBar">
+                                    Первый цвет
+                                </ui-input-cp>
+                                <ui-input
+                                    type="number"
+                                    min="0"
+                                    max="1"
+                                    step="0.1"
+                                    v-model="currentOptions.barFirstOffSet"
+                                    @change="collectColorForBar">
+                                    Смещение цвета
+                                </ui-input>
+                                <ui-input-cp v-model="currentOptions.barSecondColor" @change="collectColorForBar">
+                                    Второй цвет
+                                </ui-input-cp>
+                                <ui-input
+                                    type="number"
+                                    min="0"
+                                    max="1"
+                                    step="0.1"
+                                    v-model="currentOptions.barSecondOffSet"
+                                    @change="collectColorForBar">
+                                    Смещение цвета
+                                </ui-input>
+                                <ui-select
+                                    v-model="currentOptions.barPos"
+                                    :options="gradientPosOptions"
+                                    @change="collectColorForBar">
+                                    Направление градиента
+                                </ui-select>
+                            </ui-container>
+                        </ui-panel>
+                    </template>
+                </ui-has-panel>
+
+                <ui-has-panel>
+                    <ui-checkbox v-model="currentOptions.styleConditions.enable" @change="collectSettings">
+                        Задать стили условием
+                    </ui-checkbox>
+                    <template #panel>
+                        <ui-panel :groups="[{ name: 'Условия', slot: 'default' }]">
+                            <ui-container>
+                                <ui-collapse
+                                    v-for="(cond, idx) in currentOptions.styleConditions.conditions"
+                                    :key="`cond-${idx}`">
+                                    <template #header>{{ `Условие ${idx + 1}` }}</template>
+                                    <ui-container>
+                                        <ui-has-two-columns>
+                                            <template #left>
+                                                <ui-select
+                                                    v-model="cond.type"
+                                                    :options="condStyleTypes"
+                                                    @change="collectCondition(cond)">
+                                                    Условие
+                                                </ui-select>
+                                            </template>
+                                            <template #right>
+                                                <ui-input
+                                                    type="number"
+                                                    v-model.number="cond.value"
+                                                    :disabled="cond.type === 'ALL' || cond.dimValues.length > 0"
+                                                    @change="collectCondition(cond)">
+                                                    Значение
+                                                </ui-input>
+                                            </template>
+                                        </ui-has-two-columns>
+                                        <ui-select
+                                            multiple
+                                            v-model="cond.dimValues"
+                                            :options="dimValueNames"
+                                            :disabled="cond.value !== ''"
+                                            @change="collectCondition(cond)">
+                                            Значение измерения
+                                        </ui-select>
+                                        <ui-switch v-model="cond.useGradient" @change="collectCondition(cond)">
+                                            Градиент
+                                        </ui-switch>
+                                        <ui-container v-if="cond.useGradient">
+                                            <ui-input-cp
+                                                v-model="cond.gradient.firstColor"
+                                                @change="collectCondition(cond)">
+                                                Первый цвет
+                                            </ui-input-cp>
+                                            <ui-input
+                                                type="number"
+                                                min="0"
+                                                max="1"
+                                                step="0.1"
+                                                v-model="cond.gradient.firstOffset"
+                                                @change="collectCondition(cond)">
+                                                Смещение цвета
+                                            </ui-input>
+                                            <ui-input-cp
+                                                v-model="cond.gradient.secondColor"
+                                                @change="collectCondition(cond)">
+                                                Второй цвет
+                                            </ui-input-cp>
+                                            <ui-input
+                                                type="number"
+                                                min="0"
+                                                max="1"
+                                                step="0.1"
+                                                v-model="cond.gradient.secondOffset"
+                                                @change="collectCondition(cond)">
+                                                Смещение цвета
+                                            </ui-input>
+                                            <ui-select
+                                                v-model="cond.gradient.pos"
+                                                :options="gradientPosOptions"
+                                                @change="collectCondition(cond)">
+                                                Направление градиента
+                                            </ui-select>
+                                        </ui-container>
+                                        <ui-input-cp v-else v-model="cond.color" @change="collectCondition(cond)">
+                                            Цвет
+                                        </ui-input-cp>
+
+                                        <ui-button type="error" @click="deleteCondition(idx)">Удалить</ui-button>
+                                    </ui-container>
+                                </ui-collapse>
+
+                                <ui-button type="ghost" @click="addCondition">Добавить условие</ui-button>
+                            </ui-container>
+                        </ui-panel>
+                    </template>
+                </ui-has-panel>
+            </template>
+
+            <template v-if="currentOptions.type === 'line'">
+                <ui-has-panel>
+                    <ui-checkbox
+                        v-model="currentOptions.fillLine"
+                        :disabled="currentOptions.customFillLine"
+                        @change="collectSettings">
+                        Заливка линии
+                    </ui-checkbox>
+                    <template #panel>
+                        <ui-panel
+                            :groups="[
+                                { name: 'Заливка', slot: 'fill' },
+                                { name: 'Градиент', slot: 'gradient' }
+                            ]">
+                            <template #fill>
+                                <ui-container>
+                                    <ui-select
+                                        v-model="currentOptions.origin"
+                                        :options="fillPositions"
+                                        :disabled="currentOptions.smartFill"
+                                        @change="collectSettings">
+                                        Положение заливки
+                                    </ui-select>
+                                    <ui-switch v-model="currentOptions.smartFill" @change="collectSettings">
+                                        Умная заливка
+                                    </ui-switch>
+                                    <ui-input-cp v-model="currentOptions.fillColor" @change="collectSettings">
+                                        Настройка цвета
+                                    </ui-input-cp>
+                                </ui-container>
+                            </template>
+                            <template #gradient>
+                                <ui-container>
+                                    <ui-switch v-model="currentOptions.gradient" @change="collectSettings">
+                                        Градиент заливки
+                                    </ui-switch>
+                                    <ui-input-cp v-model="currentOptions.firstColor" @change="collectSettings">
+                                        Первый цвет
+                                    </ui-input-cp>
+                                    <ui-input
+                                        type="number"
+                                        min="0"
+                                        max="1"
+                                        step="0.1"
+                                        v-model="currentOptions.offSetFirstColor"
+                                        @change="collectSettings">
+                                        Смещение цвета
+                                    </ui-input>
+                                    <ui-input-cp v-model="currentOptions.secondColor" @change="collectSettings">
+                                        Второй цвет
+                                    </ui-input-cp>
+                                    <ui-input
+                                        type="number"
+                                        min="0"
+                                        max="1"
+                                        step="0.1"
+                                        v-model="currentOptions.offSetSecondColor"
+                                        @change="collectSettings">
+                                        Смещение цвета
+                                    </ui-input>
+                                    <ui-select
+                                        v-model="currentOptions.colorPos"
+                                        :options="gradientPosOptions"
+                                        @change="collectSettings">
+                                        Направление градиента
+                                    </ui-select>
+                                </ui-container>
+                            </template>
+                        </ui-panel>
+                    </template>
+                </ui-has-panel>
+
+                <ui-has-panel v-if="isStackedType">
+                    <ui-checkbox
+                        v-model="currentOptions.customFillLine"
+                        :disabled="currentOptions.fillLine"
+                        @change="collectSettings">
+                        Кастомная заливка линий
+                    </ui-checkbox>
+
+                    <template #panel>
+                        <ui-panel :groups="[{ name: 'Кастомная заливка линий', slot: 'default' }]">
+                            <ui-container>
+                                <ui-select v-model="customColor.name" :options="minorDimensionNamesOptions">
+                                    Значение измерения
+                                </ui-select>
+                                <ui-input-cp
+                                    v-model="customColor.fillColor"
+                                    :disabled="!customColor.name || customColor.gradient"
+                                    @change="changeCustomColor">
+                                    Цвет заливки
+                                </ui-input-cp>
+
+                                <ui-switch
+                                    v-model="customColor.gradient"
+                                    :disabled="!customColor.name"
+                                    @change="changeCustomColor">
+                                    Градиент заливки
+                                </ui-switch>
+
+                                <template v-if="customColor.gradient">
+                                    <ui-input-cp v-model="customColor.firstColor" @change="changeCustomColor">
+                                        Первый цвет
+                                    </ui-input-cp>
+                                    <ui-input
+                                        type="number"
+                                        min="0"
+                                        max="1"
+                                        step="0.1"
+                                        v-model="customColor.offSetFirstColor"
+                                        @change="changeCustomColor">
+                                        Смещение цвета
+                                    </ui-input>
+                                    <ui-input-cp v-model="customColor.secondColor" @change="changeCustomColor">
+                                        Второй цвет
+                                    </ui-input-cp>
+                                    <ui-input
+                                        type="number"
+                                        min="0"
+                                        max="1"
+                                        step="0.1"
+                                        v-model="customColor.offSetSecondColor"
+                                        @change="changeCustomColor">
+                                        Смещение цвета
+                                    </ui-input>
+                                    <ui-select
+                                        v-model="customColor.colorPos"
+                                        :options="gradientPosOptions"
+                                        @change="changeCustomColor">
+                                        Направление градиента
+                                    </ui-select>
+                                </template>
+                            </ui-container>
+                        </ui-panel>
+                    </template>
+                </ui-has-panel>
+
+                <ui-select v-model="currentOptions.lineStyle.type" :options="lineTypes" @change="collectSettings">
+                    Тип линии
+                </ui-select>
+
+                <ui-input-units :units="CommonSizeFirstPxUnits" v-model="lineStyleWidth" @change="collectSettings">
+                    Толщина линии
+                </ui-input-units>
+
+                <ui-has-panel>
+                    <ui-checkbox v-model="currentOptions.showSymbol" @change="collectSettings">Точки</ui-checkbox>
+                    <template #panel>
+                        <ui-panel :groups="[{ name: 'Настройка точек', slot: 'default' }]">
+                            <ui-container>
+                                <ui-select
+                                    v-model="currentOptions.symbol"
+                                    :options="symbolTypes"
+                                    @change="collectSettings">
+                                    Вид
+                                </ui-select>
+                                <ui-input-units
+                                    :units="CommonSizeFirstPxUnits"
+                                    v-model="symbolSize"
+                                    @change="collectSettings">
+                                    Размер
+                                </ui-input-units>
+                                <ui-switch v-model="currentOptions.fillSymbol" @change="collectColorForLine">
+                                    Задавать цвет
+                                </ui-switch>
+                                <ui-input-cp v-model="currentOptions.symbolColor" @change="collectColorForLine">
+                                    Цвет
+                                </ui-input-cp>
+                                <ui-input-units
+                                    :units="CommonSizeFirstPxUnits"
+                                    v-model="symbolBdrWidth"
+                                    @change="collectColorForLine">
+                                    Размер границы
+                                </ui-input-units>
+                                <ui-input-cp v-model="currentOptions.symbolBdrColor" @change="collectColorForLine">
+                                    Цвет границы
+                                </ui-input-cp>
+                            </ui-container>
+                        </ui-panel>
+                    </template>
+                </ui-has-panel>
+            </template>
+
+            <template v-if="!isStackedType">
+                <ui-input-auto v-model="currentOptions.stack" @change="collectSettings">
+                    Тег для стэка
+                    <ui-tooltip position="top">
+                        <template #target="{ events, binds }">
+                            <i class="mdi mdi-18px mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                        </template>
+                        <div>Комбинирует разные графики при одинаковых названиях тегов, указанных в их метриках</div>
+                    </ui-tooltip>
+                </ui-input-auto>
+            </template>
+
+            <ui-has-panel>
+                <div class="form-label form-label-small">Настройка тени</div>
+                <template #panel>
+                    <ui-panel :groups="[{ name: 'Настройка тени', slot: 'default' }]">
+                        <ui-container>
+                            <ui-switch v-model="currentOptions.shouldSyncShadowColor" @change="collectSettings">
+                                Цвет тени дублирует цвет графика
+                            </ui-switch>
+                            <ui-input
+                                type="number"
+                                v-model.number="currentOptions.itemStyle.shadowBlur"
+                                @change="collectSettings">
+                                Размытие тени
+                            </ui-input>
+                            <ui-input-cp v-model="currentOptions.itemStyle.shadowColor" @change="collectSettings">
+                                Цвет тени
+                            </ui-input-cp>
+                            <ui-has-two-columns>
+                                <template #left>
+                                    <ui-input
+                                        type="number"
+                                        v-model.number="currentOptions.itemStyle.shadowOffsetX"
+                                        @change="collectSettings">
+                                        Сдвиг по X
+                                    </ui-input>
+                                </template>
+                                <template #right>
+                                    <ui-input
+                                        type="number"
+                                        v-model.number="currentOptions.itemStyle.shadowOffsetY"
+                                        @change="collectSettings">
+                                        Сдвиг по Y
                                     </ui-input>
                                 </template>
                             </ui-has-two-columns>
@@ -355,702 +920,204 @@
                     </ui-panel>
                 </template>
             </ui-has-panel>
-        </template>
 
-        <template v-if="currentOptions.type !== 'line'">
-            <ui-has-panel>
-                <div class="form-label form-label-small">Настройка величины баров</div>
-
-                <template #panel>
-                    <ui-panel :groups="[{ name: 'Размер бара', slot: 'default' }]">
-                        <ui-container>
-                            <ui-input-units
-                                :units="CommonSizeFirstPxUnits"
-                                v-model="barMinHeight"
-                                @change="collectSettings">
-                                Минимальная высота столбца
-                            </ui-input-units>
-
-                            <ui-input-units
-                                :units="CommonSizeFirstPxUnits"
-                                v-model="barWidth"
-                                @change="collectSettings">
-                                Ширина столбца
-                            </ui-input-units>
-
-                            <ui-input-units
-                                :units="CommonSizeFirstPxUnits"
-                                v-model="barMinWidth"
-                                @change="collectSettings">
-                                Мин. ширина столбца
-                                <template #hint>
-                                    <div>Минимальная ширина столбца задает нижний предел для Ширины столбца.</div>
-                                    <div>В случае, если Ширина столбца < Минимальной, то применяется минимальная</div>
-                                </template>
-                            </ui-input-units>
-
-                            <ui-input-units
-                                :units="CommonSizeFirstPxUnits"
-                                v-model="barMaxWidth"
-                                @change="collectSettings">
-                                Макс. ширина
-                                <template #hint>
-                                    <div>Максимальная ширина столбца задает верхний предел для Ширины столбца.</div>
-                                    <div>В случае, если Ширина столбца > Максимальной, то применяется максимальная</div>
-                                </template>
-                            </ui-input-units>
-                        </ui-container>
-                    </ui-panel>
+            <ui-has-two-columns>
+                <template #left>
+                    <ui-input
+                        type="number"
+                        min="0"
+                        v-model.number="currentOptions.xAxisIndex"
+                        @change="collectSettings">
+                        Привязка к оси X
+                    </ui-input>
                 </template>
-            </ui-has-panel>
-        </template>
-        <template v-if="['stacked', 'bar'].includes(currentOptions.type)">
-            <ui-has-panel>
-                <div class="form-label form-label-small">Настройка границы баров</div>
-                <template #panel>
-                    <ui-container>
-                        <ui-has-two-columns>
-                            <template #left>
-                                <ui-input
-                                    type="number"
-                                    v-model.number="currentOptions.itemStyle.borderWidth"
-                                    @change="collectSettings">
-                                    Толщина границы
-                                </ui-input>
-                            </template>
-                            <template #right>
-                                <ui-input-cp
-                                    type="number"
-                                    v-model.number="currentOptions.itemStyle.borderColor"
-                                    @change="collectSettings">
-                                    Цвет границы
-                                </ui-input-cp>
-                            </template>
-                        </ui-has-two-columns>
-                        <ui-switch v-model="currentOptions.isRoundedBarBorder" @change="collectSettings">
-                            Округление границ
-                        </ui-switch>
-                        <ui-has-two-columns>
-                            <template #left>
-                                <ui-input
-                                    type="number"
-                                    v-model.number="currentOptions.roundedBarBorder.leftTop"
-                                    @change="collectSettings">
-                                    Слева сверху
-                                </ui-input>
-                            </template>
-                            <template #right>
-                                <ui-input
-                                    type="number"
-                                    v-model.number="currentOptions.roundedBarBorder.rightTop"
-                                    @change="collectSettings">
-                                    Справа сверху
-                                </ui-input>
-                            </template>
-                        </ui-has-two-columns>
-                        <ui-has-two-columns>
-                            <template #left>
-                                <ui-input
-                                    type="number"
-                                    v-model.number="currentOptions.roundedBarBorder.leftBottom"
-                                    @change="collectSettings">
-                                    Слева снизу
-                                </ui-input>
-                            </template>
-                            <template #right>
-                                <ui-input
-                                    type="number"
-                                    v-model.number="currentOptions.roundedBarBorder.rightBottom"
-                                    @change="collectSettings">
-                                    Справа снизу
-                                </ui-input>
-                            </template>
-                        </ui-has-two-columns>
-                    </ui-container>
+                <template #right>
+                    <ui-input
+                        type="number"
+                        min="0"
+                        v-model.number="currentOptions.yAxisIndex"
+                        @change="collectSettings">
+                        Привязка к оси Y
+                    </ui-input>
                 </template>
-            </ui-has-panel>
-        </template>
+            </ui-has-two-columns>
 
-        <ui-input-cp
-            v-model="currentOptions.colorForLine"
-            @change="collectAndUpdateColorsForLine"
-            v-if="currentOptions.type === 'line'">
-            Цвет линии
-        </ui-input-cp>
+            <ui-switch v-model="currentOptions.smooth" @change="collectSettings">Сглаживание</ui-switch>
 
-        <ui-input-cp v-model="currentOptions.colorForBar" @change="collectColorForBar" v-else>Цвет бара</ui-input-cp>
-
-        <template v-if="isStackedType">
-            <ui-input type="number" min="1" v-model.number="currentOptions.colorStep" @change="collectSettings">
-                Шаг цвета
+            <ui-input type="number" min="0" v-model.number="currentOptions.z" @change="collectSettings">
+                Z-индекс
+                <ui-tooltip position="top">
+                    <template #target="{ events, binds }">
+                        <i class="mdi mdi-18px mdi-help-circle-outline" v-on="events" v-bind="binds" />
+                    </template>
+                    <div>
+                        Отвечает за порядок отображения графиков. Визуально выше (на переднем плане) отобразится график
+                        с большим значением индекса
+                    </div>
+                </ui-tooltip>
             </ui-input>
 
             <ui-has-panel>
-                <div class="form-label form-label-small">Кастомные цвета</div>
-
+                <ui-checkbox v-model="currentOptions.label.show" @change="collectSettings">Подписи</ui-checkbox>
                 <template #panel>
-                    <ui-panel :groups="[{ name: 'Кастомные цвета', slot: 'default' }]">
+                    <ui-panel :groups="[{ name: 'Настройка подписей', slot: 'default' }]">
                         <ui-container>
-                            <ui-select v-model="customColor.name" :options="minorDimensionNamesOptions">
-                                Измерение
-                            </ui-select>
-                            <ui-input-cp v-model="customColor.color" @change="changeCustomColor">Цвет</ui-input-cp>
-                        </ui-container>
-                    </ui-panel>
-                </template>
-            </ui-has-panel>
-        </template>
-
-        <template v-if="currentOptions.type === 'bar'">
-            <ui-has-panel>
-                <ui-checkbox v-model="currentOptions.gradientForBar" @change="collectColorForBar">
-                    Градиент бара
-                </ui-checkbox>
-                <template #panel>
-                    <ui-panel :groups="[{ name: 'Градиент бара', slot: 'default' }]">
-                        <ui-container>
-                            <ui-input-cp v-model="currentOptions.barFirstColor" @change="collectColorForBar">
-                                Первый цвет
+                            <ui-input-cp v-model="currentOptions.label.color" @change="collectSettings">
+                                Настройка цвета
                             </ui-input-cp>
-                            <ui-input
-                                type="number"
-                                min="0"
-                                max="1"
-                                step="0.1"
-                                v-model="currentOptions.barFirstOffSet"
-                                @change="collectColorForBar">
-                                Смещение цвета
-                            </ui-input>
-                            <ui-input-cp v-model="currentOptions.barSecondColor" @change="collectColorForBar">
-                                Второй цвет
-                            </ui-input-cp>
-                            <ui-input
-                                type="number"
-                                min="0"
-                                max="1"
-                                step="0.1"
-                                v-model="currentOptions.barSecondOffSet"
-                                @change="collectColorForBar">
-                                Смещение цвета
-                            </ui-input>
+                            <ui-has-two-columns>
+                                <template #left>
+                                    <ui-input-auto v-model="currentOptions.label.fontFamily" @change="collectSettings">
+                                        Шрифт подписи
+                                    </ui-input-auto>
+                                </template>
+                                <template #right>
+                                    <ui-input-units
+                                        v-model="labelFontSize"
+                                        :units="FontSizeFirstPxUnits"
+                                        @change="collectSettings">
+                                        Размер шрифта
+                                    </ui-input-units>
+                                </template>
+                            </ui-has-two-columns>
                             <ui-select
-                                v-model="currentOptions.barPos"
-                                :options="gradientPosOptions"
-                                @change="collectColorForBar">
-                                Направление градиента
+                                v-model="currentOptions.label.position"
+                                :options="labelPosOptions"
+                                @change="collectSettings">
+                                Расположение подписей
                             </ui-select>
-                        </ui-container>
-                    </ui-panel>
-                </template>
-            </ui-has-panel>
+                            <ui-select
+                                v-model="currentOptions.label.align"
+                                :options="LabelAlignOptions"
+                                @change="collectSettings">
+                                Горизонтальное выравнивание
+                            </ui-select>
+                            <ui-input
+                                type="number"
+                                min="-90"
+                                max="90"
+                                v-model.number="currentOptions.label.rotate"
+                                @change="collectSettings">
+                                Угол поворота подписей
+                            </ui-input>
+                            <ui-has-two-columns>
+                                <template #left>
+                                    <ui-input
+                                        type="number"
+                                        v-model.number="currentOptions.label.offset[0]"
+                                        @change="collectSettings">
+                                        Отступ по оси X
+                                    </ui-input>
+                                </template>
+                                <template #right>
+                                    <ui-input
+                                        type="number"
+                                        v-model.number="currentOptions.label.offset[1]"
+                                        @change="collectSettings">
+                                        Отступ по оси Y
+                                    </ui-input>
+                                </template>
+                            </ui-has-two-columns>
 
-            <ui-has-panel>
-                <ui-checkbox v-model="currentOptions.styleConditions.enable" @change="collectSettings">
-                    Задать стили условием
-                </ui-checkbox>
-                <template #panel>
-                    <ui-panel :groups="[{ name: 'Условия', slot: 'default' }]">
-                        <ui-container>
-                            <ui-collapse
-                                v-for="(cond, idx) in currentOptions.styleConditions.conditions"
-                                :key="`cond-${idx}`">
-                                <template #header>{{ `Условие ${idx + 1}` }}</template>
-                                <ui-container>
-                                    <ui-has-two-columns>
-                                        <template #left>
-                                            <ui-select
-                                                v-model="cond.type"
-                                                :options="condStyleTypes"
-                                                @change="collectCondition(cond)">
-                                                Условие
-                                            </ui-select>
-                                        </template>
-                                        <template #right>
+                            <ui-has-panel>
+                                <ui-checkbox
+                                    disabled
+                                    v-model="currentOptions.labelLayout.use"
+                                    @change="collectSettings">
+                                    <ui-hint>
+                                        <template #label>Подписи прямой линией</template>
+                                        Функционал в данный момент не активен и находится в процессе доработки
+                                    </ui-hint>
+                                </ui-checkbox>
+                                <template #panel>
+                                    <ui-panel :groups="[{ name: 'Настройки для подписей в линию', slot: 'default' }]">
+                                        <ui-container>
                                             <ui-input
                                                 type="number"
-                                                v-model.number="cond.value"
-                                                :disabled="cond.type === 'ALL' || cond.dimValues.length > 0"
-                                                @change="collectCondition(cond)">
-                                                Значение
+                                                v-model.number="currentOptions.labelLayout.x"
+                                                @change="collectSettings">
+                                                Позиция по Х
                                             </ui-input>
-                                        </template>
-                                    </ui-has-two-columns>
-                                    <ui-select
-                                        multiple
-                                        v-model="cond.dimValues"
-                                        :options="dimValueNames"
-                                        :disabled="cond.value !== ''"
-                                        @change="collectCondition(cond)">
-                                        Значение измерения
-                                    </ui-select>
-                                    <ui-switch v-model="cond.useGradient" @change="collectCondition(cond)">
-                                        Градиент
-                                    </ui-switch>
-                                    <ui-container v-if="cond.useGradient">
-                                        <ui-input-cp
-                                            v-model="cond.gradient.firstColor"
-                                            @change="collectCondition(cond)">
-                                            Первый цвет
-                                        </ui-input-cp>
-                                        <ui-input
-                                            type="number"
-                                            min="0"
-                                            max="1"
-                                            step="0.1"
-                                            v-model="cond.gradient.firstOffset"
-                                            @change="collectCondition(cond)">
-                                            Смещение цвета
-                                        </ui-input>
-                                        <ui-input-cp
-                                            v-model="cond.gradient.secondColor"
-                                            @change="collectCondition(cond)">
-                                            Второй цвет
-                                        </ui-input-cp>
-                                        <ui-input
-                                            type="number"
-                                            min="0"
-                                            max="1"
-                                            step="0.1"
-                                            v-model="cond.gradient.secondOffset"
-                                            @change="collectCondition(cond)">
-                                            Смещение цвета
-                                        </ui-input>
-                                        <ui-select
-                                            v-model="cond.gradient.pos"
-                                            :options="gradientPosOptions"
-                                            @change="collectCondition(cond)">
-                                            Направление градиента
-                                        </ui-select>
-                                    </ui-container>
-                                    <ui-input-cp v-else v-model="cond.color" @change="collectCondition(cond)">
-                                        Цвет
-                                    </ui-input-cp>
+                                            <ui-input
+                                                type="number"
+                                                v-model.number="currentOptions.labelLayout.y"
+                                                @change="collectSettings">
+                                                Позиция по Y
+                                            </ui-input>
+                                            <ui-select
+                                                v-model="currentOptions.labelLayout.align"
+                                                :options="LabelAlignOptions"
+                                                @change="collectSettings">
+                                                Выравнивание по Х
+                                            </ui-select>
+                                            <ui-select
+                                                v-model="currentOptions.labelLayout.verticalAlign"
+                                                :options="VerticalAlignOptions"
+                                                @change="collectSettings">
+                                                Выравнивание по Y
+                                            </ui-select>
+                                        </ui-container>
+                                    </ui-panel>
+                                </template>
+                            </ui-has-panel>
 
-                                    <ui-button type="error" @click="deleteCondition(idx)">Удалить</ui-button>
-                                </ui-container>
-                            </ui-collapse>
-
-                            <ui-button type="ghost" @click="addCondition">Добавить условие</ui-button>
-                        </ui-container>
-                    </ui-panel>
-                </template>
-            </ui-has-panel>
-        </template>
-
-        <template v-if="currentOptions.type === 'line'">
-            <ui-has-panel>
-                <ui-checkbox
-                    v-model="currentOptions.fillLine"
-                    :disabled="currentOptions.customFillLine"
-                    @change="collectSettings">
-                    Заливка линии
-                </ui-checkbox>
-                <template #panel>
-                    <ui-panel
-                        :groups="[
-                            { name: 'Заливка', slot: 'fill' },
-                            { name: 'Градиент', slot: 'gradient' }
-                        ]">
-                        <template #fill>
-                            <ui-container>
-                                <ui-switch v-model="currentOptions.shouldSyncColor" @change="collectSettings">
-                                    Цвет дублирует цвет графика
-                                </ui-switch>
-                                <ui-select
-                                    v-model="currentOptions.origin"
-                                    :options="fillPositions"
-                                    :disabled="currentOptions.smartFill"
-                                    @change="collectSettings">
-                                    Положение заливки
-                                </ui-select>
-                                <ui-switch v-model="currentOptions.smartFill" @change="collectSettings">
-                                    Умная заливка
-                                </ui-switch>
-                                <ui-input-cp v-model="currentOptions.fillColor" @change="collectSettings">
-                                    Настройка цвета
-                                </ui-input-cp>
-                            </ui-container>
-                        </template>
-                        <template #gradient>
-                            <ui-container>
-                                <ui-switch v-model="currentOptions.gradient" @change="collectSettings">
-                                    Градиент заливки
-                                </ui-switch>
-                                <ui-input-cp v-model="currentOptions.firstColor" @change="collectSettings">
-                                    Первый цвет
-                                </ui-input-cp>
-                                <ui-input
-                                    type="number"
-                                    min="0"
-                                    max="1"
-                                    step="0.1"
-                                    v-model="currentOptions.offSetFirstColor"
-                                    @change="collectSettings">
-                                    Смещение цвета
-                                </ui-input>
-                                <ui-input-cp v-model="currentOptions.secondColor" @change="collectSettings">
-                                    Второй цвет
-                                </ui-input-cp>
-                                <ui-input
-                                    type="number"
-                                    min="0"
-                                    max="1"
-                                    step="0.1"
-                                    v-model="currentOptions.offSetSecondColor"
-                                    @change="collectSettings">
-                                    Смещение цвета
-                                </ui-input>
-                                <ui-select
-                                    v-model="currentOptions.colorPos"
-                                    :options="gradientPosOptions"
-                                    @change="collectSettings">
-                                    Направление градиента
-                                </ui-select>
-                            </ui-container>
-                        </template>
-                    </ui-panel>
-                </template>
-            </ui-has-panel>
-
-            <ui-has-panel v-if="isStackedType">
-                <ui-checkbox
-                    v-model="currentOptions.customFillLine"
-                    :disabled="currentOptions.fillLine"
-                    @change="collectSettings">
-                    Кастомная заливка линий
-                </ui-checkbox>
-
-                <template #panel>
-                    <ui-panel :groups="[{ name: 'Кастомная заливка линий', slot: 'default' }]">
-                        <ui-container>
-                            <ui-select v-model="customColor.name" :options="minorDimensionNamesOptions">
-                                Значение измерения
-                            </ui-select>
-                            <ui-input-cp
-                                v-model="customColor.fillColor"
-                                :disabled="!customColor.name || customColor.gradient"
-                                @change="changeCustomColor">
-                                Цвет заливки
-                            </ui-input-cp>
-
-                            <ui-switch
-                                v-model="customColor.gradient"
-                                :disabled="!customColor.name"
-                                @change="changeCustomColor">
-                                Градиент заливки
+                            <ui-switch v-model="currentOptions.label.isZeroValueShown" @change="collectSettings">
+                                Отображать нули
                             </ui-switch>
-
-                            <template v-if="customColor.gradient">
-                                <ui-input-cp v-model="customColor.firstColor" @change="changeCustomColor">
-                                    Первый цвет
-                                </ui-input-cp>
-                                <ui-input
-                                    type="number"
-                                    min="0"
-                                    max="1"
-                                    step="0.1"
-                                    v-model="customColor.offSetFirstColor"
-                                    @change="changeCustomColor">
-                                    Смещение цвета
-                                </ui-input>
-                                <ui-input-cp v-model="customColor.secondColor" @change="changeCustomColor">
-                                    Второй цвет
-                                </ui-input-cp>
-                                <ui-input
-                                    type="number"
-                                    min="0"
-                                    max="1"
-                                    step="0.1"
-                                    v-model="customColor.offSetSecondColor"
-                                    @change="changeCustomColor">
-                                    Смещение цвета
-                                </ui-input>
-                                <ui-select
-                                    v-model="customColor.colorPos"
-                                    :options="gradientPosOptions"
-                                    @change="changeCustomColor">
-                                    Направление градиента
-                                </ui-select>
-                            </template>
                         </ui-container>
                     </ui-panel>
                 </template>
             </ui-has-panel>
 
-            <ui-select v-model="currentOptions.lineStyle.type" :options="lineTypes" @change="collectSettings">
-                Тип линии
-            </ui-select>
-
-            <ui-input-units :units="CommonSizeFirstPxUnits" v-model="lineStyleWidth" @change="collectSettings">
-                Толщина линии
-            </ui-input-units>
+            <ui-has-panel>
+                <ui-checkbox v-model="currentOptions.label.isAddlLabelShown" @change="collectSettings">
+                    Дополнительная подпись
+                </ui-checkbox>
+                <template #panel>
+                    <ui-panel :groups="[{ name: 'Дополнительная подпись', slot: 'default' }]">
+                        <ui-additional-label
+                            v-model="currentOptions.label.rich"
+                            v-bind="{ metricNamesOptions, condStyleTypes }"
+                            @change="collectSettings" />
+                    </ui-panel>
+                </template>
+            </ui-has-panel>
 
             <ui-has-panel>
-                <ui-checkbox v-model="currentOptions.showSymbol" @change="collectSettings">Точки</ui-checkbox>
+                <ui-checkbox v-model="currentOptions.animation" @change="collectSettings">
+                    Настройка анимации
+                </ui-checkbox>
                 <template #panel>
-                    <ui-panel :groups="[{ name: 'Настройка точек', slot: 'default' }]">
+                    <ui-panel :groups="[{ name: 'Настройка анимации', slot: 'default' }]">
                         <ui-container>
-                            <ui-select v-model="currentOptions.symbol" :options="symbolTypes" @change="collectSettings">
-                                Вид
-                            </ui-select>
-                            <ui-input-units
-                                :units="CommonSizeFirstPxUnits"
-                                v-model="symbolSize"
+                            <ui-select
+                                v-model="currentOptions.animationEasing"
+                                :options="animationTypes"
                                 @change="collectSettings">
-                                Размер
-                            </ui-input-units>
-                            <ui-switch v-model="currentOptions.fillSymbol" @change="collectColorForLine">
-                                Задавать цвет
-                            </ui-switch>
-                            <ui-input-cp v-model="currentOptions.symbolColor" @change="collectColorForLine">
-                                Цвет
-                            </ui-input-cp>
-                            <ui-input-units
-                                :units="CommonSizeFirstPxUnits"
-                                v-model="symbolBdrWidth"
-                                @change="collectColorForLine">
-                                Размер границы
-                            </ui-input-units>
-                            <ui-input-cp v-model="currentOptions.symbolBdrColor" @change="collectColorForLine">
-                                Цвет границы
-                            </ui-input-cp>
-                            <ui-switch v-model="currentOptions.shouldDotsSyncColor" @change="collectSettings">
-                                Цвет дублирует цвет графика
-                            </ui-switch>
+                                Тип анимации
+                            </ui-select>
+                            <ui-input
+                                type="number"
+                                min="0"
+                                v-model.number="currentOptions.animationDuration"
+                                @change="collectSettings">
+                                Продолжительность анимации
+                            </ui-input>
+                            <ui-input
+                                type="number"
+                                min="0"
+                                v-model.number="currentOptions.animationDelay"
+                                @change="collectSettings">
+                                Продолжительность задержки
+                            </ui-input>
                         </ui-container>
                     </ui-panel>
                 </template>
             </ui-has-panel>
-        </template>
 
-        <template v-if="!isStackedType">
-            <ui-input-auto v-model="currentOptions.stack" @change="collectSettings">
-                Тег для стэка
-                <template #hint>
-                    Комбинирует разные графики при одинаковых названиях тегов, указанных в их метриках
-                </template>
-            </ui-input-auto>
-        </template>
-
-        <ui-has-panel>
-            <div class="form-label form-label-small">Настройка тени</div>
-            <template #panel>
-                <ui-panel :groups="[{ name: 'Настройка тени', slot: 'default' }]">
-                    <ui-container>
-                        <ui-switch v-model="currentOptions.shouldSyncShadowColor" @change="collectSettings">
-                            Цвет тени дублирует цвет графика
-                        </ui-switch>
-                        <ui-input
-                            type="number"
-                            v-model.number="currentOptions.itemStyle.shadowBlur"
-                            @change="collectSettings">
-                            Размытие тени
-                        </ui-input>
-                        <ui-input-cp v-model="currentOptions.itemStyle.shadowColor" @change="collectSettings">
-                            Цвет тени
-                        </ui-input-cp>
-                        <ui-has-two-columns>
-                            <template #left>
-                                <ui-input
-                                    type="number"
-                                    v-model.number="currentOptions.itemStyle.shadowOffsetX"
-                                    @change="collectSettings">
-                                    Сдвиг по X
-                                </ui-input>
-                            </template>
-                            <template #right>
-                                <ui-input
-                                    type="number"
-                                    v-model.number="currentOptions.itemStyle.shadowOffsetY"
-                                    @change="collectSettings">
-                                    Сдвиг по Y
-                                </ui-input>
-                            </template>
-                        </ui-has-two-columns>
-                    </ui-container>
-                </ui-panel>
-            </template>
-        </ui-has-panel>
-
-        <ui-has-two-columns>
-            <template #left>
-                <ui-input type="number" min="0" v-model.number="currentOptions.xAxisIndex" @change="collectSettings">
-                    Привязка к оси X
-                </ui-input>
-            </template>
-            <template #right>
-                <ui-input type="number" min="0" v-model.number="currentOptions.yAxisIndex" @change="collectSettings">
-                    Привязка к оси Y
-                </ui-input>
-            </template>
-        </ui-has-two-columns>
-
-        <ui-switch v-model="currentOptions.smooth" @change="collectSettings">Сглаживание</ui-switch>
-
-        <ui-input type="number" min="0" v-model.number="currentOptions.z" @change="collectSettings">
-            Z-индекс
-            <template #hint>
-                <div>Отвечает за порядок отображения графиков.</div>
-                <div>Визуально выше (на переднем плане) отобразится</div>
-                <div>график с большим значением индекса</div>
-            </template>
-        </ui-input>
-
-        <ui-has-panel>
-            <ui-checkbox v-model="currentOptions.label.show" @change="collectSettings">Подписи</ui-checkbox>
-            <template #panel>
-                <ui-panel :groups="[{ name: 'Настройка подписей', slot: 'default' }]">
-                    <ui-container>
-                        <ui-input-cp v-model="currentOptions.label.color" @change="collectSettings">
-                            Настройка цвета
-                        </ui-input-cp>
-                        <ui-has-two-columns>
-                            <template #left>
-                                <ui-input-auto v-model="currentOptions.label.fontFamily" @change="collectSettings">
-                                    Шрифт подписи
-                                </ui-input-auto>
-                            </template>
-                            <template #right>
-                                <ui-input-units
-                                    v-model="labelFontSize"
-                                    :units="FontSizeFirstPxUnits"
-                                    @change="collectSettings">
-                                    Размер шрифта
-                                </ui-input-units>
-                            </template>
-                        </ui-has-two-columns>
-                        <ui-select
-                            v-model="currentOptions.label.position"
-                            :options="labelPosOptions"
-                            @change="collectSettings">
-                            Расположение подписей
-                        </ui-select>
-                        <ui-select
-                            v-model="currentOptions.label.align"
-                            :options="LabelAlignOptions"
-                            @change="collectSettings">
-                            Горизонтальное выравнивание
-                        </ui-select>
-                        <ui-input
-                            type="number"
-                            min="-90"
-                            max="90"
-                            v-model.number="currentOptions.label.rotate"
-                            @change="collectSettings">
-                            Угол поворота подписей
-                        </ui-input>
-                        <ui-has-two-columns>
-                            <template #left>
-                                <ui-input
-                                    type="number"
-                                    v-model.number="currentOptions.label.offset[0]"
-                                    @change="collectSettings">
-                                    Отступ по оси X
-                                </ui-input>
-                            </template>
-                            <template #right>
-                                <ui-input
-                                    type="number"
-                                    v-model.number="currentOptions.label.offset[1]"
-                                    @change="collectSettings">
-                                    Отступ по оси Y
-                                </ui-input>
-                            </template>
-                        </ui-has-two-columns>
-
-                        <ui-has-panel>
-                            <ui-checkbox disabled v-model="currentOptions.labelLayout.use" @change="collectSettings">
-                                <ui-hint>
-                                    <template #label>Подписи прямой линией</template>
-                                    Функционал в данный момент не активен и находится в процессе доработки
-                                </ui-hint>
-                            </ui-checkbox>
-                            <template #panel>
-                                <ui-panel :groups="[{ name: 'Настройки для подписей в линию', slot: 'default' }]">
-                                    <ui-container>
-                                        <ui-input
-                                            type="number"
-                                            v-model.number="currentOptions.labelLayout.x"
-                                            @change="collectSettings">
-                                            Позиция по Х
-                                        </ui-input>
-                                        <ui-input
-                                            type="number"
-                                            v-model.number="currentOptions.labelLayout.y"
-                                            @change="collectSettings">
-                                            Позиция по Y
-                                        </ui-input>
-                                        <ui-select
-                                            v-model="currentOptions.labelLayout.align"
-                                            :options="LabelAlignOptions"
-                                            @change="collectSettings">
-                                            Выравнивание по Х
-                                        </ui-select>
-                                        <ui-select
-                                            v-model="currentOptions.labelLayout.verticalAlign"
-                                            :options="VerticalAlignOptions"
-                                            @change="collectSettings">
-                                            Выравнивание по Y
-                                        </ui-select>
-                                    </ui-container>
-                                </ui-panel>
-                            </template>
-                        </ui-has-panel>
-
-                        <ui-switch v-model="currentOptions.label.isZeroValueShown" @change="collectSettings">
-                            Отображать нули
-                        </ui-switch>
-                    </ui-container>
-                </ui-panel>
-            </template>
-        </ui-has-panel>
-
-        <ui-has-panel>
-            <ui-checkbox v-model="currentOptions.label.isAddlLabelShown" @change="collectSettings">
-                Дополнительная подпись
-            </ui-checkbox>
-            <template #panel>
-                <ui-panel :groups="[{ name: 'Дополнительная подпись', slot: 'default' }]">
-                    <ui-additional-label
-                        v-model="currentOptions.label.rich"
-                        v-bind="{ metricNamesOptions, condStyleTypes }"
-                        @change="collectSettings" />
-                </ui-panel>
-            </template>
-        </ui-has-panel>
-
-        <ui-has-panel>
-            <ui-checkbox v-model="currentOptions.animation" @change="collectSettings">Настройка анимации</ui-checkbox>
-            <template #panel>
-                <ui-panel :groups="[{ name: 'Настройка анимации', slot: 'default' }]">
-                    <ui-container>
-                        <ui-select
-                            v-model="currentOptions.animationEasing"
-                            :options="animationTypes"
-                            @change="collectSettings">
-                            Тип анимации
-                        </ui-select>
-                        <ui-input
-                            type="number"
-                            min="0"
-                            v-model.number="currentOptions.animationDuration"
-                            @change="collectSettings">
-                            Продолжительность анимации
-                        </ui-input>
-                        <ui-input
-                            type="number"
-                            min="0"
-                            v-model.number="currentOptions.animationDelay"
-                            @change="collectSettings">
-                            Продолжительность задержки
-                        </ui-input>
-                    </ui-container>
-                </ui-panel>
-            </template>
-        </ui-has-panel>
-
-        <ui-button type="error" @click="deleteMetric">Удалить</ui-button>
-    </ui-container>
+            <ui-button type="error" @click="deleteMetric">Удалить</ui-button>
+        </ui-container>
+    </ui-collapse>
 </template>
 
 <script>
@@ -1058,10 +1125,11 @@
 import { cloneDeep, get as _get } from 'lodash';
 import Color from 'color';
 import draggable from 'vuedraggable';
+import { Tooltip } from 'goodteditor-ui';
 import { PanelUi } from '@goodt-wcore/components';
 import { convertCssVarToComputedValue } from '@goodt-common/utils';
 
-import { createSeriesTemplateByIndex } from '../../utils/constants';
+import { SeriesTemplate } from '../../utils/constants';
 import { utils } from '../../utils';
 import { unit2PxMixin } from '../../utils/mixins';
 import {
@@ -1088,6 +1156,7 @@ export default {
     components: {
         ...PanelUi,
         draggable,
+        UiTooltip: Tooltip,
         UiAdditionalLabel
     },
     mixins: [unit2PxMixin],
@@ -1103,10 +1172,6 @@ export default {
         axis: {
             type: Array,
             default: () => []
-        },
-        seriesType: {
-            type: String,
-            default: null
         },
         metricNames: {
             type: Array,
@@ -1136,9 +1201,9 @@ export default {
             type: CSSStyleDeclaration,
             default: () => ({})
         },
-        templateIndex: {
-            type: Number,
-            default: 0
+        $c: {
+            type: Function,
+            default: (value) => value
         }
     },
     data() {
@@ -1384,7 +1449,12 @@ export default {
     },
 
     created() {
-        this.currentOptions = { ...createSeriesTemplateByIndex(this.templateIndex), ...cloneDeep(this.styles) };
+        this.currentOptions = { ...cloneDeep(SeriesTemplate), ...cloneDeep(this.styles) };
+
+        if (!_get(this.currentOptions, 'type', '')) {
+            this.currentOptions = cloneDeep(SeriesTemplate);
+            this.currentOptions.name = `${this.currentOptions.name}${this.index}`;
+        }
 
         if (_get(this.currentOptions, 'areaStyle', null)) {
             if (this.currentOptions.fillUnderLine && !this.currentOptions.gradient) {
@@ -1409,34 +1479,37 @@ export default {
             this.$emit('delete', this.index);
         },
         resolveColorValue(color) {
-            return convertCssVarToComputedValue(color, this.elemComputedStyles);
+            // eslint-disable-next-line goodt-rules/deprecate-member-expression
+            return convertCssVarToComputedValue(this.$c(color), this.elemComputedStyles);
         },
         changeSeriesType(seriesType) {
-            const { minorDimensionNames: dimensionNames, currentOptions } = this;
+            const { minorDimensionNames: dimensionNames } = this;
             const { customColors, color, colorStep } = this.currentOptions;
+
             switch (seriesType) {
+                case 'plan':
+                case 'fact':
+                    this.currentOptions.type = 'bar';
+                    this.currentOptions.customType = seriesType;
+                    break;
                 case 'stacked':
                 case 'stacked line':
-                    currentOptions.type = seriesType === 'stacked line' ? 'line' : 'bar';
+                    this.currentOptions.type = seriesType === 'stacked line' ? 'line' : 'bar';
+                    this.currentOptions.customType = seriesType;
                     if (customColors.length === 0) {
                         const resolvedColor = this.resolveColorValue(color);
-                        currentOptions.customColors = utils.buildColorSet(resolvedColor, colorStep, dimensionNames);
+                        this.currentOptions.customColors = utils.buildColorSet(
+                            resolvedColor,
+                            colorStep,
+                            dimensionNames
+                        );
                     }
                     break;
                 case 'line':
-                    if (currentOptions.type === 'bar') {
-                        currentOptions.colorForLine = currentOptions.colorForBar;
-                    }
-                    this.currentOptions.type = seriesType;
-                    this.currentOptions.itemStyle = {};
-                    break;
                 case 'bar':
-                case 'plan':
-                case 'fact':
-                    if (currentOptions.type === 'line') {
-                        currentOptions.colorForBar = currentOptions.colorForLine;
-                    }
-                    this.currentOptions.type = 'bar';
+                default:
+                    this.currentOptions.type = seriesType;
+                    this.currentOptions.customType = seriesType;
                     this.currentOptions.itemStyle = {};
             }
 
@@ -1453,10 +1526,6 @@ export default {
             this.currentOptions.colorStep = colorStep;
             this.currentOptions.customColors = customColors;
             this.changed();
-        },
-        onMetricNameChange(metricName) {
-            this.currentOptions = { ...this.currentOptions, marker: metricName, name: metricName };
-            this.collectSettings();
         },
         collectSettings() {
             const { type, smooth, gradient, fillLine, itemStyle, isRoundedBarBorder, roundedBarBorder } =

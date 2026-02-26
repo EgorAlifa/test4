@@ -1,5 +1,5 @@
 <template>
-    <w-elem :placeholder="$placeholder">
+    <w-elem>
         <w-tooltip :is-shown.sync="customTooltip.isShown" v-bind="customTooltip.options" class="w-100 h-100">
             <template #target>
                 <div class="w-100 h-100" ref="chartAwesome">
@@ -27,15 +27,13 @@
         </div>
         <div v-if="!props.dremio" class="message message--warn">no dataset selected</div>
 
-        <div class="breadcrumb" v-if="isBreadcrumbsShown">{{ breadcrumbText }}</div>
+        <div class="breadcrumb" v-if="isBreabcrumbShown">{{ breadcrumbText }}</div>
     </w-elem>
 </template>
-
 <style src="./styles/style.pcss" lang="pcss" module></style>
-
 <script>
-import { Elem } from '@goodt-wcore/elem';
-import { useElemDatasetBaseMixin, ElemDatasetBaseMixinTypes } from '@goodt-common/data';
+import { Elem, Dremio } from 'goodt-wcore';
+import { useFetchDataEventMixin } from '@goodt-common/mixins';
 import { Tooltip as WTooltip } from '@goodt-wcore/components';
 import { convertCssVarToComputedValue } from '@goodt-common/utils';
 import echarts from 'echarts';
@@ -47,46 +45,43 @@ import {
     ToolboxOptions,
     RESIZE_THROTTLE_TIMEOUT,
     REQUEST_ANIMATION_TIMEOUT,
-    BreadcrumbTemplate,
-    ECHARTS_SERIES_MIN_INT_VALUE
+    BreadcrumbTemplate
 } from './utils/constants';
 import { unit2PxMixin } from './utils/mixins';
-import { utils, propsFixer, setDefaultTooltipStyle } from './utils';
+import { utils, propsFixer, Events, setDefaultTooltipStyle } from './utils';
 import { meta } from './descriptor';
-import { TopType } from './panels/config';
+import { mixin as DeviationMixin } from './deviations/DeviationMixin';
 
-const DatasetMixin = useElemDatasetBaseMixin({ drilldown: true, panel: false, deviations: true });
+const { Query, useSDKFactory, useSDKDataProvider } = Dremio;
 
 export default {
     extends: Elem,
-    components: { WTooltip },
-    mixins: [DatasetMixin, unit2PxMixin],
-    meta,
-    hooks: {
-        then(results) {
-            const composedResults = this.resolveComposedResults(results);
-            this.results = composedResults;
-            if (this.handleSkipDrilldownLevel(composedResults)) {
-                return;
-            }
-            this.constructOpts();
-        }
+    components: {
+        WTooltip
     },
+    mixins: [DeviationMixin, unit2PxMixin, useFetchDataEventMixin({ methodName: 'queryAndDrawData' })],
+    meta,
     data() {
         return {
-            isLoading: false,
             chartInstance: null,
-            lastCommit: null,
-            results: [],
+            // eslint-disable-next-line no-restricted-syntax
+            resData: [],
+            // eslint-disable-next-line no-restricted-syntax
+            queryHelper: [],
             scaleValue: 0,
+            widgetState: {
+                loading: false,
+                stateChanged: false
+            },
+            isInitData: true,
             isFirstRun: true,
             privateProps: null,
             chosenDimValue: null,
             mainDimValues: [],
-            chosenNeutralMetricIndexes: [],
             hasTopMode: true,
             error: null,
-            drilldownLastDirection: 1,
+            isGoneNext: true,
+            breadcrumbText: '',
             customTooltip: {
                 options: {
                     appendToBody: false,
@@ -95,34 +90,50 @@ export default {
                     isFixed: false
                 },
                 isShown: false
-            },
-            ...ElemDatasetBaseMixinTypes
+            }
         };
     },
     computed: {
-        /**
-         *
-         * @return {boolean}
-         */
         hasError() {
-            return this.hasDataset && this.error != null;
+            return this.props.dremio != null && this.error != null;
         },
-        drilldownState() {
-            const {
-                main: { name: mainDim }
-            } = this.props.dimensionOptions;
-            return {
-                ...this.$drilldown.state[mainDim],
-                name: mainDim
-            };
+        metricDimensionList() {
+            if (this.props.dremio == null) {
+                return [];
+            }
+            const list = this.queryHelper.flatMap(({ query, dimensionList }) => [
+                ...Query.queryMetricNames(query),
+                ...Object.keys(dimensionList)
+            ]);
+            return [...new Set(list)];
         },
-        drilldownCanPop() {
-            return this.drilldownState?.canPop ?? false;
+        dimensionLevel() {
+            const { main } = this.props.dimensionOptions;
+            const { states } = this.queryHelper.find(({ dimensionList }) =>
+                Object.keys(dimensionList).includes(main.name)
+            );
+            const state = states.find(({ name }) => name === main.name);
+            return state?.index ?? -1;
         },
-        drilldownCanPush() {
-            return this.drilldownState?.canPush ?? false;
+        queryHelperFilter() {
+            const helper = this.queryHelper?.[0] ?? null;
+
+            if (helper == null) {
+                return [];
+            }
+
+            const [state] = helper.states;
+            const stateIndex = state?.index ?? -1;
+
+            if ([0, -1].includes(stateIndex)) {
+                return [];
+            }
+
+            return state?.filters
+                .slice(0, stateIndex)
+                .map((filter) => filter[Object.keys(filter)[0]][Query.FILTER_TYPE.EQ][0]);
         },
-        isBreadcrumbsShown() {
+        isBreabcrumbShown() {
             const {
                 props: {
                     breadcrumb: { isShown }
@@ -130,6 +141,12 @@ export default {
                 breadcrumbText
             } = this;
             return isShown && breadcrumbText !== '';
+        },
+        isLoading() {
+            return this.widgetState.loading;
+        },
+        isStateChanged() {
+            return this.widgetState.stateChanged;
         },
         grid() {
             const { grid, legend } = this.props;
@@ -157,7 +174,7 @@ export default {
                 backgroundColor,
                 legendManualSize
             } = this.props;
-            const { dataZoom, tooltip, toolbox, axisPointer, grid, datasetRequests } = this;
+            const { dataZoom, tooltip, toolbox, axisPointer, grid } = this;
             return {
                 group: 'group',
                 series: [],
@@ -165,7 +182,6 @@ export default {
                 grid,
                 title: {
                     ...mainTitle,
-                    text: mainTitle.text === '' ? datasetRequests[0]?.name ?? mainTitle.text : mainTitle.text,
                     textStyle: {
                         ...mainTitleTextStyle,
                         fontSize: this.takeUnit2Px({ size: mainTitleFontSize })
@@ -177,7 +193,7 @@ export default {
                         ...legendTextStyle,
                         fontSize: this.takeUnit2Px({ size: legendFontSize })
                     },
-                    ...(legendManualSize.isManualMode && legendManualSize)
+                    ...(legendManualSize.isManualMode ? legendManualSize : {})
                 },
                 backgroundColor,
                 xAxis: [],
@@ -191,6 +207,10 @@ export default {
         toolbox() {
             const { show, itemSize, iconStyle, prevTitle } = this.props.toolbox;
             const { enable, btn } = this.props.topOptions;
+            const canGoPrev = (() => {
+                const qhIdx = this.getQueryHelperIdx();
+                return qhIdx >= 0 && this.canGoPrev(qhIdx);
+            })();
 
             return {
                 show,
@@ -202,7 +222,7 @@ export default {
                 },
                 feature: {
                     myPrevBtn: {
-                        show: this.drilldownCanPop,
+                        show: canGoPrev,
                         name: 'prev',
                         title: prevTitle || ToolboxOptions.prevTitle,
                         icon: 'path://M12.5,8C9.85,8 7.45,9 5.6,10.6L2,7V16H11L7.38,12.38C8.77,11.22 10.54,10.5 12.5,10.5C16.04,10.5 19.05,12.81 20.1,16L22.47,15.22C21.08,11.03 17.15,8 12.5,8Z',
@@ -219,10 +239,10 @@ export default {
             };
         },
         tooltip() {
-            const { tooltip, metricsStyle } = this.props;
+            const { tooltip } = this.props;
             return {
                 ...tooltip,
-                formatter: (params) => utils.tooltipFormatter.bind(tooltip)(metricsStyle, params)
+                formatter: utils.tooltipFormatter.bind(tooltip)
             };
         },
         dataZoom() {
@@ -269,39 +289,45 @@ export default {
         },
         computedStyle() {
             return this.$el != null ? getComputedStyle(this.$el) : {};
-        },
-        breadcrumbText() {
-            const {
-                breadcrumb: { isShown, delimiter }
-            } = this.props;
-
-            return isShown
-                ? [...(new Set(this.drilldownState.filters?.map(({ value }) => value)) ?? '')].join(
-                      delimiter ?? BreadcrumbTemplate().delimiter
-                  )
-                : '';
         }
     },
-    watchEditor: {
-        props: {
-            handler(props) {
-                this.privateProps = propsFixer(props);
-            },
-            deep: true
-        },
-        [['cssStyle', 'cssClass', PropNames.map((prop) => `props.${prop}`)]]: {
-            handler(param, oldParam) {
-                if (param && !_isEqual(param, oldParam)) {
-                    const composedResults = this.resolveComposedResults();
-                    this.results = composedResults;
-                    this.$nextTick().then(this.constructOpts);
+    static: {
+        propNames: PropNames
+    },
+    watchStore: [
+        {
+            handler(_, state) {
+                if (Object.keys(state).length === 0) {
+                    return;
                 }
-            },
-            deep: true
+                /*
+                 * skip a tick to allow `created` hook to happen
+                 * cause wrapped depends on `initDremio`
+                 */
+                this.$nextTick(() => {
+                    if (this.isStateChanged) {
+                        this.widgetState.stateChanged = false;
+                        return;
+                    }
+                    this.filterQuery(state);
+                    this.isInitData = false;
+                    this.queryAndDrawData();
+                });
+            }
+        }
+    ],
+    watchEditor: {
+        'props.deviationMeta': {
+            handler(newMeta, oldMeta) {
+                if (_isEqual(newMeta, oldMeta) === false) {
+                    this.queryAndDrawData();
+                }
+            }
         }
     },
     created() {
-        this.privateProps = propsFixer(this.props);
+        this.initDremio();
+        this.initPropsHandlers();
         this.addUnit2PxWatcher(this.constructOpts);
     },
     mounted() {
@@ -311,14 +337,11 @@ export default {
         window.removeEventListener('resize', this.throttledResize);
         this.destroyChart();
     },
+    destroyed() {
+        this.dremioSdk.cancelActiveRequests();
+    },
 
     methods: {
-        resolveComposedResults(results = this.results) {
-            return results.map((result) => ({
-                ...result,
-                rows: result.rows.map((row, index) => ({ ...row, ...this.deviations.rows[index] }))
-            }));
-        },
         closeErrorWindow() {
             this.error = null;
         },
@@ -330,23 +353,177 @@ export default {
             this.throttledResize = _throttle(this.onResize, RESIZE_THROTTLE_TIMEOUT);
             window.addEventListener('resize', this.throttledResize);
         },
-        drilldownPop() {
-            const { name: drilldown, canPop } = this.drilldownState;
-            if (canPop === false) {
-                return;
+        /**
+         *
+         */
+        initDremio() {
+            this.dremioSdk = useSDKFactory();
+            this.dremioVars = [];
+
+            const dremioHandler = (newDremio, oldDremio, isInitLoad) => {
+                const { dremio } = this.props;
+                if (dremio.length === 0) {
+                    this.resData = [];
+                    return;
+                }
+
+                // eslint-disable-next-line no-restricted-syntax
+                if (isInitLoad || !_isEqual(newDremio, oldDremio)) {
+                    this.queryHelper = [];
+                    dremio.forEach((dataset) => {
+                        this.queryHelper.push(new Query(cloneDeep(dataset)));
+                    });
+                    this.constructVars();
+                    this.queryAndDrawData();
+                }
+            };
+
+            if (this.isInitData) {
+                dremioHandler(null, null, true);
             }
-            this.$drilldown.pop(drilldown);
-            this.drilldownLastDirection = this.drilldownState.canPop ? -1 : 1;
+
+            if (this.isEditorMode) {
+                this.$watch('props.dremio', dremioHandler);
+            }
         },
-        drilldownPush(value) {
-            const { name: drilldown, canPush } = this.drilldownState;
-            if (canPush === false) {
-                this.drilldownLastDirection = 1;
+        /**
+         *
+         */
+        initPropsHandlers() {
+            const propsHandler = (param, oldParam) => {
+                // eslint-disable-next-line no-restricted-syntax
+                if (param && !_isEqual(param, oldParam)) {
+                    this.$nextTick().then(this.constructOpts);
+                }
+            };
+
+            if (this.isEditorMode) {
+                this.$watch(
+                    'props',
+                    (props) => {
+                        this.privateProps = propsFixer(props);
+                    },
+                    { deep: true, immediate: true }
+                );
+                this.propNames.forEach((propName) => {
+                    this.$watch(`props.${propName}`, propsHandler, { deep: true });
+                });
+                this.$watch('cssStyle', propsHandler, { deep: true });
+                this.$watch('cssClass', propsHandler, { deep: true });
+
                 return;
             }
 
-            this.$drilldown.push(drilldown, value);
-            this.drilldownLastDirection = this.drilldownState.canPush ? 1 : 0;
+            this.$watch(
+                'props',
+                (props) => {
+                    this.privateProps = propsFixer(props);
+                    this.constructOpts();
+                },
+                { deep: true, immediate: true }
+            );
+        },
+
+        // eslint-disable-next-line vue/no-unused-properties
+        subscribe() {
+            this.$eventListen(Events.LOAD_PREV_DIM, (e, dimension) => {
+                this.isGoneNext = false;
+                const qhIdx = this.getQueryHelperIdx();
+                if (qhIdx < 0) {
+                    return;
+                }
+
+                if (this.props.metricsStyle.some(({ multiMetricMode: { enable } }) => enable)) {
+                    this.queryHelper.forEach((helper) => helper.dimensionStateGoPrev(dimension));
+                    this.queryAndDrawData();
+                    return;
+                }
+                if (this.canGoPrev(qhIdx)) {
+                    this.queryHelper[qhIdx].dimensionStateGoPrev(dimension);
+                    this.queryAndDrawData();
+                }
+            });
+
+            this.$eventListen(Events.LOAD_NEXT_DIM, (e, { dimension, value }) => {
+                this.isGoneNext = true;
+
+                const qhIdx = this.getQueryHelperIdx();
+                if (qhIdx < 0) {
+                    return;
+                }
+                if (
+                    this.props.metricsStyle.some(({ multiMetricMode: { enable } }) => enable) &&
+                    this.canGoNext(qhIdx)
+                ) {
+                    this.queryHelper.forEach((helper) =>
+                        helper.dimensionStateGoNext(dimension, [value], Query.FILTER_TYPE.EQ)
+                    );
+                    this.queryAndDrawData();
+                    return;
+                }
+
+                if (this.canGoNext(qhIdx)) {
+                    this.queryHelper[qhIdx].dimensionStateGoNext(dimension, [value], Query.FILTER_TYPE.EQ);
+                    this.queryAndDrawData();
+                }
+            });
+
+            this.$eventListen(Events.SCALE_VALUE, (e, value) => {
+                this.scaleValue = value;
+                this.constructOpts();
+            });
+        },
+
+        filterQuery(params) {
+            if (this.queryHelper.length === 0) {
+                return;
+            }
+
+            Object.entries(params).forEach(([name, paramValue]) => {
+                if (paramValue == null) {
+                    this.queryHelper.forEach((helper) => {
+                        helper.query = Query.queryRemoveFilter(helper.query, name);
+                    });
+                    return;
+                }
+
+                const value = [paramValue].flat();
+                const type = Query.FILTER_TYPE.IN;
+                const filter = Query.createFilter({ name, type, value });
+                this.queryHelper.forEach((helper) => {
+                    helper.query = Query.queryInsertUpdateFilter(helper.query, filter);
+                });
+            });
+        },
+
+        // eslint-disable-next-line vue/no-unused-properties
+        getQueryHelper() {
+            return this.queryHelper;
+        },
+
+        getMetrics() {
+            return this.queryHelper.reduce((arr, { query }) => {
+                const metrics = query[Query.KEY.METRICS].filter(
+                    (qMetric) => !arr.some((metric) => _isEqual(metric, qMetric))
+                );
+                return [...arr, ...metrics];
+            }, []);
+        },
+
+        getQueryHelperIdx() {
+            const {
+                main: { name: dimName }
+            } = this.props.dimensionOptions;
+            return this.queryHelper.reduce((idx, helper, arrIdx) => {
+                let qhIdx = idx;
+                if (
+                    Object.keys(helper.dimensionList).includes(dimName) &&
+                    (this.canGoNext(arrIdx) || this.canGoPrev(arrIdx))
+                ) {
+                    qhIdx = arrIdx;
+                }
+                return qhIdx;
+            }, -1);
         },
 
         onResize() {
@@ -355,21 +532,38 @@ export default {
             }
         },
 
-        async loadData(requests = this.requests) {
-            this.$requestCancel(requests);
-            this.isLoading = true;
-            try {
-                let results = await Promise.all(requests.map((request) => request?.send()));
-                results = results.map((result, i) => result ?? this.results[i] ?? null); // ?? []
-                this.results = results;
+        canGoNext(qhIdx) {
+            return !this.queryHelper[qhIdx].dimensionStateIsLast(this.props.dimensionOptions.main.name);
+        },
 
-                this.$options.hooks.then.call(this, this.results);
-            } catch (error) {
-                this.results = [];
-                this.$handleError(error);
-            } finally {
-                this.isLoading = false;
+        canGoPrev(qhIdx) {
+            return !this.queryHelper[qhIdx].dimensionStateIsFirst(this.props.dimensionOptions.main.name);
+        },
+
+        queryAndDrawData() {
+            if (this.queryHelper.length > 0) {
+                this.queryData().then(this.constructOpts);
             }
+        },
+
+        queryData() {
+            this.dremioSdk.cancelActiveRequests();
+            this.widgetState.loading = true;
+            this.error = null;
+
+            return Promise.all(
+                this.queryHelper.map((helper, i) =>
+                    useSDKDataProvider(this.dremioSdk, this.props.dremio[i]).getData(helper.buildQuery(), 0, 0)
+                )
+            )
+                .then((results) => {
+                    this.resData = [...results];
+                    this.buildDeviationData();
+                })
+                .catch(this.handleError)
+                .finally(() => {
+                    this.widgetState.loading = false;
+                });
         },
 
         buildSeriesData(dataRows, seriesOptions, axis) {
@@ -415,16 +609,6 @@ export default {
             return result;
         },
 
-        resolveMetricName(seriesOptions) {
-            const { metricName, multiMetricMode } = seriesOptions;
-
-            if (multiMetricMode.enable) {
-                return multiMetricMode.metricNames[this.drilldownState.index] ?? metricName;
-            }
-
-            return metricName;
-        },
-
         aggregateData(seriesOptions, dataRows) {
             const {
                 props: {
@@ -435,19 +619,19 @@ export default {
                     axis
                 }
             } = this;
-            const metric = this.resolveMetricName(seriesOptions);
+            const metricKey = utils.takeMetricKey(seriesOptions, this.queryHelper, mainDimName);
             const categoryAxis = axis.find(({ type }) => type === 'category');
             const { isShownNullLabels = false } = categoryAxis ?? {};
 
             return dataRows.reduce(
                 ({ seriesData, axisData }, row) => {
-                    const dimValue = row[mainDimName] || row[this.props.topOptions.rest.title];
+                    const dimValue = row[mainDimName];
 
                     if (dimValue == null) {
                         return { seriesData, axisData };
                     }
 
-                    const metricValue = row[metric];
+                    const metricValue = row[metricKey];
                     const { customType, name: seriesName, label } = seriesOptions;
                     const itemValue = [null, undefined, ''].includes(metricValue) ? null : Number(metricValue);
                     const { isAddlLabelShown, rich = {} } = label;
@@ -489,8 +673,8 @@ export default {
         },
 
         formSeriesTop(seriesOptions, data, curAxis) {
-            const { enable, type, rest, metrics, number, dir } = this.props.topOptions;
-            if (!['bar', 'line'].includes(seriesOptions.customType) || type === TopType.METRIC) {
+            const { enable, rest, metrics, number, dir } = this.props.topOptions;
+            if (!['bar', 'line'].includes(seriesOptions.customType)) {
                 return data;
             }
             if (enable && this.hasTopMode) {
@@ -544,56 +728,65 @@ export default {
             return data;
         },
 
-        storeCommitNulls() {
-            const state = [...this.metrics, ...this.dimensions].reduce((acc, key) => ({ ...acc, [key]: null }), {});
-            this.$storeCommit(state);
-        },
-        storeCommitNullsAtFirstLevel() {
-            const { isUsed, shouldResetFirstLevel } = this.props.multiLevelDimension;
-            if (isUsed && shouldResetFirstLevel && this.drilldownCanPop === false) {
-                this.$storeCommit({ [this.drilldownState.name]: null });
-            }
-        },
-        storeCommitState({ value, seriesName }) {
+        triggerStateChangeEvt({ value, seriesName }) {
             const {
-                shouldResetVar,
-                dimensionOptions: {
-                    main: { name: dimName },
-                    minor: { name: minorDimName = '' }
-                }
-            } = this.props;
+                main: { name: dimName },
+                minor: { name: minorDimName = '' }
+            } = this.props.dimensionOptions;
 
-            const state = this.results
-                .flatMap(({ rows }) => rows)
-                .find((row) => row[dimName] === value && (minorDimName === '' || row[minorDimName] === seriesName));
+            const findRow = (row) =>
+                row[dimName] === value && (row[minorDimName] === seriesName || minorDimName === '');
+            const foundRow =
+                value == null
+                    ? this.metricDimensionList.reduce((acc, key) => ({ ...acc, [key]: null }), {})
+                    : this.resData.flatMap(({ rows }) => rows).find(findRow);
 
-            if (shouldResetVar === true) {
-                this.lastCommit =
-                    state == null
-                        ? Object.entries(this.lastCommit).reduce((acc, [key]) => ({ ...acc, [key]: null }), {})
-                        : state;
-                this.$storeCommit(this.lastCommit);
+            if (foundRow == null) {
                 return;
             }
-
-            this.lastCommit = state;
-
-            if (state != null) {
-                this.$storeCommit(state);
+            const { isUsed, shouldResetFirstLevel } = this.props.multiLevelDimension;
+            this.widgetState.stateChanged = true;
+            if (!isUsed) {
+                this.$storeCommit(foundRow);
+                return;
             }
+            const dimensions = this.queryHelper.flatMap(({ dimensionList }) => dimensionList[dimName]);
+            const { [dimName]: dimensionValue, ...dataToCommit } = foundRow;
+            let stateIndex = this.dimensionLevel;
+            stateIndex += value == null ? 1 : 0;
+            stateIndex = Math.min(stateIndex, dimensions.length - 1);
+
+            let sendValues = { [dimensions[stateIndex]]: dimensionValue, ...dataToCommit };
+            if (isUsed && shouldResetFirstLevel && this.dimensionLevel === 0) {
+                sendValues = { [dimensions[0]]: null, ...sendValues };
+            }
+            this.$storeCommit(sendValues);
         },
 
-        onClickHandler({ componentType, targetType, seriesIndex, seriesName, name, value }, series) {
-            this.toggleNeutralSeriesColorsByClick({ series, seriesIndex });
-
+        onClickHandler({ componentType, targetType, seriesName, name, value }) {
             const clickHandler = (dimValue) => {
-                if (this.drilldownCanPush) {
-                    this.storeCommitState({ value: dimValue, seriesName });
-                    this.drilldownPush(dimValue);
-                } else {
+                const sendDimValue = () => {
                     this.chosenDimValue = this.chosenDimValue === dimValue ? null : dimValue;
-                    this.storeCommitState({ value: this.chosenDimValue, seriesName });
+                    this.triggerStateChangeEvt({ value: this.chosenDimValue, seriesName });
                     this.constructOpts();
+                };
+                const qhIdx = this.getQueryHelperIdx();
+                if (qhIdx >= 0) {
+                    if (this.canGoNext(qhIdx)) {
+                        const {
+                            main: { name: dimName }
+                        } = this.props.dimensionOptions;
+                        const object = {
+                            dimension: dimName,
+                            value: dimValue
+                        };
+                        this.triggerStateChangeEvt({ value: dimValue, seriesName });
+                        this.$eventTrigger(Events.LOAD_NEXT_DIM, object);
+                    } else {
+                        sendDimValue();
+                    }
+                } else {
+                    sendDimValue();
                 }
             };
             if (targetType === 'axisLabel') {
@@ -605,16 +798,11 @@ export default {
         },
 
         onPrevBtnClick() {
-            // если на последнем уровне дрилла
-            if (this.drilldownCanPush === false) {
-                this.storeCommitNulls();
-            }
-            this.drilldownPop();
-            if (this.drilldownCanPop === false) {
-                this.storeCommitNullsAtFirstLevel();
-            } else {
-                this.storeCommitNulls();
-            }
+            const {
+                main: { name: dimName }
+            } = this.props.dimensionOptions;
+            this.$eventTrigger(Events.LOAD_PREV_DIM, dimName);
+            this.triggerStateChangeEvt({ value: null });
             this.chosenDimValue = null;
         },
 
@@ -697,7 +885,7 @@ export default {
                         stack,
                         dimensions: mainDim.name,
                         itemStyle: {
-                            color: isStackedLine && fillSymbol ? symbolColor : color
+                            color: fillSymbol ? symbolColor : color
                         },
                         lineStyle: {
                             color: isStackedLine ? color : null
@@ -750,89 +938,70 @@ export default {
                 .map((series) => ({ ...series, data: this.buildSeriesData(dataRows, series, axis) }));
         },
 
-        composeSeriesOption(seriesItem) {
-            const { shadowColor, shadowBlur, shadowOffsetX, shadowOffsetY, borderColor, ...itemStyle } =
-                seriesItem.itemStyle;
-            return {
-                ...seriesItem,
-                ...(seriesItem.fillLine && seriesItem.shouldSyncColor
-                    ? {
-                          areaStyle: {
-                              color: convertCssVarToComputedValue(seriesItem.color, this.computedStyle)
-                          }
-                      }
-                    : {}),
-                tooltip: { ...seriesItem.tooltip, formatter: utils.tooltipSeriesFormatter.bind(seriesItem) },
-                label: { ...seriesItem.label, formatter: utils.labelFormatter.bind(seriesItem) },
-                animationEasingUpdate: seriesItem.animationEasing,
-                animationDurationUpdate: seriesItem.animationDuration,
-                animationDelayUpdate: seriesItem.animationDelay,
-                ...(seriesItem.customType === 'line'
-                    ? {
-                          itemStyle: {
-                              ...itemStyle,
-                              ...(() => {
-                                  const color = seriesItem.shouldDotsSyncColor
-                                      ? convertCssVarToComputedValue(seriesItem.color, this.computedStyle)
-                                      : borderColor;
-
-                                  return {
-                                      borderColor: color,
-                                      color: seriesItem.shouldDotsSyncColor ? color : seriesItem.symbolColor
-                                  };
-                              })()
-                          },
-                          lineStyle: {
-                              ...seriesItem.lineStyle,
-                              shadowBlur,
-                              shadowOffsetX,
-                              shadowOffsetY,
-                              color: seriesItem.color,
-                              shadowColor: seriesItem.shouldSyncShadowColor ? seriesItem.color : shadowColor
-                          }
-                      }
-                    : {
-                          itemStyle: {
-                              ...itemStyle,
-                              borderColor,
-                              shadowBlur,
-                              shadowOffsetX,
-                              shadowOffsetY,
-                              color: seriesItem.color,
-                              shadowColor: seriesItem.shouldSyncShadowColor ? seriesItem.color : shadowColor
-                          }
-                      })
-            };
-        },
-
         buildClassicSeries(seriesOptions, dataRows, axis, originIdx) {
             const {
                 main: { name: mainDimName }
             } = this.props.dimensionOptions;
-            const { topOptions } = this.props;
-            const { metrics } = this;
+            const { deviationMeta } = this.props;
+            const { queryHelper } = this;
+            const metrics = this.getMetrics();
 
             return seriesOptions.reduce((result, item) => {
                 const notSpecialSeries =
                     item.customType !== 'plan' && item.customType !== 'fact' && !item.customType.includes('stacked');
 
-                const multiMetricCurDataset =
-                    item.multiMetricMode?.metricDatasets?.[this.drilldownState.index] || item.originIdx;
+                const { states } = queryHelper.find(({ dimensionList }) =>
+                    Object.keys(dimensionList).includes(mainDimName)
+                );
+                const { index: stateIndex } = states.find(({ name }) => name === mainDimName);
+
+                const multiMetricCurDataset = item.multiMetricMode?.metricDatasets?.[stateIndex] || item.originIdx;
 
                 const checkOriginIdx = item.multiMetricMode.enable
                     ? Number(multiMetricCurDataset) === originIdx
                     : originIdx === Number(item.originIdx);
 
                 if (item.showDataSet && notSpecialSeries && checkOriginIdx) {
-                    if (item.isTopSeries === false && metrics.includes(item.metricName) === false) {
+                    if (
+                        !metrics.some((metricName) => Query.getMetricName(metricName) === item.metricName) &&
+                        !(
+                            deviationMeta.deviations.length > 0 &&
+                            deviationMeta.deviations.some(({ name }) => name === item.metricName)
+                        )
+                    ) {
                         return result;
                     }
-                    const { shadowColor, shadowBlur, shadowOffsetX, shadowOffsetY, borderColor, ...itemStyle } =
-                        item.itemStyle;
+                    const { shadowColor, shadowBlur, shadowOffsetX, shadowOffsetY, ...itemStyle } = item.itemStyle;
+
                     result.push({
-                        ...this.composeSeriesOption(item),
+                        ...item,
                         dimensions: mainDimName,
-                        data: this.buildSeriesData(dataRows, item, axis)
+                        data: this.buildSeriesData(dataRows, item, axis),
+                        tooltip: { ...item.tooltip, formatter: utils.tooltipSeriesFormatter.bind(item) },
+                        label: { ...item.label, formatter: utils.labelFormatter.bind(item) },
+                        animationEasingUpdate: item.animationEasing,
+                        animationDurationUpdate: item.animationDuration,
+                        animationDelayUpdate: item.animationDelay,
+                        ...(item.customType === 'line'
+                            ? {
+                                  itemStyle,
+                                  lineStyle: {
+                                      ...item.lineStyle,
+                                      shadowBlur,
+                                      shadowOffsetX,
+                                      shadowOffsetY,
+                                      shadowColor: item.shouldSyncShadowColor ? item.color : shadowColor
+                                  }
+                              }
+                            : {
+                                  itemStyle: {
+                                      ...itemStyle,
+                                      shadowBlur,
+                                      shadowOffsetX,
+                                      shadowOffsetY,
+                                      shadowColor: item.shouldSyncShadowColor ? item.color : shadowColor
+                                  }
+                              })
                     });
                 }
                 return result;
@@ -858,7 +1027,6 @@ export default {
 
             factSeries.dimensions = mainDim.name;
             factSeries.stack = STACK_TAG;
-            factSeries.itemStyle.color = factSeries.color;
             factSeries.itemStyle.shadowColor = factSeries.shouldSyncShadowColor
                 ? factSeries.color
                 : factSeries.itemStyle.shadowColor;
@@ -866,7 +1034,6 @@ export default {
 
             planSeries.dimensions = mainDim.name;
             planSeries.stack = STACK_TAG;
-            planSeries.itemStyle.color = planSeries.color;
             planSeries.itemStyle.shadowColor = planSeries.shouldSyncShadowColor
                 ? planSeries.color
                 : planSeries.itemStyle.shadowColor;
@@ -982,71 +1149,58 @@ export default {
             return utils.smoothStackedSeries(stackedSeries, axis);
         },
 
-        handleSkipDrilldownLevel(results) {
-            const { name: drilldownName, filters, canPop, canPush } = this.drilldownState;
-            if (drilldownName === null) {
-                return false;
-            }
-            const { rowCount, rows } = results[0];
-            const {
-                props: { shouldSkipLevelWithOneValue, shouldSkipLevelWithIdenticalValue }
-            } = this;
-
-            if (rowCount === 0 && canPop) {
-                this.storeCommitNulls();
-                this.drilldownPop();
-                this.storeCommitNullsAtFirstLevel();
-                return true;
-            }
-
-            const shouldSkipLevel =
-                rows.length === 1 &&
-                (shouldSkipLevelWithOneValue ||
-                    (shouldSkipLevelWithIdenticalValue && filters.slice(-1)[0]?.value === rows[0][drilldownName]));
-
-            if (shouldSkipLevel === false) {
-                return false;
-            }
-
-            if (this.drilldownLastDirection === -1 && canPop) {
-                this.drilldownPop();
-                return true;
-            }
-
-            if (this.drilldownLastDirection === 1 && canPush) {
-                const [row] = rows;
-                const value = row[drilldownName];
-                this.drilldownPush(value);
-                return true;
-            }
-
-            return false;
-        },
-
         getSeries(seriesOptions, axis) {
             const {
-                results,
+                resData,
+                queryHelper,
+                queryHelperFilter,
                 props: {
-                    topOptions,
+                    shouldSkipLevelWithOneValue,
+                    shouldSkipLevelWithIdenticalValue,
                     dimensionOptions: { main: mainDim }
                 }
             } = this;
 
-            const { multiMetricMode } = seriesOptions?.[0] ?? {};
-            const { enable: isMultiMetricMode } = multiMetricMode ?? {};
+            const { multiMetricMode } = seriesOptions[0];
+            const { enable: isMultiMetricMode } = multiMetricMode;
             const { name: dimName, sort: sortOrder, format: dimFormat } = mainDim;
-            const multiMetricSortOrder = multiMetricMode?.metricSorts?.[this.drilldownState.index] || sortOrder;
+
+            const { states } = queryHelper.find(({ dimensionList }) => Object.keys(dimensionList).includes(dimName));
+            const state = states.find(({ name }) => name === dimName);
+
+            const multiMetricSortOrder = multiMetricMode?.metricSorts?.[state.index] || sortOrder;
 
             let series = [];
-            this.mainDimValues = results
+            this.mainDimValues = resData
                 .reduce((arr, { rows }) => {
                     const dimValues = utils.getDimValues(rows, dimName).filter((value) => !arr.includes(value));
                     return [...arr, ...dimValues];
                 }, [])
                 .sort(utils.sortDimValues.bind(mainDim));
 
-            const { classicSeries, comparedSeries, stackedSeries } = results.reduce(
+            const { classicSeries, comparedSeries, stackedSeries } = resData.reduce(
                 (obj, { rows, rowCount }, idx) => {
+                    if (rowCount === 0 && this.canGoPrev(idx)) {
+                        this.$eventTrigger(Events.LOAD_PREV_DIM, dimName);
+                        this.triggerStateChangeEvt({ value: null });
+                        return obj;
+                    }
+                    const shouldSkipLevel =
+                        rows.length === 1 &&
+                        (shouldSkipLevelWithOneValue ||
+                            (shouldSkipLevelWithIdenticalValue &&
+                                queryHelperFilter[queryHelperFilter.length - 1] === rows[0][dimName]));
+
+                    if (shouldSkipLevel && !this.isGoneNext && this.canGoPrev(idx)) {
+                        this.$eventTrigger(Events.LOAD_PREV_DIM, dimName);
+                        return obj;
+                    }
+                    if (shouldSkipLevel && this.isGoneNext && this.canGoNext(idx)) {
+                        const [row] = rows;
+                        const value = row[dimName];
+                        this.$eventTrigger(Events.LOAD_NEXT_DIM, { dimension: dimName, value });
+                        return obj;
+                    }
                     obj.classicSeries.push(...this.buildClassicSeries(seriesOptions, rows, axis, idx));
                     obj.comparedSeries.push(...this.buildComparedSeries(seriesOptions, rows, axis, idx));
                     obj.stackedSeries.push(...this.buildStackedSeries(seriesOptions, rows, axis, idx));
@@ -1059,150 +1213,35 @@ export default {
 
             utils.postprocessSeriesData(series, axis, isMultiMetricMode ? multiMetricSortOrder : sortOrder, dimFormat);
 
-            series = this.adaptSeriesWithTop(series);
-            series = this.adaptSeriesWithNeutral(series);
-
             return series;
         },
 
-        adaptSeriesWithNeutral(series) {
-            const { isEnabled, color, symbolColor, symbolBdrColor } = this.props.neutralMetrics;
-
-            if (isEnabled === false) {
-                return series;
-            }
-
-            const neutralMetrics = series.map((seriesItem, index) => {
-                const { color: lastItemColor, borderColor: lastItemBorderColor } = seriesItem.itemStyle;
-                const { color: lastLineColor = null } = seriesItem?.lineStyle ?? {};
-
-                const initialColors = {
-                    itemStyle: { color: lastItemColor, borderColor: lastItemBorderColor },
-                    lineStyle: { color: lastLineColor }
-                };
-
-                const emphasis = {
-                    itemStyle: {
-                        ...seriesItem?.emphasis?.itemStyle,
-                        color: lastItemColor,
-                        borderColor: lastItemBorderColor
-                    },
-                    lineStyle: { ...seriesItem?.emphasis?.lineStyle, color: lastLineColor }
-                };
-
-                return this.chosenNeutralMetricIndexes.includes(index)
-                    ? { ...seriesItem, initialColors, emphasis }
-                    : {
-                          ...seriesItem,
-                          initialColors,
-                          emphasis,
-                          itemStyle: {
-                              ...seriesItem.itemStyle,
-                              color: symbolColor,
-                              borderColor: symbolBdrColor
-                          },
-                          lineStyle: { ...(seriesItem?.lineStyle ?? {}), color }
-                      };
-            });
-
-            return neutralMetrics;
-        },
-
-        toggleNeutralSeriesColorsByClick({ series, seriesIndex }) {
-            const { isEnabled } = this.props.neutralMetrics;
-
-            if (isEnabled === false) {
-                return;
-            }
-
-            let cloneIndexes = [...this.chosenNeutralMetricIndexes];
-
-            if (cloneIndexes.includes(seriesIndex)) {
-                cloneIndexes = cloneIndexes.filter((idx) => idx !== seriesIndex);
-            } else {
-                cloneIndexes.push(seriesIndex);
-            }
-
-            this.chosenNeutralMetricIndexes = cloneIndexes;
-        },
-
-        toggleNeutralSeriesColors({ series, seriesIndex }) {
-            const composedSeries = series.map((seriesItem, index) => {
-                const {
-                    initialColors: { itemStyle, lineStyle }
-                } = seriesItem ?? {};
-                return index === seriesIndex
-                    ? {
-                          ...seriesItem,
-                          itemStyle: { ...seriesItem.itemStyle, ...itemStyle },
-                          lineStyle: { ...(seriesItem?.lineStyle ?? {}), ...lineStyle }
-                      }
-                    : seriesItem;
-            });
-
-            return composedSeries;
-        },
-        adaptSeriesWithTop(series) {
-            const { enable, type, rest, number, dir, metricsStyle } = this.props.topOptions;
-
-            if (enable === false || this.hasTopMode === false || type === TopType.DIMENSION) {
-                return series;
-            }
-
-            const allSeriesSums = series.map((ser, idx) => ({
-                value: ser.data.reduce((acc, item) => (item.value != null ? acc + item.value : acc), 0),
-                index: idx
-            }));
-
-            const top = utils.getTopMetric(allSeriesSums, { number, dir });
-
-            const topIndexes = top.map(({ index }) => index);
-
-            const { topMetrics, restMetrics } = series.reduce(
-                (acc, ser, idx) => {
-                    acc[topIndexes.includes(idx) === true ? 'topMetrics' : 'restMetrics'].push(ser);
-                    return acc;
+        constructVars() {
+            const { fields, metrics, dimensions } = this.queryHelper.reduce(
+                (obj, { query, dimensionList }) => {
+                    obj.fields = [...obj.fields, ...Query.queryFieldNames(query)];
+                    obj.metrics = [...obj.metrics, ...Query.queryMetricNames(query)];
+                    obj.dimensions = [...obj.dimensions, ...Object.keys(dimensionList)];
+                    return obj;
                 },
-                { topMetrics: [], restMetrics: [] }
+                { fields: [], metrics: [], dimensions: [] }
             );
+            const dremioParams = [...fields, ...metrics, ...dimensions];
 
-            if (rest.show === true) {
-                topMetrics.push(
-                    this.convertSeriesFields2Px(
-                        this.composeSeriesOption(
-                            this.buildSeriesOptions([
-                                {
-                                    ...metricsStyle,
-                                    name: rest.title,
-                                    metricName: rest.title,
-                                    marker: rest.title,
-                                    data: Array.from(
-                                        { length: Math.max(...restMetrics.map(({ data }) => data?.length ?? 0)) },
-                                        (_, index) => ({
-                                            value: restMetrics.reduce(
-                                                (acc, { data }) => acc + (data[index]?.value ?? 0),
-                                                0
-                                            )
-                                        })
-                                    ),
-                                    ...(metricsStyle.fillLine &&
-                                        metricsStyle.shouldSyncColor === false &&
-                                        metricsStyle.gradient === false && {
-                                            areaStyle: {
-                                                ...(metricsStyle.areaStyle ?? {}),
-                                                color: metricsStyle.fillColor
-                                            }
-                                        }),
+            this.dremioVars = this.dremioVars.reduce((arr, name) => {
+                if (dremioParams.includes(name)) {
+                    arr.push(name);
+                    return arr;
+                }
+                this.$delete(this.descriptor.vars, name);
+                return arr;
+            }, []);
 
-                                    isTopSeries: true
-                                }
-                            ])[0]
-                        )
-                    )
-                );
-            }
-
-            return topMetrics;
+            dremioParams.forEach((name) => {
+                const variable = { description: name };
+                this.$set(this.descriptor.vars, name, variable);
+                this.dremioVars.push(name);
+            });
         },
 
         buildSeriesOptions(seriesOptions) {
@@ -1226,16 +1265,6 @@ export default {
                         return 'center';
                     })(label.position)
                 };
-
-                if (align !== 'center') {
-                    if (align === 'left') {
-                        labelOption.offset = [-15, 0];
-                    }
-                    if (align === 'right') {
-                        labelOption.offset = [15, 0];
-                    }
-                }
-
                 return {
                     ...convertingData,
                     label: {
@@ -1278,7 +1307,7 @@ export default {
 
         constructOpts() {
             const {
-                results,
+                resData,
                 privateProps: { metricsStyle, axis: axisOptions },
                 props: {
                     tooltip,
@@ -1289,7 +1318,7 @@ export default {
                     dataZoom: { isUsedBaseMinMaxValue, show: isScrollBarShow }
                 }
             } = this;
-            if (!(results && results.length > 0 && dimName)) {
+            if (!(resData && resData.length > 0 && dimName)) {
                 return;
             }
             const categoryAxis = axisOptions.find(({ type }) => type === 'category');
@@ -1311,34 +1340,10 @@ export default {
                 axisPointer,
                 dimFormat,
                 dimName,
-                rows: results[categoryAxis?.additionalAxisLabel?.datasetIndex ?? 0].rows
+                rows: resData[categoryAxis?.additionalAxisLabel?.datasetIndex ?? 0].rows
             });
 
-            const series = this.getSeries(seriesOptions, { xAxis, yAxis }).map((ser) => {
-                const { labelLayout = {}, data } = ser;
-
-                ['x', 'y'].forEach((coord) => {
-                    if (labelLayout[coord] === 0) {
-                        delete labelLayout[coord];
-                    }
-                });
-
-                if (labelLayout.use !== true) {
-                    ser.labelLayout = {};
-                }
-                // reset tooltip to default, as Echarts version 4.x
-                if (ser.tooltip != null) {
-                    setDefaultTooltipStyle(ser);
-                }
-
-                return {
-                    ...ser,
-                    data: data.map(({ value, ...rest }) => ({
-                        ...rest,
-                        value: value === 0 ? ECHARTS_SERIES_MIN_INT_VALUE : value
-                    }))
-                };
-            });
+            const series = this.getSeries(seriesOptions, { xAxis, yAxis });
             if (isUsedBaseMinMaxValue === false && isScrollBarShow) {
                 const { min, max } = utils.calcSeriesMinMax(series);
                 [yAxis, xAxis].flat().forEach((axis) => {
@@ -1348,31 +1353,29 @@ export default {
                     }
                 });
             }
-            const { dataZoom } = this;
-            const buildedCategoryAxis = [yAxis, xAxis].flat().find(({ type }) => type === 'category');
-            const dataLength = buildedCategoryAxis?.data?.length ?? 0;
+
+            series.forEach((ser) => {
+                const { labelLayout = {} } = ser;
+                ['x', 'y'].forEach((coord) => {
+                    if (labelLayout[coord] === 0) {
+                        delete labelLayout[coord];
+                    }
+                });
+                if (labelLayout.use !== true) {
+                    ser.labelLayout = {};
+                }
+                // reset tooltip to default, as Echarts version 4.x
+                if (ser.tooltip != null) {
+                    setDefaultTooltipStyle(ser);
+                }
+            });
+
             const opts = {
                 ...this.options,
-                dataZoom:
-                    dataZoom != null &&
-                    dataZoom
-                        .map(({ inverseDirection = false }) => inverseDirection)
-                        .find((inverseDirection) => inverseDirection) === true
-                        ? dataZoom.map(({ startValue, endValue, ...other }) => ({
-                              startValue: dataLength - endValue,
-                              endValue: dataLength - startValue,
-                              ...other
-                          }))
-                        : dataZoom,
                 series,
                 xAxis,
                 yAxis
             };
-
-            const { barGap } = this.props;
-            if (!isNaN(parseInt(barGap))) {
-                opts.barGap = barGap;
-            }
 
             if (opts.legend != null) {
                 opts.legend.itemStyle ??= { borderWidth: 0 };
@@ -1382,9 +1385,21 @@ export default {
                 setDefaultTooltipStyle(opts);
             }
 
-            // this.setBreadcrumbText();
+            this.setBreadcrumbText();
             this.drawChart(opts);
             this.addEventListeners(series);
+        },
+
+        setBreadcrumbText() {
+            const {
+                breadcrumb: { isShown, delimiter }
+            } = this.props;
+
+            this.breadcrumbText = isShown
+                ? this.queryHelperFilter
+                      .filter((filter, idx, filters) => filter !== filters[idx - 1])
+                      .join(delimiter ?? BreadcrumbTemplate().delimiter)
+                : '';
         },
 
         destroyChart() {
@@ -1393,15 +1408,15 @@ export default {
                 this.chartInstance = null;
             }
         },
-        initChart() {
-            const el = this.$refs.chartAwesome;
-            this.chartInstance = echarts.init(el);
-        },
+
         drawChart(opts) {
             // NOTE fix echarts bug: https://github.com/xieziyu/ngx-echarts/issues/102
             this.destroyChart();
-            this.initChart();
 
+            if (this.chartInstance == null) {
+                const el = this.$refs.chartAwesome;
+                this.chartInstance = echarts.init(el);
+            }
             /**
              * TODO для плеера. Чтобы при первом запуске подхватывались кастомные шрифты
              */
@@ -1426,19 +1441,24 @@ export default {
         addEventListeners(series) {
             const { isEnabled, shouldFollowPointer } = this.props.customTooltip;
 
-            this.chartInstance.on('click', 'series', (params) => this.onClickHandler(params, series));
-            this.chartInstance.on('mouseover', 'series', (params) => this.onMouseOver(params, series));
-            this.chartInstance.on('mouseout', 'series', (params) => this.onMouseOut(params, series));
+            this.chartInstance.on('click', this.onClickHandler);
 
-            if (isEnabled === false || shouldFollowPointer === false) {
+            if (isEnabled === false) {
                 return;
             }
 
-            const onMouseMoveThrottled = _throttle(this.onMouseMove, REQUEST_ANIMATION_TIMEOUT);
-            this.chartInstance.on('mousemove', 'series', onMouseMoveThrottled);
+            this.chartInstance.on('mouseover', 'series', (params) => this.handleMouseOver(params, series));
+            this.chartInstance.on('mouseout', 'series', this.handleMouseOut);
+
+            if (shouldFollowPointer === false) {
+                return;
+            }
+
+            const handleMouseMoveThrottled = _throttle(this.handleMouseMove, REQUEST_ANIMATION_TIMEOUT);
+            this.chartInstance.on('mousemove', 'series', handleMouseMoveThrottled);
         },
 
-        onMouseMove({ event: { event: mouseEvent } }) {
+        handleMouseMove({ event: { event: mouseEvent } }) {
             const { options } = this.customTooltip;
 
             if (options.isFixed) {
@@ -1449,13 +1469,7 @@ export default {
             this.customTooltip.options = { ...options, coordinates: [clientX, clientY] };
         },
 
-        onMouseOut({ seriesIndex, event: { event: mouseEvent } }, series) {
-            const { isEnabled: isNeutralMetricsEnabled } = this.props.neutralMetrics;
-
-            if (isNeutralMetricsEnabled === true) {
-                this.chartInstance.setOption({ series: this.adaptSeriesWithNeutral(series, seriesIndex) });
-            }
-
+        handleMouseOut({ event: { event: mouseEvent } }) {
             const { isFixed } = this.customTooltip.options;
 
             if (isFixed) {
@@ -1476,21 +1490,9 @@ export default {
             }
         },
 
-        onMouseOver({ seriesIndex, name: dimensionName, seriesName, value, event: { event: mouseEvent } }, series) {
-            const { isEnabled: isNeutralMetricsEnabled } = this.props.neutralMetrics;
-
-            if (isNeutralMetricsEnabled === true) {
-                this.chartInstance.setOption({ series: this.toggleNeutralSeriesColors({ series, seriesIndex }) });
-            }
-
-            const { isEnabled, shouldFollowPointer } = this.props.customTooltip;
-
-            if (isEnabled === false) {
-                return;
-            }
-
+        handleMouseOver({ name: dimensionName, seriesName, value, event: { event: mouseEvent } }, series) {
             const {
-                results,
+                resData,
                 customTooltip: { options, isShown }
             } = this;
 
@@ -1506,13 +1508,22 @@ export default {
                 ...options,
                 coordinates: [clientX, clientY],
                 data: utils.buildCustomTooltipData(
-                    results,
+                    resData,
                     dimensionOptions,
                     { dimensionName, value },
                     { seriesName, metricName }
                 )
             };
             this.customTooltip.isShown = true;
+        },
+
+        handleError(error) {
+            if (error.isCancel) {
+                return;
+            }
+            if (this.isEditorMode) {
+                this.error = error;
+            }
         }
     },
     implicitCssModule: true

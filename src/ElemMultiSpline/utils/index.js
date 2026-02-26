@@ -226,52 +226,25 @@ export const utils = {
         return `${tooltipFormat} ${metricPrefix} ${formattedValue} ${metricPostfix}`;
     },
 
-    tooltipFormatter(metricsStyle, data) {
+    tooltipFormatter(data) {
         const {
-            format: sharedFormat,
-            separator: sharedSeparator,
-            prefix: sharedPrefix = '',
-            postfix: sharedPostfix = '',
+            format,
+            separator,
+            prefix = '',
+            postfix = '',
             showCategory,
             showNullishValues,
             reverseMetrics,
-            isAbsoluteValue: sharedIsAbsoluteValue,
-            isNestedFromMetric,
+            isAbsoluteValue,
             excludes
         } = this;
+        const sep = separators[separator];
         const [{ name }] = data;
-
-        let format = sharedFormat;
-        let separator = sharedSeparator;
-        let prefix = sharedPrefix;
-        let postfix = sharedPostfix;
-        let isAbsoluteValue = sharedIsAbsoluteValue;
-
         let values = data.reduce((arr, { seriesName, value }) => {
-            if (isNestedFromMetric) {
-                const currentMetric = metricsStyle.find((metric) => metric.name === seriesName);
-
-                if (currentMetric != null) {
-                    const {
-                        metricFormat,
-                        metricSeparator,
-                        metricPrefix,
-                        metricPostfix,
-                        isAbsoluteValue: metricIsAbsoluteValue
-                    } = currentMetric;
-
-                    format = metricFormat;
-                    separator = metricSeparator;
-                    prefix = metricPrefix;
-                    postfix = metricPostfix;
-                    isAbsoluteValue = metricIsAbsoluteValue;
-                }
-            }
-
             const shouldBeExcluded =
                 excludes.includes(seriesName) || value == null || (!showNullishValues && value === 0);
             if (!shouldBeExcluded) {
-                const opts = { value: isAbsoluteValue ? Math.abs(value) : value, sep: separators[separator] };
+                const opts = { value: isAbsoluteValue ? Math.abs(value) : value, sep };
                 const tooltipFormat = `${seriesName}: `;
                 const formattedValue = availableFormats[format](opts);
                 arr.push(`${tooltipFormat}${prefix}${formattedValue}${postfix}<br/>`);
@@ -322,7 +295,7 @@ export const utils = {
         if (interval !== null) {
             return val > 0 ? val - (val % Number(interval)) : val - (Number(interval) + (val % Number(interval)));
         }
-
+        
         if (manualMinMax) {
             return result;
         }
@@ -390,7 +363,7 @@ export const utils = {
 
     axisLabelTextFormatter({ formattedValue, breakLongValues, longValuesLength }) {
         if (breakLongValues === true) {
-            return formattedValue.replace(/\s+/g, '\n').replaceAll('/', '/\n');
+            return formattedValue.replace(/\s+/g, '\n').replace(/\//g, '/\n');
         }
         if (longValuesLength !== 0) {
             return formattedValue
@@ -523,10 +496,9 @@ export const utils = {
                 fontWeight: 'normal'
             }
         });
-        const adaptValue = (value === null && voidValues) || (value === 0 && nullValues) ? nullValue : Number(value);
         seriesData.push({
             name,
-            value: Number.isNaN(adaptValue) ? 0 : value,
+            value: (value === null && voidValues) || (value === 0 && nullValues) ? nullValue : Number(value),
             itemStyle: {
                 color: null
             },
@@ -594,11 +566,6 @@ export const utils = {
             }
         }
         return top;
-    },
-
-    getTopMetric(arr, { number: num, dir }) {
-        const number = num > arr.length ? arr.length : num;
-        return utils.getTop(arr, { number, dir });
     },
 
     createColor(color, colorStep, idx) {
@@ -722,13 +689,16 @@ export const utils = {
     },
 
     getDimValues(dataRows = [], dimName = '') {
-        if (dimName === '' || dimName == null) {
+        if (dimName === '') {
             return [];
         }
         return [
             ...dataRows.reduce((set, row) => {
-                const [, dimValue] = Object.entries(row ?? {}).find(([key]) => key === dimName);
-                return dimValue === null ? set : set.add(dimValue);
+                const [__, dimValue] = Object.entries(row).find(([key]) => key === dimName);
+                if (dimValue != null) {
+                    set.add(dimValue);
+                }
+                return set;
             }, new Set())
         ];
     },
@@ -806,10 +776,6 @@ export const utils = {
                         labelSettings: item.additionalAxisLabel
                     });
 
-                    item.name = (item.showAxisName ? (item.name === '' ? dimName : item.name) : '').replaceAll(
-                        '\\n',
-                        '\n'
-                    );
                     item.silent = false;
                     item.triggerEvent = true;
                     item.axisLabel.fontSize = 12;
@@ -827,7 +793,6 @@ export const utils = {
                         ...axisLabelRich
                     };
                 } else {
-                    item.name = (item.showAxisName ? item.name : '').replaceAll('\\n', '\n');
                     item.silent = true;
                     item.triggerEvent = false;
                     item.axisLabel.fontSize = item.valueFontSize;
@@ -840,7 +805,10 @@ export const utils = {
                     item.axisLabel.formatter = utils.valueAxisLabelFormatter.bind(item);
                     item.interval = item.interval === 0 ? null : item.interval;
                 }
-                axis[item.typeAxis === 'x' ? 'xAxis' : 'yAxis'].push(item);
+                axis[item.typeAxis === 'x' ? 'xAxis' : 'yAxis'].push({
+                    ...item,
+                    name: item.name.split('\\n').join('\n')
+                });
                 return axis;
             },
             { xAxis: [], yAxis: [] }
@@ -880,9 +848,6 @@ export const utils = {
 
     postprocessSeriesData(series, axis, sortOrder, dimFormat) {
         series.forEach((seriesOptions) => {
-            if (seriesOptions.isTopSeries === true) {
-                return;
-            }
             const categoryAxis = utils.findCategoryAxis(seriesOptions, axis);
             const idx = categoryAxis === 'xAxis' ? seriesOptions.xAxisIndex : seriesOptions.yAxisIndex;
             const curCategoryAxis = axis[categoryAxis][idx];
@@ -1086,11 +1051,11 @@ export const propsFixer = (props) => {
     return privateProps;
 };
 
-// export const Events = Object.freeze({
-//     LOAD_PREV_DIM: 'load-prev-dim',
-//     LOAD_NEXT_DIM: 'load-next-dim',
-//     SCALE_VALUE: 'scale-value'
-// });
+export const Events = Object.freeze({
+    LOAD_PREV_DIM: 'load-prev-dim',
+    LOAD_NEXT_DIM: 'load-next-dim',
+    SCALE_VALUE: 'scale-value'
+});
 
 export const setDefaultTooltipStyle = (element) => {
     element.tooltip.borderColor ??= 'transparent';

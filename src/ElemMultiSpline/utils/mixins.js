@@ -1,4 +1,4 @@
-import { get, set, cloneDeep, isEqual } from 'lodash';
+import { get, set, cloneDeep } from 'lodash';
 import { SeriesFields } from './constants';
 
 const ElementUnitStyle = {
@@ -31,10 +31,7 @@ export const unit2PxMixin = {
     watch: {
         'unit2PxMixin.units2Px': {
             deep: true,
-            handler(newVal, oldVal) {
-                if (isEqual(newVal, oldVal)) {
-                    return;
-                }
+            handler() {
                 const { watchers } = this.unit2PxMixin;
                 watchers.forEach((watcher) => watcher());
             }

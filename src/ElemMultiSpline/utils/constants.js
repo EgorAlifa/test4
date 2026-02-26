@@ -1,13 +1,11 @@
 /* eslint-disable id-length, no-magic-numbers, no-restricted-syntax */
-import { merge } from 'lodash';
-import { TopType } from '../panels/config';
 
 const GridTemplate = () => ({
     isManualMode: false,
-    left: '10%',
-    top: '20%',
-    right: '2%',
-    bottom: '22%'
+    left: '50%',
+    top: '50%',
+    right: '50%',
+    bottom: '50%'
 });
 
 const LegendManualSizeTemplate = () => ({
@@ -26,7 +24,7 @@ const BreadcrumbTemplate = () => ({
     right: 'auto',
     bottom: 'auto',
     fontSize: '1rem',
-    color: '#2C3E5D',
+    color: 'inherit',
     fontWeight: 'inherit',
     fontFamily: 'inherit'
 });
@@ -39,7 +37,7 @@ const ColorConditionFactory = ({ comparedValue = '', type = '', color = '' } = {
 
 const AdditionalAxisLabelFactory = ({
     datasetIndex = 0,
-    color = '#2C333A',
+    color = '#000',
     fontFamily = '',
     fontSize = 14,
     conditions = [],
@@ -90,7 +88,7 @@ const AxisTemplate = () => ({
     minValue: 0,
     maxValue: 100,
     enableMax: false,
-    name: '',
+    name: 'name',
     show: true,
     position: 'left',
     axisSplitNum: null,
@@ -98,7 +96,7 @@ const AxisTemplate = () => ({
     scale: false,
     offset: 0,
     nameTextStyle: {
-        color: '#2C333A',
+        color: 'transparent',
         fontFamily: ''
     },
     nameLocation: 'middle',
@@ -111,9 +109,9 @@ const AxisTemplate = () => ({
         margin: 8,
         interval: 0,
         fontFamily: 'sans-serif',
-        color: '#2C333A',
+        color: 'rgba(0, 0, 0, 0.4)',
         backgroundColor: 'transparent',
-        rotate: 30,
+        rotate: 0,
         format: '0',
         extendedFormat: null,
         separator: '1',
@@ -143,7 +141,7 @@ const AxisTemplate = () => ({
     splitLine: {
         show: true,
         lineStyle: {
-            color: '#DCDFE4',
+            color: 'rgba(0, 0, 0, 0.4)',
             type: 'dashed'
         }
     },
@@ -170,20 +168,19 @@ const Legend = {
     textStyle: {
         fontSize: 12,
         fontFamily: 'sans-serif',
-        color: '#2C3E5D'
+        color: '#333'
     }
 };
 
 const MainTitle = {
     show: false,
     position: 'top',
-    left: 'left',
-    text: '',
+    left: 'center',
+    text: 'Widget',
     textStyle: {
-        fontSize: '1.2rem',
+        fontSize: 12,
         fontFamily: 'sans-serif',
-        fontWeight: 400,
-        color: 'rgba(0, 0, 0, 1)'
+        color: '#333'
     },
     backgroundColor: 'transparent'
 };
@@ -258,7 +255,7 @@ const DimensionOptions = {
     main: {
         name: '',
         format: 'string',
-        sort: 'none'
+        sort: 'ascending'
     },
     minor: {
         name: '',
@@ -300,7 +297,6 @@ const TooltipOptions = {
     isAbsoluteValue: false,
     reverseMetrics: false,
     appendToBody: true,
-    isNestedFromMetric: false,
     excludes: []
 };
 
@@ -316,7 +312,7 @@ const SeriesTemplate = {
     marker: '',
     customType: 'line',
     type: 'line',
-    smooth: true,
+    smooth: false,
     seriesLayoutBy: 'column',
     excess: {
         color: 'black',
@@ -357,7 +353,7 @@ const SeriesTemplate = {
     metricPostfix: '',
     isAbsoluteValue: false,
     isAutoRound: false,
-    colorForBar: '#6EB9FF',
+    colorForBar: '#FF0000',
     barFirstColor: '#50f547',
     barSecondColor: '#ddff45',
     barFirstOffSet: '0',
@@ -369,21 +365,21 @@ const SeriesTemplate = {
     customFillLines: [],
     origin: 'start',
     smartFill: false,
-    fillColor: '#DCDFE4',
+    fillColor: 'red',
     gradient: false,
     firstColor: 'red',
     secondColor: 'red',
     offSetFirstColor: '0',
     offSetSecondColor: '1',
     colorPos: '0 0 0 1',
-    colorForLine: '#359EFF',
+    colorForLine: '#EB2316',
     lineStyle: {
         type: 'solid',
         width: 2
     },
     areaStyle: null,
-    isRoundedBarBorder: true,
-    roundedBarBorder: { leftTop: 2, rightTop: 2, rightBottom: 0, leftBottom: 0 },
+    isRoundedBarBorder: false,
+    roundedBarBorder: { leftTop: 10, rightTop: 10, rightBottom: 0, leftBottom: 0 },
     itemStyle: {
         color: 'red',
         shadowColor: 'rgba(0, 0, 0, 0)',
@@ -392,11 +388,9 @@ const SeriesTemplate = {
         shadowOffsetY: 0,
         borderColor: 'rgba(0, 0, 0, 0)',
         barBorderRadius: [5, 5, 5, 5],
-        borderWidth: '2px'
+        borderWidth: 0
     },
     shouldSyncShadowColor: false,
-    shouldSyncColor: true,
-    shouldDotsSyncColor: true,
     stack: '',
     stackLines: false,
     label: LabelOptions(),
@@ -422,11 +416,11 @@ const SeriesTemplate = {
     animationDelayUpdate: 0,
     symbol: 'emptyCircle',
     showSymbol: true,
-    fillSymbol: true,
-    symbolSize: 8,
-    symbolColor: '#359EFF',
-    symbolBdrWidth: '2px',
-    symbolBdrColor: '#359EFF',
+    fillSymbol: false,
+    symbolSize: 5,
+    symbolColor: '#EB2316',
+    symbolBdrWidth: 0,
+    symbolBdrColor: '#000',
     connectNulls: true,
     data: [],
     uid: '',
@@ -439,44 +433,6 @@ const SeriesTemplate = {
         verticalAlign: 'top'
     },
     barMinHeightConditions: []
-};
-
-const SeriesTemplateSet = [
-    { primaryColor: '#F18D13', secondaryColor: '#FFE2BD' },
-    { primaryColor: '#82B536', secondaryColor: '#D3F1A7' },
-    { primaryColor: '#9F8FEF', secondaryColor: '#DFD8FD' },
-    { primaryColor: '#E2B203', secondaryColor: '#F8E6A0' },
-    { primaryColor: '#E774BB', secondaryColor: '#FDD0EC' },
-    { primaryColor: '#4BCE97', secondaryColor: '#BAF3DB' },
-    { primaryColor: '#60C6D2', secondaryColor: '#C1F0F5' },
-    { primaryColor: '#F87462', secondaryColor: '#FFD2CC' },
-    { primaryColor: '#0788FF', secondaryColor: '#CAE5FF' },
-    { primaryColor: '#6EB9FF', secondaryColor: '#CAE5FF' }
-];
-
-const createSeriesTemplateByIndex = (index) => {
-    if (index === 0) {
-        return { ...SeriesTemplate, customType: 'bar', type: 'bar', color: '#6EB9FF' };
-    }
-
-    const templateIndex = (index - 1) % SeriesTemplateSet.length;
-    const { primaryColor, secondaryColor } = SeriesTemplateSet[templateIndex];
-    return merge(
-        {},
-        {
-            ...SeriesTemplate,
-            color: primaryColor,
-            colorForLine: primaryColor,
-            symbolColor: primaryColor,
-            symbolBdrColor: primaryColor,
-            fillColor: secondaryColor
-        },
-        {
-            itemStyle: {
-                borderColor: primaryColor
-            }
-        }
-    );
 };
 
 const BarMinHeightConditionFactory = () => ({
@@ -510,146 +466,8 @@ const ComparedSeriesTemplate = {
     data: []
 };
 
-export const SeriesTopTemplate = {
-    metricName: '',
-    showDataSet: true,
-    nullValues: false,
-    voidValues: false,
-    isCumulativeTotal: false,
-    isCumulativeDifference: false,
-    dimensions: null,
-    name: '',
-    marker: '',
-    customType: 'line',
-    type: 'line',
-    smooth: true,
-    seriesLayoutBy: 'column',
-    excess: {
-        color: 'black',
-        firstColor: '#50f547',
-        secondColor: '#ddff45',
-        firstOffSet: '0',
-        secondOffSet: '1',
-        gradPos: '0 0 0 1',
-        gradient: false
-    },
-    lack: {
-        color: 'black',
-        firstColor: '#50f547',
-        secondColor: '#ddff45',
-        firstOffSet: '0',
-        secondOffSet: '1',
-        gradPos: '0 0 0 1',
-        gradient: false
-    },
-    nameExcess: 'Избыток',
-    nameLack: 'Недостаток',
-    excessLackLabel: LabelOptions(),
-    xAxisIndex: 0,
-    yAxisIndex: 0,
-    originIdx: null,
-    z: 10,
-    barWidth: '50',
-    barMinWidth: 1,
-    barMaxWidth: 20,
-    barMinHeight: 16,
-
-    colorStep: 10,
-    color: '#359EFF',
-    customColors: [],
-    metricFormat: '0',
-    metricSeparator: '1',
-    metricPrefix: '',
-    metricPostfix: '',
-    isAbsoluteValue: false,
-    isAutoRound: false,
-    colorForBar: '#6EB9FF',
-    barFirstColor: '#50f547',
-    barSecondColor: '#ddff45',
-    barFirstOffSet: '0',
-    barSecondOffSet: '1',
-    barPos: '0 0 0 1',
-    gradientForBar: false,
-    fillLine: false,
-    customFillLine: false,
-    customFillLines: [],
-    origin: 'start',
-    smartFill: false,
-    fillColor: '#DCDFE4',
-    gradient: false,
-    firstColor: 'red',
-    secondColor: 'red',
-    offSetFirstColor: '0',
-    offSetSecondColor: '1',
-    colorPos: '0 0 0 1',
-    colorForLine: '#359EFF',
-    lineStyle: {
-        type: 'solid',
-        width: 2
-    },
-    areaStyle: null,
-    isRoundedBarBorder: true,
-    roundedBarBorder: { leftTop: 2, rightTop: 2, rightBottom: 0, leftBottom: 0 },
-    itemStyle: {
-        color: 'red',
-        shadowColor: 'rgba(0, 0, 0, 0)',
-        shadowBlur: 0,
-        shadowOffsetX: 0,
-        shadowOffsetY: 0,
-        borderColor: 'rgba(0, 0, 0, 0)',
-        barBorderRadius: [5, 5, 5, 5],
-        borderWidth: 2
-    },
-    shouldSyncShadowColor: false,
-    shouldSyncColor: true,
-    shouldDotsSyncColor: true,
-    stack: '',
-    stackLines: false,
-    label: LabelOptions(),
-    tooltip: {
-        formatter: null
-    },
-    styleConditions: {
-        enable: false,
-        conditions: []
-    },
-    multiMetricMode: {
-        enable: false,
-        metricNames: [],
-        metricDatasets: [],
-        metricSorts: []
-    },
-    animation: true,
-    animationEasing: 'cubicOut',
-    animationEasingUpdate: 'cubicOut',
-    animationDuration: 1000,
-    animationDurationUpdate: 1000,
-    animationDelay: 0,
-    animationDelayUpdate: 0,
-    symbol: 'emptyCircle',
-    showSymbol: true,
-    fillSymbol: true,
-    symbolSize: 8,
-    symbolColor: '#359EFF',
-    symbolBdrWidth: '2px',
-    symbolBdrColor: '#359EFF',
-    connectNulls: true,
-    data: [],
-    uid: '',
-    isUsedBarMinHeightConditions: false,
-    labelLayout: {
-        use: false,
-        x: 0,
-        y: 0,
-        align: 'right',
-        verticalAlign: 'top'
-    },
-    barMinHeightConditions: []
-};
-
 const ChartTopOptions = {
     enable: false,
-    type: TopType.DIMENSION,
     metrics: ['all'],
     number: 10,
     dir: 'top',
@@ -667,9 +485,7 @@ const ChartTopOptions = {
             enable: false,
             percent: 25
         }
-    },
-
-    metricsStyle: SeriesTopTemplate
+    }
 };
 
 const ToolboxOptions = {
@@ -677,14 +493,13 @@ const ToolboxOptions = {
     itemSize: 16,
     prevTitle: 'prev',
     iconStyle: {
-        color: '#2C3E5D'
+        color: '#666'
     }
 };
 
 const PropNames = [
     'dimensionOptions',
     'axis',
-    'barGap',
     'metricsStyle',
     'backgroundColor',
     'mainTitle',
@@ -699,17 +514,16 @@ const PropNames = [
     'grid',
     'breadcrumb',
     'shouldSkipLevelWithOneValue',
-    'customTooltip',
-    'neutralMetrics',
-    'deviations'
+    'deviationMeta',
+    'customTooltip'
 ];
 
 const DataZoomOptions = {
     show: false,
     moveHandleSize: 0,
-    backgroundColor: '#091E420F',
-    fillerColor: '#091E4224',
-    borderColor: '#091E420F',
+    backgroundColor: 'rgba(24, 61, 127, 1)',
+    fillerColor: 'rgba(104, 227, 246, 1)',
+    borderColor: 'rgba(24, 61, 127, 1)',
     handleSize: '100%',
     handleIcon:
         'M8.2,13.6V3.9H6.3v9.7H3.1v14.9h3.3v9.7h1.8v-9.7h3.3V13.6H8.2z M9.7,24.4H4.8v-1.4h4.9V24.4z M9.7,19.1H4.8v-1.4h4.9V19.1z',
@@ -725,12 +539,12 @@ const DataZoomOptions = {
     },
     dataBackground: {
         lineStyle: {
-            color: '#6EB9FF',
+            color: 'rgba(24, 61, 127, 0.3)',
             opacity: 1,
             width: 0.5
         },
         areaStyle: {
-            color: '#6EB9FF',
+            color: 'rgba(104, 227, 246, 0.3)',
             opacity: 1
         }
     },
@@ -739,8 +553,7 @@ const DataZoomOptions = {
     yAxisIndex: null,
     isPercent: false,
     startValue: 0,
-    endValue: 5,
-    inverseDirection: false,
+    endValue: 10,
     startPercentValue: 0,
     endPercentValue: 100,
     minPercentValue: 0,
@@ -778,17 +591,15 @@ const Axises = [
             splitNumber: 5
         }
     },
-    merge(AxisTemplate(), {
-        typeAxis: 'y',
-        name: 'Значения Метрик',
-        nameGap: 25,
-        nameRotate: 90,
-        splitNumber: 4,
-        calcMinMax: false,
-        axisLabel: {
-            rotate: 0
+    {
+        ...AxisTemplate(),
+        ...{
+            typeAxis: 'y',
+            nameGap: 25,
+            nameRotate: 90,
+            splitNumber: 2
         }
-    })
+    }
 ];
 
 const RESIZE_THROTTLE_TIMEOUT = 500;
@@ -797,8 +608,6 @@ const REQUEST_ANIMATION_TIMEOUT = 16;
 
 const ADDITIONAL_AXIS_LABEL_RICH_NAME = 'additional';
 const ADDITIONAL_AXIS_LABEL_RICH_CONDITION_NAME = 'condition';
-
-const ECHARTS_SERIES_MIN_INT_VALUE = 1e-13;
 
 export {
     AxisTemplate,
@@ -809,7 +618,6 @@ export {
     DimensionOptions,
     TooltipOptions,
     SeriesTemplate,
-    createSeriesTemplateByIndex,
     ComparedSeriesTemplate,
     ChartTopOptions,
     ToolboxOptions,
@@ -830,8 +638,7 @@ export {
     ADDITIONAL_AXIS_LABEL_RICH_CONDITION_NAME,
     AdditionalAxisLabelFactory,
     REQUEST_ANIMATION_TIMEOUT,
-    BarMinHeightConditionFactory,
-    ECHARTS_SERIES_MIN_INT_VALUE
+    BarMinHeightConditionFactory
 };
 
 export const SeriesFields = [

@@ -1,24 +1,13 @@
 <template>
-    <w-panel>
+    <ui-panel-container>
         <ui-container>
-            <ui-has-panel>
-                <div class="form-label form-label-small">Настройки баров</div>
-                <template #panel>
-                    <ui-panel :groups="[{ name: 'Настройка баров', slot: 'default' }]">
-                        <ui-container>
-                            <ui-input-units prop="barGap" :units="SizeUnits"></ui-input-units>
-                        </ui-container>
-                    </ui-panel>
-                </template>
-            </ui-has-panel>
-
             <ui-has-panel>
                 <ui-checkbox prop="tooltip.show">Стандартный тултип</ui-checkbox>
                 <template #panel>
                     <ui-panel :groups="[{ name: 'Настройка тултипа', slot: 'tooltip' }]">
                         <template #tooltip>
                             <ui-container>
-                                <ui-select prop="tooltip.trigger" :options="TRIGGER_OPTIONS">
+                                <ui-select prop="tooltip.trigger" :options="triggerOptions">
                                     <ui-hint>
                                         <template #label>Показывать при наведении на</template>
                                         Настройки тултипа, показываемого при наведении на метрику, задаются в настройках
@@ -26,19 +15,15 @@
                                     </ui-hint>
                                 </ui-select>
 
-                                <ui-switch prop="tooltip.isNestedFromMetric" :disabled="isItemTypeTooltipTrigger">
-                                    Наследовать формат от метрик
-                                </ui-switch>
-
                                 <ui-select
-                                    :disabled="isFormatSettingsDisabled"
+                                    :disabled="isItemTypeTooltipTrigger"
                                     prop="tooltip.format"
-                                    :options="METRIC_FORMAT_OPTIONS">
+                                    :options="formatOptions">
                                     Формат тултипа
                                 </ui-select>
 
                                 <ui-select
-                                    :disabled="isFormatSettingsDisabled"
+                                    :disabled="isItemTypeTooltipTrigger"
                                     prop="tooltip.separator"
                                     :options="separatorOptions">
                                     Формат разделителя разрядов
@@ -46,12 +31,12 @@
 
                                 <ui-has-two-columns>
                                     <template #left>
-                                        <ui-input :disabled="isFormatSettingsDisabled" prop="tooltip.prefix">
+                                        <ui-input :disabled="isItemTypeTooltipTrigger" prop="tooltip.prefix">
                                             Префикс
                                         </ui-input>
                                     </template>
                                     <template #right>
-                                        <ui-input :disabled="isFormatSettingsDisabled" prop="tooltip.postfix">
+                                        <ui-input :disabled="isItemTypeTooltipTrigger" prop="tooltip.postfix">
                                             Постфикс
                                         </ui-input>
                                     </template>
@@ -146,7 +131,7 @@
                                 <ui-select
                                     v-else
                                     v-model="props.legend.position"
-                                    :options="LEGEND_POSITIONS"
+                                    :options="legendPositions"
                                     @change="changeLegend('legend')">
                                     Расположение
                                 </ui-select>
@@ -187,11 +172,27 @@
                     <ui-panel :groups="[{ name: 'Настройка заголовка', slot: 'title' }]">
                         <template #title>
                             <ui-container>
-                                <ui-input-auto prop="mainTitle.text">Текст</ui-input-auto>
-                                <ui-select prop="mainTitle.left" :options="LabelAlignOptions">Выравнивание</ui-select>
-                                <ui-complex-font
-                                    prop="mainTitle.textStyle"
-                                    :units="FontSizeFirstPxUnits"></ui-complex-font>
+                                <ui-input-auto v-model="props.mainTitle.text" @change="propChanged('mainTitle')">
+                                    Текст
+                                </ui-input-auto>
+                                <ui-input-cp
+                                    v-model="props.mainTitle.textStyle.color"
+                                    @change="propChanged('mainTitle')">
+                                    Цвет шрифта
+                                </ui-input-cp>
+                                <ui-input-auto
+                                    v-model="props.mainTitle.textStyle.fontFamily"
+                                    @change="propChanged('mainTitle')">
+                                    Шрифт
+                                </ui-input-auto>
+                                <ui-input-units
+                                    col-size="6-12"
+                                    min="0"
+                                    :units="FontSizeFirstPxUnits"
+                                    v-model="propsMainTitleTextStyleFontSize"
+                                    @change="propChanged('mainTitle')">
+                                    Размер шрифта
+                                </ui-input-units>
                             </ui-container>
                         </template>
                     </ui-panel>
@@ -246,7 +247,7 @@
                                 </ui-input>
                                 <ui-select
                                     v-model="background.gradient.position"
-                                    :options="GRADIENT_POS_OPTIONS"
+                                    :options="gradientPosOptions"
                                     @change="changeBackground">
                                     Направление градиента
                                 </ui-select>
@@ -347,22 +348,14 @@
                                         </ui-input>
                                     </template>
                                 </ui-has-two-columns>
-                                <template v-else>
-                                    <ui-select
-                                        v-model="dataZoomInverseDirection"
-                                        :options="DataZoomDirectionOptions"
-                                        @change="propChanged('dataZoom')">
-                                        Начальная позиция
-                                    </ui-select>
-                                    <ui-input
-                                        type="number"
-                                        :min="props.dataZoom.startValue"
-                                        v-model.number="props.dataZoom.endValue"
-                                        @change="propChanged('dataZoom')">
-                                        Кол-во измерений в видимой области
-                                    </ui-input>
-                                </template>
-
+                                <ui-input
+                                    v-else
+                                    type="number"
+                                    :min="props.dataZoom.startValue"
+                                    v-model.number="props.dataZoom.endValue"
+                                    @change="propChanged('dataZoom')">
+                                    Кол-во измерений в видимой области
+                                </ui-input>
                                 <ui-has-two-columns>
                                     <template #left>
                                         <ui-input-units
@@ -484,30 +477,6 @@
                         <template #top>
                             <ui-container>
                                 <ui-select
-                                    v-model="props.topOptions.type"
-                                    :options="TopTypeOptions"
-                                    @change="propChanged('topOptions')">
-                                    Тип
-                                </ui-select>
-
-                                <ui-collapse v-if="props.topOptions.type === TopType.METRIC">
-                                    <template #header>Топ метрика</template>
-
-                                    <w-top-metric-settings
-                                        v-bind="{
-                                            styles: props.topOptions.metricsStyle,
-                                            axis: props.axis,
-                                            dimensionOptions: props.dimensionOptions,
-                                            dimValueNames,
-                                            minorDimensionNames,
-                                            condStyleFactory,
-                                            elemComputedStyles
-                                        }"
-                                        @change-style="changeStyles"></w-top-metric-settings>
-                                </ui-collapse>
-
-                                <ui-select
-                                    v-if="props.topOptions.type === TopType.DIMENSION"
                                     v-model="props.topOptions.metrics"
                                     :options="metricNameOptionsIncludingAll"
                                     multiple
@@ -534,13 +503,11 @@
                                     Наименование
                                 </ui-input>
                                 <ui-switch
-                                    v-if="props.topOptions.type === TopType.DIMENSION"
                                     v-model="props.topOptions.rest.reduce.enable"
                                     @change="propChanged('topOptions')">
                                     Обрезать значение
                                 </ui-switch>
                                 <ui-input
-                                    v-if="props.topOptions.type === TopType.DIMENSION"
                                     type="number"
                                     min="0"
                                     v-model.number="props.topOptions.rest.reduce.percent"
@@ -585,20 +552,9 @@
                 </template>
             </ui-has-panel>
 
-            <ui-has-panel>
-                <ui-checkbox prop="neutralMetrics.isEnabled">Нейтральные метрики</ui-checkbox>
-                <template #panel>
-                    <ui-container>
-                        <ui-input-cp prop="neutralMetrics.color">Цвет метрик</ui-input-cp>
-                        <ui-input-cp prop="neutralMetrics.symbolColor">Цвет точек</ui-input-cp>
-                        <ui-input-cp prop="neutralMetrics.symbolBdrColor">Цвет границ точек</ui-input-cp>
-                    </ui-container>
-                </template>
-            </ui-has-panel>
-
             <ui-tooltip
                 v-model="props.customTooltip"
-                :options="dimensionsMetrics"
+                :options="dimensionMetricNameOptions"
                 @change="propChanged('customTooltip')">
                 <ui-switch v-model="isTooltipFixed">Зафиксировать тултип</ui-switch>
             </ui-tooltip>
@@ -708,10 +664,8 @@
                     </ui-panel>
                 </template>
             </ui-has-panel>
-
-            <ui-switch prop="shouldResetVar">Сброс переменной</ui-switch>
         </ui-container>
-    </w-panel>
+    </ui-panel-container>
 </template>
 <script>
 /* eslint-disable id-length */
@@ -720,11 +674,10 @@
  * @typedef {import('./OptionsPanel').IComponentOptions} IComponentOptions
  * @typedef {import('./OptionsPanel').IInstance} IInstance
  */
-import { Panel } from '@goodt-wcore/panel';
-import { usePanelDatasetMixin, PanelDatasetMixinTypes } from '@goodt-common/data';
-import { Tooltip as WTooltip } from 'goodteditor-ui';
+import { Panel, Dremio } from '@goodt-wcore/core';
+import { Tooltip } from 'goodteditor-ui';
 import { SizeUnits, FontWeightOptions } from '@goodt-wcore/panels';
-import { cloneDeep } from 'lodash';
+import { isEmpty } from 'lodash';
 import {
     LEGEND_POSITIONS,
     TRIGGER_OPTIONS,
@@ -737,55 +690,31 @@ import {
     DATA_ZOOM_LEFT_POSITIONS,
     LegendIconOptions,
     LINE_TYPES,
-    FontSizeFirstPxUnits,
-    DataZoomDirectionOptions,
-    LabelAlignOptions,
-    TopTypeOptions,
-    TopType
+    FontSizeFirstPxUnits
 } from './config';
-import WTopMetricSettings from './components/TopMetric.vue';
-import { utils, condStyleFactory } from '../utils';
 
+const { Query } = Dremio;
+
+/**
+ * @type {IComponentOptions}
+ */
 export default {
     extends: Panel,
     components: {
-        WTooltip,
-        WTopMetricSettings
+        WTooltip: Tooltip
     },
-    mixins: [usePanelDatasetMixin()],
-    meta: { name: 'Настройки виджета', icon: 'widgets' },
-    static: {
-        TRIGGER_OPTIONS,
-        LEGEND_POSITIONS,
-        METRIC_FORMAT_OPTIONS,
-        GRADIENT_POS_OPTIONS,
-        separatorOptions: SEPARATOR_OPTIONS,
-        topDirections: TOP_DIRECTIONS,
-        dataZoomOrient: DATA_ZOOM_ORIENT,
-        dataZoomTopPositions: DATA_ZOOM_TOP_POSITIONS,
-        dataZoomLeftPositions: DATA_ZOOM_LEFT_POSITIONS,
-        SizeUnits,
-        FontWeightOptions,
-        LegendIconOptions,
-        lineTypeOptions: LINE_TYPES,
-        FontSizeFirstPxUnits,
-        DataZoomDirectionOptions,
-        LabelAlignOptions,
-        TopTypeOptions,
-        TopType,
-        condStyleFactory
-    },
-
     data() {
         return {
+            /** @public */
+            $meta: { name: 'Настройки виджета', icon: 'widgets' },
             background: {
                 show: false,
                 color: 'rgba(255, 255, 255, 1)',
                 gradient: {
                     enable: false,
                     position: '0 0 0 1',
-                    firstColor: '#FFFFFF',
-                    secondColor: '#F7F8F9',
+                    firstColor: 'red',
+                    secondColor: 'red',
                     offSetFirstColor: '0',
                     offSetSecondColor: '1'
                 }
@@ -794,21 +723,6 @@ export default {
     },
 
     computed: {
-        elemComputedStyles() {
-            return this.elementInstance != null ? getComputedStyle(this.elementInstance.$el) : {};
-        },
-        minorDimensionNames() {
-            const {
-                minor: { name: minorDimName }
-            } = this.props.dimensionOptions;
-            const results = this.elementInstance?.results ?? [];
-            return results
-                .reduce((acc, { rows }) => [...acc, ...utils.getDimValues(rows, minorDimName)], [])
-                .sort((a, b) => a.localeCompare(b));
-        },
-        dimValueNames() {
-            return this.elementInstance?.mainDimValues ?? [];
-        },
         /**
          * @return {object[]}
          */
@@ -821,17 +735,30 @@ export default {
         metricNameOptionsIncludingAll() {
             return [{ label: 'Все', value: 'all' }, ...this.metricNameOptions];
         },
-        dataZoomInverseDirection: {
-            get() {
-                const {
-                    dataZoom: { inverseDirection = false }
-                } = this.props;
-                return inverseDirection;
-            },
-            set(val) {
-                const { dataZoom } = this.props;
-                dataZoom.inverseDirection = val;
+        /**
+         * @return {{value: any, label: string}[]}
+         */
+        dimensionMetricNameOptions() {
+            const { dremio } = this.props;
+
+            if (isEmpty(dremio)) {
+                return [];
             }
+
+            const options = [
+                ...new Set(
+                    dremio.reduce(
+                        (acc, { query, dimensionList }) => [
+                            ...Query.queryMetricNames(query),
+                            ...Object.keys(dimensionList)
+                        ],
+                        []
+                    )
+                )
+            ]
+                .sort((prev, next) => prev.localeCompare(next))
+                .map((value) => ({ label: value, value }));
+            return [{ label: '-', value: null }, ...options];
         },
         propsLegendTextStyleFontSize: {
             get() {
@@ -845,6 +772,22 @@ export default {
             set(val) {
                 const {
                     legend: { textStyle }
+                } = this.props;
+                textStyle.fontSize = val;
+            }
+        },
+        propsMainTitleTextStyleFontSize: {
+            get() {
+                const {
+                    mainTitle: {
+                        textStyle: { fontSize }
+                    }
+                } = this.props;
+                return `${fontSize}`;
+            },
+            set(val) {
+                const {
+                    mainTitle: { textStyle }
                 } = this.props;
                 textStyle.fontSize = val;
             }
@@ -871,12 +814,6 @@ export default {
             } = this.props;
             return trigger === 'item';
         },
-        isFormatSettingsDisabled() {
-            const {
-                tooltip: { isNestedFromMetric }
-            } = this.props;
-            return this.isItemTypeTooltipTrigger || isNestedFromMetric;
-        },
         isTooltipFixed: {
             set(value) {
                 const { options } = this.elementInstance.customTooltip;
@@ -889,13 +826,24 @@ export default {
         }
     },
 
+    static: {
+        triggerOptions: TRIGGER_OPTIONS,
+        legendPositions: LEGEND_POSITIONS,
+        formatOptions: METRIC_FORMAT_OPTIONS,
+        gradientPosOptions: GRADIENT_POS_OPTIONS,
+        separatorOptions: SEPARATOR_OPTIONS,
+        topDirections: TOP_DIRECTIONS,
+        dataZoomOrient: DATA_ZOOM_ORIENT,
+        dataZoomTopPositions: DATA_ZOOM_TOP_POSITIONS,
+        dataZoomLeftPositions: DATA_ZOOM_LEFT_POSITIONS,
+        SizeUnits,
+        FontWeightOptions,
+        LegendIconOptions,
+        lineTypeOptions: LINE_TYPES,
+        FontSizeFirstPxUnits
+    },
+
     methods: {
-        ...PanelDatasetMixinTypes,
-        changeStyles(styles, idx) {
-            const { topOptions } = this.props;
-            topOptions.metricsStyle = cloneDeep(styles);
-            this.propChanged('topOptions');
-        },
         changeBackground() {
             const { show: isShown, color, gradient } = this.background;
             if (isShown) {

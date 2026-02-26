@@ -1,96 +1,79 @@
 <template>
-    <w-panel>
-        <ui-container>
-            <ui-select v-model="seriesType" :options="SeriesTypeOptions" @change="onSeriesTypeChange">
-                Шаблоны метрик
-            </ui-select>
-
-            <ui-draggable-accordion
-                v-model="props.metricsStyle"
-                v-bind="{ toolboxControls }"
-                @change="propChanged('metricsStyle')">
-                <template #header="{ item }">{{ item.marker }}</template>
-                <template #default="{ item, index }">
-                    <w-metric-settings
-                        :key="item.uid"
-                        v-bind="{
-                            styles: item,
-                            index,
-                            axis: props.axis,
-                            seriesType,
-                            metricNames,
-                            metricsStyleNames,
-                            dimensionOptions: props.dimensionOptions,
-                            datasetNames,
-                            dimValueNames,
-                            minorDimensionNames,
-                            condStyleTypes: conditionStyleTypes,
-                            condStyleFactory,
-                            elemComputedStyles,
-                            templateIndex
-                        }"
-                        class="p"
-                        @change-style="changeStyles"
-                        @delete="deleteMetric"></w-metric-settings>
-                </template>
-            </ui-draggable-accordion>
-
-            <ui-button type="ghost" @click="addMetric">Добавить метрику</ui-button>
-        </ui-container>
-    </w-panel>
+    <div>
+        <w-metric-settings
+            v-for="(item, index) in props.metricsStyle"
+            :key="item.uid"
+            v-bind="{
+                styles: item,
+                index,
+                axis: props.axis,
+                metricNames,
+                metricsStyleNames,
+                dimensionOptions: props.dimensionOptions,
+                datasetNames,
+                dimValueNames,
+                minorDimensionNames,
+                condStyleTypes: conditionStyleTypes,
+                condStyleFactory,
+                elemComputedStyles,
+                $c
+            }"
+            class="p"
+            @change-style="changeStyles"
+            @delete="deleteMetric"></w-metric-settings>
+        <ui-button type="ghost" @click="addMetric">Добавить метрику</ui-button>
+    </div>
 </template>
 <script>
-import { Panel } from '@goodt-wcore/panel';
-import { UiDraggableAccordion } from '@goodt-wcore/panel-ui';
-import { usePanelDatasetMixin, PanelDatasetMixinTypes } from '@goodt-common/data';
-import { cloneDeep as _cloneDeep } from 'lodash';
-import { createSeriesTemplateByIndex } from '../utils/constants';
-import { utils, condStyleTypes, condStyleFactory, propsFixer } from '../utils';
-import { SeriesTypeOptions } from './config';
-import WMetricSettings from './components/Metric.vue';
-
 /**
- *
- * @type {import('./OptionsPanel').IInstance}
+ * @typedef {import('./OptionsPanel').IComponentOptions} IComponentOptions
+ * @typedef {import('./OptionsPanel').IInstance} IInstance
  */
-const PanelInstanceTypes = undefined;
+import { Panel, Dremio } from 'goodt-wcore';
+import { cloneDeep as _cloneDeep } from 'lodash';
+import WMetricSettings from './components/Metric.vue';
+import { SeriesTemplate } from '../utils/constants';
+import { utils, condStyleTypes, condStyleFactory, propsFixer } from '../utils';
 
+const { Query } = Dremio;
+/**
+ * @type {IComponentOptions}
+ */
 export default {
     extends: Panel,
-    mixins: [usePanelDatasetMixin()],
-    components: { WMetricSettings, UiDraggableAccordion },
-
-    meta: { name: 'Метрики', icon: 'gauge' },
-
-    static: {
-        condStyleFactory,
-        SeriesTypeOptions
+    components: { WMetricSettings },
+    data() {
+        return {
+            /** @public */
+            $meta: { name: 'Метрики', icon: 'gauge' },
+            condStyleFactory
+        };
     },
-
-    data: (vm) => ({
-        seriesType: null,
-        templateIndex: 0,
-        toolboxControls: [
-            { icon: 'mdi-minus-box-outline', label: 'Удалить', handler: vm.deleteMetric },
-            { icon: 'mdi-content-copy', label: 'Копировать', handler: vm.copyMetric }
-        ]
-    }),
 
     computed: {
         /**
          * @return {object[]}
          */
+        queryHelper() {
+            return this.elementInstance && this.elementInstance.getQueryHelper
+                ? this.elementInstance.getQueryHelper()
+                : [];
+        },
+        /**
+         * @return {object[]}
+         */
         metricNames() {
-            const metricNames = this.queryModels.flatMap(({ metrics }, index) =>
+            const { dremio, deviationMeta } = this.props;
+            const metricNames = dremio.flatMap(({ query: { [Query.KEY.METRICS]: metrics } }, index) =>
                 metrics.map((name) => ({
-                    label: name,
-                    value: name,
+                    label: Object.keys(name)[0],
+                    value: Object.keys(name)[0],
                     dimensionIndex: index
                 }))
             );
-            if (this.deviations.length > 0) {
+            if (deviationMeta.deviations.length > 0) {
                 return metricNames.concat(
-                    this.deviations.map((name) => ({
+                    deviationMeta.deviations.map(({ name }) => ({
                         label: name,
                         value: name,
                         dimensionIndex: -1
@@ -109,7 +92,7 @@ export default {
          * @return {string[]}
          */
         datasetNames() {
-            return this.datasetRequests.map(({ name }) => name);
+            return this.queryHelper.map(({ query }) => query[Query.KEY.FROM].join('/'));
         },
         /**
          * @return {{ label: string, value: any }[]}
@@ -121,7 +104,8 @@ export default {
          * @return {{ label: string, value: string }[]}
          */
         dimValueNames() {
-            return this.elementInstance?.mainDimValues ?? [];
+            const mainDimValues = this.elementInstance?.mainDimValues ?? [];
+            return mainDimValues.map((name) => ({ label: name, value: name }));
         },
         /**
          * @return {string[]}
@@ -130,71 +114,42 @@ export default {
             const {
                 minor: { name: minorDimName }
             } = this.props.dimensionOptions;
-            const results = this.elementInstance?.results ?? [];
-            return results
+            const dremioData = this.elementInstance?.resData ?? [];
+            return dremioData
                 .reduce((acc, { rows }) => [...acc, ...utils.getDimValues(rows, minorDimName)], [])
                 .sort((a, b) => a.localeCompare(b));
         },
         elemComputedStyles() {
             return this.elementInstance != null ? getComputedStyle(this.elementInstance.$el) : {};
+        },
+        $c() {
+            // eslint-disable-next-line goodt-rules/deprecate-member-expression
+            return this.elementInstance?.$c;
         }
     },
 
     created() {
         this.props = propsFixer(this.props);
         this.propChanged();
-
-        const { props } = this;
-
-        if (props.metricsStyle.every(({ type }) => type === 'bar')) {
-            this.seriesType = 'bar';
-            return;
-        }
-
-        if (props.metricsStyle.every(({ type }) => type === 'line')) {
-            this.seriesType = 'line';
-        }
     },
 
     methods: {
-        ...PanelInstanceTypes,
-        ...PanelDatasetMixinTypes,
         /**
          *
          */
         addMetric() {
-            const {
-                props: { metricsStyle }
-            } = this;
-
-            const newMetric = createSeriesTemplateByIndex(this.templateIndex);
-
+            const newMetric = _cloneDeep(SeriesTemplate);
+            const { length } = this.props.metricsStyle;
+            newMetric.marker = `Метрика ${length + 1}`;
+            newMetric.name = newMetric.marker;
             newMetric.uid = utils.uid();
-            metricsStyle.push(newMetric);
-
-            this.templateIndex += 1;
-
-            this.propChanged('metricsStyle');
-        },
-        copyMetric(idx) {
-            const {
-                props: { metricsStyle }
-            } = this;
-
-            this.templateIndex = this.templateIndex + 1;
-
-            const newMetric = _cloneDeep(metricsStyle[idx]);
-
-            newMetric.uid = utils.uid();
-            metricsStyle.push(newMetric);
-
+            this.props.metricsStyle.push(newMetric);
             this.propChanged('metricsStyle');
         },
         /**
          * @param {number} idx - metric`s index
          */
         deleteMetric(idx) {
-            this.templateIndex -= this.templateIndex - 1 < 0 ? 0 : 1;
             this.props.metricsStyle.splice(idx, 1);
             this.propChanged('metricsStyle');
         },
@@ -205,38 +160,6 @@ export default {
         changeStyles(styles, idx) {
             this.$set(this.props.metricsStyle, idx, _cloneDeep(styles));
             this.propChanged('metricsStyle');
-        },
-        onSeriesTypeChange(seriesType) {
-            if (seriesType == null) {
-                return;
-            }
-
-            const { props } = this;
-
-            props.metricsStyle = props.metricsStyle.map((metric) => {
-                const { colorForLine, colorForBar, symbolBdrWidth, symbolBdrColor, itemStyle } = metric;
-
-                if (metric.type === 'line' && seriesType === 'bar') {
-                    metric.colorForBar = colorForLine;
-                }
-                if (metric.type === 'bar' && seriesType === 'line') {
-                    metric.colorForLine = colorForBar;
-                }
-                metric.type = seriesType;
-                metric.customType = seriesType;
-
-                metric = {
-                    ...metric,
-                    itemStyle: {
-                        ...itemStyle,
-                        borderWidth: symbolBdrWidth,
-                        borderColor: symbolBdrColor
-                    }
-                };
-                return metric;
-            });
-
-            this.propChanged();
         }
     }
 };

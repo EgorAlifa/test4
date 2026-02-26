@@ -1,9 +1,8 @@
-import { useDatasetMeta } from '@goodt-common/data';
-import { StoreOperation } from '@goodt-wcore/elem';
 import { cloneDeep } from 'lodash';
 import { TooltipDefaultFactory } from '@goodt-wcore/components';
 import { cssVars } from './styles/css-vars';
-import panels, { DatasetPanelMixin } from './panels';
+import { panels } from './panels';
+import { DeviationPanelAsync } from './deviations/panels';
 import {
     MainTitle,
     Legend,
@@ -21,6 +20,8 @@ import {
     BreadcrumbTemplate
 } from './utils/constants';
 
+export const Vars = Object.freeze({});
+
 export const descriptor = () => ({
     props: {
         dremio: {
@@ -30,6 +31,15 @@ export const descriptor = () => ({
         additionalDremio: {
             type: Object,
             default: null
+        },
+        deviationMeta: {
+            type: Object,
+            default: () => ({
+                dimensionIndex: 0,
+                mainSourceIdentifier: null,
+                addlSourceIdentifier: null,
+                deviations: []
+            })
         },
         width: {
             type: String,
@@ -58,11 +68,6 @@ export const descriptor = () => ({
         selectEvent: {
             type: Object,
             default: () => ({})
-        },
-        barGap: {
-            type: String,
-            default: () => '',
-            label: 'Отступ'
         },
         tooltip: {
             type: Object,
@@ -142,42 +147,15 @@ export const descriptor = () => ({
         shouldSkipLevelWithIdenticalValue: {
             type: Boolean,
             default: false
-        },
-        shouldResetVar: {
-            type: Boolean,
-            default: true
-        },
-        neutralMetrics: {
-            type: Object,
-            default: () => ({
-                isEnabled: false,
-                color: 'rgba(230, 230, 230, 1)',
-                symbolColor: 'rgba(230, 230, 230, 1)',
-                symbolBdrColor: 'rgba(230, 230, 230, 1)'
-            })
         }
     },
-    vars: {},
-    dataset: {
-        vars: {
-            dimension: { operation: StoreOperation.ALL }
-        }
-    }
+    vars: Object.values(Vars).reduce((acc, varName) => ({ ...acc, [varName]: { description: varName } }), {})
 });
 
-export const meta = useDatasetMeta(
-    {
-        descriptor,
-        isChildAllowed: true,
-        slotNames: ['tooltip'],
-        cssVars,
-        panels
-    },
-    {
-        panel: {
-            isMultiple: true,
-            mixins: [DatasetPanelMixin]
-        },
-        deviations: true
-    }
-);
+export const meta = {
+    descriptor,
+    isChildAllowed: true,
+    slotNames: ['tooltip'],
+    cssVars,
+    panels: [...panels, DeviationPanelAsync]
+};

@@ -1,13 +1,13 @@
 <template>
-    <ui-container>
-        <div v-for="(axis, index) in props.axis" :key="index">
+    <div>
+        <div class="p" v-for="(axis, index) in props.axis" :key="index">
             <w-axis-settings
                 v-bind="{ axis, index, id: findID(index), metricNames, datasetNames }"
                 @change-axis="changeAxis"
                 @delete-axis="deleteAxis" />
         </div>
         <ui-button type="ghost" @click="addAxis">Добавить ось</ui-button>
-    </ui-container>
+    </div>
 </template>
 
 <script>
@@ -15,8 +15,7 @@
  * @typedef {import('./OptionsPanel').IComponentOptions} IComponentOptions
  * @typedef {import('./OptionsPanel').IInstance} IInstance
  */
-import { Panel } from '@goodt-wcore/panel';
-import { usePanelDatasetMixin, PanelDatasetMixinTypes } from '@goodt-common/data';
+import { Panel, Dremio } from 'goodt-wcore';
 import { cloneDeep } from 'lodash';
 import WAxisSettings from './components/Axis.vue';
 import { AxisTemplate } from '../utils/constants';
@@ -24,19 +23,18 @@ import { AxisTemplate } from '../utils/constants';
  * @type {IComponentOptions}
  */
 
+const { Query } = Dremio;
+
 export default {
     extends: Panel,
-    mixins: [usePanelDatasetMixin()],
-    components: { WAxisSettings },
-
     meta: { name: 'Настройки осей', icon: 'axis-arrow' },
+    components: { WAxisSettings },
 
     data() {
         return {
             ids: [],
             currentIDx: 0,
-            currentIDy: 0,
-            ...PanelDatasetMixinTypes
+            currentIDy: 0
         };
     },
     computed: {
@@ -45,15 +43,15 @@ export default {
          */
         metricNames() {
             const { metricNames, deviationMeta } = this.props;
-            if (this.deviations.length > 0) {
-                return metricNames.concat(this.deviations);
+            if (deviationMeta.deviations.length > 0) {
+                return metricNames.concat(deviationMeta.deviations.map(({ name }) => name));
             }
             return metricNames;
         },
         datasetNames() {
-            return this.datasetRequests.map(({ name }, index) => ({
+            return this.props.dremio.map(({ query }, index) => ({
                 value: `${index}`,
-                label: `${name} [${index}]`
+                label: `${query[Query.KEY.FROM].join('/')} [${index}]`
             }));
         }
     },
