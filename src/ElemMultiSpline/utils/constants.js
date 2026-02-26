@@ -317,6 +317,7 @@ const SeriesTemplate = {
     customType: 'line',
     type: 'line',
     smooth: true,
+    stepType: 'start',
     seriesLayoutBy: 'column',
     excess: {
         color: 'black',

@@ -569,7 +569,7 @@ export const utils = {
 
             let itemStyled = cloneDeep(item);
 
-            if (['bar', 'line'].includes(customType) && styleConditions.enable) {
+            if (['bar', 'line', 'step line'].includes(customType) && styleConditions.enable) {
                 itemStyled = styleConditions.conditions.reduce(styleDataItem, itemStyled);
             }
 
