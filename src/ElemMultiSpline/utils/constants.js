@@ -320,6 +320,7 @@ const SeriesTemplate = {
     stepType: 'start',
     disconnectLine: false,
     markerWidth: 30,
+    markerHeight: 3,
     seriesLayoutBy: 'column',
     excess: {
         color: 'black',
