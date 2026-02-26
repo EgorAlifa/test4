@@ -780,7 +780,7 @@ export default {
                               ? {
                                     symbol: 'rect',
                                     showSymbol: true,
-                                    symbolSize: [Number(seriesItem.markerWidth) || 30, Number(seriesItem.markerHeight) || 3]
+                                    symbolSize: [seriesItem.markerWidth || 32, seriesItem.markerHeight || 3]
                                 }
                               : {}),
                           itemStyle: {

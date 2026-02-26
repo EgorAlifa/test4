@@ -319,8 +319,8 @@ const SeriesTemplate = {
     smooth: true,
     stepType: 'start',
     disconnectLine: false,
-    markerWidth: 30,
-    markerHeight: 3,
+    markerWidth: '2rem',
+    markerHeight: '0.2rem',
     seriesLayoutBy: 'column',
     excess: {
         color: 'black',
@@ -846,5 +846,7 @@ export const SeriesFields = [
     'barMinHeight',
     'barWidth',
     'barMinWidth',
-    'barMaxWidth'
+    'barMaxWidth',
+    'markerWidth',
+    'markerHeight'
 ];
