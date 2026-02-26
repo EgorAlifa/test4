@@ -543,7 +543,9 @@
                     </ui-panel>
                 </template>
             </ui-has-panel>
+        </template>
 
+        <template v-if="['bar', 'line'].includes(currentOptions.customType)">
             <ui-has-panel>
                 <ui-checkbox v-model="currentOptions.styleConditions.enable" @change="collectSettings">
                     Задать стили условием
@@ -566,20 +568,36 @@
                                             </ui-select>
                                         </template>
                                         <template #right>
-                                            <ui-input
-                                                type="number"
-                                                v-model.number="cond.value"
-                                                :disabled="cond.type === 'ALL' || cond.dimValues.length > 0"
+                                            <ui-select
+                                                v-model="cond.compareSource"
+                                                :options="compareSourceOptions"
+                                                :disabled="cond.type === 'ALL'"
                                                 @change="collectCondition(cond)">
-                                                Значение
-                                            </ui-input>
+                                                Источник
+                                            </ui-select>
                                         </template>
                                     </ui-has-two-columns>
+                                    <ui-input
+                                        v-if="!cond.compareSource || cond.compareSource === 'value'"
+                                        type="number"
+                                        v-model.number="cond.value"
+                                        :disabled="cond.type === 'ALL' || cond.dimValues.length > 0"
+                                        @change="collectCondition(cond)">
+                                        Значение
+                                    </ui-input>
+                                    <ui-select
+                                        v-else
+                                        v-model="cond.compareMetric"
+                                        :options="metricNames"
+                                        :disabled="cond.type === 'ALL' || cond.dimValues.length > 0"
+                                        @change="collectCondition(cond)">
+                                        Метрика для сравнения
+                                    </ui-select>
                                     <ui-select
                                         multiple
                                         v-model="cond.dimValues"
                                         :options="dimValueNames"
-                                        :disabled="cond.value !== ''"
+                                        :disabled="cond.value !== '' || cond.compareSource === 'metric'"
                                         @change="collectCondition(cond)">
                                         Значение измерения
                                     </ui-select>
@@ -1296,7 +1314,11 @@ export default {
         VerticalAlignOptions,
         SortOptions,
         CommonSizeFirstPxUnits,
-        FontSizeFirstPxUnits
+        FontSizeFirstPxUnits,
+        compareSourceOptions: [
+            { label: 'Число', value: 'value' },
+            { label: 'Метрика', value: 'metric' }
+        ]
     },
 
     watch: {
