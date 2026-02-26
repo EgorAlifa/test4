@@ -673,14 +673,26 @@
                         горизонтальный штрих. Настройте ширину ниже и цвет через "Настройки символов".
                     </template>
                 </ui-switch>
-                <ui-input
-                    v-if="currentOptions.disconnectLine"
-                    type="number"
-                    min="1"
-                    v-model.number="currentOptions.markerWidth"
-                    @change="collectSettings">
-                    Ширина маркера (px)
-                </ui-input>
+                <ui-has-two-columns v-if="currentOptions.disconnectLine">
+                    <template #left>
+                        <ui-input
+                            type="number"
+                            min="1"
+                            v-model.number="currentOptions.markerWidth"
+                            @change="collectSettings">
+                            Ширина маркера (px)
+                        </ui-input>
+                    </template>
+                    <template #right>
+                        <ui-input
+                            type="number"
+                            min="1"
+                            v-model.number="currentOptions.markerHeight"
+                            @change="collectSettings">
+                            Высота маркера (px)
+                        </ui-input>
+                    </template>
+                </ui-has-two-columns>
             </template>
 
             <ui-has-panel>
