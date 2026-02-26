@@ -415,7 +415,7 @@ export default {
             if (seriesOptions.isCumulativeDifference) {
                 result = utils.getCumulativeDifference(result);
             }
-            result = utils.resolveStyleDataItems(seriesOptions, result);
+            result = utils.resolveStyleDataItems(seriesOptions, result, dataRows, dimName);
             return result;
         },
 

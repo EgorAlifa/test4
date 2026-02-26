@@ -534,13 +534,20 @@ export const utils = {
         });
     },
 
-    resolveStyleDataItems(seriesOptions, data) {
+    resolveStyleDataItems(seriesOptions, data, dataRows, dimName) {
         const { customType, styleConditions, shouldSyncShadowColor, label } = seriesOptions;
 
-        const styleDataItem = (item, { type, value, dimValues, color, useGradient, gradientColor }) => {
+        const styleDataItem = (item, { type, value, compareSource, compareMetric, dimValues, color, useGradient, gradientColor }) => {
             const styleInfo = condStyleTypes[type];
             const isDimValuesCondition = dimValues && dimValues.includes(item.name);
-            const isValueCondition = styleInfo && styleInfo.handler(item.value, value);
+
+            let compareValue = value;
+            if (compareSource === 'metric' && compareMetric && dataRows && dimName) {
+                const matchingRow = dataRows.find((row) => row[dimName] === item.name);
+                compareValue = matchingRow != null ? matchingRow[compareMetric] : null;
+            }
+
+            const isValueCondition = styleInfo && styleInfo.handler(item.value, compareValue);
 
             if (isDimValuesCondition || isValueCondition) {
                 const itemColor = useGradient ? gradientColor : color;
@@ -562,7 +569,7 @@ export const utils = {
 
             let itemStyled = cloneDeep(item);
 
-            if (customType === 'bar' && styleConditions.enable) {
+            if (['bar', 'line'].includes(customType) && styleConditions.enable) {
                 itemStyled = styleConditions.conditions.reduce(styleDataItem, itemStyled);
             }
 
@@ -1051,6 +1058,8 @@ utils.memoTransliterate = _memoize(utils.transliterate);
 export const condStyleFactory = () => ({
     type: null,
     value: '',
+    compareSource: 'value',
+    compareMetric: '',
     dimValues: [],
     color: '',
     useGradient: false,
