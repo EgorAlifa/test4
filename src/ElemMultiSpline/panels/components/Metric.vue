@@ -675,27 +675,25 @@
                 </ui-switch>
                 <ui-has-two-columns v-if="currentOptions.disconnectLine">
                     <template #left>
-                        <ui-input
-                            type="number"
-                            min="1"
-                            v-model.number="currentOptions.markerWidth"
+                        <ui-input-units
+                            :units="CommonSizeFirstPxUnits"
+                            v-model="markerWidth"
                             @change="collectSettings">
-                            Ширина маркера (px)
-                        </ui-input>
+                            Ширина маркера
+                        </ui-input-units>
                     </template>
                     <template #right>
-                        <ui-input
-                            type="number"
-                            min="1"
-                            v-model.number="currentOptions.markerHeight"
+                        <ui-input-units
+                            :units="CommonSizeFirstPxUnits"
+                            v-model="markerHeight"
                             @change="collectSettings">
-                            Высота маркера (px)
-                        </ui-input>
+                            Высота маркера
+                        </ui-input-units>
                     </template>
                 </ui-has-two-columns>
             </template>
 
-            <ui-has-panel>
+            <ui-has-panel v-if="!currentOptions.disconnectLine">
                 <ui-checkbox
                     v-model="currentOptions.fillLine"
                     :disabled="currentOptions.customFillLine"
@@ -834,15 +832,23 @@
                 </template>
             </ui-has-panel>
 
-            <ui-select v-model="currentOptions.lineStyle.type" :options="lineTypes" @change="collectSettings">
+            <ui-select
+                v-if="!currentOptions.disconnectLine"
+                v-model="currentOptions.lineStyle.type"
+                :options="lineTypes"
+                @change="collectSettings">
                 Тип линии
             </ui-select>
 
-            <ui-input-units :units="CommonSizeFirstPxUnits" v-model="lineStyleWidth" @change="collectSettings">
+            <ui-input-units
+                v-if="!currentOptions.disconnectLine"
+                :units="CommonSizeFirstPxUnits"
+                v-model="lineStyleWidth"
+                @change="collectSettings">
                 Толщина линии
             </ui-input-units>
 
-            <ui-has-panel>
+            <ui-has-panel v-if="!currentOptions.disconnectLine">
                 <ui-checkbox v-model="currentOptions.showSymbol" @change="collectSettings">Точки</ui-checkbox>
                 <template #panel>
                     <ui-panel :groups="[{ name: 'Настройка точек', slot: 'default' }]">
@@ -1246,6 +1252,22 @@ export default {
             },
             set(val) {
                 this.currentOptions.symbolBdrWidth = val;
+            }
+        },
+        markerWidth: {
+            get() {
+                return `${this.currentOptions.markerWidth}`;
+            },
+            set(val) {
+                this.currentOptions.markerWidth = val;
+            }
+        },
+        markerHeight: {
+            get() {
+                return `${this.currentOptions.markerHeight}`;
+            },
+            set(val) {
+                this.currentOptions.markerHeight = val;
             }
         },
         barMinHeight: {
