@@ -115,13 +115,13 @@
     padding: 4px 8px;
     background: transparent;
     border: none;
-    border-top: 1px solid #4A9EFF;
+    border-top: 1px solid var(--decomp-active-color, #4A9EFF);
     border-radius: 0;
 }
 
 .decomp-tree-column-header__filter-box--active {
-    border-top-color: #4A9EFF;
-    background: rgba(74, 158, 255, 0.06);
+    border-top-color: var(--decomp-active-color, #4A9EFF);
+    background: var(--decomp-active-bg, rgba(74, 158, 255, 0.06));
 }
 
 .decomp-tree-column-header__filter-value {
@@ -197,7 +197,7 @@
 }
 
 .decomp-tree-node:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--decomp-active-hover, rgba(255, 255, 255, 0.04));
 }
 
 .decomp-tree-node--root {
@@ -206,7 +206,7 @@
 
 .decomp-tree-node--selected {
     border-left-color: transparent;
-    background: rgba(255, 185, 0, 0.06);
+    background: var(--decomp-active-bg, rgba(255, 185, 0, 0.06));
     padding-left: 10px;
 }
 
@@ -234,7 +234,7 @@
 }
 
 .decomp-tree-node__bar--value-selected {
-    background: #4A9EFF;
+    background: var(--decomp-active-color, #4A9EFF);
 }
 
 .decomp-tree-node__bar--rest {
@@ -295,8 +295,8 @@
 }
 
 .decomp-tree-node--selected .decomp-tree-node__plus {
-    color: #FFB900;
-    background: rgba(255, 185, 0, 0.2);
+    color: var(--decomp-active-color, #FFB900);
+    background: var(--decomp-active-mid, rgba(255, 185, 0, 0.2));
 }
 
 .decomp-tree-expand-menu {
@@ -369,7 +369,7 @@
 }
 
 .decomp-tree-branch--active {
-    stroke: #FFB900;
+    stroke: var(--decomp-active-color, #FFB900);
     stroke-dasharray: none;
 }
 
