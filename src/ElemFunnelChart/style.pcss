@@ -1,0 +1,194 @@
+/* Стили для ElemFunnelChart виджета */
+
+.elem-funnel-chart {
+    @apply w-full h-full relative;
+    min-height: 400px;
+}
+
+.elem-funnel-chart__container {
+    @apply w-full h-full;
+}
+
+/* Состояния виджета */
+.elem-funnel-chart--loading {
+    @apply cursor-wait;
+}
+
+.elem-funnel-chart--error {
+    @apply border border-red-200 bg-red-50;
+}
+
+.elem-funnel-chart--empty {
+    @apply border border-gray-200 bg-gray-50;
+}
+
+.elem-funnel-chart--interactive {
+    @apply cursor-pointer;
+}
+
+/* Сообщения о состоянии */
+.elem-funnel-chart__message {
+    @apply flex items-center justify-center h-full text-center;
+}
+
+.elem-funnel-chart__message--error {
+    @apply text-red-600;
+}
+
+.elem-funnel-chart__message--empty {
+    @apply text-gray-500;
+}
+
+.elem-funnel-chart__icon {
+    @apply text-4xl mb-2 block;
+}
+
+.elem-funnel-chart__text {
+    @apply text-lg font-medium;
+}
+
+/* Лоадер */
+.elem-funnel-chart__loader {
+    @apply flex items-center justify-center h-full;
+}
+
+.elem-funnel-chart__spinner {
+    @apply animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2;
+}
+
+.elem-funnel-chart__loading-text {
+    @apply text-gray-600 text-center;
+}
+
+/* Drilldown контролы */
+.elem-funnel-chart__drilldown {
+    @apply flex gap-2 mt-2 p-2 bg-gray-50 rounded;
+}
+
+.elem-funnel-chart__drilldown-btn {
+    @apply px-3 py-1 rounded text-sm font-medium transition-colors;
+}
+
+.elem-funnel-chart__drilldown-btn--primary {
+    @apply bg-blue-600 text-white;
+}
+
+.elem-funnel-chart__drilldown-btn--primary:hover {
+    @apply bg-blue-700;
+}
+
+.elem-funnel-chart__drilldown-btn--secondary {
+    @apply bg-gray-300 text-gray-700;
+}
+
+.elem-funnel-chart__drilldown-btn--secondary:hover {
+    @apply bg-gray-400;
+}
+
+.elem-funnel-chart__drilldown-btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+}
+
+.elem-funnel-chart__drilldown-icon {
+    @apply mr-1;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .elem-funnel-chart {
+        min-height: 300px;
+    }
+    
+    .elem-funnel-chart__drilldown {
+        @apply flex-col gap-1;
+    }
+    
+    .elem-funnel-chart__drilldown-btn {
+        @apply text-xs px-2 py-1;
+    }
+}
+
+@media (max-width: 480px) {
+    .elem-funnel-chart {
+        min-height: 250px;
+    }
+    
+    .elem-funnel-chart__text {
+        @apply text-base;
+    }
+    
+    .elem-funnel-chart__icon {
+        @apply text-3xl mb-1;
+    }
+}
+
+/* Темная тема */
+@media (prefers-color-scheme: dark) {
+    .elem-funnel-chart--error {
+        @apply border-red-800 bg-red-900 bg-opacity-20;
+    }
+    
+    .elem-funnel-chart--empty {
+        @apply border-gray-700 bg-gray-800 bg-opacity-20;
+    }
+    
+    .elem-funnel-chart__drilldown {
+        @apply bg-gray-800 bg-opacity-20;
+    }
+    
+    .elem-funnel-chart__message--error {
+        @apply text-red-400;
+    }
+    
+    .elem-funnel-chart__message--empty {
+        @apply text-gray-400;
+    }
+    
+    .elem-funnel-chart__loading-text {
+        @apply text-gray-400;
+    }
+}
+
+/* Анимации */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.elem-funnel-chart {
+    animation: fade-in 0.3s ease-out;
+}
+
+/* Высокий контраст */
+@media (prefers-contrast: high) {
+    .elem-funnel-chart--error {
+        @apply border-2 border-red-600;
+    }
+    
+    .elem-funnel-chart--empty {
+        @apply border-2 border-gray-600;
+    }
+    
+    .elem-funnel-chart__drilldown-btn--primary {
+        @apply bg-blue-800 border border-blue-900;
+    }
+    
+    .elem-funnel-chart__drilldown-btn--secondary {
+        @apply bg-gray-200 border border-gray-400 text-gray-900;
+    }
+}
+
+/* Focus styles для доступности */
+.elem-funnel-chart:focus-within {
+    @apply outline-2 outline-blue-500 outline-offset-2;
+}
+
+.elem-funnel-chart__drilldown-btn:focus {
+    @apply outline-2 outline-blue-500 outline-offset-2;
+} 

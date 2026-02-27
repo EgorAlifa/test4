@@ -1,0 +1,1 @@
+/* place constant values, magic number semantic explanations here */

@@ -4,6 +4,11 @@
       "type": "vendor::ElemHelloWorldDemo",
       "name": "Привет, мир!",
       "icon": "mdi-earth"
+    },
+    {
+      "type": "vendor::ElemApiWidget",
+      "name": "API виджет",
+      "icon": "mdi-api"
     }
   ],
   "tools": {
@@ -13,6 +18,12 @@
         "elements": [
           "vendor::ElemHelloWorldDemo"
         ]
+      },
+      {
+        "name": "API и данные",
+        "elements": [
+          "vendor::ElemApiWidget"
+        ]
       }
     ],
     "template": [
@@ -20,6 +31,12 @@
         "name": "Название группы",
         "elements": [
           "vendor::ElemHelloWorldDemo"
+        ]
+      },
+      {
+        "name": "API и данные",
+        "elements": [
+          "vendor::ElemApiWidget"
         ]
       }
     ]

@@ -43,9 +43,10 @@ const configureWebpackLocal = () => ({
         },
         allowedHosts: 'all',
         hot: 'only',
-        server: {
-            type: 'https'
-        },
+        // Используем HTTP вместо HTTPS для локальной разработки
+        // server: {
+        //     type: 'https'
+        // },
         client: {
             webSocketURL: {
                 hostname: 'localhost'
