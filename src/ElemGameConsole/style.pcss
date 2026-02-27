@@ -242,6 +242,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    position: relative;
 }
 
 .arcade-frame {
@@ -249,4 +250,42 @@
     height: 100%;
     border: none;
     display: block;
+}
+
+.arcade-start-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.75);
+    border: 2px solid var(--gc, var(--accent));
+    border-radius: 8px;
+    color: var(--gc, var(--accent));
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    padding: 18px 52px;
+    cursor: pointer;
+    text-shadow: 0 0 12px var(--gc, var(--accent));
+    box-shadow:
+        0 0 32px rgba(0, 0, 0, 0.6),
+        0 0 20px var(--gc, var(--accent));
+    z-index: 10;
+    transition:
+        transform 0.15s,
+        background 0.15s,
+        box-shadow 0.15s;
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.9);
+        transform: translate(-50%, -50%) scale(1.07);
+        box-shadow:
+            0 0 40px rgba(0, 0, 0, 0.7),
+            0 0 28px var(--gc, var(--accent));
+    }
+
+    &:active {
+        transform: translate(-50%, -50%) scale(0.97);
+    }
 }

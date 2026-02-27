@@ -191,6 +191,17 @@ document.addEventListener('keydown', function(e) {
   if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') e.preventDefault();
 });
 document.addEventListener('keyup', function(e) { keys[e.code] = false; });
+document.addEventListener('click', function() { if (!alive) start(); });
+window.addEventListener('message', function(e) { if (e.data === 'start' && !alive) start(); });
+
+function resize() {
+  var s = Math.min(window.innerWidth / W, (window.innerHeight - 40) / H);
+  c.style.width = Math.round(W * s) + 'px';
+  c.style.height = Math.round(H * s) + 'px';
+  document.getElementById('hud').style.width = Math.round(W * s) + 'px';
+}
+window.addEventListener('resize', resize);
+resize();
 
 ctx.fillStyle = '#080810'; ctx.fillRect(0, 0, W, H);
 <\/script>
