@@ -90,7 +90,7 @@ export default {
         },
 
         emptyMessage() {
-            if (!this.hasDataset) {
+            if (!this.request) {
                 return 'Добавьте источник данных в настройках виджета.';
             }
             if (!this.props.sourceIdField || !this.props.targetIdField) {
@@ -163,7 +163,7 @@ export default {
                             repulsion: 200,
                             gravity: 0.1,
                             edgeLength: [80, 150],
-                            layoutAnimation: true
+                            layoutAnimation: false
                         },
                         label: {
                             show: true,
@@ -185,18 +185,14 @@ export default {
     },
 
     watch: {
+        // Перерисовка при смене визуальных настроек (цвет, размер, прозрачность)
         chartOption: {
             handler() {
                 this.updateChart();
             },
             deep: true
         },
-        'props.sourceIdField'() {
-            if (this.requests?.length && this.props.targetIdField) this.loadData();
-        },
-        'props.targetIdField'() {
-            if (this.requests?.length && this.props.sourceIdField) this.loadData();
-        },
+        // result: immediate:true — подхватываем кешированный результат до mounted
         result: {
             handler(newResult) {
                 if (newResult && this.props.sourceIdField && this.props.targetIdField) {
@@ -205,31 +201,31 @@ export default {
             },
             immediate: true
         },
-        requests: {
+        // request (singular) — срабатывает когда коннектор подключают/меняют в редакторе
+        request: {
             handler(val) {
-                if (val && val.length > 0 && this.props.sourceIdField && this.props.targetIdField) {
+                if (val && this.props.sourceIdField && this.props.targetIdField) {
                     this.loadData();
                 }
-            },
-            deep: true
+            }
+        },
+        'props.sourceIdField'() {
+            if (this.request && this.props.targetIdField) this.loadData();
+        },
+        'props.targetIdField'() {
+            if (this.request && this.props.sourceIdField) this.loadData();
         }
     },
 
     mounted() {
-        const tryLoad = () => {
-            if (!this.props.sourceIdField || !this.props.targetIdField) return;
-            if (this.result) {
-                this.applyResult(this.result);
-            } else if (this.requests?.length) {
+        this.$nextTick(() => {
+            if (this.hasData) {
+                // result watcher (immediate) уже обработал кеш — просто рисуем граф
+                this.updateChart();
+            } else if (this.request && this.props.sourceIdField && this.props.targetIdField) {
+                // Запрос готов, но данных ещё нет — запускаем загрузку
                 this.loadData();
             }
-        };
-        // Пробуем сразу, затем после $nextTick — на случай,
-        // если requests ещё не собраны миксином к моменту mounted
-        tryLoad();
-        this.$nextTick(() => {
-            tryLoad();
-            if (this.hasData) this.updateChart();
         });
     },
 
@@ -267,7 +263,7 @@ export default {
                 maxEdgeWidth: this.props.edgeWidthMax,
                 defaultEdgeWidth: 1.5
             });
-            this.$nextTick(() => this.updateChart());
+            // updateChart() вызовет chartOption watcher автоматически при смене graphData
         },
 
         getRowsFromResults(results) {
