@@ -83,7 +83,7 @@ import { useElemDatasetMixin, ElemDatasetMixinTypes } from '@goodt-common/data';
 import { meta } from './descriptor';
 import { ElemInstanceTypeDescriptor } from './types';
 import { options, defaults, uiMaps, schemeToClasses, colorText500, colorText600, colorBgSoft, colorBorderSoft, colorHex500, colorHex600, colorBgSoftHex } from './config';
-import { formatNumber } from '../common/utils/number';
+import { formatNumber } from '@goodt-widgets-insight/utils/number';
 
 const DatasetMixin = useElemDatasetMixin({
     drilldown: true,

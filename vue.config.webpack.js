@@ -33,27 +33,38 @@ const { configureWebpack, chainWebpack } = buildConfigs({
     }
 });
 
-const configureWebpackLocal = () => ({
-    ...configureWebpack(),
-    devServer: {
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-            'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization'
+const configureWebpackLocal = () => {
+    const base = configureWebpack();
+    return {
+        ...base,
+        resolve: {
+            ...base.resolve,
+            alias: {
+                ...(base.resolve?.alias ?? {}),
+                // Явный alias для локального пакета, чтобы сборка не зависела от npm-симлинка
+                '@goodt-widgets-insight/utils': resolve(PROJECT_DIR, 'src/common/utils')
+            }
         },
-        allowedHosts: 'all',
-        hot: 'only',
-        // Используем HTTP вместо HTTPS для локальной разработки
-        // server: {
-        //     type: 'https'
-        // },
-        client: {
-            webSocketURL: {
-                hostname: 'localhost'
+        devServer: {
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+                'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization'
+            },
+            allowedHosts: 'all',
+            hot: 'only',
+            // Используем HTTP вместо HTTPS для локальной разработки
+            // server: {
+            //     type: 'https'
+            // },
+            client: {
+                webSocketURL: {
+                    hostname: 'localhost'
+                }
             }
         }
-    }
-});
+    };
+};
 
 module.exports = {
     configureWebpack: configureWebpackLocal,
