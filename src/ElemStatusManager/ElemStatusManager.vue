@@ -1,12 +1,14 @@
 <template>
     <w-elem>
-        <div v-if="isLoading" class="preloader" />
-        <template v-else-if="isAvailable">
-            <w-status-select v-if="isSelectMode" v-bind="{ currentStatus, options }" @option-selected="onOptionClick" />
-            <w-standard-status-manager
-                v-else
-                v-bind="{ options, selectedOptionTitle }"
-                @option-selected="onOptionClick" />
+        <template v-if="!hasError || isDebug">
+            <div v-if="isLoading" class="preloader" />
+            <template v-else-if="isAvailable">
+                <w-status-select v-if="isSelectMode" v-bind="{ currentStatus, options }" @option-selected="onOptionClick" />
+                <w-standard-status-manager
+                    v-else
+                    v-bind="{ options, selectedOptionTitle }"
+                    @option-selected="onOptionClick" />
+            </template>
         </template>
 
         <w-comment-frame
@@ -37,6 +39,7 @@ export default {
     meta,
     data: () => ({
         isOpenedPopup: false,
+        hasError: false,
         /* Vetur HACK for type hinting */
         ...ApiMixinsTypeDescriptor
     }),
@@ -45,6 +48,7 @@ export default {
             all: true,
             vars: [Vars.TASK_ID],
             handler() {
+                this.hasError = false;
                 this.viewModel.init();
             }
         }
@@ -53,6 +57,7 @@ export default {
         'props.presetUserRoleId': {
             handler() {
                 if (this.taskId != null) {
+                    this.hasError = false;
                     this.viewModel.init();
                 }
             }
@@ -87,6 +92,9 @@ export default {
         },
         isSelectMode() {
             return this.props.workMode === WorkMode.SELECT;
+        },
+        isDebug() {
+            return this.props.isDebug;
         }
     },
     subscribe: [
@@ -106,7 +114,12 @@ export default {
                 taskSettingsApiService: this.taskSettingsApiService
             });
 
-            this.modelDataService.addErrorHandler(this.handleError.bind(this));
+            this.modelDataService.addErrorHandler((error) => {
+                this.hasError = true;
+                if (this.isDebug) {
+                    this.handleError(error);
+                }
+            });
 
             this.viewModel = new ViewModel({
                 modelDataService: this.modelDataService,
@@ -114,6 +127,7 @@ export default {
             });
         },
         async reloadWidget() {
+            this.hasError = false;
             this.onPopupClose();
             await this.viewModel.init();
         },

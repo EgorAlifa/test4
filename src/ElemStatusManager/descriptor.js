@@ -82,6 +82,11 @@ export const descriptor = () => ({
             default: () => ({ ...SelectSetting }),
             label: SelectSettingLabel
         },
+        isDebug: {
+            type: Boolean,
+            default: false,
+            label: 'Отладка'
+        },
         events: {
             type: Object,
             default: () => ({

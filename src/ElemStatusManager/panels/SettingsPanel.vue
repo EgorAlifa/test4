@@ -1,6 +1,7 @@
 <template>
     <w-panel>
         <ui-container>
+            <ui-switch prop="isDebug">Отладка</ui-switch>
             <ui-select prop="workMode" :options="WorkModeOptions" />
             <ui-select prop="presetUserRoleId" :options="employeeRoleOptions">Режим определения роли</ui-select>
 
