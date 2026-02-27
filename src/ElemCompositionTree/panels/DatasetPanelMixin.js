@@ -1,2 +1,3 @@
-export { DatasetPanelMixin } from '../../ElemDecompositionTree/panels/DatasetPanelMixin';
+export const DatasetPanelMixin = {};
 
+export default DatasetPanelMixin;
