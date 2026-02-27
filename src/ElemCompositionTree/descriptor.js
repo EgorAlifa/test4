@@ -6,7 +6,8 @@ import {
     DEFAULT_NODE_COLOR,
     DEFAULT_ROOT_COLOR,
     DEFAULT_CONNECTOR_COLOR,
-    DEFAULT_PLUS_BG
+    DEFAULT_PLUS_BG,
+    DEFAULT_ACTIVE_COLOR
 } from './constants';
 
 export const descriptor = () => ({
@@ -70,6 +71,10 @@ export const descriptor = () => ({
         rootNodeColor: {
             type: String,
             default: DEFAULT_ROOT_COLOR
+        },
+        activeNodeColor: {
+            type: String,
+            default: DEFAULT_ACTIVE_COLOR
         },
         levelColors: {
             type: Array,
