@@ -1,0 +1,669 @@
+/* ============================================
+   GAME VAULT — Retro Gaming Widget
+   ============================================ */
+
+.game-vault {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 500px;
+    background: #08080f;
+    color: #d0d0e0;
+    font-family: 'Courier New', 'Consolas', 'Lucida Console', monospace;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 6px;
+    --accent: #00ff88;
+}
+
+/* ============ HEADER ============ */
+
+.gv-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: #0c0c18;
+    border-bottom: 1px solid #1a1a30;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.gv-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.gv-brand__icon {
+    font-size: 22px;
+    filter: drop-shadow(0 0 6px var(--accent));
+}
+
+.gv-brand__title {
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-shadow:
+        0 0 8px var(--accent),
+        0 0 20px var(--accent);
+}
+
+.gv-brand__count {
+    font-size: 10px;
+    color: #3a3a55;
+    letter-spacing: 1px;
+    margin-left: 4px;
+}
+
+.gv-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.gv-search__input {
+    background: #12121e;
+    border: 1px solid #2a2a40;
+    border-radius: 5px;
+    color: #d0d0e0;
+    padding: 7px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    width: 180px;
+    outline: none;
+    transition: border-color 0.2s;
+
+    &:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.1);
+    }
+
+    &::placeholder {
+        color: #3a3a50;
+    }
+}
+
+.gv-btn-add {
+    background: linear-gradient(135deg, #ff6b35 0%, #e63950 100%);
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    padding: 7px 14px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+        transform 0.15s,
+        box-shadow 0.15s;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(255, 107, 53, 0.45);
+    }
+
+    &:active {
+        transform: none;
+    }
+}
+
+.gv-file-hidden {
+    display: none;
+}
+
+/* ============ PLATFORM FILTERS ============ */
+
+.gv-filters {
+    display: flex;
+    gap: 6px;
+    padding: 8px 18px;
+    background: #08080f;
+    border-bottom: 1px solid #12121e;
+    overflow-x: auto;
+    flex-shrink: 0;
+
+    &::-webkit-scrollbar {
+        height: 2px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #2a2a40;
+    }
+}
+
+.gv-pill {
+    background: transparent;
+    border: 1px solid #2a2a40;
+    border-radius: 20px;
+    color: #555;
+    padding: 3px 12px;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    &:hover {
+        color: #d0d0e0;
+        border-color: #444;
+    }
+
+    &.active {
+        background: #1a1a2e;
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+}
+
+.gv-pill__count {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 0 5px;
+    font-size: 10px;
+}
+
+/* ============ GAMES GRID ============ */
+
+.gv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+    padding: 14px 18px;
+    overflow-y: auto;
+    flex: 1;
+
+    &::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: #08080f;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #2a2a40;
+        border-radius: 3px;
+    }
+}
+
+/* ============ GAME CARD ============ */
+
+.gv-card {
+    background: #0f0f1c;
+    border: 1px solid #1a1a2e;
+    border-radius: 7px;
+    cursor: pointer;
+    transition:
+        border-color 0.15s,
+        transform 0.15s,
+        box-shadow 0.15s;
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--pc, #333);
+        border-radius: 7px 0 0 7px;
+    }
+
+    &:hover {
+        border-color: var(--pc, #444);
+        transform: translateY(-3px);
+        box-shadow:
+            0 8px 24px rgba(0, 0, 0, 0.5),
+            0 0 16px rgba(0, 0, 0, 0.3);
+
+        .gv-card__del {
+            opacity: 1;
+        }
+
+        .gv-card__cover {
+            background: #141428;
+        }
+    }
+}
+
+.gv-card__cover {
+    height: 90px;
+    background: #0c0c18;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 2px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.15s;
+
+    &::before {
+        content: attr(data-letter);
+        position: absolute;
+        font-size: 80px;
+        font-weight: 900;
+        color: var(--pc, #222);
+        opacity: 0.07;
+        top: -10px;
+        right: -5px;
+        line-height: 1;
+        pointer-events: none;
+    }
+}
+
+.gv-card__letter {
+    font-size: 30px;
+    font-weight: 900;
+    color: var(--pc, #444);
+    opacity: 0.5;
+    line-height: 1;
+    text-shadow: 0 0 20px var(--pc, #444);
+}
+
+.gv-card__platform-emoji {
+    font-size: 18px;
+    position: absolute;
+    bottom: 5px;
+    right: 7px;
+    opacity: 0.8;
+}
+
+.gv-card__played {
+    position: absolute;
+    top: 5px;
+    left: 8px;
+    font-size: 9px;
+    color: var(--accent);
+    letter-spacing: 1px;
+    opacity: 0.7;
+}
+
+.gv-card__body {
+    padding: 7px 8px 7px 12px;
+}
+
+.gv-card__name {
+    font-size: 11px;
+    font-weight: bold;
+    color: #c0c0d8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.3px;
+}
+
+.gv-card__meta {
+    font-size: 9px;
+    color: var(--pc, #444);
+    margin-top: 2px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.gv-card__del {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid #2a2a40;
+    border-radius: 50%;
+    color: #ff4455;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    cursor: pointer;
+    opacity: 0;
+    transition:
+        opacity 0.15s,
+        background 0.1s;
+    line-height: 1;
+    padding: 0;
+
+    &:hover {
+        background: #ff4455;
+        color: #fff;
+        border-color: #ff4455;
+    }
+}
+
+/* ============ EMPTY STATE ============ */
+
+.gv-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    user-select: none;
+}
+
+.gv-empty__icon {
+    font-size: 52px;
+    opacity: 0.12;
+    filter: grayscale(1);
+}
+
+.gv-empty__title {
+    font-size: 14px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #2a2a3e;
+}
+
+.gv-empty__sub {
+    font-size: 11px;
+    color: #1e1e2e;
+    text-align: center;
+    max-width: 260px;
+    line-height: 1.7;
+}
+
+.gv-empty__formats {
+    font-size: 10px;
+    color: #1a1a28;
+    letter-spacing: 1px;
+    margin-top: 4px;
+}
+
+/* ============ DRAG OVERLAY ============ */
+
+.gv-drag-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 255, 136, 0.04);
+    border: 2px dashed var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    backdrop-filter: blur(3px);
+}
+
+.gv-drag-overlay__box {
+    text-align: center;
+}
+
+.gv-drag-overlay__icon {
+    font-size: 52px;
+    margin-bottom: 14px;
+    animation: bounce 0.6s ease infinite alternate;
+}
+
+@keyframes bounce {
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(-8px);
+    }
+}
+
+.gv-drag-overlay__text {
+    font-size: 18px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-shadow:
+        0 0 10px var(--accent),
+        0 0 30px var(--accent);
+}
+
+.gv-drag-overlay__sub {
+    font-size: 11px;
+    color: rgba(0, 255, 136, 0.4);
+    margin-top: 8px;
+    letter-spacing: 1px;
+}
+
+/* ============ IMPORT PROGRESS ============ */
+
+.gv-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #0c0c18;
+    border-top: 1px solid #1a1a30;
+    padding: 7px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 10;
+}
+
+.gv-progress__bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #ff6b35, var(--accent));
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px #ff6b35;
+}
+
+.gv-progress__label {
+    font-size: 11px;
+    color: #555;
+    letter-spacing: 1px;
+}
+
+/* ============ DELETE CONFIRM ============ */
+
+.gv-confirm {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+    backdrop-filter: blur(4px);
+}
+
+.gv-confirm__box {
+    background: #0f0f1c;
+    border: 1px solid #2a2a40;
+    border-radius: 8px;
+    padding: 24px 28px;
+    text-align: center;
+    min-width: 240px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.gv-confirm__title {
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 10px;
+}
+
+.gv-confirm__name {
+    font-size: 15px;
+    font-weight: bold;
+    color: #e0e0f0;
+    margin-bottom: 20px;
+    word-break: break-word;
+}
+
+.gv-confirm__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.gv-confirm__cancel,
+.gv-confirm__ok {
+    border-radius: 5px;
+    padding: 8px 20px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.gv-confirm__cancel {
+    background: transparent;
+    border: 1px solid #2a2a40;
+    color: #888;
+
+    &:hover {
+        border-color: #555;
+        color: #d0d0e0;
+    }
+}
+
+.gv-confirm__ok {
+    background: #ff4455;
+    border: 1px solid #ff4455;
+    color: #fff;
+
+    &:hover {
+        background: #ff2233;
+        box-shadow: 0 4px 14px rgba(255, 68, 85, 0.4);
+    }
+}
+
+/* ============ EMULATOR VIEW ============ */
+
+.gv-emu-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 9px 16px;
+    background: #0c0c18;
+    border-bottom: 1px solid #1a1a30;
+    flex-shrink: 0;
+}
+
+.gv-emu-back {
+    background: #1a1a2e;
+    border: 1px solid #2a2a40;
+    border-radius: 5px;
+    color: #d0d0e0;
+    padding: 5px 13px;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+
+    &:hover {
+        background: #22223a;
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+}
+
+.gv-emu-title {
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #d0d0e0;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gv-emu-platform {
+    font-size: 11px;
+    color: #444;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+}
+
+.gv-emu-hint {
+    font-size: 10px;
+    color: #2a2a40;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.gv-emu-area {
+    flex: 1;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.gv-emu-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
+.gv-emu-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: #2a2a40;
+    font-size: 12px;
+    letter-spacing: 2px;
+}
+
+.gv-emu-loading__spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid #1a1a2e;
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============ TRANSITIONS ============ */
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s;
+}
+
+.fade-enter,
+.fade-leave-to {
+    opacity: 0;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+    transition:
+        transform 0.25s,
+        opacity 0.25s;
+}
+
+.slide-up-enter,
+.slide-up-leave-to {
+    transform: translateY(100%);
+    opacity: 0;
+}
