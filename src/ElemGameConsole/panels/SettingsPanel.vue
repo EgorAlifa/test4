@@ -1,6 +1,7 @@
 <template>
     <w-panel>
         <ui-input prop="accentColor"></ui-input>
+        <ui-input prop="maxWaves"></ui-input>
     </w-panel>
 </template>
 <script>

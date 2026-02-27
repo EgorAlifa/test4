@@ -142,10 +142,18 @@ export default {
             this.gameStarted = true;
             this.$nextTick(() => {
                 const frame = this.$refs.gameFrame;
-                if (frame) {
+                if (!frame) return;
+                const sendStart = () => {
                     frame.focus();
-                    try { frame.contentWindow.postMessage('start', '*'); } catch (e) { /* ignore */ }
-                }
+                    try {
+                        frame.contentWindow.postMessage(
+                            { type: 'start', maxWaves: this.props.maxWaves || 10 },
+                            '*'
+                        );
+                    } catch (e) { /* sandboxed — ignore */ }
+                };
+                // send after srcdoc finishes loading so listeners are attached
+                frame.addEventListener('load', sendStart, { once: true });
             });
         },
 

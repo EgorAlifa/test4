@@ -11,6 +11,12 @@ export const descriptor = () => ({
             default: '#00ff88',
             label: 'Акцентный цвет',
             hint: 'Цвет неонового свечения в интерфейсе'
+        },
+        maxWaves: {
+            type: Number,
+            default: 10,
+            label: 'Волн в Shooter',
+            hint: 'Количество волн до победы (1–30)'
         }
     }
 });

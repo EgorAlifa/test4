@@ -39,20 +39,17 @@ canvas { display:block; position:absolute; top:0; left:0; }
 </div>
 <div id="overlay">
   <div class="t" id="ot">MOTO 3D</div>
-  <div class="h">← → — УПРАВЛЕНИЕ</div>
-  <div class="h">ОТ ТРЕТЬЕГО ЛИЦА</div>
+  <div class="h">&#8592; &#8594; &mdash; УПРАВЛЕНИЕ</div>
+  <div class="h">ГОНКИ ОТ ТРЕТЬЕГО ЛИЦА</div>
   <div class="h" style="margin-top:14px;color:#556;letter-spacing:1px;">КЛИК ИЛИ ПРОБЕЛ — НАЧАТЬ</div>
 </div>
 <script>
-var c = document.getElementById('c');
+var c   = document.getElementById('c');
 var ctx = c.getContext('2d');
 var W = 1, H = 1;
 
-function resize() {
-  W = window.innerWidth; H = window.innerHeight;
-  c.width = W; c.height = H;
-}
-window.addEventListener('resize', function(){ resize(); });
+function resize() { W=window.innerWidth; H=window.innerHeight; c.width=W; c.height=H; }
+window.addEventListener('resize', resize);
 resize();
 
 var scEl  = document.getElementById('sc');
@@ -61,235 +58,267 @@ var spdEl = document.getElementById('spd');
 var ov    = document.getElementById('overlay');
 var otEl  = document.getElementById('ot');
 
-/* game state */
-var player, keys, alive, animId;
-var obstacles, score, lives, speed, frame, segOff;
+/* ---- constants ---- */
+var HORIZON = 0.44; /* fraction of H where road meets sky */
+var NUM_SEGS = 24;  /* road segments for alternating colour */
 
-/* each obstacle: { lane:-1|0|1, z:0..1, color } */
+/* ---- game state ---- */
+var player, keys, alive, animId;
+var obstacles, score, lives, speed, frame, scrollCnt;
+
 var CAR_COLS = ['#e63950','#1a6dd5','#e8b84b','#7b5ea7','#00a1e8','#00cc66'];
 
-function heart(n) { var s=''; for(var i=0;i<n;i++) s+='&#9829;'; return s; }
+function heart(n){ var s=''; for(var i=0;i<n;i++) s+='&#9829;'; return s; }
 
 function init() {
-  player = { lane:0, x:0, vx:0, inv:0 }; /* x in world -1..1 */
-  obstacles=[]; score=0; lives=3; speed=0.018; frame=0; segOff=0;
+  player = { x:0, vx:0, inv:0, lean:0 };
+  obstacles=[]; score=0; lives=3; speed=0.022; frame=0; scrollCnt=0;
   scEl.textContent=0; lvEl.innerHTML=heart(3); spdEl.textContent=120;
 }
 
+/* ---- perspective helpers ---- */
+/* z=0 → horizon  z=1 → near edge of road */
+function projY(z)     { return HORIZON*H + z*(H - HORIZON*H); }
+function projScale(z) { return 0.03 + z*0.97; }
+
+/* half-width of road at depth z */
+function roadHW(z)  { return W*0.36 * projScale(z); }
+/* world-x of lane centre (-1,0,+1) at depth z */
+function laneX(lane, z) { return W/2 + lane * roadHW(z) * 0.6; }
+/* road left/right edge */
+function roadEdgeX(side, z) { return W/2 + side * roadHW(z); }
+
+/* ---- spawn obstacle ---- */
 function spawnObstacle() {
-  var lanes=[-1,0,1];
-  var lane=lanes[Math.floor(Math.random()*3)];
-  obstacles.push({lane:lane, z:0,
-    color:CAR_COLS[Math.floor(Math.random()*CAR_COLS.length)]});
+  obstacles.push({
+    lane: [-1,0,1][Math.floor(Math.random()*3)],
+    z: 0,
+    color: CAR_COLS[Math.floor(Math.random()*CAR_COLS.length)]
+  });
 }
 
-/* ---- PERSPECTIVE HELPERS ---- */
-/* z=0 → horizon, z=1 → player position */
-var HORIZON = 0.42; /* fraction of H */
-
-function projY(z) { return HORIZON*H + z*(H - HORIZON*H - H*0.18); }
-
-function projScale(z) { return 0.04 + z*0.96; }
-
-/* road left/right edge at depth z */
-function roadX(side, z) {
-  var centerX = W/2;
-  var halfW = (W*0.38) * projScale(z);
-  return centerX + side * halfW;
+/* ---- draw trapezoid road segment ---- */
+function drawSeg(z0, z1, fillStyle) {
+  ctx.beginPath();
+  ctx.moveTo(roadEdgeX(-1,z0), projY(z0));
+  ctx.lineTo(roadEdgeX( 1,z0), projY(z0));
+  ctx.lineTo(roadEdgeX( 1,z1), projY(z1));
+  ctx.lineTo(roadEdgeX(-1,z1), projY(z1));
+  ctx.closePath();
+  ctx.fillStyle = fillStyle;
+  ctx.fill();
 }
 
-function laneX(lane, z) {
-  /* lane: -1, 0, 1 */
-  var centerX = W/2;
-  var halfW = (W*0.38) * projScale(z);
-  return centerX + lane * halfW * 0.65;
+/* ---- draw curb strip ---- */
+function drawCurb(side, z0, z1, color) {
+  var cw0 = roadHW(z0) * 0.08, cw1 = roadHW(z1) * 0.08;
+  var ex0 = roadEdgeX(side, z0), ex1 = roadEdgeX(side, z1);
+  ctx.beginPath();
+  if (side === -1) {
+    ctx.moveTo(ex0-cw0, projY(z0)); ctx.lineTo(ex0, projY(z0));
+    ctx.lineTo(ex1, projY(z1));     ctx.lineTo(ex1-cw1, projY(z1));
+  } else {
+    ctx.moveTo(ex0, projY(z0)); ctx.lineTo(ex0+cw0, projY(z0));
+    ctx.lineTo(ex1+cw1, projY(z1)); ctx.lineTo(ex1, projY(z1));
+  }
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
 }
 
-/* ---- DRAW SCENE ---- */
-function draw() {
-  ctx.clearRect(0,0,W,H);
-
+/* ---- draw scene ---- */
+function drawScene() {
   /* sky */
   var sky = ctx.createLinearGradient(0,0,0,HORIZON*H);
-  sky.addColorStop(0,'#0a001a');
-  sky.addColorStop(1,'#1a0033');
+  sky.addColorStop(0,'#050010'); sky.addColorStop(1,'#130028');
   ctx.fillStyle=sky; ctx.fillRect(0,0,W,HORIZON*H);
 
   /* stars */
-  ctx.fillStyle='rgba(255,255,255,0.5)';
-  for(var s=0;s<60;s++){
-    var sx=(s*137.5)%W, sy=(s*91.3)%(HORIZON*H);
-    ctx.fillRect(sx,sy,1,1);
+  ctx.fillStyle='rgba(255,255,255,0.55)';
+  for(var st=0;st<70;st++){
+    ctx.fillRect((st*173.3)%W, (st*97.1)%(HORIZON*H), 1, 1);
   }
 
-  /* ground */
-  var gnd = ctx.createLinearGradient(0,HORIZON*H,0,H);
-  gnd.addColorStop(0,'#0c0018');
-  gnd.addColorStop(1,'#000');
-  ctx.fillStyle=gnd; ctx.fillRect(0,HORIZON*H,W,H-HORIZON*H);
+  /* ground / grass */
+  ctx.fillStyle='#060608'; ctx.fillRect(0,HORIZON*H,W,H-HORIZON*H);
 
-  /* road trapezoid */
-  ctx.beginPath();
-  ctx.moveTo(roadX(-1,0), projY(0));
-  ctx.lineTo(roadX( 1,0), projY(0));
-  ctx.lineTo(roadX( 1,1), projY(1));
-  ctx.lineTo(roadX(-1,1), projY(1));
-  ctx.closePath();
-  ctx.fillStyle='#1e1e2e'; ctx.fill();
+  /* road: NUM_SEGS alternating segments */
+  for (var seg=0; seg<NUM_SEGS; seg++) {
+    var z0 = seg     / NUM_SEGS;
+    var z1 = (seg+1) / NUM_SEGS;
+    /* phase flips with scrollCnt so colours scroll toward player */
+    var phase = (seg + scrollCnt) & 1;
+    var roadCol  = phase ? '#1a1a2a' : '#222238';
+    var curbCol  = phase ? '#cc0022' : '#ffffff';
+    drawSeg(z0, z1, roadCol);
+    drawCurb(-1, z0, z1, curbCol);
+    drawCurb( 1, z0, z1, curbCol);
+  }
 
-  /* road edge lines */
-  [[- 1],[1]].forEach(function(side){
+  /* centre dashes — appear only on even segments */
+  for (var seg2=0; seg2<NUM_SEGS; seg2++) {
+    if (((seg2 + scrollCnt) & 1) === 0) continue;
+    var t0 = seg2     / NUM_SEGS;
+    var t1 = (seg2+0.5) / NUM_SEGS;
+    var cy0 = projY(t0), cy1 = projY(t1);
+    var cx0 = W/2, cx1 = W/2;
+    var dw0 = roadHW(t0)*0.025, dw1 = roadHW(t1)*0.025;
     ctx.beginPath();
-    ctx.moveTo(roadX(side,0),projY(0));
-    ctx.lineTo(roadX(side,1),projY(1));
-    ctx.strokeStyle='#cc44ff'; ctx.lineWidth=2;
-    ctx.shadowColor='#cc44ff'; ctx.shadowBlur=6;
-    ctx.stroke(); ctx.shadowBlur=0;
-  });
-
-  /* lane dashes */
-  var segments = 20;
-  for(var seg=0;seg<segments;seg++){
-    var t0 = (seg/segments + segOff) % 1;
-    var t1 = ((seg+0.4)/segments + segOff) % 1;
-    if (t0 > t1) continue; /* skip wrap */
-    [-1,1].forEach(function(side){
-      ctx.beginPath();
-      ctx.moveTo(laneX(side,t0), projY(t0));
-      ctx.lineTo(laneX(side,t1), projY(t1));
-      ctx.strokeStyle='rgba(180,100,255,0.3)';
-      ctx.lineWidth=Math.max(1,(t0+t1)/2*3);
-      ctx.stroke();
-    });
+    ctx.moveTo(cx0-dw0, cy0); ctx.lineTo(cx0+dw0, cy0);
+    ctx.lineTo(cx1+dw1, cy1); ctx.lineTo(cx1-dw1, cy1);
+    ctx.closePath();
+    ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.fill();
   }
 
-  /* obstacles (far to near) */
-  var sorted = obstacles.slice().sort(function(a,b){return a.z-b.z;});
+  /* obstacles — sorted far-to-near */
+  var sorted = obstacles.slice().sort(function(a,b){ return a.z-b.z; });
   sorted.forEach(function(o){
-    var z = o.z;
-    var s = projScale(z);
-    var cx = laneX(o.lane, z);
-    var cy = projY(z);
-    var cw = W*0.07*s, ch = H*0.12*s;
-    drawCar(ctx, cx-cw/2, cy-ch*0.85, cw, ch, o.color, false);
+    var s   = projScale(o.z);
+    var cx  = laneX(o.lane, o.z);
+    var cy  = projY(o.z);
+    var cw  = W*0.075*s, ch = W*0.13*s;
+    drawCar(cx-cw/2, cy-ch*0.9, cw, ch, o.color);
   });
 
-  /* player moto (3rd person: camera behind) */
-  var px = W/2 + player.x * W*0.3;
-  var py = H - H*0.06;
-  var mw = W*0.07, mh = H*0.13;
-  drawMoto(ctx, px, py, mw, mh);
+  /* player moto */
+  var lean = player.lean;
+  var mx   = W/2 + player.x * W*0.28;
+  var mw   = W*0.09, mh = H*0.18;
+  var my   = H - mh - H*0.02;
+  drawMoto(mx, my, mw, mh, lean);
 }
 
-function drawCar(ctx, x, y, w, h, col, isP) {
-  /* body */
+/* ---- draw car sprite ---- */
+function drawCar(x, y, w, h, col) {
   ctx.fillStyle=col;
-  ctx.fillRect(x+w*0.1, y+h*0.2, w*0.8, h*0.6);
+  ctx.fillRect(x+w*0.08, y+h*0.22, w*0.84, h*0.58);
   /* roof */
-  ctx.fillStyle=lighten(col,0.4);
-  ctx.fillRect(x+w*0.2, y, w*0.6, h*0.35);
-  /* windows */
-  ctx.fillStyle='rgba(100,180,255,0.5)';
-  ctx.fillRect(x+w*0.22, y+h*0.04, w*0.56, h*0.25);
+  ctx.fillStyle=lighten(col,0.35);
+  ctx.fillRect(x+w*0.18, y+h*0.02, w*0.64, h*0.3);
+  /* windshield */
+  ctx.fillStyle='rgba(140,210,255,0.45)';
+  ctx.fillRect(x+w*0.2, y+h*0.05, w*0.6, h*0.22);
   /* wheels */
   ctx.fillStyle='#111';
-  ctx.fillRect(x-w*0.05, y+h*0.15, w*0.18, h*0.25);
-  ctx.fillRect(x+w*0.87, y+h*0.15, w*0.18, h*0.25);
-  ctx.fillRect(x-w*0.05, y+h*0.6,  w*0.18, h*0.25);
-  ctx.fillRect(x+w*0.87, y+h*0.6,  w*0.18, h*0.25);
+  ctx.fillRect(x-w*0.06, y+h*0.15, w*0.17, h*0.22);
+  ctx.fillRect(x+w*0.89, y+h*0.15, w*0.17, h*0.22);
+  ctx.fillRect(x-w*0.06, y+h*0.62, w*0.17, h*0.22);
+  ctx.fillRect(x+w*0.89, y+h*0.62, w*0.17, h*0.22);
   /* headlights */
-  ctx.fillStyle=isP?'#fff':'#ffee00';
-  ctx.shadowColor=isP?'#fff':'#ffee00'; ctx.shadowBlur=6;
-  ctx.fillRect(x+w*0.08, y+h*0.75, w*0.22, h*0.1);
-  ctx.fillRect(x+w*0.7,  y+h*0.75, w*0.22, h*0.1);
+  ctx.fillStyle='#ffee33'; ctx.shadowColor='#ffee33'; ctx.shadowBlur=5;
+  ctx.fillRect(x+w*0.06, y+h*0.76, w*0.22, h*0.1);
+  ctx.fillRect(x+w*0.72, y+h*0.76, w*0.22, h*0.1);
   ctx.shadowBlur=0;
 }
 
-function drawMoto(ctx, cx, bottom, w, h) {
+/* ---- draw moto (3rd-person, behind) ---- */
+function drawMoto(cx, top, w, h, lean) {
+  ctx.save();
+  ctx.translate(cx, top+h*0.5);
+  ctx.rotate(lean * 0.18);
+
   /* shadow */
-  ctx.fillStyle='rgba(0,0,0,0.4)';
-  ctx.beginPath(); ctx.ellipse(cx,bottom+h*0.04,w*0.55,h*0.06,0,0,Math.PI*2); ctx.fill();
-  /* wheels */
-  ctx.strokeStyle='#888'; ctx.lineWidth=w*0.13;
-  ctx.beginPath(); ctx.arc(cx-w*0.28, bottom-h*0.08, w*0.22,0,Math.PI*2); ctx.stroke();
-  ctx.beginPath(); ctx.arc(cx+w*0.28, bottom-h*0.72, w*0.22,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(0, h*0.52, w*0.55, h*0.06, 0, 0, Math.PI*2); ctx.fill();
+
+  /* rear wheel */
+  ctx.strokeStyle='#777'; ctx.lineWidth=w*0.14;
+  ctx.beginPath(); ctx.arc(0, h*0.4, w*0.26, 0, Math.PI*2); ctx.stroke();
+  /* front wheel (smaller, further up) */
+  ctx.lineWidth=w*0.1;
+  ctx.beginPath(); ctx.arc(0, -h*0.18, w*0.18, 0, Math.PI*2); ctx.stroke();
+
   /* frame */
-  ctx.strokeStyle='#cc44ff'; ctx.lineWidth=w*0.09; ctx.shadowColor='#cc44ff'; ctx.shadowBlur=8;
+  ctx.strokeStyle='#9922cc'; ctx.lineWidth=w*0.1;
+  ctx.shadowColor='#cc44ff'; ctx.shadowBlur=10;
   ctx.beginPath();
-  ctx.moveTo(cx-w*0.28, bottom-h*0.08);
-  ctx.lineTo(cx, bottom-h*0.55);
-  ctx.lineTo(cx+w*0.28, bottom-h*0.72);
+  ctx.moveTo(0, h*0.4); ctx.lineTo(0, -h*0.18);
   ctx.stroke(); ctx.shadowBlur=0;
-  /* body / tank */
-  ctx.fillStyle='#6600cc';
-  ctx.fillRect(cx-w*0.22, bottom-h*0.62, w*0.44, h*0.22);
-  /* rider body */
-  ctx.fillStyle='#111';
-  ctx.fillRect(cx-w*0.18, bottom-h*0.95, w*0.36, h*0.4);
-  /* rider head */
-  ctx.fillStyle='#cc44ff'; ctx.shadowColor='#cc44ff'; ctx.shadowBlur=6;
-  ctx.beginPath(); ctx.arc(cx, bottom-h*1.0, w*0.18,0,Math.PI*2); ctx.fill();
+
+  /* fuel tank / body */
+  ctx.fillStyle='#5500aa';
+  ctx.fillRect(-w*0.22, -h*0.05, w*0.44, h*0.22);
+
+  /* exhaust flame */
+  ctx.fillStyle='rgba(255,120,40,0.7)';
+  ctx.shadowColor='#ff8800'; ctx.shadowBlur=8;
+  ctx.beginPath(); ctx.ellipse(-w*0.14, h*0.48, w*0.1, w*0.06, 0, 0, Math.PI*2); ctx.fill();
   ctx.shadowBlur=0;
-  /* exhaust glow */
-  ctx.fillStyle='rgba(255,100,50,0.6)';
-  ctx.beginPath(); ctx.arc(cx-w*0.18, bottom-h*0.12, w*0.08,0,Math.PI*2); ctx.fill();
+
+  /* rider torso */
+  ctx.fillStyle='#1a1a2a';
+  ctx.fillRect(-w*0.2, -h*0.42, w*0.4, h*0.4);
+
+  /* rider head */
+  ctx.fillStyle='#cc44ff'; ctx.shadowColor='#cc44ff'; ctx.shadowBlur=8;
+  ctx.beginPath(); ctx.arc(0, -h*0.5, w*0.19, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+
+  /* visor */
+  ctx.fillStyle='rgba(0,220,255,0.45)';
+  ctx.fillRect(-w*0.14, -h*0.56, w*0.28, h*0.1);
+
+  ctx.restore();
 }
 
 function lighten(hex, amt) {
   var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
-  return 'rgb('+Math.min(255,Math.round(r+amt*200))+','+Math.min(255,Math.round(g+amt*200))+','+Math.min(255,Math.round(b+amt*200))+')';
+  return 'rgb('+Math.min(255,Math.round(r+amt*180))+','+Math.min(255,Math.round(g+amt*180))+','+Math.min(255,Math.round(b+amt*180))+')';
 }
 
-/* ---- GAME TICK ---- */
+/* ---- game tick ---- */
 function tick() {
   frame++;
 
-  /* move road */
-  segOff = (segOff + speed) % 1;
+  /* scroll — one segment flip per (1/NUM_SEGS / speed) frames */
+  var scrollFrac = speed * NUM_SEGS * frame;
+  scrollCnt = Math.floor(scrollFrac) & (NUM_SEGS * 2 - 1); /* cycle 0..47 */
 
-  /* player steering */
-  if (keys['ArrowLeft'])  player.vx = Math.max(player.vx-0.012, -0.04);
-  else if (keys['ArrowRight']) player.vx = Math.min(player.vx+0.012, 0.04);
-  else player.vx *= 0.82;
+  /* steering */
+  var turning = 0;
+  if (keys['ArrowLeft'])  { player.vx = Math.max(player.vx-0.014,-0.045); turning=-1; }
+  else if (keys['ArrowRight']) { player.vx = Math.min(player.vx+0.014, 0.045); turning=1; }
+  else { player.vx *= 0.80; }
+
+  /* lean smoothly */
+  player.lean += (turning*1 - player.lean) * 0.18;
 
   player.x = Math.max(-0.95, Math.min(0.95, player.x+player.vx));
   if (player.inv>0) player.inv--;
 
   /* spawn */
-  var spawnInt = Math.max(55, 120 - Math.floor(score/150)*8);
+  var spawnInt = Math.max(50, 110 - Math.floor(score/200)*7);
   if (frame % spawnInt === 0) spawnObstacle();
 
-  /* advance obstacles */
-  obstacles.forEach(function(o){ o.z += speed*1.1; });
-  obstacles = obstacles.filter(function(o){ return o.z<1.15; });
+  /* advance obstacles toward player */
+  obstacles.forEach(function(o){ o.z += speed*1.15; });
+  obstacles = obstacles.filter(function(o){ return o.z<1.12; });
 
-  /* score */
+  /* score & speed */
   score++;
-  scEl.textContent=score;
-  speed = 0.018 + Math.floor(score/400)*0.003;
-  spdEl.textContent = Math.round(120 + score/6);
+  scEl.textContent = score;
+  speed = 0.022 + Math.floor(score/500)*0.004;
+  spdEl.textContent = Math.round(120 + score/5);
 
-  /* collision: only check obstacles close to player (z>0.85) */
+  /* collision at z > 0.82 */
   if (player.inv===0) {
     obstacles.forEach(function(o){
-      if (o.z<0.8||o.z>1.05) return;
-      /* player x (normalized) vs obstacle lane center */
-      var laneCX = o.lane * 0.65; /* matches laneX logic at z=1 */
-      if (Math.abs(player.x - laneCX) < 0.28) {
+      if (o.z<0.82||o.z>1.08) return;
+      var laneCX = o.lane * 0.6; /* world-x of lane centre (same scale as player.x) */
+      if (Math.abs(player.x - laneCX) < 0.32) {
         lives--; lvEl.innerHTML=heart(Math.max(0,lives));
-        player.inv=110;
+        player.inv=120;
         if (lives<=0) { alive=false; cancelAnimationFrame(animId); gameOver(); }
       }
     });
   }
 
-  draw();
+  drawScene();
   if (alive) animId=requestAnimationFrame(tick);
 }
 
 function gameOver() {
-  otEl.className='t go';
-  otEl.textContent='CRASH!';
+  otEl.className='t go'; otEl.textContent='CRASH!';
   var scDiv=ov.querySelector('.sc');
   if(!scDiv){ ov.insertAdjacentHTML('beforeend','<div class="sc"></div>'); scDiv=ov.querySelector('.sc'); }
   scDiv.textContent='СЧЁТ '+score;
@@ -311,7 +340,10 @@ document.addEventListener('keydown', function(e){
 });
 document.addEventListener('keyup', function(e){ keys[e.code]=false; });
 document.addEventListener('click', function(){ if(!alive) start(); });
-window.addEventListener('message', function(e){ if(e.data==='start'&&!alive) start(); });
+window.addEventListener('message', function(e){
+  var d=e.data;
+  if(d==='start'||(d&&d.type==='start')) { if(!alive) start(); }
+});
 
 ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
 <\/script>
