@@ -1,6 +1,5 @@
 <template>
     <w-panel>
-        <ui-input prop="emulatorJsPath"></ui-input>
         <ui-input prop="accentColor"></ui-input>
     </w-panel>
 </template>

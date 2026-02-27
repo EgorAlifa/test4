@@ -135,6 +135,17 @@ document.addEventListener('keydown', function(e) {
   var d = m[e.code];
   if (d && !(d.x === -dir.x && d.y === -dir.y)) { nd = d; e.preventDefault(); }
 });
+document.addEventListener('click', function() { if (!alive) start(); });
+window.addEventListener('message', function(e) { if (e.data === 'start' && !alive) start(); });
+
+function resize() {
+  var s = Math.min(window.innerWidth / 400, (window.innerHeight - 40) / 400);
+  c.style.width = Math.round(400 * s) + 'px';
+  c.style.height = Math.round(400 * s) + 'px';
+  document.getElementById('hud').style.width = Math.round(400 * s) + 'px';
+}
+window.addEventListener('resize', resize);
+resize();
 
 ctx.fillStyle = '#080810'; ctx.fillRect(0,0,400,400);
 <\/script>

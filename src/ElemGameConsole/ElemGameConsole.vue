@@ -42,14 +42,18 @@
                     <span class="arcade-bar__title">{{ currentGame.art }} {{ currentGame.name }}</span>
                     <span class="arcade-bar__hint">F - полный экран</span>
                 </div>
-                <div class="arcade-stage">
+                <div class="arcade-stage" :style="{ '--gc': currentGame.color }" @click="focusFrame">
                     <iframe
                         ref="gameFrame"
                         :srcdoc="currentGame.html"
                         class="arcade-frame"
-                        sandbox="allow-scripts allow-same-origin"
+                        tabindex="0"
+                        sandbox="allow-scripts"
                         allowfullscreen
                     ></iframe>
+                    <button v-if="!gameStarted" class="arcade-start-btn" @click.stop="startGame">
+                        ▶ ИГРАТЬ
+                    </button>
                 </div>
             </template>
         </div>
@@ -63,6 +67,8 @@ import { ElemInstanceTypeDescriptor } from './types';
 import snakeHtml from './games/snake';
 import racingHtml from './games/racing';
 import shooterHtml from './games/shooter';
+import csHtml from './games/cs';
+import racing3dHtml from './games/racing3d';
 
 const GAMES = [
     {
@@ -91,6 +97,24 @@ const GAMES = [
         controls: ['←', '→', 'SPC'],
         color: '#00d4ff',
         html: shooterHtml
+    },
+    {
+        id: 'cs',
+        name: 'CS-STYLE',
+        art: '🔫',
+        desc: 'Зачисти карту от врагов (от 1-го лица)',
+        controls: ['WASD', '←→', 'SPC'],
+        color: '#ff4455',
+        html: csHtml
+    },
+    {
+        id: 'racing3d',
+        name: 'MOTO 3D',
+        art: '🏍',
+        desc: 'Гонки от третьего лица — объезжай машины',
+        controls: ['←', '→'],
+        color: '#cc44ff',
+        html: racing3dHtml
     }
 ];
 
@@ -104,21 +128,36 @@ export default {
     data: () => ({
         ...ElemInstanceTypeDescriptor,
         GAMES,
-        currentGame: null
+        currentGame: null,
+        gameStarted: false
     }),
 
     methods: {
         play(game) {
             this.currentGame = game;
+            this.gameStarted = false;
+        },
+
+        startGame() {
+            this.gameStarted = true;
             this.$nextTick(() => {
-                if (this.$refs.gameFrame) {
-                    this.$refs.gameFrame.focus();
+                const frame = this.$refs.gameFrame;
+                if (frame) {
+                    frame.focus();
+                    try { frame.contentWindow.postMessage('start', '*'); } catch (e) { /* ignore */ }
                 }
             });
         },
 
+        focusFrame() {
+            if (this.gameStarted && this.$refs.gameFrame) {
+                this.$refs.gameFrame.focus();
+            }
+        },
+
         exit() {
             this.currentGame = null;
+            this.gameStarted = false;
         }
     }
 };
