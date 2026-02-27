@@ -39,6 +39,15 @@ const html = `<!DOCTYPE html>
   .go { color: #ff4455; text-shadow: 0 0 10px #ff4455, 0 0 35px #ff4455; }
   .sc { font-size: 20px; color: #fff; letter-spacing: 2px; }
   .h  { font-size: 12px; color: #3a3a55; letter-spacing: 2px; margin-top: 6px; }
+  .btn-row { display:flex; gap:12px; margin-top:4px; }
+  .btn-redo,.btn-menu {
+    border-radius:6px; font-family:'Courier New',monospace;
+    font-size:12px; letter-spacing:2px; padding:9px 20px; cursor:pointer; transition:all 0.15s;
+  }
+  .btn-redo { background:#0a200e; border:1px solid #00ff88; color:#00ff88; }
+  .btn-redo:hover { background:#0e2a14; box-shadow:0 0 12px rgba(0,255,136,0.5); }
+  .btn-menu { background:transparent; border:1px solid #2a2a45; color:#4a4a65; }
+  .btn-menu:hover { border-color:#888; color:#aaa; }
 </style>
 </head>
 <body>
@@ -85,7 +94,7 @@ function tick() {
   if (h.x < 0 || h.x >= COLS || h.y < 0 || h.y >= ROWS ||
       snake.some(function(s) { return s.x === h.x && s.y === h.y; })) {
     clearInterval(loop); alive = false;
-    ov.innerHTML = '<div class="t go">GAME OVER</div><div class="sc">СЧЁТ ' + score + '</div><div class="h">ПРОБЕЛ — ЗАНОВО</div>';
+    ov.innerHTML = '<div class="t go">GAME OVER</div><div class="sc">СЧЁТ ' + score + '</div><div class="btn-row"><button class="btn-menu" onclick="goMenu()">← МЕНЮ</button><button class="btn-redo" onclick="start()">↺ ЗАНОВО</button></div>';
     ov.style.display = 'flex'; return;
   }
   snake.unshift(h);
@@ -135,8 +144,13 @@ document.addEventListener('keydown', function(e) {
   var d = m[e.code];
   if (d && !(d.x === -dir.x && d.y === -dir.y)) { nd = d; e.preventDefault(); }
 });
-document.addEventListener('click', function() { if (!alive) start(); });
-window.addEventListener('message', function(e) { if (e.data === 'start' && !alive) start(); });
+document.addEventListener('click', function(e) { if (!alive && e.target.tagName !== 'BUTTON') start(); });
+window.addEventListener('message', function(e) {
+  var d = e.data;
+  if ((d === 'start' || (d && d.type === 'start')) && !alive) start();
+});
+
+function goMenu() { window.parent.postMessage({type:'exit'}, '*'); }
 
 function resize() {
   var s = Math.min(window.innerWidth / 400, (window.innerHeight - 40) / 400);

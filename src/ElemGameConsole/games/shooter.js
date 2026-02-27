@@ -29,10 +29,19 @@ var html = `<!DOCTYPE html>
   }
   .t   { font-size: 36px; font-weight: 900; letter-spacing: 6px; color: #00d4ff;
          text-shadow: 0 0 10px #00d4ff, 0 0 35px #00d4ff, 0 0 70px #00d4ff; }
-  .go  { color: #ff4455; text-shadow: 0 0 10px #ff4455, 0 0 35px #ff4455; }
-  .win { color: #00ff88; text-shadow: 0 0 10px #00ff88, 0 0 35px #00ff88; }
-  .sc  { font-size: 20px; color: #fff; letter-spacing: 2px; }
-  .h   { font-size: 12px; color: #3a3a55; letter-spacing: 2px; margin-top: 6px; }
+  .go    { color: #ff4455; text-shadow: 0 0 10px #ff4455, 0 0 35px #ff4455; }
+  .win   { color: #00ff88; text-shadow: 0 0 10px #00ff88, 0 0 35px #00ff88; }
+  .sc    { font-size: 20px; color: #fff; letter-spacing: 2px; }
+  .praise{ font-size: 14px; color: #00ff88; letter-spacing: 3px; margin-top: 4px; }
+  .h     { font-size: 12px; color: #3a3a55; letter-spacing: 2px; margin-top: 6px; }
+  .btn-row { display:none; gap:12px; margin-top:16px; justify-content:center; }
+  .btn-redo { background:#00d4ff; color:#000; border:none; padding:10px 26px;
+              font-family:inherit; font-size:12px; letter-spacing:3px; cursor:pointer;
+              border-radius:4px; font-weight:900; }
+  .btn-menu { background:transparent; color:#556; border:1px solid #2a2a40; padding:10px 26px;
+              font-family:inherit; font-size:12px; letter-spacing:3px; cursor:pointer;
+              border-radius:4px; }
+  .btn-menu:hover { border-color:#556; color:#aaa; }
   #wave-banner {
     position: fixed; inset: 0; pointer-events: none;
     display: flex; align-items: center; justify-content: center;
@@ -55,9 +64,14 @@ var html = `<!DOCTYPE html>
 <div id="overlay">
   <div class="t" id="ov-title">SHOOTER</div>
   <div class="sc" id="ov-score" style="display:none"></div>
-  <div class="h">&#8592; &#8594; &mdash; ДВИЖЕНИЕ</div>
-  <div class="h">ПРОБЕЛ &mdash; ОГОНЬ / СТАРТ</div>
-  <div class="h" style="margin-top:10px;color:#556;letter-spacing:1px;">КЛИК ИЛИ ПРОБЕЛ — НАЧАТЬ</div>
+  <div class="praise" id="ov-praise" style="display:none"></div>
+  <div class="h" id="hint1">&#8592; &#8594; &mdash; ДВИЖЕНИЕ</div>
+  <div class="h" id="hint2">ПРОБЕЛ &mdash; ОГОНЬ / СТАРТ</div>
+  <div class="h" id="hint3" style="margin-top:10px;color:#556;letter-spacing:1px;">КЛИК ИЛИ ПРОБЕЛ — НАЧАТЬ</div>
+  <div class="btn-row" id="btn-row">
+    <button class="btn-redo" onclick="start()">↺ ЗАНОВО</button>
+    <button class="btn-menu" onclick="goMenu()">← МЕНЮ</button>
+  </div>
 </div>
 <script>
 var c = document.getElementById('c');
@@ -193,7 +207,7 @@ function tick() {
     }
     spawnWave();
     waveDelay = 110;
-    return;
+    draw(); animId = requestAnimationFrame(tick); return; /* keep loop alive */
   }
 
   var spd = 0.6 + wave * 0.3;
@@ -278,21 +292,42 @@ function draw() {
   });
 }
 
+var PRAISE = ['МАСТЕР СТРЕЛЬБЫ!','ВЫ НЕПОБЕДИМЫ!','ЛЕГЕНДА АРКАДЫ!','ТОП-СНАЙПЕР!'];
+var ovPraise = document.getElementById('ov-praise');
+var btnRow   = document.getElementById('btn-row');
+
+function showEndScreen() {
+  document.getElementById('hint1').style.display='none';
+  document.getElementById('hint2').style.display='none';
+  document.getElementById('hint3').style.display='none';
+  btnRow.style.display='flex';
+}
+function hideEndScreen() {
+  document.getElementById('hint1').style.display='block';
+  document.getElementById('hint2').style.display='block';
+  document.getElementById('hint3').style.display='block';
+  btnRow.style.display='none';
+  ovPraise.style.display='none'; ovScore.style.display='none';
+}
+
 function gameOver() {
   ovTitle.className='t go'; ovTitle.textContent='GAME OVER';
-  ovScore.style.display='block'; ovScore.textContent='СЧЁТ '+score+' · ВОЛНА '+wave;
-  ov.style.display='flex';
+  ovScore.style.display='block'; ovScore.textContent='СЧЁТ '+score+' · ВОЛНА '+wave+'/'+MAX_WAVES;
+  showEndScreen(); ov.style.display='flex';
 }
 
 function gameVictory() {
-  ovTitle.className='t win'; ovTitle.textContent='VICTORY!';
-  ovScore.style.display='block'; ovScore.textContent='СЧЁТ '+score+' · ВСЕ '+MAX_WAVES+' ВОЛН!';
-  ov.style.display='flex';
+  ovTitle.className='t win'; ovTitle.textContent='ПОБЕДА! 🏆';
+  ovScore.style.display='block'; ovScore.textContent='СЧЁТ '+score;
+  ovPraise.style.display='block'; ovPraise.textContent=PRAISE[Math.floor(Math.random()*PRAISE.length)];
+  showEndScreen(); ov.style.display='flex';
 }
+
+function goMenu() { window.parent.postMessage({type:'exit'}, '*'); }
 
 function start() {
   ovTitle.className='t'; ovTitle.textContent='SHOOTER';
-  ovScore.style.display='none';
+  hideEndScreen();
   ov.style.display='none';
   init(); alive=true;
   cancelAnimationFrame(animId);

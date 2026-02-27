@@ -32,6 +32,15 @@ var html = `<!DOCTYPE html>
   .go { color: #ff4455; text-shadow: 0 0 10px #ff4455, 0 0 35px #ff4455; }
   .sc { font-size: 20px; color: #fff; letter-spacing: 2px; }
   .h  { font-size: 12px; color: #3a3a55; letter-spacing: 2px; margin-top: 6px; }
+  .btn-row { display:flex; gap:12px; margin-top:4px; }
+  .btn-redo,.btn-menu {
+    border-radius:6px; font-family:'Courier New',monospace;
+    font-size:12px; letter-spacing:2px; padding:9px 20px; cursor:pointer; transition:all 0.15s;
+  }
+  .btn-redo { background:#201008; border:1px solid #ff6b35; color:#ff6b35; }
+  .btn-redo:hover { background:#2a150a; box-shadow:0 0 12px rgba(255,107,53,0.5); }
+  .btn-menu { background:transparent; border:1px solid #2a2a45; color:#4a4a65; }
+  .btn-menu:hover { border-color:#888; color:#aaa; }
 </style>
 </head>
 <body>
@@ -174,9 +183,11 @@ function draw() {
 }
 
 function gameOver() {
-  ov.innerHTML = '<div class="t go">CRASH!</div><div class="sc">СЧЁТ ' + score + '</div><div class="h">ПРОБЕЛ &mdash; ЗАНОВО</div>';
+  ov.innerHTML = '<div class="t go">CRASH!</div><div class="sc">СЧЁТ ' + score + '</div><div class="btn-row"><button class="btn-menu" onclick="goMenu()">← МЕНЮ</button><button class="btn-redo" onclick="start()">↺ ЗАНОВО</button></div>';
   ov.style.display = 'flex';
 }
+
+function goMenu() { window.parent.postMessage({type:'exit'}, '*'); }
 
 function start() {
   ov.style.display = 'none';
@@ -191,8 +202,11 @@ document.addEventListener('keydown', function(e) {
   if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') e.preventDefault();
 });
 document.addEventListener('keyup', function(e) { keys[e.code] = false; });
-document.addEventListener('click', function() { if (!alive) start(); });
-window.addEventListener('message', function(e) { if (e.data === 'start' && !alive) start(); });
+document.addEventListener('click', function(e) { if (!alive && e.target.tagName !== 'BUTTON') start(); });
+window.addEventListener('message', function(e) {
+  var d = e.data;
+  if ((d === 'start' || (d && d.type === 'start')) && !alive) start();
+});
 
 function resize() {
   var s = Math.min(window.innerWidth / W, (window.innerHeight - 40) / H);
