@@ -83,6 +83,14 @@ export const descriptor = () => ({
             type: String,
             default: DEFAULT_PLUS_BG
         },
+        labelColor: {
+            type: String,
+            default: ''
+        },
+        valueColor: {
+            type: String,
+            default: ''
+        },
         selectEvent: {
             type: Object,
             default: () => ({})
