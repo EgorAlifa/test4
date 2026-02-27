@@ -1,10 +1,13 @@
 export const DEFAULT_TOP_N = 10;
-export const MAX_LEVELS = 10;
+export const MAX_LEVELS = 12;
+export const MIN_LEVEL_SLOTS = 1;
+export const DEFAULT_LEVEL_SLOTS = 3;
 export const MAX_NODES = 50;
 export const DEFAULT_NODE_COLOR = '#5A8FD4';
 export const DEFAULT_ROOT_COLOR = '#3A6CB4';
 export const DEFAULT_CONNECTOR_COLOR = '#5A5A6E';
 export const DEFAULT_PLUS_BG = '#4A4A5A';
+export const DEFAULT_ACTIVE_COLOR = '#FF6B35';
 
 export const METRIC_FORMAT_OPTIONS = [
     { value: '1', label: 'Авто' },
