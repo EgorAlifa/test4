@@ -1,0 +1,12 @@
+export {
+    DEFAULT_TOP_N,
+    MAX_LEVELS,
+    MAX_NODES,
+    DEFAULT_NODE_COLOR,
+    DEFAULT_ROOT_COLOR,
+    DEFAULT_CONNECTOR_COLOR,
+    DEFAULT_PLUS_BG,
+    METRIC_FORMAT_OPTIONS,
+    SEPARATOR_OPTIONS
+} from '../ElemDecompositionTree/constants';
+
