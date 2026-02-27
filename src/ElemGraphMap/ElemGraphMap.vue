@@ -90,8 +90,7 @@ export default {
         },
 
         emptyMessage() {
-            const hasDremio = this.props.dremio && this.props.dremio.length > 0;
-            if (!hasDremio) {
+            if (!this.hasDataset) {
                 return 'Добавьте источник данных в настройках виджета.';
             }
             if (!this.props.sourceIdField || !this.props.targetIdField) {
@@ -192,19 +191,11 @@ export default {
             },
             deep: true
         },
-        'props.dremio': {
-            handler(val) {
-                if (val && val.length > 0 && this.props.sourceIdField && this.props.targetIdField) {
-                    this.loadData();
-                }
-            },
-            deep: true
-        },
         'props.sourceIdField'() {
-            if (this.props.dremio?.length && this.props.targetIdField) this.loadData();
+            if (this.requests?.length && this.props.targetIdField) this.loadData();
         },
         'props.targetIdField'() {
-            if (this.props.dremio?.length && this.props.sourceIdField) this.loadData();
+            if (this.requests?.length && this.props.sourceIdField) this.loadData();
         },
         result: {
             handler(newResult) {
@@ -212,19 +203,32 @@ export default {
                     this.applyResult(newResult);
                 }
             },
-            immediate: false
+            immediate: true
         },
+        requests: {
+            handler(val) {
+                if (val && val.length > 0 && this.props.sourceIdField && this.props.targetIdField) {
+                    this.loadData();
+                }
+            },
+            deep: true
+        }
     },
 
     mounted() {
-        if (this.props.dremio?.length && this.props.sourceIdField && this.props.targetIdField) {
+        const tryLoad = () => {
+            if (!this.props.sourceIdField || !this.props.targetIdField) return;
             if (this.result) {
                 this.applyResult(this.result);
-            } else {
+            } else if (this.requests?.length) {
                 this.loadData();
             }
-        }
+        };
+        // Пробуем сразу, затем после $nextTick — на случай,
+        // если requests ещё не собраны миксином к моменту mounted
+        tryLoad();
         this.$nextTick(() => {
+            tryLoad();
             if (this.hasData) this.updateChart();
         });
     },
