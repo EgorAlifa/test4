@@ -216,12 +216,14 @@ export default {
 
     computed: {
         rootStyle() {
-            const { nodeColor, rootNodeColor, connectorColor, plusButtonBg } = this.props;
+            const { nodeColor, rootNodeColor, connectorColor, plusButtonBg, labelColor, valueColor } = this.props;
             return {
                 '--decomp-node-color': nodeColor,
                 '--decomp-root-color': rootNodeColor,
                 '--decomp-connector-color': connectorColor,
-                '--decomp-plus-bg': plusButtonBg
+                '--decomp-plus-bg': plusButtonBg,
+                '--decomp-label-color': labelColor || '',
+                '--decomp-value-color': valueColor || ''
             };
         },
 
