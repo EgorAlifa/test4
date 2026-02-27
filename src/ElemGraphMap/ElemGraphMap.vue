@@ -1,6 +1,6 @@
 <template>
     <w-elem :placeholder="shouldShowPlaceholder ? $placeholder : false" class="elem-graph-map">
-        <div v-if="isLoading && props.showLoading && !showDemoData" class="graph-map-loading">
+        <div v-if="isLoading && props.showLoading" class="graph-map-loading">
             <div class="graph-map-loading-spinner"></div>
             <p class="graph-map-loading-text">Загрузка графа...</p>
         </div>
@@ -25,9 +25,6 @@
                 role="img"
                 :aria-label="`Графовая карта: ${displayGraphData.nodes.length} узлов, ${displayGraphData.links.length} связей`"
             />
-            <div v-if="showDemoData" class="graph-map-demo-badge" role="status">
-                Демо-данные. Граф не зависит от API. Подключите датасет и добавьте измерения — подгрузятся ваши данные.
-            </div>
         </div>
     </w-elem>
 </template>
@@ -38,7 +35,7 @@ import { useElemDatasetMixin, ElemDatasetMixinTypes } from '@goodt-common/data';
 import echarts from 'echarts';
 import { meta } from './descriptor';
 import { ElemInstanceTypeDescriptor } from './types';
-import { buildGraphFromDatasetRows, getSampleGraphData } from './utils';
+import { buildGraphFromDatasetRows } from './utils';
 import { NODE_TYPES } from './constants';
 
 const DatasetMixin = useElemDatasetMixin({
@@ -71,7 +68,6 @@ export default {
         return {
             isLoading: false,
             graphData: { nodes: [], links: [] },
-            sampleGraphData: getSampleGraphData(),
             chartInstance: null,
             lastRowCount: 0,
             ...ElemDatasetMixinTypes,
@@ -80,27 +76,13 @@ export default {
     },
 
     computed: {
-        realHasData() {
+        hasData() {
             const { nodes = [], links = [] } = this.graphData;
             return nodes.length > 0 || links.length > 0;
         },
 
-        showDemoData() {
-            return Boolean(
-                this.props.sourceIdField &&
-                this.props.targetIdField &&
-                !this.realHasData
-            );
-        },
-
-        hasData() {
-            return this.realHasData || this.showDemoData;
-        },
-
         displayGraphData() {
-            if (this.realHasData) return this.graphData;
-            if (this.showDemoData) return this.sampleGraphData;
-            return { nodes: [], links: [] };
+            return this.graphData;
         },
 
         shouldShowPlaceholder() {
@@ -108,13 +90,17 @@ export default {
         },
 
         emptyMessage() {
+            const hasDremio = this.props.dremio && this.props.dremio.length > 0;
+            if (!hasDremio) {
+                return 'Добавьте источник данных в настройках виджета.';
+            }
             if (!this.props.sourceIdField || !this.props.targetIdField) {
-                return 'Выберите «Поле ID источника (узла)» и «Поле ID цели (узла)» в настройках — тогда отобразится граф (демо или из датасета).';
+                return 'Выберите «Поле ID источника» и «Поле ID цели» в настройках — граф построится по данным.';
             }
-            if (this.lastRowCount > 0 && !this.realHasData) {
-                return `Загружено строк: ${this.lastRowCount}. Проверьте соответствие полей колонкам датасета. Пока показаны демо-данные.`;
+            if (this.lastRowCount > 0) {
+                return `Загружено строк: ${this.lastRowCount}. Проверьте соответствие полей колонкам датасета.`;
             }
-            return 'Подключите датасет и добавьте измерения в настройках источника данных — тогда подгрузятся ваши данные. Пока показаны демо-данные.';
+            return 'Нет данных для отображения. Проверьте датасет и фильтры.';
         },
 
         chartOption() {
@@ -228,11 +214,6 @@ export default {
             },
             immediate: false
         },
-        showDemoData: {
-            handler(isDemo) {
-                if (isDemo) this.$nextTick(() => this.updateChart());
-            }
-        }
     },
 
     mounted() {
@@ -244,7 +225,7 @@ export default {
             }
         }
         this.$nextTick(() => {
-            if (this.showDemoData || this.realHasData) this.updateChart();
+            if (this.hasData) this.updateChart();
         });
     },
 
@@ -390,21 +371,6 @@ export default {
     position: relative;
 }
 
-.graph-map-demo-badge {
-    position: absolute;
-    bottom: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 6px 12px;
-    background: rgba(0, 0, 0, 0.7);
-    color: #fff;
-    font-size: 12px;
-    border-radius: 6px;
-    max-width: 90%;
-    text-align: center;
-    pointer-events: none;
-    z-index: 10;
-}
 
 .graph-map-chart {
     position: absolute;
