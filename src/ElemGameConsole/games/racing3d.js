@@ -28,6 +28,15 @@ canvas { display:block; position:absolute; top:0; left:0; }
 .go { color:#ff4455; text-shadow:0 0 10px #ff4455, 0 0 35px #ff4455; }
 .sc { font-size:20px; color:#fff; letter-spacing:2px; }
 .h  { font-size:12px; color:#3a3a55; letter-spacing:2px; margin-top:6px; }
+.btn-row { display:flex; gap:12px; margin-top:6px; }
+.btn-redo,.btn-menu {
+  border-radius:6px; font-family:'Courier New',monospace;
+  font-size:12px; letter-spacing:2px; padding:10px 22px; cursor:pointer; transition:all 0.15s;
+}
+.btn-redo { background:#0d0018; border:1px solid #cc44ff; color:#cc44ff; }
+.btn-redo:hover { background:#160028; box-shadow:0 0 12px rgba(204,68,255,0.5); }
+.btn-menu { background:transparent; border:1px solid #2a2a45; color:#4a4a65; }
+.btn-menu:hover { border-color:#888; color:#aaa; }
 </style>
 </head>
 <body>
@@ -39,9 +48,16 @@ canvas { display:block; position:absolute; top:0; left:0; }
 </div>
 <div id="overlay">
   <div class="t" id="ot">MOTO 3D</div>
-  <div class="h">&#8592; &#8594; &mdash; УПРАВЛЕНИЕ</div>
-  <div class="h">ГОНКИ ОТ ТРЕТЬЕГО ЛИЦА</div>
-  <div class="h" style="margin-top:14px;color:#556;letter-spacing:1px;">КЛИК ИЛИ ПРОБЕЛ — НАЧАТЬ</div>
+  <div class="sc" id="ov-sc" style="display:none"></div>
+  <div id="hints">
+    <div class="h">&#8592; &#8594; &mdash; УПРАВЛЕНИЕ</div>
+    <div class="h">ГОНКИ ОТ ТРЕТЬЕГО ЛИЦА</div>
+    <div class="h" style="margin-top:14px;color:#556;letter-spacing:1px;">КЛИК ИЛИ ПРОБЕЛ — НАЧАТЬ</div>
+  </div>
+  <div id="btn-row" class="btn-row" style="display:none">
+    <button class="btn-menu" onclick="goMenu()">← МЕНЮ</button>
+    <button class="btn-redo" onclick="start()">↺ ЗАНОВО</button>
+  </div>
 </div>
 <script>
 var c   = document.getElementById('c');
@@ -52,11 +68,16 @@ function resize() { W=window.innerWidth; H=window.innerHeight; c.width=W; c.heig
 window.addEventListener('resize', resize);
 resize();
 
+var TURN_SENS = 3; /* 1=slow … 5=sharp */
+
 var scEl  = document.getElementById('sc');
 var lvEl  = document.getElementById('lv');
 var spdEl = document.getElementById('spd');
 var ov    = document.getElementById('overlay');
 var otEl  = document.getElementById('ot');
+var ovSc  = document.getElementById('ov-sc');
+var hintsEl = document.getElementById('hints');
+var btnRow  = document.getElementById('btn-row');
 
 /* ---- constants ---- */
 var HORIZON = 0.44; /* fraction of H where road meets sky */
@@ -274,10 +295,12 @@ function tick() {
   var scrollFrac = speed * NUM_SEGS * frame;
   scrollCnt = Math.floor(scrollFrac) & (NUM_SEGS * 2 - 1); /* cycle 0..47 */
 
-  /* steering */
+  /* steering — speed scales with TURN_SENS */
+  var maxVx = 0.015 + (TURN_SENS-1)*0.008;
+  var accel  = 0.006 + (TURN_SENS-1)*0.003;
   var turning = 0;
-  if (keys['ArrowLeft'])  { player.vx = Math.max(player.vx-0.014,-0.045); turning=-1; }
-  else if (keys['ArrowRight']) { player.vx = Math.min(player.vx+0.014, 0.045); turning=1; }
+  if (keys['ArrowLeft'])       { player.vx = Math.max(player.vx-accel,-maxVx); turning=-1; }
+  else if (keys['ArrowRight']) { player.vx = Math.min(player.vx+accel, maxVx); turning=1; }
   else { player.vx *= 0.80; }
 
   /* lean smoothly */
@@ -319,13 +342,19 @@ function tick() {
 
 function gameOver() {
   otEl.className='t go'; otEl.textContent='CRASH!';
-  var scDiv=ov.querySelector('.sc');
-  if(!scDiv){ ov.insertAdjacentHTML('beforeend','<div class="sc"></div>'); scDiv=ov.querySelector('.sc'); }
-  scDiv.textContent='СЧЁТ '+score;
+  ovSc.style.display='block'; ovSc.textContent='СЧЁТ '+score;
+  hintsEl.style.display='none';
+  btnRow.style.display='flex';
   ov.style.display='flex';
 }
 
+function goMenu() { window.parent.postMessage({type:'exit'}, '*'); }
+
 function start() {
+  otEl.className='t'; otEl.textContent='MOTO 3D';
+  ovSc.style.display='none';
+  hintsEl.style.display='';
+  btnRow.style.display='none';
   ov.style.display='none';
   init(); alive=true;
   cancelAnimationFrame(animId);
@@ -339,10 +368,13 @@ document.addEventListener('keydown', function(e){
   if(e.code==='ArrowLeft'||e.code==='ArrowRight') e.preventDefault();
 });
 document.addEventListener('keyup', function(e){ keys[e.code]=false; });
-document.addEventListener('click', function(){ if(!alive) start(); });
+document.addEventListener('click', function(e){ if(!alive&&e.target.tagName!=='BUTTON') start(); });
 window.addEventListener('message', function(e){
   var d=e.data;
-  if(d==='start'||(d&&d.type==='start')) { if(!alive) start(); }
+  if(d==='start'||(d&&d.type==='start')){
+    if(d&&d.turnSensitivity) TURN_SENS=Math.max(1,Math.min(5,+d.turnSensitivity));
+    if(!alive) start();
+  }
 });
 
 ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);

@@ -252,40 +252,128 @@
     display: block;
 }
 
-.arcade-start-btn {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.75);
-    border: 2px solid var(--gc, var(--accent));
-    border-radius: 8px;
-    color: var(--gc, var(--accent));
-    font-family: 'Courier New', 'Consolas', monospace;
+/* ============ INSTRUCTION CARD ============ */
+
+.inst-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    padding: 36px 44px;
+    background: #0c0c1a;
+    border: 1px solid var(--gc, var(--accent));
+    border-radius: 16px;
+    box-shadow:
+        0 0 50px rgba(0, 0, 0, 0.7),
+        0 0 28px var(--gc, var(--accent));
+    max-width: 480px;
+    width: 90%;
+}
+
+.inst-header {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.inst-art {
+    font-size: 52px;
+    line-height: 1;
+    filter: drop-shadow(0 0 14px var(--gc, var(--accent)));
+}
+
+.inst-name {
     font-size: 20px;
     font-weight: 900;
+    letter-spacing: 5px;
+    color: var(--gc, var(--accent));
+    text-shadow: 0 0 8px var(--gc, var(--accent));
+}
+
+.inst-desc {
+    font-size: 11px;
+    color: #555;
+    letter-spacing: 1px;
+    margin-top: 5px;
+    max-width: 200px;
+    line-height: 1.5;
+}
+
+.inst-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.inst-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.inst-keys {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    min-width: 130px;
+    justify-content: flex-end;
+}
+
+.inst-key {
+    background: #14142a;
+    border: 1px solid var(--gc, var(--accent));
+    border-bottom: 3px solid var(--gc, var(--accent));
+    border-radius: 4px;
+    color: var(--gc, var(--accent));
+    font-size: 10px;
+    font-weight: bold;
+    padding: 4px 8px;
+    letter-spacing: 0.5px;
+    min-width: 26px;
+    text-align: center;
+    text-shadow: 0 0 4px var(--gc, var(--accent));
+}
+
+.inst-action {
+    font-size: 10px;
+    color: #445;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.inst-play-btn {
+    background: var(--gc, var(--accent));
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 16px;
+    font-weight: 900;
     letter-spacing: 6px;
-    padding: 18px 52px;
+    padding: 14px 52px;
     cursor: pointer;
-    text-shadow: 0 0 12px var(--gc, var(--accent));
-    box-shadow:
-        0 0 32px rgba(0, 0, 0, 0.6),
-        0 0 20px var(--gc, var(--accent));
-    z-index: 10;
-    transition:
-        transform 0.15s,
-        background 0.15s,
-        box-shadow 0.15s;
+    margin-top: 6px;
+    box-shadow: 0 0 22px var(--gc, var(--accent));
+    transition: transform 0.15s, box-shadow 0.15s;
 
     &:hover {
-        background: rgba(0, 0, 0, 0.9);
-        transform: translate(-50%, -50%) scale(1.07);
-        box-shadow:
-            0 0 40px rgba(0, 0, 0, 0.7),
-            0 0 28px var(--gc, var(--accent));
+        transform: scale(1.06);
+        box-shadow: 0 0 34px var(--gc, var(--accent));
     }
 
     &:active {
-        transform: translate(-50%, -50%) scale(0.97);
+        transform: scale(0.97);
     }
+}
+
+/* secret badge */
+.arcade-card__secret {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #ffcc00;
+    text-shadow: 0 0 6px #ffcc00;
+    position: absolute;
+    top: 10px;
+    right: 10px;
 }

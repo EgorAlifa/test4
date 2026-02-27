@@ -42,6 +42,16 @@ canvas { display:block; position:absolute; top:0; left:0; }
   position:fixed; bottom:10px; right:14px; z-index:10;
   font-size:10px; letter-spacing:2px; color:#2a2a40; pointer-events:none;
 }
+.btn-row { display:flex; gap:12px; margin-top:6px; }
+.btn-redo,.btn-menu {
+  border-radius:6px; font-family:'Courier New',monospace;
+  font-size:12px; letter-spacing:2px; padding:10px 22px; cursor:pointer; transition:all 0.15s;
+}
+.btn-redo { background:#1a0808; border:1px solid #ff4455; color:#ff4455; }
+.btn-redo:hover { background:#2a0c0c; box-shadow:0 0 12px rgba(255,68,85,0.5); }
+.btn-menu { background:transparent; border:1px solid #2a2a45; color:#4a4a65; }
+.btn-menu:hover { border-color:#888; color:#aaa; }
+.praise { font-size:14px; letter-spacing:3px; color:#00ff88; text-shadow:0 0 8px #00ff88; }
 </style>
 </head>
 <body>
@@ -58,10 +68,17 @@ canvas { display:block; position:absolute; top:0; left:0; }
 <div id="overlay">
   <div class="t" id="ot">CS-STYLE</div>
   <div class="sc" id="ov-sc" style="display:none"></div>
-  <div class="h">WASD / ↑↓ &mdash; ДВИЖЕНИЕ</div>
-  <div class="h">← → &mdash; ПОВОРОТ</div>
-  <div class="h">ПКМ / ПРОБЕЛ &mdash; ОГОНЬ &nbsp;|&nbsp; R &mdash; ПЕРЕЗАРЯДКА</div>
-  <div class="h" style="margin-top:14px;color:#556;letter-spacing:1px;">КЛИК ИЛИ ПРОБЕЛ — НАЧАТЬ</div>
+  <div id="praise" class="praise" style="display:none"></div>
+  <div id="hints">
+    <div class="h">WASD / ↑↓ &mdash; ДВИЖЕНИЕ</div>
+    <div class="h">← → &mdash; ПОВОРОТ</div>
+    <div class="h">ПКМ / ПРОБЕЛ &mdash; ОГОНЬ &nbsp;|&nbsp; R &mdash; ПЕРЕЗАРЯДКА</div>
+    <div class="h" style="margin-top:14px;color:#556;letter-spacing:1px;">КЛИК ИЛИ ПРОБЕЛ — НАЧАТЬ</div>
+  </div>
+  <div id="btn-row" class="btn-row" style="display:none">
+    <button class="btn-menu" onclick="goMenu()">← МЕНЮ</button>
+    <button class="btn-redo" onclick="start()">↺ ЗАНОВО</button>
+  </div>
 </div>
 <script>
 var c   = document.getElementById('c');
@@ -71,6 +88,9 @@ var W = 1, H = 1;
 function resize() { W=window.innerWidth; H=window.innerHeight; c.width=W; c.height=H; }
 window.addEventListener('resize', resize);
 resize();
+
+var TURN_SENS = 3; /* 1=slow … 5=sharp */
+var PRAISES_WIN = ['МАСТЕР!','ЗАЧИЩЕНО!','ЛЕГЕНДА CS!','ВЫ НЕПОБЕДИМЫ!'];
 
 /* ---- Web Audio ---- */
 var audio;
@@ -152,6 +172,9 @@ var totalEl   = document.getElementById('total');
 var ov        = document.getElementById('overlay');
 var otEl      = document.getElementById('ot');
 var ovSc      = document.getElementById('ov-sc');
+var praiseEl  = document.getElementById('praise');
+var hintsEl   = document.getElementById('hints');
+var btnRow    = document.getElementById('btn-row');
 var flashEl   = document.getElementById('flash');
 var reloadLbl = document.getElementById('reload-label');
 
@@ -209,7 +232,7 @@ function update() {
     player.reloadT--;
     if(player.reloadT===0){ player.ammo=player.maxAmmo; amEl.textContent=player.ammo; reloadLbl.style.opacity='0'; }
   }
-  var spd=0.065,rot=0.058;
+  var spd=0.065, rot=0.020+(TURN_SENS-1)*0.012;
   if(keys['ArrowLeft']||keys['KeyA'])  player.angle-=rot;
   if(keys['ArrowRight']||keys['KeyD']) player.angle+=rot;
   var fw=(keys['ArrowUp']||keys['KeyW'])?spd:0;
@@ -350,16 +373,28 @@ function render() {
   ctx.fillStyle='#111';    ctx.fillRect(gX,gY+gH*0.15,gW*0.12,gH*0.12);
 }
 
+function showButtons(praise) {
+  hintsEl.style.display = 'none';
+  if (praise) { praiseEl.textContent = praise; praiseEl.style.display = 'block'; }
+  else praiseEl.style.display = 'none';
+  btnRow.style.display = 'flex';
+}
+
 function gameOver(){
   otEl.className='t dead'; otEl.textContent='УБИТ';
   ovSc.style.display='block'; ovSc.textContent='УБИЙСТВ: '+player.kills;
+  showButtons(null);
   ov.style.display='flex';
 }
 function gameWin(){
+  var p=PRAISES_WIN[Math.floor(Math.random()*PRAISES_WIN.length)];
   otEl.className='t win'; otEl.textContent='ПОБЕДА!';
   ovSc.style.display='block'; ovSc.textContent='УБИЙСТВ: '+player.kills;
+  showButtons(p);
   ov.style.display='flex';
 }
+
+function goMenu() { window.parent.postMessage({type:'exit'}, '*'); }
 
 function loop(){ update(); render(); if(alive) animId=requestAnimationFrame(loop); }
 
@@ -367,6 +402,9 @@ function start(){
   resumeAudio();
   otEl.className='t'; otEl.textContent='CS-STYLE';
   ovSc.style.display='none';
+  hintsEl.style.display='';
+  praiseEl.style.display='none';
+  btnRow.style.display='none';
   ov.style.display='none';
   init(); alive=true;
   cancelAnimationFrame(animId);
@@ -395,11 +433,17 @@ document.addEventListener('mousedown',function(e){
 });
 document.addEventListener('contextmenu',function(e){e.preventDefault();});
 
-/* left-click = start if not alive */
-document.addEventListener('click',function(){if(!alive) start();});
+/* left-click = start if not alive (but not on buttons) */
+document.addEventListener('click',function(e){
+  if(!alive&&e.target.tagName!=='BUTTON') start();
+});
+
 window.addEventListener('message',function(e){
   var d=e.data;
-  if(d==='start'||(d&&d.type==='start')){ if(!alive) start(); }
+  if(d==='start'||(d&&d.type==='start')){
+    if(d&&d.turnSensitivity) TURN_SENS=Math.max(1,Math.min(5,+d.turnSensitivity));
+    if(!alive) start();
+  }
 });
 
 ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
