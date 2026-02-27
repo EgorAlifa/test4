@@ -216,10 +216,30 @@ export default {
 
     computed: {
         rootStyle() {
-            const { nodeColor, rootNodeColor, connectorColor, plusButtonBg, labelColor, valueColor } = this.props;
+            const { nodeColor, rootNodeColor, activeNodeColor, connectorColor, plusButtonBg, labelColor, valueColor } = this.props;
+            const activeColor = activeNodeColor || '#FF6B35';
+            const hexToRgba = (hex, alpha) => {
+                const h = (hex || '').replace('#', '');
+                let r, g, b;
+                if (h.length === 3) {
+                    r = parseInt(h[0] + h[0], 16);
+                    g = parseInt(h[1] + h[1], 16);
+                    b = parseInt(h[2] + h[2], 16);
+                } else {
+                    r = parseInt(h.substring(0, 2), 16);
+                    g = parseInt(h.substring(2, 4), 16);
+                    b = parseInt(h.substring(4, 6), 16);
+                }
+                if (isNaN(r) || isNaN(g) || isNaN(b)) return `rgba(255, 107, 53, ${alpha})`;
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            };
             return {
                 '--decomp-node-color': nodeColor,
                 '--decomp-root-color': rootNodeColor,
+                '--decomp-active-color': activeColor,
+                '--decomp-active-bg': hexToRgba(activeColor, 0.08),
+                '--decomp-active-mid': hexToRgba(activeColor, 0.20),
+                '--decomp-active-hover': hexToRgba(activeColor, 0.05),
                 '--decomp-connector-color': connectorColor,
                 '--decomp-plus-bg': plusButtonBg,
                 '--decomp-label-color': labelColor || '',
