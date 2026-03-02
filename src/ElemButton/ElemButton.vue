@@ -103,9 +103,10 @@ export default {
         ...ComponentInstanceTypeDescriptor,
         canvasQuickColors: ['#4f6aff', '#7c3aed', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#0f172a', '#ffffff'],
         canvasSizes: [
-            { key: 'S', paddingV: '6px',  paddingH: '14px', fontSize: '12px' },
-            { key: 'M', paddingV: '10px', paddingH: '20px', fontSize: '14px' },
-            { key: 'L', paddingV: '14px', paddingH: '28px', fontSize: '16px' }
+            { key: 'S',  paddingV: '6px',  paddingH: '14px', fontSize: '12px' },
+            { key: 'M',  paddingV: '10px', paddingH: '20px', fontSize: '14px' },
+            { key: 'L',  paddingV: '14px', paddingH: '28px', fontSize: '16px' },
+            { key: 'XL', paddingV: '18px', paddingH: '36px', fontSize: '18px' }
         ]
     }),
     static: {
@@ -201,8 +202,25 @@ export default {
         canvasCurrentSize() {
             const v = this.props.btnPaddingV;
             if (v === '6px') return 'S';
+            if (v === '10px') return 'M';
             if (v === '14px') return 'L';
-            return 'M';
+            if (v === '18px') return 'XL';
+            return null;
+        }
+    },
+    watch: {
+        /**
+         * Normalize btnText: strip HTML if platform's ui-input or any other
+         * mechanism stored raw HTML (e.g. "<p></p>") instead of plain text.
+         */
+        'props.btnText'(val) {
+            if (val && val.includes('<')) {
+                const plain = val.replace(/<[^>]*>/g, '').trim();
+                if (plain !== val) {
+                    this.props.btnText = plain || 'Кнопка';
+                    this.propChanged('btnText');
+                }
+            }
         }
     },
     methods: {
