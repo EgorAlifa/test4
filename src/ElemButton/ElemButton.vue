@@ -9,21 +9,24 @@
             v-if="props.btnIconLeft && !isLoading"
             :class="props.btnIconLeft"
             class="elem-btn__icon elem-btn__icon--left" />
-        <!-- Editor mode: inline Tiptap editor for button label -->
-        <button-label-editor
+        <!-- Editor mode: TiptapEditor (same as ElemText/ElemSticker) -->
+        <tiptap-editor
             v-if="isEditorMode && props.btnShowText !== false"
             :value="props.btnText"
             placeholder="Кнопка"
+            :autofocus="true"
+            class="elem-btn__label-editor"
             @change="onBtnLabelChange"
             @click.native.stop
             @mousedown.native.stop
             @pointerdown.native.stop
         />
-        <!-- View mode: static text -->
+        <!-- View mode: static HTML -->
         <span
             v-else-if="props.btnShowText !== false"
             class="elem-btn__text"
-        >{{ props.btnText }}</span>
+            v-html="props.btnText || 'Кнопка'"
+        />
         <slot />
         <i
             v-if="props.btnIconRight"
@@ -78,7 +81,7 @@ import { Popover } from 'goodteditor-ui';
 import { POPUP_LIFETIME } from './constants';
 import { buildSerializedStoreUrl } from './utils';
 import { meta, Vars } from './descriptor';
-import ButtonLabelEditor from './components/ButtonLabelEditor.vue';
+import TiptapEditor from '../ElemText/components/TiptapEditor.vue';
 
 const { store, ValueObject } = Managers.StoreManager;
 const { addRouteQueryParams } = useRouteQueryManager();
@@ -93,7 +96,7 @@ const ComponentInstanceTypeDescriptor = undefined;
 export default {
     extends: Elem,
     meta,
-    components: { UiPopover: Popover, ButtonLabelEditor },
+    components: { UiPopover: Popover, TiptapEditor },
 
     data: () => ({
         isPopupVisible: false,
@@ -353,11 +356,10 @@ export default {
             );
             addRouteQueryParams(queryParams);
         },
-        /** ButtonLabelEditor change: save plain text back to prop */
-        onBtnLabelChange(text) {
-            const trimmed = (text || '').trim();
-            if (trimmed === this.props.btnText) return;
-            this.props.btnText = trimmed || 'Кнопка';
+        /** TiptapEditor change: save HTML back to prop */
+        onBtnLabelChange(html) {
+            if (html === this.props.btnText) return;
+            this.props.btnText = html;
             this.propChanged('btnText');
         },
 
@@ -614,5 +616,42 @@ export default {
     font: inherit;
     letter-spacing: inherit;
     text-transform: inherit;
+
+    /* Strip paragraph margin injected by TiptapEditor HTML */
+    ::v-deep p { display: inline; margin: 0; padding: 0; }
+}
+
+/* ── TiptapEditor inside button (editor mode) ────────────────── */
+.elem-btn__label-editor {
+    /* Transparent, inherits button layout */
+    display: contents;
+}
+
+.elem-btn__label-editor ::v-deep .tiptap-editor {
+    background: transparent;
+    display: contents;
+}
+
+.elem-btn__label-editor ::v-deep .ProseMirror {
+    outline: none;
+    padding: 0;
+    margin: 0;
+    min-width: 1ch;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-align: inherit;
+    white-space: nowrap;
+    background: transparent;
+
+    /* Single-line look */
+    p { display: inline; margin: 0; padding: 0; }
+}
+
+/* Toolbar floats above button (already position:absolute bottom:100% in TiptapEditor) */
+.elem-btn__label-editor ::v-deep .tiptap-toolbar {
+    left: 50%;
+    transform: translateX(-50%);
 }
 </style>
