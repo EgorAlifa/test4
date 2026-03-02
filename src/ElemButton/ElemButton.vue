@@ -200,7 +200,7 @@ export default {
         },
         canvasCurrentSize() {
             const v = this.props.btnPaddingV;
-            if (v === '6px') return 'S';
+            if (v === '6px')  return 'S';
             if (v === '10px') return 'M';
             if (v === '14px') return 'L';
             if (v === '18px') return 'XL';
@@ -382,14 +382,13 @@ export default {
         /** Canvas bar: set background color */
         setCanvasColor(color) {
             this.props.btnBg = color;
-            this.propChanged();
+            this.propChanged('btnBg');
         },
-        /** Canvas bar: set S/M/L size */
+        /** Canvas bar: set S/M/L/XL size */
         setCanvasSize(s) {
-            this.props.btnPaddingV = s.paddingV;
-            this.props.btnPaddingH = s.paddingH;
-            this.props.btnFontSize = s.fontSize;
-            this.propChanged();
+            this.props.btnPaddingV = s.paddingV; this.propChanged('btnPaddingV');
+            this.props.btnPaddingH = s.paddingH; this.propChanged('btnPaddingH');
+            this.props.btnFontSize = s.fontSize; this.propChanged('btnFontSize');
         },
         buildNavigateQueryParams() {
             const { urlFilters } = this.props;
