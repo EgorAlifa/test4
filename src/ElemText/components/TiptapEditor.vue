@@ -229,6 +229,8 @@
                     <i class="mdi mdi-format-clear" />
                 </button>
             </div>
+            <!-- Extra tools row — used by widgets that extend the toolbar (e.g. ElemButton) -->
+            <slot name="extra-tools" />
         </div>
 
         <editor-content :editor="editor" class="tiptap-editor__content" />
