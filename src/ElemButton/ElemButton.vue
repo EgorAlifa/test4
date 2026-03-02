@@ -514,9 +514,9 @@ export default {
 }
 
 /* ── Button props row inside Tiptap toolbar ─────────────────────── */
+/* ::v-deep needed — slot content doesn't inherit this component's scope attr */
 
-/* Label text before color/size groups */
-.tiptap-toolbar__label {
+.elem-btn__label-editor ::v-deep .tiptap-toolbar__label {
     font-size: 10px;
     font-weight: 600;
     color: #888;
@@ -526,25 +526,33 @@ export default {
     white-space: nowrap;
 }
 
-/* Color dots — force square/circle regardless of button resets */
-.cbar__dot {
-    width: 16px !important;
-    min-width: 16px !important;
-    max-width: 16px !important;
-    height: 16px !important;
+/* Color dots */
+.elem-btn__label-editor ::v-deep .cbar__dot {
+    width: 16px;
+    min-width: 16px;
+    max-width: 16px;
+    height: 16px;
     border-radius: 50%;
     border: 2px solid rgba(0, 0, 0, 0.15);
     cursor: pointer;
     transition: transform 0.1s, border-color 0.1s;
-    padding: 0 !important;
-    flex-shrink: 0;
+    padding: 0;
+    flex: 0 0 16px;
     box-sizing: border-box;
 }
-.cbar__dot:hover { transform: scale(1.25); border-color: rgba(0, 0, 0, 0.4); }
-.cbar__dot--active { border-color: #1976d2; transform: scale(1.15); outline: 2px solid #1976d2; outline-offset: 1px; }
+.elem-btn__label-editor ::v-deep .cbar__dot:hover {
+    transform: scale(1.25);
+    border-color: rgba(0, 0, 0, 0.4);
+}
+.elem-btn__label-editor ::v-deep .cbar__dot--active {
+    border-color: #1976d2;
+    transform: scale(1.15);
+    outline: 2px solid #1976d2;
+    outline-offset: 1px;
+}
 
 /* Size chips */
-.cbar__size {
+.elem-btn__label-editor ::v-deep .cbar__size {
     padding: 2px 7px;
     border-radius: 5px;
     border: 1px solid rgba(0, 0, 0, 0.15);
@@ -556,12 +564,12 @@ export default {
     transition: background 0.1s, color 0.1s, border-color 0.1s;
     letter-spacing: 0.04em;
 }
-.cbar__size:hover {
+.elem-btn__label-editor ::v-deep .cbar__size:hover {
     background: rgba(0, 0, 0, 0.06);
     color: #111;
     border-color: rgba(0, 0, 0, 0.3);
 }
-.cbar__size--active {
+.elem-btn__label-editor ::v-deep .cbar__size--active {
     background: #1976d2;
     color: #fff;
     border-color: #1976d2;
