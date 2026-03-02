@@ -49,12 +49,11 @@
                 </div>
             </template>
         </tiptap-editor>
-        <!-- View mode: static HTML -->
+        <!-- View mode: plain text -->
         <span
             v-else-if="props.btnShowText !== false"
             class="elem-btn__text"
-            v-html="props.btnText || 'Кнопка'"
-        />
+        >{{ props.btnText || 'Кнопка' }}</span>
         <slot />
         <i
             v-if="props.btnIconRight"
@@ -372,10 +371,11 @@ export default {
             );
             addRouteQueryParams(queryParams);
         },
-        /** TiptapEditor change: save HTML back to prop */
+        /** TiptapEditor change: extract plain text, never store raw HTML in btnText */
         onBtnLabelChange(html) {
-            if (html === this.props.btnText) return;
-            this.props.btnText = html;
+            const plain = (html || '').replace(/<[^>]*>/g, '').trim();
+            if (plain === this.props.btnText) return;
+            this.props.btnText = plain;
             this.propChanged('btnText');
         },
 
