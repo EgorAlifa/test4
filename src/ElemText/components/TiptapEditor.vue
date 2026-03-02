@@ -112,7 +112,7 @@
                         type="color"
                         class="tiptap-color-picker"
                         :value="currentTextColor"
-                        @input="handleColorChange"
+                        @change="handleColorChange"
                         title="Text Color"
                     />
                     <span class="tiptap-toolbar__color-label">A</span>
@@ -122,7 +122,7 @@
                         type="color"
                         class="tiptap-color-picker"
                         :value="currentHighlightColor"
-                        @input="handleHighlightChange"
+                        @change="handleHighlightChange"
                         title="Highlight Color"
                     />
                     <i class="mdi mdi-marker tiptap-toolbar__color-icon" />
