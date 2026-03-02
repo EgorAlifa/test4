@@ -1,7 +1,7 @@
 <template>
     <div
         class="elem-btn"
-        :class="[cssClass, buttonDynamicClass, { 'is-editing': isEditorMode }]"
+        :class="[cssClass, buttonDynamicClass]"
         :style="[cssStyle, buttonStyle]"
         @click="handleClick">
         <span v-if="isLoading" class="elem-btn__spinner" />
@@ -9,20 +9,21 @@
             v-if="props.btnIconLeft && !isLoading"
             :class="props.btnIconLeft"
             class="elem-btn__icon elem-btn__icon--left" />
-        <!-- Text span: always in DOM, editable only in editor mode -->
-        <span
-            v-show="props.btnShowText !== false"
-            ref="inlineText"
-            class="elem-btn__text-inline"
-            :contenteditable="isEditorMode ? 'true' : 'false'"
-            spellcheck="false"
-            @click="isEditorMode && $event.stopPropagation()"
-            @mousedown="isEditorMode && $event.stopPropagation()"
-            @pointerdown="isEditorMode && $event.stopPropagation()"
-            @keydown.stop
-            @keyup.stop
-            @input="onInlineTextInput"
+        <!-- Editor mode: inline Tiptap editor for button label -->
+        <button-label-editor
+            v-if="isEditorMode && props.btnShowText !== false"
+            :value="props.btnText"
+            placeholder="Кнопка"
+            @change="onBtnLabelChange"
+            @click.native.stop
+            @mousedown.native.stop
+            @pointerdown.native.stop
         />
+        <!-- View mode: static text -->
+        <span
+            v-else-if="props.btnShowText !== false"
+            class="elem-btn__text"
+        >{{ props.btnText }}</span>
         <slot />
         <i
             v-if="props.btnIconRight"
@@ -77,6 +78,7 @@ import { Popover } from 'goodteditor-ui';
 import { POPUP_LIFETIME } from './constants';
 import { buildSerializedStoreUrl } from './utils';
 import { meta, Vars } from './descriptor';
+import ButtonLabelEditor from './components/ButtonLabelEditor.vue';
 
 const { store, ValueObject } = Managers.StoreManager;
 const { addRouteQueryParams } = useRouteQueryManager();
@@ -91,30 +93,7 @@ const ComponentInstanceTypeDescriptor = undefined;
 export default {
     extends: Elem,
     meta,
-    components: { UiPopover: Popover },
-    mounted() {
-        this.$nextTick(this.syncInlineText);
-    },
-
-    watch: {
-        isEditorMode(val) {
-            this.$nextTick(this.syncInlineText);
-            if (val) {
-                this.$nextTick(() => {
-                    setTimeout(() => {
-                        const el = this.$refs.inlineText;
-                        if (el) el.focus();
-                    }, 50); // eslint-disable-line no-magic-numbers
-                });
-            }
-        },
-        'props.btnText'(val) {
-            const el = this.$refs.inlineText;
-            if (el && el.innerText.replace(/\n/g, ' ').trim() !== val) {
-                el.innerText = val;
-            }
-        }
-    },
+    components: { UiPopover: Popover, ButtonLabelEditor },
 
     data: () => ({
         isPopupVisible: false,
@@ -374,16 +353,11 @@ export default {
             );
             addRouteQueryParams(queryParams);
         },
-        /** Sync contenteditable span content with props.btnText */
-        syncInlineText() {
-            const el = this.$refs.inlineText;
-            if (el) el.innerText = this.props.btnText || '';
-        },
-
-        /** Handle contenteditable input: save plain text back to prop */
-        onInlineTextInput(e) {
-            const text = (e.target.innerText || '').replace(/[\r\n]+/g, ' ').trim();
-            this.props.btnText = text || 'Кнопка';
+        /** ButtonLabelEditor change: save plain text back to prop */
+        onBtnLabelChange(text) {
+            const trimmed = (text || '').trim();
+            if (trimmed === this.props.btnText) return;
+            this.props.btnText = trimmed || 'Кнопка';
             this.propChanged('btnText');
         },
 
@@ -442,16 +416,6 @@ export default {
 .elem-btn:hover { filter: brightness(0.9); }
 .elem-btn:active { transform: translateY(1px) scale(0.98); filter: brightness(0.82); }
 
-/* ── Editor mode: disable all button interaction visuals ────── */
-.elem-btn.is-editing,
-.elem-btn.is-editing:hover,
-.elem-btn.is-editing:active {
-    filter: none !important;
-    transform: none !important;
-    animation: none !important;
-    cursor: default;
-}
-.elem-btn.is-editing::after { pointer-events: none !important; }
 
 /* ── Hover: lift ────────────────────────────────────────────────── */
 .elem-btn--hover-lift:hover {
@@ -643,28 +607,12 @@ export default {
     border-color: #4f6aff;
 }
 
-/* ── Inline text editing span ───────────────────────────────── */
-.elem-btn__text-inline {
-    outline: none;
-    min-width: 1ch;
+/* ── Static button text (view mode) ─────────────────────────── */
+.elem-btn__text {
     white-space: nowrap;
     color: inherit;
     font: inherit;
     letter-spacing: inherit;
     text-transform: inherit;
-    /* Override parent user-select: none so contenteditable works */
-    user-select: text;
-    -webkit-user-select: text;
-    cursor: text;
-}
-/* In view mode: restore button cursor, no text selection */
-.elem-btn__text-inline[contenteditable="false"] {
-    cursor: inherit;
-    user-select: none;
-    -webkit-user-select: none;
-}
-.elem-btn__text-inline:empty::before {
-    content: 'Кнопка';
-    opacity: 0.45;
 }
 </style>
