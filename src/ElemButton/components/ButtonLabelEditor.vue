@@ -34,17 +34,26 @@ export default {
         return { editor: null };
     },
 
+    methods: {
+        /** Strip HTML tags → plain text (handles ui-input storing "<p>text</p>") */
+        stripHtml(val) {
+            return (val || '').replace(/<[^>]*>/g, '').trim();
+        }
+    },
+
     watch: {
         value(val) {
-            if (this.editor && val !== this.editor.getText()) {
-                this.editor.commands.setContent(val ? `<p>${val}</p>` : '', false);
+            const plain = this.stripHtml(val);
+            if (this.editor && plain !== this.editor.getText()) {
+                this.editor.commands.setContent(plain ? `<p>${plain}</p>` : '', false);
             }
         }
     },
 
     mounted() {
+        const plain = this.stripHtml(this.value);
         this.editor = new Editor({
-            content: this.value ? `<p>${this.value}</p>` : '',
+            content: plain ? `<p>${plain}</p>` : '',
             autofocus: 'end',
             extensions: [
                 StarterKit.configure({
