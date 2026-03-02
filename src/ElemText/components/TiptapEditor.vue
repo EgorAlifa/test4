@@ -117,16 +117,6 @@
                     />
                     <span class="tiptap-toolbar__color-label">A</span>
                 </div>
-                <div class="tiptap-toolbar__color-group">
-                    <input
-                        type="color"
-                        class="tiptap-color-picker"
-                        :value="currentHighlightColor"
-                        @input="handleHighlightChange"
-                        title="Highlight Color"
-                    />
-                    <i class="mdi mdi-marker tiptap-toolbar__color-icon" />
-                </div>
             </div>
 
             <!-- Row 2: Font size, Alignment, Lists, Blockquote, Link, Clear -->
@@ -146,34 +136,6 @@
                     title="Increase font size"
                 >
                     <i class="mdi mdi-format-font-size-increase" />
-                </button>
-
-                <span class="tiptap-toolbar__divider" />
-
-                <!-- Alignment -->
-                <button
-                    type="button"
-                    :class="{ 'is-active': editor.isActive({ textAlign: 'left' }) }"
-                    @mousedown.prevent="editor.chain().focus().setTextAlign('left').run()"
-                    title="Align Left"
-                >
-                    <i class="mdi mdi-format-align-left" />
-                </button>
-                <button
-                    type="button"
-                    :class="{ 'is-active': editor.isActive({ textAlign: 'center' }) }"
-                    @mousedown.prevent="editor.chain().focus().setTextAlign('center').run()"
-                    title="Align Center"
-                >
-                    <i class="mdi mdi-format-align-center" />
-                </button>
-                <button
-                    type="button"
-                    :class="{ 'is-active': editor.isActive({ textAlign: 'right' }) }"
-                    @mousedown.prevent="editor.chain().focus().setTextAlign('right').run()"
-                    title="Align Right"
-                >
-                    <i class="mdi mdi-format-align-right" />
                 </button>
 
                 <span class="tiptap-toolbar__divider" />
@@ -256,11 +218,8 @@ import { Editor, EditorContent } from '@tiptap/vue-2';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
-import TextAlign from '@tiptap/extension-text-align';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
-import Highlight from '@tiptap/extension-highlight';
-import Placeholder from '@tiptap/extension-placeholder';
 import FontSize from './extensions/FontSize';
 
 const DEFAULT_FONT_SIZE = 16; // eslint-disable-line no-magic-numbers
@@ -315,12 +274,6 @@ export default {
             return color || '#000000';
         },
 
-        currentHighlightColor() {
-            if (!this.editor) return '#ffff00';
-            const highlight = this.editor.getAttributes('highlight').color;
-            return highlight || '#ffff00';
-        },
-
         currentFontSize() {
             if (!this.editor) return DEFAULT_FONT_SIZE;
             const fontSize = this.editor.getAttributes('textStyle').fontSize;
@@ -363,18 +316,9 @@ export default {
                             rel: 'noopener noreferrer'
                         }
                     }),
-                    TextAlign.configure({
-                        types: ['heading', 'paragraph']
-                    }),
                     TextStyle,
                     FontSize,
-                    Color,
-                    Highlight.configure({
-                        multicolor: true
-                    }),
-                    Placeholder.configure({
-                        placeholder: this.placeholder
-                    })
+                    Color
                 ],
                 content: this.value,
                 autofocus: this.autofocus,
@@ -442,11 +386,6 @@ export default {
         handleColorChange(event) {
             this.isToolbarInteraction = false;
             this.editor.chain().focus().setColor(event.target.value).run();
-        },
-
-        handleHighlightChange(event) {
-            this.isToolbarInteraction = false;
-            this.editor.chain().focus().setHighlight({ color: event.target.value }).run();
         },
 
         increaseFontSize() {
