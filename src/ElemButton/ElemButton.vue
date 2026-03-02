@@ -526,16 +526,19 @@ export default {
     white-space: nowrap;
 }
 
-/* Color dots */
+/* Color dots — force square/circle regardless of button resets */
 .cbar__dot {
-    width: 16px;
-    height: 16px;
+    width: 16px !important;
+    min-width: 16px !important;
+    max-width: 16px !important;
+    height: 16px !important;
     border-radius: 50%;
     border: 2px solid rgba(0, 0, 0, 0.15);
     cursor: pointer;
     transition: transform 0.1s, border-color 0.1s;
-    padding: 0;
+    padding: 0 !important;
     flex-shrink: 0;
+    box-sizing: border-box;
 }
 .cbar__dot:hover { transform: scale(1.25); border-color: rgba(0, 0, 0, 0.4); }
 .cbar__dot--active { border-color: #1976d2; transform: scale(1.15); outline: 2px solid #1976d2; outline-offset: 1px; }
