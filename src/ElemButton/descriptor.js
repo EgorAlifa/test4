@@ -116,6 +116,18 @@ export const descriptor = () => ({
             type: String,
             default: '500'
         },
+        btnFontFamily: {
+            type: String,
+            default: ''
+        },
+        btnLetterSpacing: {
+            type: String,
+            default: ''
+        },
+        btnTextTransform: {
+            type: String,
+            default: 'none'
+        },
         btnPaddingV: {
             type: String,
             default: '10px'
