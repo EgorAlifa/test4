@@ -9,20 +9,20 @@
             v-if="props.btnIconLeft && !isLoading"
             :class="props.btnIconLeft"
             class="elem-btn__icon elem-btn__icon--left" />
-        <!-- Inline editing in editor mode -->
+        <!-- Text span: always in DOM, editable only in editor mode -->
         <span
-            v-if="isEditorMode && props.btnShowText !== false"
+            v-show="props.btnShowText !== false"
             ref="inlineText"
             class="elem-btn__text-inline"
-            contenteditable="true"
+            :contenteditable="isEditorMode ? 'true' : 'false'"
             spellcheck="false"
-            @click.stop
-            @mousedown.stop
+            @click="isEditorMode && $event.stopPropagation()"
+            @mousedown="isEditorMode && $event.stopPropagation()"
             @keydown.stop
             @keyup.stop
-            @input.stop="onInlineTextInput"
+            @input="onInlineTextInput"
         />
-        <slot v-else>{{ props.btnShowText !== false ? props.btnText : '' }}</slot>
+        <slot />
         <i
             v-if="props.btnIconRight"
             :class="props.btnIconRight"
@@ -97,7 +97,13 @@ export default {
 
     watch: {
         isEditorMode(val) {
-            if (val) this.$nextTick(this.syncInlineText);
+            this.$nextTick(this.syncInlineText);
+            if (val) {
+                this.$nextTick(() => {
+                    const el = this.$refs.inlineText;
+                    if (el) el.focus();
+                });
+            }
         },
         'props.btnText'(val) {
             const el = this.$refs.inlineText;
@@ -218,6 +224,7 @@ export default {
     },
     methods: {
         handleClick(event) {
+            if (this.isEditorMode) return;
             if (this.isDisabled || this.isLoading) return;
             if (this.props.isClickSelf && event.target !== event.currentTarget) return;
             this.onClick();
