@@ -143,7 +143,8 @@ export default {
                 'elem-btn--toggle-active': this.isToggleActive,
                 'elem-btn--glass': btnIsGlass,
                 'elem-btn--disabled': this.isDisabled,
-                'elem-btn--icon-only': btnShowText === false && !this.isLoading && (btnIconLeft || btnIconRight)
+                'elem-btn--icon-only': btnShowText === false && !this.isLoading && (btnIconLeft || btnIconRight),
+                'elem-btn--editing': this.isEditorMode
             };
         },
         buttonStyle() {
@@ -432,6 +433,15 @@ export default {
 /* ── Default hover: brightness filter — clean on gradients, no color veil ── */
 .elem-btn:hover { filter: brightness(0.9); }
 .elem-btn:active { transform: translateY(1px) scale(0.98); filter: brightness(0.82); }
+
+/* ── Editor mode: no hover/active effects (toolbar is inside the element) ── */
+.elem-btn--editing,
+.elem-btn--editing:hover,
+.elem-btn--editing:active {
+    filter: none !important;
+    transform: none !important;
+    cursor: default;
+}
 
 
 /* ── Hover: lift ────────────────────────────────────────────────── */
