@@ -20,7 +20,35 @@
             @click.native.stop
             @mousedown.native.stop
             @pointerdown.native.stop
-        />
+        >
+            <!-- Extra row in Tiptap toolbar: button color + size -->
+            <template #extra-tools>
+                <div class="tiptap-toolbar__row">
+                    <span class="tiptap-toolbar__divider" />
+                    <span class="tiptap-toolbar__label">Цвет</span>
+                    <button
+                        v-for="color in canvasQuickColors"
+                        :key="color"
+                        type="button"
+                        class="cbar__dot"
+                        :class="{ 'cbar__dot--active': props.btnBg === color }"
+                        :style="{ background: color }"
+                        :title="color"
+                        @mousedown.prevent="setCanvasColor(color)"
+                    />
+                    <span class="tiptap-toolbar__divider" />
+                    <span class="tiptap-toolbar__label">Размер</span>
+                    <button
+                        v-for="s in canvasSizes"
+                        :key="s.key"
+                        type="button"
+                        class="cbar__size"
+                        :class="{ 'cbar__size--active': canvasCurrentSize === s.key }"
+                        @mousedown.prevent="setCanvasSize(s)"
+                    >{{ s.key }}</button>
+                </div>
+            </template>
+        </tiptap-editor>
         <!-- View mode: static HTML -->
         <span
             v-else-if="props.btnShowText !== false"
@@ -36,36 +64,6 @@
             <div class="elem-btn__toast">{{ popupText }}</div>
         </ui-popover>
         <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
-
-        <!-- ── Canvas quick-edit bar (editor only) ──────────────────── -->
-        <div v-if="isEditorMode" class="elem-btn__canvas-bar"
-             @click.stop.prevent @mousedown.stop.prevent @mouseup.stop.prevent @pointerdown.stop.prevent>
-            <div class="cbar__section">
-                <button
-                    v-for="color in canvasQuickColors"
-                    :key="color"
-                    class="cbar__dot"
-                    :class="{ 'cbar__dot--active': props.btnBg === color }"
-                    :style="{ background: color }"
-                    :title="color"
-                    @mousedown.stop.prevent
-                    @mouseup.stop.prevent="setCanvasColor(color)"
-                    @click.stop.prevent />
-            </div>
-            <div class="cbar__sep" />
-            <div class="cbar__section">
-                <button
-                    v-for="s in canvasSizes"
-                    :key="s.key"
-                    class="cbar__size"
-                    :class="{ 'cbar__size--active': canvasCurrentSize === s.key }"
-                    @mousedown.stop.prevent
-                    @mouseup.stop.prevent="setCanvasSize(s)"
-                    @click.stop.prevent>
-                    {{ s.key }}
-                </button>
-            </div>
-        </div>
     </div>
 </template>
 
@@ -515,60 +513,17 @@ export default {
     50% { box-shadow: 0 0 0 6px rgba(79, 106, 255, 0), 0 0 20px rgba(79, 106, 255, 0.5); }
 }
 
-/* ── Canvas quick-edit bar ──────────────────────────────────────── */
+/* ── Button props row inside Tiptap toolbar ─────────────────────── */
 
-/* Bridge the gap so cursor doesn't lose hover moving button→bar */
-.elem-btn::after {
-    content: '';
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    right: 0;
-    height: 16px;
-    pointer-events: none;
-}
-.elem-btn:hover::after {
-    pointer-events: auto;
-}
-
-.elem-btn__canvas-bar {
-    position: absolute;
-    bottom: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%) translateY(4px);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 5px 8px;
-    background: #1e293b;
-    border-radius: 10px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.18s ease, transform 0.18s ease;
-    z-index: 9999;
+/* Label text before color/size groups */
+.tiptap-toolbar__label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0 2px;
     white-space: nowrap;
-}
-
-.elem-btn:hover .elem-btn__canvas-bar,
-.elem-btn__canvas-bar:hover {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateX(-50%) translateY(0);
-}
-
-.cbar__section {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.cbar__sep {
-    width: 1px;
-    height: 16px;
-    background: rgba(255, 255, 255, 0.15);
-    flex-shrink: 0;
-    margin: 0 2px;
 }
 
 /* Color dots */
@@ -576,22 +531,22 @@ export default {
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(0, 0, 0, 0.15);
     cursor: pointer;
     transition: transform 0.1s, border-color 0.1s;
     padding: 0;
     flex-shrink: 0;
 }
-.cbar__dot:hover { transform: scale(1.25); border-color: rgba(255, 255, 255, 0.6); }
-.cbar__dot--active { border-color: #fff; transform: scale(1.15); }
+.cbar__dot:hover { transform: scale(1.25); border-color: rgba(0, 0, 0, 0.4); }
+.cbar__dot--active { border-color: #1976d2; transform: scale(1.15); outline: 2px solid #1976d2; outline-offset: 1px; }
 
 /* Size chips */
 .cbar__size {
     padding: 2px 7px;
     border-radius: 5px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.15);
     background: transparent;
-    color: rgba(255, 255, 255, 0.6);
+    color: #555;
     font-size: 10px;
     font-weight: 700;
     cursor: pointer;
@@ -599,14 +554,14 @@ export default {
     letter-spacing: 0.04em;
 }
 .cbar__size:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(0, 0, 0, 0.06);
+    color: #111;
+    border-color: rgba(0, 0, 0, 0.3);
 }
 .cbar__size--active {
-    background: #4f6aff;
+    background: #1976d2;
     color: #fff;
-    border-color: #4f6aff;
+    border-color: #1976d2;
 }
 
 /* ── Static button text (view mode) ─────────────────────────── */
