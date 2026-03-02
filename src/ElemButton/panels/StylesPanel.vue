@@ -41,6 +41,20 @@
                     </button>
                 </div>
 
+                <!-- ── Свой шрифт ───────────────────────────────────── -->
+                <div class="custom-font-row">
+                    <input
+                        class="custom-font-input"
+                        placeholder="Свой шрифт, напр. Comfortaa"
+                        :value="customFontInput"
+                        @input="customFontInput = $event.target.value"
+                        @keydown.enter.prevent="applyCustomFont"
+                    />
+                    <button class="custom-font-btn" :disabled="!customFontInput.trim()" @click="applyCustomFont">
+                        <i class="mdi mdi-check" />
+                    </button>
+                </div>
+
                 <!-- ── Регистр ───────────────────────────────────────── -->
                 <div class="section-label">Регистр</div>
                 <div class="opt-grid opt-grid--4">
@@ -439,14 +453,28 @@ export default {
             'Войти', 'Отправить', 'Купить', 'Скачать'
         ],
         fontFamilyOptions: [
-            { label: 'По умолч.', value: '' },
-            { label: 'Inter',     value: 'Inter, sans-serif' },
-            { label: 'Roboto',    value: 'Roboto, sans-serif' },
-            { label: 'Montserrat', value: 'Montserrat, sans-serif' },
-            { label: 'Open Sans', value: "'Open Sans', sans-serif" },
-            { label: 'Georgia',   value: 'Georgia, serif' },
-            { label: 'Mono',      value: "'Courier New', monospace" }
+            { label: 'По умолч.',    value: '' },
+            { label: 'Inter',        value: 'Inter, sans-serif' },
+            { label: 'Roboto',       value: 'Roboto, sans-serif' },
+            { label: 'Montserrat',   value: 'Montserrat, sans-serif' },
+            { label: 'Open Sans',    value: "'Open Sans', sans-serif" },
+            { label: 'Lato',         value: 'Lato, sans-serif' },
+            { label: 'Poppins',      value: 'Poppins, sans-serif' },
+            { label: 'Nunito',       value: 'Nunito, sans-serif' },
+            { label: 'Raleway',      value: 'Raleway, sans-serif' },
+            { label: 'Oswald',       value: 'Oswald, sans-serif' },
+            { label: 'PT Sans',      value: "'PT Sans', sans-serif" },
+            { label: 'Ubuntu',       value: 'Ubuntu, sans-serif' },
+            { label: 'Rubik',        value: 'Rubik, sans-serif' },
+            { label: 'Exo 2',        value: "'Exo 2', sans-serif" },
+            { label: 'Merriweather', value: 'Merriweather, serif' },
+            { label: 'Playfair',     value: "'Playfair Display', serif" },
+            { label: 'PT Serif',     value: "'PT Serif', serif" },
+            { label: 'Georgia',      value: 'Georgia, serif' },
+            { label: 'Mono',         value: "'Courier New', monospace" },
+            { label: 'JetBrains',    value: "'JetBrains Mono', monospace" }
         ],
+        customFontInput: '',
         textTransformOptions: [
             { label: 'Обычный',   value: 'none' },
             { label: 'ЗАГЛАВНЫЕ', value: 'uppercase' },
@@ -738,7 +766,19 @@ export default {
             if (this.props.btnGradientTo) { this.props.btnGradientTo = ''; this.propChanged('btnGradientTo'); }
         },
         setBtnText(text) { this.props.btnText = text; this.propChanged('btnText'); },
-        setBtnFontFamily(val) { this.props.btnFontFamily = val; this.propChanged('btnFontFamily'); },
+        setBtnFontFamily(val) {
+            this.props.btnFontFamily = val;
+            this.propChanged('btnFontFamily');
+            this.customFontInput = '';
+        },
+        applyCustomFont() {
+            const raw = this.customFontInput.trim();
+            if (!raw) return;
+            // If the user didn't specify a fallback, append a generic one
+            const val = raw.includes(',') ? raw : `${raw}, sans-serif`;
+            this.props.btnFontFamily = val;
+            this.propChanged('btnFontFamily');
+        },
         setBtnTextTransform(val) { this.props.btnTextTransform = val; this.propChanged('btnTextTransform'); },
         onLetterSpacingSlider(e) {
             const hundredths = parseInt(e.target.value, 10); // eslint-disable-line no-magic-numbers
@@ -991,4 +1031,45 @@ export default {
     line-height: 1;
     color: currentColor;
 }
+
+/* ── Custom font input ───────────────────────────────────────── */
+.custom-font-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 4px;
+}
+.custom-font-input {
+    flex: 1;
+    height: 30px;
+    padding: 0 9px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 7px;
+    font-size: 12px;
+    color: #1e293b;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s;
+    min-width: 0;
+}
+.custom-font-input:focus { border-color: #4f6aff; }
+.custom-font-input::placeholder { color: #c8d5e8; }
+.custom-font-btn {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid #4f6aff;
+    border-radius: 7px;
+    background: #4f6aff;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, opacity 0.12s;
+    padding: 0;
+}
+.custom-font-btn:hover { background: #3b57e8; border-color: #3b57e8; }
+.custom-font-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 </style>
