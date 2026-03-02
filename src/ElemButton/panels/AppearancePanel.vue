@@ -153,6 +153,9 @@ export default {
                 if (p.btnBorderWidth && p.btnBorderWidth !== '0px') {
                     s += `\nborder: ${p.btnBorderWidth} solid ${p.btnBorderColor || 'transparent'};`;
                 }
+                if (p.btnFontFamily) s += `\nfont-family: ${p.btnFontFamily};`;
+                if (p.btnLetterSpacing) s += `\nletter-spacing: ${p.btnLetterSpacing};`;
+                if (p.btnTextTransform && p.btnTextTransform !== 'none') s += `\ntext-transform: ${p.btnTextTransform};`;
                 return s;
             }
             if (key === 'hover') {

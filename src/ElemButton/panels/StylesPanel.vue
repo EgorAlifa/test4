@@ -26,6 +26,48 @@
                     </button>
                 </div>
                 <ui-input prop="btnText" placeholder="Подробнее">Свой текст</ui-input>
+
+                <!-- ── Шрифт ────────────────────────────────────────── -->
+                <div class="section-label">Шрифт</div>
+                <div class="font-grid">
+                    <button
+                        v-for="f in fontFamilyOptions"
+                        :key="f.value"
+                        class="font-chip"
+                        :class="{ 'font-chip--active': (props.btnFontFamily || '') === f.value }"
+                        :style="{ fontFamily: f.value || 'inherit' }"
+                        @click="setBtnFontFamily(f.value)">
+                        {{ f.label }}
+                    </button>
+                </div>
+
+                <!-- ── Регистр ───────────────────────────────────────── -->
+                <div class="section-label">Регистр</div>
+                <div class="opt-grid opt-grid--4">
+                    <div
+                        v-for="t in textTransformOptions"
+                        :key="t.value"
+                        class="opt-card"
+                        :class="{ 'opt-card--active': (props.btnTextTransform || 'none') === t.value }"
+                        @click="setBtnTextTransform(t.value)">
+                        <span class="opt-card__typo-preview" :style="{ textTransform: t.value }">Аа</span>
+                        <div class="opt-card__label">{{ t.label }}</div>
+                    </div>
+                </div>
+
+                <!-- ── Межбуквенный интервал ─────────────────────────── -->
+                <div class="section-label">Межбуквенный интервал</div>
+                <div class="slider-row">
+                    <input
+                        type="range"
+                        class="slider"
+                        min="-5"
+                        max="30"
+                        step="1"
+                        :value="letterSpacingSliderVal"
+                        @input="onLetterSpacingSlider" />
+                    <span class="slider-val">{{ letterSpacingDisplay }}</span>
+                </div>
             </template>
 
             <!-- ── Вариант стиля ───────────────────────────────────── -->
@@ -306,6 +348,9 @@ const DEFAULTS = {
     btnBorderRadius: '8px',
     btnFontSize: '14px',
     btnFontWeight: '500',
+    btnFontFamily: '',
+    btnLetterSpacing: '',
+    btnTextTransform: 'none',
     btnPaddingV: '10px',
     btnPaddingH: '20px',
     btnShadow: '0 2px 12px rgba(79,106,255,0.3), 0 1px 3px rgba(0,0,0,0.1)',
@@ -393,6 +438,21 @@ export default {
             'Подробнее', 'Сохранить', 'Далее', 'Назад',
             'Войти', 'Отправить', 'Купить', 'Скачать'
         ],
+        fontFamilyOptions: [
+            { label: 'По умолч.', value: '' },
+            { label: 'Inter',     value: 'Inter, sans-serif' },
+            { label: 'Roboto',    value: 'Roboto, sans-serif' },
+            { label: 'Montserrat', value: 'Montserrat, sans-serif' },
+            { label: 'Open Sans', value: "'Open Sans', sans-serif" },
+            { label: 'Georgia',   value: 'Georgia, serif' },
+            { label: 'Mono',      value: "'Courier New', monospace" }
+        ],
+        textTransformOptions: [
+            { label: 'Обычный',   value: 'none' },
+            { label: 'ЗАГЛАВНЫЕ', value: 'uppercase' },
+            { label: 'Первые',    value: 'capitalize' },
+            { label: 'строчные',  value: 'lowercase' }
+        ],
         colorPresets: [
             { label: 'Синий',    bg: '#4f6aff', color: '#ffffff' },
             { label: 'Фиолет.',  bg: '#7c3aed', color: '#ffffff' },
@@ -425,6 +485,17 @@ export default {
         ]
     }),
     computed: {
+        letterSpacingSliderVal() {
+            const raw = this.props.btnLetterSpacing || '';
+            if (!raw) return 0;
+            if (raw.endsWith('em')) return Math.round(parseFloat(raw) * 100);
+            return 0;
+        },
+        letterSpacingDisplay() {
+            const val = this.letterSpacingSliderVal;
+            if (val === 0) return '0 (по умолч.)';
+            return `${val > 0 ? '+' : ''}${(val / 100).toFixed(2)}em`; // eslint-disable-line no-magic-numbers
+        },
         isGlass() { return this.stylePreset === 'glass'; },
         isGradient() { return this.stylePreset === 'gradient'; },
         iconOnlyMode() { return this.props.btnShowText === false; },
@@ -444,6 +515,7 @@ export default {
         fullPreviewStyle() {
             const {
                 btnBg, btnColor, btnBorderRadius, btnFontSize, btnFontWeight,
+                btnFontFamily, btnLetterSpacing, btnTextTransform,
                 btnPaddingV, btnPaddingH, btnBorderWidth, btnBorderColor,
                 btnGradientTo, btnGradientAngle, btnIsGlass
             } = this.props;
@@ -456,6 +528,9 @@ export default {
                 borderRadius: btnBorderRadius || '8px',
                 fontSize: btnFontSize || '14px',
                 fontWeight: btnFontWeight || '500',
+                fontFamily: btnFontFamily || 'inherit',
+                letterSpacing: btnLetterSpacing || '0.02em',
+                textTransform: btnTextTransform || 'none',
                 padding: `${btnPaddingV || '10px'} ${btnPaddingH || '20px'}`,
                 border: (btnBorderWidth && btnBorderWidth !== '0px')
                     ? `${btnBorderWidth} solid ${btnBorderColor || 'currentColor'}`
@@ -663,6 +738,13 @@ export default {
             if (this.props.btnGradientTo) { this.props.btnGradientTo = ''; this.propChanged('btnGradientTo'); }
         },
         setBtnText(text) { this.props.btnText = text; this.propChanged('btnText'); },
+        setBtnFontFamily(val) { this.props.btnFontFamily = val; this.propChanged('btnFontFamily'); },
+        setBtnTextTransform(val) { this.props.btnTextTransform = val; this.propChanged('btnTextTransform'); },
+        onLetterSpacingSlider(e) {
+            const hundredths = parseInt(e.target.value, 10); // eslint-disable-line no-magic-numbers
+            this.props.btnLetterSpacing = hundredths === 0 ? '' : `${(hundredths / 100).toFixed(2)}em`; // eslint-disable-line no-magic-numbers
+            this.propChanged('btnLetterSpacing');
+        },
         resetAll() {
             Object.entries(DEFAULTS).forEach(([key, val]) => {
                 this.props[key] = val;
@@ -885,4 +967,28 @@ export default {
 .text-preset { padding: 3px 9px; border-radius: 20px; border: 1.5px solid #e2e8f0; background: #fff; color: #475569; font-size: 11px; font-weight: 500; cursor: pointer; transition: border-color 0.12s, background 0.12s, color 0.12s; white-space: nowrap; }
 .text-preset:hover { border-color: #a5b4fc; color: #4f6aff; }
 .text-preset--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
+
+/* ── Font family grid ────────────────────────────────────────── */
+.font-grid { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 2px; }
+.font-chip {
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, color 0.12s;
+    white-space: nowrap;
+}
+.font-chip:hover { border-color: #a5b4fc; color: #4f6aff; }
+.font-chip--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
+
+/* ── Typography opt-card preview ─────────────────────────────── */
+.opt-card__typo-preview {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1;
+    color: currentColor;
+}
 </style>

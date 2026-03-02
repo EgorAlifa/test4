@@ -9,7 +9,20 @@
             v-if="props.btnIconLeft && !isLoading"
             :class="props.btnIconLeft"
             class="elem-btn__icon elem-btn__icon--left" />
-        <slot>{{ props.btnShowText !== false ? props.btnText : '' }}</slot>
+        <!-- Inline editing in editor mode -->
+        <span
+            v-if="isEditorMode && props.btnShowText !== false"
+            ref="inlineText"
+            class="elem-btn__text-inline"
+            contenteditable="true"
+            spellcheck="false"
+            @click.stop
+            @mousedown.stop
+            @keydown.stop
+            @keyup.stop
+            @input.stop="onInlineTextInput"
+        />
+        <slot v-else>{{ props.btnShowText !== false ? props.btnText : '' }}</slot>
         <i
             v-if="props.btnIconRight"
             :class="props.btnIconRight"
@@ -78,6 +91,22 @@ export default {
     extends: Elem,
     meta,
     components: { UiPopover: Popover },
+    mounted() {
+        this.$nextTick(this.syncInlineText);
+    },
+
+    watch: {
+        isEditorMode(val) {
+            if (val) this.$nextTick(this.syncInlineText);
+        },
+        'props.btnText'(val) {
+            const el = this.$refs.inlineText;
+            if (el && el.innerText.replace(/\n/g, ' ').trim() !== val) {
+                el.innerText = val;
+            }
+        }
+    },
+
     data: () => ({
         isPopupVisible: false,
         popupText: '',
@@ -131,6 +160,7 @@ export default {
         buttonStyle() {
             const {
                 btnBg, btnColor, btnBorderRadius, btnFontSize, btnFontWeight,
+                btnFontFamily, btnLetterSpacing, btnTextTransform,
                 btnPaddingV, btnPaddingH, btnShadow, btnBorderWidth, btnBorderColor,
                 btnGradientTo, btnGradientAngle, btnCursor,
                 btnToggleBg, btnToggleColor
@@ -146,6 +176,9 @@ export default {
                 '--btn-border-radius': btnBorderRadius,
                 '--btn-font-size': btnFontSize,
                 '--btn-font-weight': btnFontWeight,
+                '--btn-font-family': btnFontFamily || 'inherit',
+                '--btn-letter-spacing': btnLetterSpacing || '0.02em',
+                '--btn-text-transform': btnTextTransform || 'none',
                 '--btn-padding-v': btnPaddingV,
                 '--btn-padding-h': btnPaddingH,
                 '--btn-shadow': btnShadow,
@@ -331,6 +364,19 @@ export default {
             );
             addRouteQueryParams(queryParams);
         },
+        /** Sync contenteditable span content with props.btnText */
+        syncInlineText() {
+            const el = this.$refs.inlineText;
+            if (el) el.innerText = this.props.btnText || '';
+        },
+
+        /** Handle contenteditable input: save plain text back to prop */
+        onInlineTextInput(e) {
+            const text = (e.target.innerText || '').replace(/[\r\n]+/g, ' ').trim();
+            this.props.btnText = text || 'Кнопка';
+            this.propChanged('btnText');
+        },
+
         /** Canvas bar: set background color */
         setCanvasColor(color) {
             this.props.btnBg = color;
@@ -369,8 +415,10 @@ export default {
     color: var(--btn-color, #fff);
     font-size: var(--btn-font-size, 14px);
     font-weight: var(--btn-font-weight, 500);
+    font-family: var(--btn-font-family, inherit);
     line-height: 1.4;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--btn-letter-spacing, 0.02em);
+    text-transform: var(--btn-text-transform, none);
     border: var(--btn-border-width, 0px) solid var(--btn-border-color, transparent);
     box-shadow: var(--btn-shadow, 0 2px 12px rgba(79, 106, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.1));
     cursor: var(--btn-cursor, pointer);
@@ -572,5 +620,21 @@ export default {
     background: #4f6aff;
     color: #fff;
     border-color: #4f6aff;
+}
+
+/* ── Inline text editing span ───────────────────────────────── */
+.elem-btn__text-inline {
+    outline: none;
+    min-width: 1ch;
+    cursor: text;
+    white-space: nowrap;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+}
+.elem-btn__text-inline:empty::before {
+    content: 'Кнопка';
+    opacity: 0.45;
 }
 </style>
