@@ -1,7 +1,7 @@
 <template>
     <div
         class="elem-btn"
-        :class="[cssClass, buttonDynamicClass]"
+        :class="[cssClass, buttonDynamicClass, { 'is-editing': isEditorMode }]"
         :style="[cssStyle, buttonStyle]"
         @click="handleClick">
         <span v-if="isLoading" class="elem-btn__spinner" />
@@ -18,6 +18,7 @@
             spellcheck="false"
             @click="isEditorMode && $event.stopPropagation()"
             @mousedown="isEditorMode && $event.stopPropagation()"
+            @pointerdown="isEditorMode && $event.stopPropagation()"
             @keydown.stop
             @keyup.stop
             @input="onInlineTextInput"
@@ -100,8 +101,10 @@ export default {
             this.$nextTick(this.syncInlineText);
             if (val) {
                 this.$nextTick(() => {
-                    const el = this.$refs.inlineText;
-                    if (el) el.focus();
+                    setTimeout(() => {
+                        const el = this.$refs.inlineText;
+                        if (el) el.focus();
+                    }, 50); // eslint-disable-line no-magic-numbers
                 });
             }
         },
@@ -439,6 +442,17 @@ export default {
 .elem-btn:hover { filter: brightness(0.9); }
 .elem-btn:active { transform: translateY(1px) scale(0.98); filter: brightness(0.82); }
 
+/* ── Editor mode: disable all button interaction visuals ────── */
+.elem-btn.is-editing,
+.elem-btn.is-editing:hover,
+.elem-btn.is-editing:active {
+    filter: none !important;
+    transform: none !important;
+    animation: none !important;
+    cursor: default;
+}
+.elem-btn.is-editing::after { pointer-events: none !important; }
+
 /* ── Hover: lift ────────────────────────────────────────────────── */
 .elem-btn--hover-lift:hover {
     filter: none;
@@ -633,12 +647,21 @@ export default {
 .elem-btn__text-inline {
     outline: none;
     min-width: 1ch;
-    cursor: text;
     white-space: nowrap;
     color: inherit;
     font: inherit;
     letter-spacing: inherit;
     text-transform: inherit;
+    /* Override parent user-select: none so contenteditable works */
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
+}
+/* In view mode: restore button cursor, no text selection */
+.elem-btn__text-inline[contenteditable="false"] {
+    cursor: inherit;
+    user-select: none;
+    -webkit-user-select: none;
 }
 .elem-btn__text-inline:empty::before {
     content: 'Кнопка';
