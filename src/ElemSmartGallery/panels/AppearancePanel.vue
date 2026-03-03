@@ -2,9 +2,17 @@
     <w-panel>
         <div class="oform-panel">
 
+            <!-- Подсказка: что оформляет эта панель -->
+            <div class="oform-hint">
+                <i class="mdi mdi-information-outline"></i>
+                Настройки применяются к <b>внутреннему контейнеру</b> виджета
+                (сетка слотов или обёртка стека/контейнера).
+                Фон и цвет снаружи — настраивайте через свойства самого виджета.
+            </div>
+
             <!-- ─── Цвета ──────────────────────────────────────────────── -->
             <div class="oform-section">
-                <div class="oform-section__title">Цвета</div>
+                <div class="oform-section__title">Цвета контейнера</div>
                 <div class="oform-row">
                     <span class="oform-label">Фон</span>
                     <ui-input-cp
@@ -170,5 +178,25 @@ export default {
     border-radius: 50%;
     cursor: grab;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.oform-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 9px 11px;
+    margin-bottom: 12px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #1e40af;
+    line-height: 1.5;
+}
+.oform-hint .mdi {
+    font-size: 15px;
+    color: #3b82f6;
+    flex-shrink: 0;
+    margin-top: 2px;
 }
 </style>
