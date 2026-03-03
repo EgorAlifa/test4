@@ -249,7 +249,7 @@ function parsePx(val) {
 
 export default {
     extends: Panel,
-    meta: { name: 'Внешний вид', icon: 'format-paint' },
+    meta: { name: 'Оформление', icon: 'palette-outline' },
     data: () => ({
         ...PanelInstanceTypeDescriptor,
         stylePresetOptions: [

@@ -93,12 +93,11 @@ export const descriptor = () => ({
             type: String,
             default: '8px'
         },
-        // ── Кастомный CSS ─────────────────────────────────────────────
-        cssRoot: { type: String, default: '' },
-        cssItem: { type: String, default: '' },
-        cssHeader: { type: String, default: '' },
-        cssHeaderOpen: { type: String, default: '' },
-        cssBody: { type: String, default: '' }
+        // ── Кастомный CSS (DesignerPanel) ─────────────────────────────
+        customStyles: {
+            type: Object,
+            default: () => ({})
+        }
     },
     vars: {},
     cssVars: {}

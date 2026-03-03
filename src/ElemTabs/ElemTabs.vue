@@ -30,6 +30,7 @@
         </div>
 
             <component v-if="injectedCss" :is="'style'" v-html="injectedCss" />
+            <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
         </div>
     </w-elem>
 </template>
@@ -95,8 +96,7 @@ export default {
             });
         },
         injectedCss() {
-            const { tabIndicatorColor, indicatorType, tabActiveBg,
-                    cssRoot, cssBar, cssTab, cssTabActive, cssContent } = this.props;
+            const { tabIndicatorColor, indicatorType, tabActiveBg } = this.props;
             const parts = [];
             if (indicatorType === 'underline') {
                 parts.push(`.elem-tabs__tab--active::after { background: ${tabIndicatorColor} !important; }`);
@@ -105,12 +105,23 @@ export default {
             } else if (indicatorType === 'border') {
                 parts.push(`.elem-tabs__tab--active { box-shadow: 0 0 0 2px ${tabIndicatorColor} !important; }`);
             }
-            if (cssRoot) parts.push(`.elem-tabs { ${cssRoot} }`);
-            if (cssBar) parts.push(`.elem-tabs__bar { ${cssBar} }`);
-            if (cssTab) parts.push(`.elem-tabs__tab { ${cssTab} }`);
-            if (cssTabActive) parts.push(`.elem-tabs__tab--active { ${cssTabActive} }`);
-            if (cssContent) parts.push(`.elem-tabs__content { ${cssContent} }`);
-            return parts.join('\n');
+            return parts.join('\n') || null;
+        },
+        customCssContent() {
+            const styles = this.props.customStyles;
+            if (!styles || typeof styles !== 'object') return null;
+            const selectorMap = {
+                root:      '.elem-tabs',
+                bar:       '.elem-tabs__bar',
+                tab:       '.elem-tabs__tab',
+                tabActive: '.elem-tabs__tab--active',
+                content:   '.elem-tabs__content'
+            };
+            const css = Object.entries(selectorMap)
+                .filter(([key]) => styles[key])
+                .map(([key, sel]) => `${sel} { ${styles[key]} }`)
+                .join('\n');
+            return css || null;
         }
     },
     watch: {
