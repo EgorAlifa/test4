@@ -1,41 +1,6 @@
 <template>
     <ui-panel-container>
-        <!-- SlotsPanel is only relevant for gallery mode -->
-        <div v-if="props.mode && props.mode !== 'gallery'" class="p">
-            <div class="color-grey text-small">
-                Слоты с условиями доступны только в режиме «Галерея».
-            </div>
-        </div>
-        <ui-container v-else>
-            <ui-has-panel>
-                <ui-checkbox prop="awaitStoreFilter">
-                    {{ descriptor.props.awaitStoreFilter.label }}
-                </ui-checkbox>
-                <template #panel>
-                    <ui-panel :groups="[{ name: 'Настройка переменных', slot: 'default' }]">
-                        <ui-select prop="awaitVariableModeVariables" :options="awaitModeVariableOptions" multiple>
-                            Переменные
-                        </ui-select>
-                    </ui-panel>
-                </template>
-            </ui-has-panel>
-
-            <ui-switch prop="isUseSkeleton">
-                {{ descriptor.props.isUseSkeleton.label }}
-            </ui-switch>
-
-            <ui-input v-model="props.events.updateData" @change="propChanged('events')">
-                {{ descriptor.props.events.label.updateData }}
-            </ui-input>
-
-            <ui-switch v-model="isDevMode">Показать все слоты</ui-switch>
-
-            <ui-switch prop="isShowDefaultSlot">
-                <template #hint>
-                    Отображает дефолтный слот в случае, когда ни одно из условий всех правил не выполняется.
-                </template>
-            </ui-switch>
-
+        <ui-container>
             <ui-draggable v-model="slots">
                 <ui-has-panel class="slot-item" v-for="(slot, i) in slots" :key="slot.id">
                     <div class="slot-item__label flex-v-center">
@@ -95,26 +60,8 @@ export default {
                 this.slotsChanged();
             }
         },
-        isDevMode: {
-            get() {
-                const { elementInstance: el } = this;
-                return el.isDevMode;
-            },
-            set(val) {
-                const { elementInstance: el } = this;
-                if (el != null) {
-                    el.isDevMode = val;
-                }
-            }
-        },
         addonsMetricDimensions() {
             return this.buildOptions([...this.metrics, ...this.dimensions]);
-        },
-        awaitModeVariableOptions() {
-            return Object.keys({
-                ...this.descriptor.vars,
-                ...this.elementInstance?.descriptor.vars
-            }).sort();
         }
     },
     mounted() {
