@@ -106,7 +106,13 @@ export const descriptor = () => ({
         showBorder: {
             type: Boolean,
             default: true
-        }
+        },
+        // ── Кастомный CSS ─────────────────────────────────────────────
+        cssRoot: { type: String, default: '' },
+        cssBar: { type: String, default: '' },
+        cssTab: { type: String, default: '' },
+        cssTabActive: { type: String, default: '' },
+        cssContent: { type: String, default: '' }
     },
     vars: {},
     cssVars: {}

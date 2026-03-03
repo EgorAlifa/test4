@@ -30,6 +30,7 @@
         </div>
 
             <component v-if="indicatorCss" :is="'style'" v-html="indicatorCss" />
+            <component v-if="customCss" :is="'style'" v-html="customCss" />
         </div>
     </w-elem>
 </template>
@@ -76,6 +77,16 @@ export default {
                     ? 'none'
                     : undefined
             };
+        },
+        customCss() {
+            const { cssRoot, cssBar, cssTab, cssTabActive, cssContent } = this.props;
+            const parts = [];
+            if (cssRoot) parts.push(`.elem-tabs { ${cssRoot} }`);
+            if (cssBar) parts.push(`.elem-tabs__bar { ${cssBar} }`);
+            if (cssTab) parts.push(`.elem-tabs__tab { ${cssTab} }`);
+            if (cssTabActive) parts.push(`.elem-tabs__tab--active { ${cssTabActive} }`);
+            if (cssContent) parts.push(`.elem-tabs__content { ${cssContent} }`);
+            return parts.join('\n');
         },
         indicatorCss() {
             const { tabIndicatorColor, indicatorType, tabActiveBg } = this.props;

@@ -55,8 +55,93 @@
                 Иконка
             </div>
 
-            <ui-select prop="iconType" :options="iconTypeOptions">Тип иконки</ui-select>
             <ui-select prop="iconPosition" :options="iconPositionOptions">Расположение</ui-select>
+
+            <!-- Иконка: закрыто -->
+            <div class="form-label" style="margin-top:8px">Иконка (закрыто)</div>
+            <div class="icon-row">
+                <button
+                    class="icon-preview-btn"
+                    :title="props.iconClosed || 'Нет иконки'"
+                    @click.stop="iconPickerOpen = iconPickerOpen === 'closed' ? null : 'closed'">
+                    <i v-if="props.iconClosed" :class="props.iconClosed" />
+                    <i v-else class="mdi mdi-image-outline" style="opacity:.4" />
+                </button>
+                <div class="icon-input-wrap">
+                    <span class="icon-prefix">mdi-</span>
+                    <input
+                        class="icon-name-input"
+                        :value="iconNameOnly(props.iconClosed)"
+                        placeholder="chevron-down"
+                        @input="onIconInput('closed', $event)"
+                        @focus="iconPickerOpen = 'closed'" />
+                </div>
+                <button v-if="props.iconClosed" class="icon-clear-btn" @click.stop="clearIcon('closed')">
+                    <i class="mdi mdi-close" />
+                </button>
+            </div>
+            <div v-if="iconPickerOpen === 'closed'" class="icon-picker">
+                <div class="icon-picker__hd">
+                    <span>Выбор иконки</span>
+                    <button class="icon-picker__close" @click.stop="iconPickerOpen = null">
+                        <i class="mdi mdi-close" />
+                    </button>
+                </div>
+                <div class="icon-picker__grid">
+                    <button
+                        v-for="ico in quickIcons"
+                        :key="ico"
+                        class="icon-picker__btn"
+                        :class="{ 'icon-picker__btn--active': props.iconClosed === `mdi mdi-${ico}` }"
+                        :title="ico"
+                        @click.stop="pickIcon('closed', ico)">
+                        <i :class="`mdi mdi-${ico}`" />
+                    </button>
+                </div>
+            </div>
+
+            <!-- Иконка: открыто -->
+            <div class="form-label" style="margin-top:8px">Иконка (открыто)</div>
+            <div class="icon-row">
+                <button
+                    class="icon-preview-btn"
+                    :title="props.iconOpen || 'Нет иконки'"
+                    @click.stop="iconPickerOpen = iconPickerOpen === 'open' ? null : 'open'">
+                    <i v-if="props.iconOpen" :class="props.iconOpen" />
+                    <i v-else class="mdi mdi-image-outline" style="opacity:.4" />
+                </button>
+                <div class="icon-input-wrap">
+                    <span class="icon-prefix">mdi-</span>
+                    <input
+                        class="icon-name-input"
+                        :value="iconNameOnly(props.iconOpen)"
+                        placeholder="chevron-up"
+                        @input="onIconInput('open', $event)"
+                        @focus="iconPickerOpen = 'open'" />
+                </div>
+                <button v-if="props.iconOpen" class="icon-clear-btn" @click.stop="clearIcon('open')">
+                    <i class="mdi mdi-close" />
+                </button>
+            </div>
+            <div v-if="iconPickerOpen === 'open'" class="icon-picker">
+                <div class="icon-picker__hd">
+                    <span>Выбор иконки</span>
+                    <button class="icon-picker__close" @click.stop="iconPickerOpen = null">
+                        <i class="mdi mdi-close" />
+                    </button>
+                </div>
+                <div class="icon-picker__grid">
+                    <button
+                        v-for="ico in quickIcons"
+                        :key="ico"
+                        class="icon-picker__btn"
+                        :class="{ 'icon-picker__btn--active': props.iconOpen === `mdi mdi-${ico}` }"
+                        :title="ico"
+                        @click.stop="pickIcon('open', ico)">
+                        <i :class="`mdi mdi-${ico}`" />
+                    </button>
+                </div>
+            </div>
 
         </ui-container>
     </w-panel>
@@ -66,17 +151,32 @@
 import { Panel } from '@goodt-wcore/panel';
 import { PanelInstanceTypeDescriptor } from '../types';
 
+const QUICK_ICONS = [
+    'chevron-down', 'chevron-up', 'chevron-right', 'chevron-left',
+    'arrow-down', 'arrow-up', 'arrow-right', 'arrow-left',
+    'plus', 'minus', 'close', 'check',
+    'caret-down', 'caret-up', 'menu-down', 'menu-up',
+    'triangle-down', 'triangle-up', 'triangle-small-down', 'triangle-small-up',
+    'unfold-more-horizontal', 'unfold-less-horizontal',
+    'expand-all', 'collapse-all',
+    'home', 'magnify', 'cog-outline', 'pencil', 'delete-outline',
+    'star-outline', 'heart-outline', 'bell-outline', 'bookmark-outline',
+    'information-outline', 'alert-circle-outline', 'help-circle-outline',
+    'check-circle-outline', 'close-circle-outline',
+    'account-circle-outline', 'lock-outline', 'eye-outline', 'eye-off-outline',
+    'filter-variant', 'dots-vertical', 'menu', 'view-list-outline',
+    'link-variant', 'map-marker-outline', 'calendar-outline', 'clock-outline',
+    'file-document-outline', 'image-outline', 'camera-outline', 'qrcode'
+];
+
 export default {
     extends: Panel,
     meta: { name: 'Настройки', icon: 'cog' },
     data: () => ({
         ...PanelInstanceTypeDescriptor,
         openItems: {},
-        iconTypeOptions: [
-            { label: 'Шеврон (стрелка)', value: 'chevron' },
-            { label: 'Плюс / Минус', value: 'plus' },
-            { label: 'Стрелка вверх/вниз', value: 'arrow' }
-        ],
+        iconPickerOpen: null,  // null | 'closed' | 'open'
+        quickIcons: QUICK_ICONS,
         iconPositionOptions: [
             { label: 'Справа', value: 'right' },
             { label: 'Слева', value: 'left' }
@@ -98,6 +198,31 @@ export default {
         },
         save() {
             this.propChanged('items');
+        },
+
+        // ── Icon picker ──────────────────────────────────────────────
+        iconNameOnly(cls) {
+            if (!cls) return '';
+            return cls.replace(/^mdi\s+mdi-/, '').replace(/^mdi-/, '');
+        },
+        onIconInput(target, e) {
+            const raw = (e.target.value || '').trim();
+            const name = raw.replace(/^mdi\s+mdi-/, '').replace(/^mdi-/, '');
+            const full = name ? `mdi mdi-${name}` : '';
+            const prop = target === 'closed' ? 'iconClosed' : 'iconOpen';
+            this.props[prop] = full;
+            this.propChanged(prop);
+        },
+        pickIcon(target, ico) {
+            const prop = target === 'closed' ? 'iconClosed' : 'iconOpen';
+            this.props[prop] = `mdi mdi-${ico}`;
+            this.propChanged(prop);
+            this.iconPickerOpen = null;
+        },
+        clearIcon(target) {
+            const prop = target === 'closed' ? 'iconClosed' : 'iconOpen';
+            this.props[prop] = '';
+            this.propChanged(prop);
         }
     }
 };
@@ -219,4 +344,126 @@ export default {
     transition: border-color 0.15s;
 }
 .content-textarea:focus { border-color: #4f6aff; }
+
+/* ── Icon picker ──────────────────────────────────────── */
+.icon-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 4px;
+}
+.icon-preview-btn {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 7px;
+    background: #f8fafc;
+    cursor: pointer;
+    font-size: 16px;
+    color: #4f6aff;
+    transition: border-color 0.12s, background 0.12s;
+}
+.icon-preview-btn:hover { border-color: #a5b4fc; background: #f0f4ff; }
+.icon-input-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 7px;
+    background: #fff;
+    overflow: hidden;
+    height: 32px;
+}
+.icon-prefix {
+    padding: 0 4px 0 8px;
+    font-size: 11px;
+    color: #94a3b8;
+    font-family: monospace;
+    white-space: nowrap;
+}
+.icon-name-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 12px;
+    font-family: monospace;
+    color: #334155;
+    background: transparent;
+    padding: 0 8px 0 0;
+    height: 100%;
+}
+.icon-clear-btn {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 12px;
+    padding: 0;
+    transition: color 0.1s;
+}
+.icon-clear-btn:hover { color: #dc2626; }
+.icon-picker {
+    border: 1.5px solid #e0e7ff;
+    border-radius: 10px;
+    background: #fff;
+    margin-bottom: 6px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(79,106,255,0.08);
+}
+.icon-picker__hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: #f5f7ff;
+    border-bottom: 1px solid #e0e7ff;
+    font-size: 11px;
+    font-weight: 600;
+    color: #4f6aff;
+}
+.icon-picker__close {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 14px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+.icon-picker__grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+    padding: 6px;
+    max-height: 160px;
+    overflow-y: auto;
+}
+.icon-picker__btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 15px;
+    color: #475569;
+    transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+.icon-picker__btn:hover { background: #f0f4ff; color: #4f6aff; }
+.icon-picker__btn--active { border-color: #4f6aff; background: #eef0ff; color: #4f6aff; }
 </style>

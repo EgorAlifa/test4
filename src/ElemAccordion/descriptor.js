@@ -30,9 +30,13 @@ export const descriptor = () => ({
             type: String,
             default: 'right'
         },
-        iconType: {
+        iconClosed: {
             type: String,
-            default: 'chevron'
+            default: 'mdi mdi-chevron-down'
+        },
+        iconOpen: {
+            type: String,
+            default: 'mdi mdi-chevron-up'
         },
         // ── Заголовок ─────────────────────────────────────────────────
         headerBg: {
@@ -88,7 +92,13 @@ export const descriptor = () => ({
         itemGap: {
             type: String,
             default: '8px'
-        }
+        },
+        // ── Кастомный CSS ─────────────────────────────────────────────
+        cssRoot: { type: String, default: '' },
+        cssItem: { type: String, default: '' },
+        cssHeader: { type: String, default: '' },
+        cssHeaderOpen: { type: String, default: '' },
+        cssBody: { type: String, default: '' }
     },
     vars: {},
     cssVars: {}
