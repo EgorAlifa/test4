@@ -10,7 +10,7 @@
             <!-- Заголовок -->
             <div
                 class="elem-accordion__header"
-                :style="headerStyle"
+                :style="headerStyles[index]"
                 @click="toggle(index)">
                 <i
                     v-if="props.iconPosition === 'left'"
@@ -66,14 +66,20 @@ export default {
                 marginBottom: this.props.itemGap
             };
         },
-        headerStyle() {
-            return {
+        headerStyles() {
+            const openSet = new Set(this.openIndexes);
+            const base = {
                 background: this.props.headerBg,
-                color: this.props.headerColor,
                 fontSize: this.props.headerFontSize,
                 fontWeight: this.props.headerFontWeight,
                 padding: this.props.headerPadding
             };
+            return this.props.items.map((_, i) => ({
+                ...base,
+                color: openSet.has(i)
+                    ? (this.props.accentColor || '#4f6aff')
+                    : this.props.headerColor
+            }));
         },
         bodyStyle() {
             return {
@@ -92,7 +98,7 @@ export default {
         injectedCss() {
             const { accentColor, borderColor, cssRoot, cssItem, cssHeader, cssHeaderOpen, cssBody } = this.props;
             const parts = [
-                `.elem-accordion__item--open .elem-accordion__header { border-bottom: 1px solid ${borderColor}; color: ${accentColor}; }`,
+                `.elem-accordion__item--open .elem-accordion__header { border-bottom: 1px solid ${borderColor}; }`,
                 `.elem-accordion__icon { color: ${accentColor}; }`
             ];
             if (cssRoot) parts.push(`.elem-accordion { ${cssRoot} }`);
