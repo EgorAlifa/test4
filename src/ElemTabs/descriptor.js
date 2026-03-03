@@ -7,13 +7,13 @@ export const descriptor = () => ({
             type: Array,
             default() {
                 return [
-                    { label: 'Вкладка 1', content: 'Содержимое первой вкладки', icon: '' },
-                    { label: 'Вкладка 2', content: 'Содержимое второй вкладки', icon: '' },
-                    { label: 'Вкладка 3', content: 'Содержимое третьей вкладки', icon: '' }
+                    { label: 'Раздел 1', content: '<p>Текст, изображения и любой <strong>HTML</strong>-контент.</p>', icon: '' },
+                    { label: 'Раздел 2', content: '', icon: '' },
+                    { label: 'Раздел 3', content: '', icon: '' }
                 ];
             },
             factory() {
-                return { label: 'Новая вкладка', content: '', icon: '' };
+                return { label: 'Новый раздел', content: '', icon: '' };
             }
         },
         // ── Поведение ──────────────────────────────────────────────────

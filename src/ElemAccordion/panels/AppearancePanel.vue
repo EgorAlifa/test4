@@ -8,8 +8,8 @@
                 Цвета
             </div>
 
-            <ui-color prop="accentColor">Акцентный цвет</ui-color>
-            <ui-color prop="borderColor">Цвет рамки</ui-color>
+            <ui-input-cp prop="accentColor">Акцентный цвет</ui-input-cp>
+            <ui-input-cp prop="borderColor">Цвет рамки</ui-input-cp>
 
             <!-- ── Заголовок ──────────────────────────────────────────── -->
             <div class="section-label" style="margin-top: 10px">
@@ -17,8 +17,8 @@
                 Заголовок
             </div>
 
-            <ui-color prop="headerBg">Фон заголовка</ui-color>
-            <ui-color prop="headerColor">Цвет текста заголовка</ui-color>
+            <ui-input-cp prop="headerBg">Фон заголовка</ui-input-cp>
+            <ui-input-cp prop="headerColor">Цвет текста заголовка</ui-input-cp>
             <ui-input prop="headerFontSize" placeholder="15px">Размер шрифта</ui-input>
             <ui-input prop="headerFontWeight" placeholder="600">Жирность</ui-input>
             <ui-input prop="headerPadding" placeholder="16px 20px">Отступы заголовка</ui-input>
@@ -29,8 +29,8 @@
                 Содержимое
             </div>
 
-            <ui-color prop="contentBg">Фон содержимого</ui-color>
-            <ui-color prop="contentColor">Цвет текста содержимого</ui-color>
+            <ui-input-cp prop="contentBg">Фон содержимого</ui-input-cp>
+            <ui-input-cp prop="contentColor">Цвет текста содержимого</ui-input-cp>
             <ui-input prop="contentFontSize" placeholder="14px">Размер шрифта</ui-input>
             <ui-input prop="contentPadding" placeholder="12px 20px 16px">Отступы содержимого</ui-input>
 
@@ -53,7 +53,7 @@ import { PanelInstanceTypeDescriptor } from '../types';
 
 export default {
     extends: Panel,
-    meta: { name: 'Внешний вид', icon: 'palette' },
+    meta: { name: 'Внешний вид', icon: 'format-paint' },
     data: () => ({
         ...PanelInstanceTypeDescriptor
     })
