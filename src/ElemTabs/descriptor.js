@@ -107,12 +107,11 @@ export const descriptor = () => ({
             type: Boolean,
             default: true
         },
-        // ── Кастомный CSS ─────────────────────────────────────────────
-        cssRoot: { type: String, default: '' },
-        cssBar: { type: String, default: '' },
-        cssTab: { type: String, default: '' },
-        cssTabActive: { type: String, default: '' },
-        cssContent: { type: String, default: '' }
+        // ── Кастомный CSS (DesignerPanel) ─────────────────────────────
+        customStyles: {
+            type: Object,
+            default: () => ({})
+        }
     },
     vars: {},
     cssVars: {}

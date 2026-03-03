@@ -33,6 +33,7 @@
             </transition>
         </div>
             <component v-if="injectedCss" :is="'style'" v-html="injectedCss" />
+            <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
         </div>
     </w-elem>
 </template>
@@ -96,17 +97,27 @@ export default {
             return this.props.items.map((_, i) => openSet.has(i) ? open : closed);
         },
         injectedCss() {
-            const { accentColor, borderColor, cssRoot, cssItem, cssHeader, cssHeaderOpen, cssBody } = this.props;
-            const parts = [
+            const { accentColor, borderColor } = this.props;
+            return [
                 `.elem-accordion__item--open .elem-accordion__header { border-bottom: 1px solid ${borderColor}; }`,
                 `.elem-accordion__icon { color: ${accentColor}; }`
-            ];
-            if (cssRoot) parts.push(`.elem-accordion { ${cssRoot} }`);
-            if (cssItem) parts.push(`.elem-accordion__item { ${cssItem} }`);
-            if (cssHeader) parts.push(`.elem-accordion__header { ${cssHeader} }`);
-            if (cssHeaderOpen) parts.push(`.elem-accordion__item--open .elem-accordion__header { ${cssHeaderOpen} }`);
-            if (cssBody) parts.push(`.elem-accordion__body { ${cssBody} }`);
-            return parts.join('\n');
+            ].join('\n');
+        },
+        customCssContent() {
+            const styles = this.props.customStyles;
+            if (!styles || typeof styles !== 'object') return null;
+            const selectorMap = {
+                root:       '.elem-accordion',
+                item:       '.elem-accordion__item',
+                header:     '.elem-accordion__header',
+                headerOpen: '.elem-accordion__item--open .elem-accordion__header',
+                body:       '.elem-accordion__body'
+            };
+            const css = Object.entries(selectorMap)
+                .filter(([key]) => styles[key])
+                .map(([key, sel]) => `${sel} { ${styles[key]} }`)
+                .join('\n');
+            return css || null;
         }
     },
     watch: {
