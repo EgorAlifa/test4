@@ -171,9 +171,9 @@ import { Mode, Metric } from '../constants';
 import UiContainer from './components/UiContainer.vue';
 
 const MODE_OPTIONS = [
-    { value: Mode.GALLERY,   label: 'Галерея — слоты по условиям' },
-    { value: Mode.STACK,     label: 'Стек — один слот по событию' },
-    { value: Mode.CONTAINER, label: 'Контейнер — показать / скрыть' }
+    { value: Mode.GALLERY,   label: 'Галерея — слоты видны по условиям из данных' },
+    { value: Mode.STACK,     label: 'Стек — переключение слотов по событию' },
+    { value: Mode.CONTAINER, label: 'Контейнер — показать / скрыть по событию' }
 ];
 
 export default {
