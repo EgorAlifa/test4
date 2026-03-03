@@ -2,7 +2,7 @@
 /* eslint-disable no-restricted-syntax */
 import { useDatasetMeta } from '@goodt-common/data';
 import panels from './panels';
-import { DEFAULT_SLOT_NAME, Metric } from './constants';
+import { DEFAULT_SLOT_NAME, Metric, Mode } from './constants';
 
 /**
  * @enum {string}
@@ -26,6 +26,14 @@ export const Events = Object.freeze({
  */
 export const descriptor = () => ({
     props: {
+        // ─── Mode ────────────────────────────────────────────────────────────
+        mode: {
+            type: String,
+            default: Mode.GALLERY,
+            label: 'Режим'
+        },
+
+        // ─── Gallery mode ─────────────────────────────────────────────────────
         grid: {
             type: Object,
             default: () => ({
@@ -97,6 +105,64 @@ export const descriptor = () => ({
             type: Object,
             default: () => ({ [Events.UPDATE_DATA]: '' }),
             label: { [Events.UPDATE_DATA]: 'Событие для обновления данных' }
+        },
+
+        // ─── Stack mode (ElemEventStack) ─────────────────────────────────────
+        activeState: {
+            type: String,
+            default: 'default',
+            label: 'Активное состояние'
+        },
+        states: {
+            type: Array,
+            default: () => [{ name: 'default', event: '' }],
+            label: 'Состояния'
+        },
+
+        // ─── Container mode (ElemEventContainer) ─────────────────────────────
+        eventShow: {
+            type: String,
+            default: '',
+            label: 'Событие показа'
+        },
+        eventHide: {
+            type: String,
+            default: '',
+            label: 'Событие скрытия'
+        },
+        eventShowHide: {
+            type: String,
+            default: '',
+            label: 'Событие показа/скрытия'
+        },
+        initShow: {
+            type: Boolean,
+            default: true,
+            label: 'Показывать по умолчанию'
+        },
+        showMode: {
+            type: Boolean,
+            default: false,
+            label: 'Один ивент (boolean)'
+        },
+        reverseEvent: {
+            type: Boolean,
+            default: false,
+            label: 'Инвертировать значение'
+        },
+
+        // ─── Appearance (AppearancePanel) ─────────────────────────────────────
+        backgroundColor: { type: String, default: '' },
+        textColor:       { type: String, default: '' },
+        borderRadius:    { type: String, default: '0' },
+        boxShadow:       { type: String, default: '' },
+        opacity:         { type: [String, Number], default: 1 },
+
+        // ─── DesignerPanel ────────────────────────────────────────────────────
+        customStyles: {
+            type: Object,
+            default: () => ({}),
+            description: 'Custom CSS per UI element (DesignerPanel). Keys: container, slot, stackSlot'
         }
     },
     vars: Object.values(Vars).reduce((acc, varName) => ({ ...acc, [varName]: { description: varName } }), {}),
@@ -114,7 +180,12 @@ export const meta = useDatasetMeta(
         descriptor,
         panels,
         isChildAllowed: true,
-        slotNames: ({ props }) => [...props.slots.map(({ name }) => name), DEFAULT_SLOT_NAME],
+        slotNames: ({ props }) => {
+            const mode = props.mode || Mode.GALLERY;
+            if (mode === Mode.STACK) return (props.states || []).map((s) => s.name);
+            if (mode === Mode.CONTAINER) return ['default'];
+            return [...props.slots.map(({ name }) => name), DEFAULT_SLOT_NAME];
+        },
         cssVars: {
             'grid-cols': 'grid.cols',
             'grid-gap': 'grid.gap',

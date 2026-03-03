@@ -1,26 +1,53 @@
 <template>
     <w-elem :placeholder="$placeholder">
-        <div class="skeleton-grid" v-if="isLoadingData && isInitLoad && !isDevMode">
-            <template v-if="props.isUseSkeleton">
-                <div class="skeleton-grid__item skeleton" v-for="i in props.grid.cols * 2" :key="i"></div>
-            </template>
-        </div>
-        <div class="slots-grid" :class="gridClasses" v-else>
-            <div class="slot-item" v-for="name in slotNamesToRender" :key="name" :data-slot="name">
-                <slot :name="name">
-                    <div class="slot-item__placeholder" v-if="isEditorMode">
-                        <code>{{ name }}</code>
-                    </div>
-                </slot>
+
+        <!-- ── GALLERY MODE (data-driven slot visibility) ─────────────────── -->
+        <template v-if="mode === 'gallery'">
+            <div class="skeleton-grid" v-if="isLoadingData && isInitLoad && !isDevMode">
+                <template v-if="props.isUseSkeleton">
+                    <div class="skeleton-grid__item skeleton" v-for="i in props.grid.cols * 2" :key="i"></div>
+                </template>
             </div>
-            <div class="slot-item" v-if="isShowDefaultSlot">
-                <slot name="default">
-                    <div class="slot-item__placeholder" v-if="isEditorMode">
-                        <code>default</code>
-                    </div>
-                </slot>
+            <div class="slots-grid" :class="gridClasses" v-else>
+                <div class="slot-item" v-for="name in slotNamesToRender" :key="name" :data-slot="name">
+                    <slot :name="name">
+                        <div class="slot-item__placeholder" v-if="isEditorMode">
+                            <code>{{ name }}</code>
+                        </div>
+                    </slot>
+                </div>
+                <div class="slot-item" v-if="isShowDefaultSlot">
+                    <slot name="default">
+                        <div class="slot-item__placeholder" v-if="isEditorMode">
+                            <code>default</code>
+                        </div>
+                    </slot>
+                </div>
             </div>
-        </div>
+        </template>
+
+        <!-- ── STACK MODE (event-driven single-slot switching) ─────────────── -->
+        <template v-else-if="mode === 'stack'">
+            <slot :name="activeStackSlot" v-if="hasStackState(activeStackSlot)">
+                <div class="slot-item__placeholder" v-if="isEditorMode">
+                    <code>{{ activeStackSlot }}</code>
+                </div>
+            </slot>
+        </template>
+
+        <!-- ── CONTAINER MODE (show/hide single slot via events) ───────────── -->
+        <template v-else-if="mode === 'container'">
+            <slot v-if="containerVisible">
+                <div class="slot-item__placeholder" v-if="isEditorMode">default slot</div>
+            </slot>
+            <div class="slot-item__placeholder" v-else-if="isEditorMode">
+                <code>скрыто</code>
+            </div>
+        </template>
+
+        <!-- custom CSS injection (DesignerPanel) -->
+        <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
+
     </w-elem>
 </template>
 <script>
@@ -30,7 +57,7 @@ import { widget } from '@goodt-wcore/utils';
 import { useElemDatasetBaseMixin, ElemDatasetBaseMixinTypes } from '@goodt-common/data';
 import { meta, Vars, Events, DATASET_ADDITIONAL_PROP } from './descriptor';
 import { createViewModel } from './models';
-import { SlotCondition, SlotConditionType, SlotConditionOperatorMeta, Metric } from './constants';
+import { SlotCondition, SlotConditionType, SlotConditionOperatorMeta, Metric, Mode } from './constants';
 
 const DatasetMixin = useElemDatasetBaseMixin({ panel: { isMultiple: false } });
 
@@ -49,11 +76,39 @@ export default {
         // eslint-disable-next-line no-restricted-syntax
         sourcesData: [],
         chosenSlotNameToShow: null,
+        // stack mode: currently displayed state name
+        activeStackSlot: null,
+        // container mode: visibility flag
+        containerVisible: false,
 
         /* Vetur HACK */
         ...ElemDatasetBaseMixinTypes
     }),
     computed: {
+        /** Active display mode */
+        mode() {
+            return this.props.mode || Mode.GALLERY;
+        },
+
+        /**
+         * Custom CSS injected by DesignerPanel.
+         * Keys: container (slots-grid), slot (slot-item), stackSlot (stack placeholder)
+         */
+        customCssContent() {
+            const styles = this.props.customStyles;
+            if (!styles || typeof styles !== 'object') return null;
+            const selectorMap = {
+                container: '.slots-grid',
+                slot:      '.slot-item',
+                stackSlot: '.slot-item__placeholder'
+            };
+            const css = Object.entries(selectorMap)
+                .filter(([key]) => styles[key])
+                .map(([key, selector]) => `${selector} { ${styles[key]} }`)
+                .join('\n');
+            return css || null;
+        },
+
         /**
          * @return {import('./types').Slot[]}
          */
@@ -277,8 +332,63 @@ export default {
     created() {
         this.vm = createViewModel({ widget: widget(this) });
         this.setSources();
+
+        // Stack mode: init active slot, watch prop changes in editor
+        if (this.mode === Mode.STACK) {
+            this.activeStackSlot = this.props.activeState;
+            if (this.isEditorMode) {
+                this.$watch('props.activeState', (val) => { this.activeStackSlot = val; });
+                this.$watch('props.states', () => this.attachStackEventHandlers(), { deep: true });
+            }
+        }
+
+        // Container mode: init visibility, watch prop changes in editor
+        if (this.mode === Mode.CONTAINER) {
+            this.containerVisible = this.props.initShow;
+            if (this.isEditorMode) {
+                this.$watch('props', () => this.attachContainerEventHandlers(), { deep: true });
+            }
+        }
     },
     methods: {
+        // ── Stack mode ────────────────────────────────────────────────────────
+        hasStackState(name) {
+            return (this.props.states || []).some((s) => s.name === name);
+        },
+        attachStackEventHandlers() {
+            this.$eventBus.destroy();
+            (this.props.states || [])
+                .filter((s) => s.event?.length > 0)
+                .forEach(({ name, event }) => this.$eventListen(event, () => { this.activeStackSlot = name; }));
+        },
+
+        // ── Container mode ────────────────────────────────────────────────────
+        attachContainerEventHandlers() {
+            const { showMode, eventShowHide, reverseEvent, eventShow, eventHide } = this.props;
+            this.$eventBus.destroy();
+            if (showMode) {
+                this.$eventListen(eventShowHide, (e, val) => {
+                    if (typeof val === 'boolean') {
+                        this.containerVisible = reverseEvent ? !val : val;
+                    }
+                });
+            } else {
+                if (eventShow) this.$eventListen(eventShow, () => { this.containerVisible = true; });
+                if (eventHide) this.$eventListen(eventHide, () => { this.containerVisible = false; });
+            }
+        },
+
+        // ── Elem framework subscribe hook ─────────────────────────────────────
+        // Called by Elem after event bus is ready. Handles stack/container events.
+        // Gallery UPDATE_DATA event is handled by the subscribe: [...] array above.
+        subscribe() {
+            if (this.mode === Mode.STACK) {
+                this.attachStackEventHandlers();
+            } else if (this.mode === Mode.CONTAINER) {
+                this.attachContainerEventHandlers();
+            }
+        },
+
         setSources() {
             this.vm.setRequests(this.requests);
         },
