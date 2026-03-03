@@ -1,6 +1,12 @@
 <template>
     <ui-panel-container>
-        <ui-container>
+        <!-- SlotsPanel is only relevant for gallery mode -->
+        <div v-if="props.mode && props.mode !== 'gallery'" class="p">
+            <div class="color-grey text-small">
+                Слоты с условиями доступны только в режиме «Галерея».
+            </div>
+        </div>
+        <ui-container v-else>
             <ui-has-panel>
                 <ui-checkbox prop="awaitStoreFilter">
                     {{ descriptor.props.awaitStoreFilter.label }}

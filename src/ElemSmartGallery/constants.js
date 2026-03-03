@@ -4,6 +4,18 @@
 
 export const DEFAULT_SOURCE_LIMIT = 1;
 
+/**
+ * Widget display modes.
+ * gallery   — data-driven slot visibility via conditions (original ElemSmartGallery)
+ * stack     — event-driven single-slot switching (from ElemEventStack)
+ * container — show/hide single default slot via events (from ElemEventContainer)
+ */
+export const Mode = Object.freeze({
+    GALLERY: 'gallery',
+    STACK: 'stack',
+    CONTAINER: 'container'
+});
+
 export const DEFAULT_SLOT_NAME = 'default';
 
 export const Metric = {
@@ -48,8 +60,10 @@ export const SlotConditionOperatorMeta = {
     [SlotConditionOperator.LT]: { label: '<', resolve: (a, b) => Number(a) < Number(b) },
     [SlotConditionOperator.LTE]: { label: '<=', resolve: (a, b) => Number(a) <= Number(b) },
     [SlotConditionOperator.LIKE]: { label: 'like', resolve: (a, b) => String(a).includes(String(b)) },
-    [SlotConditionOperator.IS]: { label: 'is null', resolve: (a) => a === null },
-    [SlotConditionOperator.ISN]: { label: 'is not null', resolve: (a) => a !== null },
+    // NOTE: loose equality (== null) intentionally catches both null AND undefined,
+    // because absent fields in dataset rows arrive as undefined, not SQL null.
+    [SlotConditionOperator.IS]: { label: 'is null', resolve: (a) => a == null },
+    [SlotConditionOperator.ISN]: { label: 'is not null', resolve: (a) => a != null },
     [SlotConditionOperator.IN]: {
         label: 'in',
         resolve: (a, b) => {
