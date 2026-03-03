@@ -33,6 +33,7 @@
             </transition>
         </div>
             <component v-if="accentCss" :is="'style'" v-html="accentCss" />
+            <component v-if="customCss" :is="'style'" v-html="customCss" />
         </div>
     </w-elem>
 </template>
@@ -83,6 +84,16 @@ export default {
                 padding: this.props.contentPadding
             };
         },
+        customCss() {
+            const { cssRoot, cssItem, cssHeader, cssHeaderOpen, cssBody } = this.props;
+            const parts = [];
+            if (cssRoot) parts.push(`.elem-accordion { ${cssRoot} }`);
+            if (cssItem) parts.push(`.elem-accordion__item { ${cssItem} }`);
+            if (cssHeader) parts.push(`.elem-accordion__header { ${cssHeader} }`);
+            if (cssHeaderOpen) parts.push(`.elem-accordion__item--open .elem-accordion__header { ${cssHeaderOpen} }`);
+            if (cssBody) parts.push(`.elem-accordion__body { ${cssBody} }`);
+            return parts.join('\n');
+        },
         accentCss() {
             return `.elem-accordion__item--open .elem-accordion__header {
                 border-bottom: 1px solid ${this.props.borderColor};
@@ -113,14 +124,9 @@ export default {
             }
         },
         iconClass(index) {
-            const open = this.isOpen(index);
-            if (this.props.iconType === 'plus') {
-                return open ? 'mdi mdi-minus' : 'mdi mdi-plus';
-            }
-            if (this.props.iconType === 'arrow') {
-                return open ? 'mdi mdi-arrow-up' : 'mdi mdi-arrow-down';
-            }
-            return open ? 'mdi mdi-chevron-up' : 'mdi mdi-chevron-down';
+            return this.isOpen(index)
+                ? (this.props.iconOpen || 'mdi mdi-chevron-up')
+                : (this.props.iconClosed || 'mdi mdi-chevron-down');
         }
     }
 };
