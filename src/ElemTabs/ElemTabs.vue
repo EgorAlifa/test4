@@ -12,7 +12,7 @@
                 :key="index"
                 class="elem-tabs__tab"
                 :class="{ 'elem-tabs__tab--active': activeIndex === index }"
-                :style="tabStyle(index)"
+                :style="tabStyles[index]"
                 @click="setActive(index)">
                 <i v-if="tab.icon" :class="tab.icon" class="elem-tabs__tab-icon" />
                 <span>{{ tab.label }}</span>
@@ -29,8 +29,7 @@
             </transition>
         </div>
 
-            <component v-if="indicatorCss" :is="'style'" v-html="indicatorCss" />
-            <component v-if="customCss" :is="'style'" v-html="customCss" />
+            <component v-if="injectedCss" :is="'style'" v-html="injectedCss" />
         </div>
     </w-elem>
 </template>
@@ -78,28 +77,40 @@ export default {
                     : undefined
             };
         },
-        customCss() {
-            const { cssRoot, cssBar, cssTab, cssTabActive, cssContent } = this.props;
+        tabStyles() {
+            const { tabActiveBg, tabBg, tabActiveColor, tabColor,
+                    tabFontSize, tabFontWeight, tabPadding,
+                    tabBorderRadius, indicatorType } = this.props;
+            const isPill = indicatorType === 'pill';
+            return this.props.tabs.map((_, index) => {
+                const isActive = this.activeIndex === index;
+                return {
+                    background: isActive ? tabActiveBg : tabBg,
+                    color: isActive ? tabActiveColor : tabColor,
+                    fontSize: tabFontSize,
+                    fontWeight: tabFontWeight,
+                    padding: tabPadding,
+                    borderRadius: isPill ? tabBorderRadius : undefined
+                };
+            });
+        },
+        injectedCss() {
+            const { tabIndicatorColor, indicatorType, tabActiveBg,
+                    cssRoot, cssBar, cssTab, cssTabActive, cssContent } = this.props;
             const parts = [];
+            if (indicatorType === 'underline') {
+                parts.push(`.elem-tabs__tab--active::after { background: ${tabIndicatorColor} !important; }`);
+            } else if (indicatorType === 'pill') {
+                parts.push(`.elem-tabs__tab--active { background: ${tabActiveBg || tabIndicatorColor + '22'} !important; }`);
+            } else if (indicatorType === 'border') {
+                parts.push(`.elem-tabs__tab--active { box-shadow: 0 0 0 2px ${tabIndicatorColor} !important; }`);
+            }
             if (cssRoot) parts.push(`.elem-tabs { ${cssRoot} }`);
             if (cssBar) parts.push(`.elem-tabs__bar { ${cssBar} }`);
             if (cssTab) parts.push(`.elem-tabs__tab { ${cssTab} }`);
             if (cssTabActive) parts.push(`.elem-tabs__tab--active { ${cssTabActive} }`);
             if (cssContent) parts.push(`.elem-tabs__content { ${cssContent} }`);
             return parts.join('\n');
-        },
-        indicatorCss() {
-            const { tabIndicatorColor, indicatorType, tabActiveBg } = this.props;
-            if (indicatorType === 'underline') {
-                return `.elem-tabs__tab--active::after { background: ${tabIndicatorColor} !important; }`;
-            }
-            if (indicatorType === 'pill') {
-                return `.elem-tabs__tab--active { background: ${tabActiveBg || tabIndicatorColor + '22'} !important; }`;
-            }
-            if (indicatorType === 'border') {
-                return `.elem-tabs__tab--active { box-shadow: 0 0 0 2px ${tabIndicatorColor} !important; }`;
-            }
-            return '';
         }
     },
     watch: {
@@ -113,17 +124,6 @@ export default {
     methods: {
         setActive(index) {
             this.activeIndex = index;
-        },
-        tabStyle(index) {
-            const isActive = this.activeIndex === index;
-            return {
-                background: isActive ? this.props.tabActiveBg : this.props.tabBg,
-                color: isActive ? this.props.tabActiveColor : this.props.tabColor,
-                fontSize: this.props.tabFontSize,
-                fontWeight: this.props.tabFontWeight,
-                padding: this.props.tabPadding,
-                borderRadius: this.props.indicatorType === 'pill' ? this.props.tabBorderRadius : undefined
-            };
         }
     }
 };
