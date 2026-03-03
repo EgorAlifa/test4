@@ -12,8 +12,15 @@
             <div
                 v-for="(tab, index) in props.tabs"
                 :key="index"
-                class="tab-item">
+                class="tab-item"
+                :class="{ 'tab-item--drag-over': dragOverIndex === index }"
+                draggable="true"
+                @dragstart="onTabDragStart(index, $event)"
+                @dragover.prevent="onTabDragOver(index)"
+                @drop.prevent="onTabDrop(index)"
+                @dragend="onTabDragEnd">
                 <div class="tab-item__hd" @click="toggleTab(index)">
+                    <i class="mdi mdi-drag tab-item__drag" @mousedown.stop />
                     <span class="tab-item__num">{{ index + 1 }}</span>
                     <i v-if="tab.icon" :class="tab.icon" class="tab-item__icon-preview" />
                     <span class="tab-item__label">{{ tab.label || 'Без названия' }}</span>
@@ -95,9 +102,18 @@
                 Тип индикатора
             </ui-select>
 
-            <ui-input prop="activeTab" type="number" placeholder="0">
-                Начальная вкладка (индекс)
-            </ui-input>
+            <div class="form-label" style="margin-top:8px">Открытая вкладка по умолчанию</div>
+            <div class="active-tab-chips">
+                <button
+                    v-for="(tab, idx) in props.tabs"
+                    :key="idx"
+                    class="active-chip"
+                    :class="{ 'active-chip--sel': (props.activeTab || 0) === idx }"
+                    @click="setActiveTab(idx)">
+                    {{ idx + 1 }}
+                    <span v-if="tab.label" class="active-chip__label">{{ tab.label }}</span>
+                </button>
+            </div>
 
             <ui-switch prop="showBorder">Показывать рамку содержимого</ui-switch>
 
@@ -135,6 +151,8 @@ export default {
         ...PanelInstanceTypeDescriptor,
         openTabs: {},
         iconPickerOpenFor: null,
+        dragIndex: null,
+        dragOverIndex: null,
         quickIcons: QUICK_ICONS,
         positionOptions: [
             { label: 'Сверху', value: 'top' },
@@ -164,6 +182,49 @@ export default {
         },
         save() {
             this.propChanged('tabs');
+        },
+        setActiveTab(idx) {
+            this.props.activeTab = idx;
+            this.propChanged('activeTab');
+        },
+
+        // ── Drag and drop ────────────────────────────────────────────
+        onTabDragStart(index, e) {
+            this.dragIndex = index;
+            e.dataTransfer.effectAllowed = 'move';
+        },
+        onTabDragOver(index) {
+            this.dragOverIndex = index;
+        },
+        onTabDrop(index) {
+            if (this.dragIndex === null || this.dragIndex === index) {
+                this.dragIndex = null;
+                this.dragOverIndex = null;
+                return;
+            }
+            const tabs = [...this.props.tabs];
+            const [moved] = tabs.splice(this.dragIndex, 1);
+            tabs.splice(index, 0, moved);
+            this.props.tabs = tabs;
+            this.propChanged('tabs');
+            // adjust activeTab after reorder
+            const active = this.props.activeTab || 0;
+            if (active === this.dragIndex) {
+                this.props.activeTab = index;
+                this.propChanged('activeTab');
+            } else if (active > this.dragIndex && active <= index) {
+                this.props.activeTab = active - 1;
+                this.propChanged('activeTab');
+            } else if (active < this.dragIndex && active >= index) {
+                this.props.activeTab = active + 1;
+                this.propChanged('activeTab');
+            }
+            this.dragIndex = null;
+            this.dragOverIndex = null;
+        },
+        onTabDragEnd() {
+            this.dragIndex = null;
+            this.dragOverIndex = null;
         },
 
         // ── Icon picker ──────────────────────────────────────────────
@@ -225,7 +286,10 @@ export default {
     margin-bottom: 5px;
     overflow: hidden;
     background: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
+.tab-item--drag-over { border-color: #4f6aff; box-shadow: 0 0 0 2px rgba(79,106,255,0.2); }
+.tab-item__drag { color: #cbd5e1; font-size: 15px; cursor: grab; flex-shrink: 0; }
 .tab-item__hd {
     display: flex;
     align-items: center;
@@ -428,4 +492,34 @@ export default {
     transition: border-color 0.15s;
 }
 .content-textarea:focus { border-color: #4f6aff; }
+
+/* ── Active tab chips ─────────────────────────────────── */
+.active-tab-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 6px;
+}
+.active-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+    background: #fff;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.active-chip:hover { border-color: #a5b4fc; }
+.active-chip--sel { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
+.active-chip__label {
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 </style>

@@ -39,6 +39,10 @@ export const descriptor = () => ({
             type: String,
             default: '#e2e8f0'
         },
+        tabGap: {
+            type: String,
+            default: '2px'
+        },
         // ── Неактивная вкладка ─────────────────────────────────────────
         tabBg: {
             type: String,
@@ -120,7 +124,7 @@ export const descriptor = () => ({
 export const meta = {
     descriptor,
     panels,
-    isChildAllowed: false
+    isChildAllowed: true
 };
 
 export default descriptor;

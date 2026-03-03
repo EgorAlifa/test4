@@ -28,7 +28,8 @@
                     v-if="isOpen(index)"
                     class="elem-accordion__body"
                     :style="bodyStyle">
-                    <div class="elem-accordion__content" v-html="item.content" />
+                    <div v-if="!hasSlotContent" class="elem-accordion__content" v-html="item.content" />
+                    <slot v-else />
                 </div>
             </transition>
         </div>
@@ -89,6 +90,9 @@ export default {
                 fontSize: this.props.contentFontSize,
                 padding: this.props.contentPadding
             };
+        },
+        hasSlotContent() {
+            return !!(this.$slots.default && this.$slots.default.length);
         },
         iconClasses() {
             const open = this.props.iconOpen || 'mdi mdi-chevron-up';
