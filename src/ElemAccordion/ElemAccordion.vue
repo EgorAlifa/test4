@@ -15,12 +15,12 @@
                 <i
                     v-if="props.iconPosition === 'left'"
                     class="elem-accordion__icon elem-accordion__icon--left"
-                    :class="iconClass(index)" />
+                    :class="iconClasses[index]" />
                 <span class="elem-accordion__title">{{ item.title }}</span>
                 <i
                     v-if="props.iconPosition !== 'left'"
                     class="elem-accordion__icon elem-accordion__icon--right"
-                    :class="iconClass(index)" />
+                    :class="iconClasses[index]" />
             </div>
             <!-- Контент с анимацией -->
             <transition name="acc-expand">
@@ -32,8 +32,7 @@
                 </div>
             </transition>
         </div>
-            <component v-if="accentCss" :is="'style'" v-html="accentCss" />
-            <component v-if="customCss" :is="'style'" v-html="customCss" />
+            <component v-if="injectedCss" :is="'style'" v-html="injectedCss" />
         </div>
     </w-elem>
 </template>
@@ -84,22 +83,24 @@ export default {
                 padding: this.props.contentPadding
             };
         },
-        customCss() {
-            const { cssRoot, cssItem, cssHeader, cssHeaderOpen, cssBody } = this.props;
-            const parts = [];
+        iconClasses() {
+            const open = this.props.iconOpen || 'mdi mdi-chevron-up';
+            const closed = this.props.iconClosed || 'mdi mdi-chevron-down';
+            const openSet = new Set(this.openIndexes);
+            return this.props.items.map((_, i) => openSet.has(i) ? open : closed);
+        },
+        injectedCss() {
+            const { accentColor, borderColor, cssRoot, cssItem, cssHeader, cssHeaderOpen, cssBody } = this.props;
+            const parts = [
+                `.elem-accordion__item--open .elem-accordion__header { border-bottom: 1px solid ${borderColor}; color: ${accentColor}; }`,
+                `.elem-accordion__icon { color: ${accentColor}; }`
+            ];
             if (cssRoot) parts.push(`.elem-accordion { ${cssRoot} }`);
             if (cssItem) parts.push(`.elem-accordion__item { ${cssItem} }`);
             if (cssHeader) parts.push(`.elem-accordion__header { ${cssHeader} }`);
             if (cssHeaderOpen) parts.push(`.elem-accordion__item--open .elem-accordion__header { ${cssHeaderOpen} }`);
             if (cssBody) parts.push(`.elem-accordion__body { ${cssBody} }`);
             return parts.join('\n');
-        },
-        accentCss() {
-            return `.elem-accordion__item--open .elem-accordion__header {
-                border-bottom: 1px solid ${this.props.borderColor};
-                color: ${this.props.accentColor};
-            }
-            .elem-accordion__icon { color: ${this.props.accentColor}; }`;
         }
     },
     watch: {
@@ -122,11 +123,6 @@ export default {
                     ? [...this.openIndexes, index]
                     : [index];
             }
-        },
-        iconClass(index) {
-            return this.isOpen(index)
-                ? (this.props.iconOpen || 'mdi mdi-chevron-up')
-                : (this.props.iconClosed || 'mdi mdi-chevron-down');
         }
     }
 };

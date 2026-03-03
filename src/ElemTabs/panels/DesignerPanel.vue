@@ -74,7 +74,6 @@ export default {
         ...PanelInstanceTypeDescriptor,
         localCss: { root: '', bar: '', tab: '', tabActive: '', content: '' },
         cssElOpen: { root: false, bar: false, tab: false, tabActive: false, content: false },
-        debounceTimer: null,
         cssElements: [
             {
                 key: 'root',
@@ -140,13 +139,13 @@ export default {
             this.localCss[key] = this.props[PROP_MAP[key]] || '';
         });
     },
-    beforeUnmount() {
-        if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    beforeDestroy() {
+        clearTimeout(this._debounceTimer);
     },
     methods: {
         onCssChange(key) {
-            clearTimeout(this.debounceTimer);
-            this.debounceTimer = setTimeout(() => {
+            clearTimeout(this._debounceTimer);
+            this._debounceTimer = setTimeout(() => {
                 const prop = PROP_MAP[key];
                 this.props[prop] = this.localCss[key];
                 this.propChanged(prop);
