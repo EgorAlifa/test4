@@ -384,7 +384,7 @@ export default {
                 () => import('./panels/AppearancePanel.vue'),
                 () => import('./panels/DesignerPanel.vue')
             ];
-            return (this.props.mode || Mode.GALLERY) === Mode.GALLERY ? galleryOnly : baseOnly;
+            return (this.props?.mode || Mode.GALLERY) === Mode.GALLERY ? galleryOnly : baseOnly;
         },
 
         // ── Stack mode ────────────────────────────────────────────────────────
