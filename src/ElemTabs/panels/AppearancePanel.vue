@@ -132,6 +132,20 @@
                 </button>
             </div>
 
+            <!-- ── Расстояние между вкладками ────────────────────────────── -->
+            <div class="section-label">Расстояние между вкладками</div>
+            <div class="slider-row">
+                <input
+                    type="range"
+                    class="slider"
+                    min="0"
+                    max="20"
+                    step="1"
+                    :value="gapSliderPx"
+                    @input="onGapSlider" />
+                <span class="slider-val">{{ gapSliderPx }}px</span>
+            </div>
+
             <!-- ── Рамка ───────────────────────────────────────────────────── -->
             <ui-switch prop="showBorder">Рамка вокруг содержимого</ui-switch>
 
@@ -150,6 +164,7 @@ const DEFAULTS = {
     indicatorType: 'underline',
     tabBarBg: '#ffffff',
     tabBarBorderColor: '#e2e8f0',
+    tabGap: '2px',
     tabBg: 'transparent',
     tabColor: '#64748b',
     tabFontSize: '14px',
@@ -296,7 +311,7 @@ export default {
                 background: this.props.tabBarBg || '#ffffff',
                 borderBottom: `1px solid ${this.props.tabBarBorderColor || '#e2e8f0'}`,
                 display: 'flex',
-                gap: '2px',
+                gap: this.props.tabGap || '2px',
                 padding: '6px 6px 0'
             };
         },
@@ -356,6 +371,9 @@ export default {
                 });
             }
         },
+        gapSliderPx() {
+            return Math.min(20, parsePx(this.props.tabGap || '2px'));
+        },
         radiusSliderPx() {
             const raw = this.props.tabBorderRadius || '8px';
             if (parseFloat(raw) >= 100) return 24;
@@ -396,6 +414,11 @@ export default {
         applyRadiusPreset(r) {
             this.props.tabBorderRadius = r.css;
             this.propChanged('tabBorderRadius');
+        },
+        onGapSlider(e) {
+            const px = parseInt(e.target.value, 10);
+            this.props.tabGap = `${px}px`;
+            this.propChanged('tabGap');
         },
         onRadiusSlider(e) {
             const px = parseInt(e.target.value, 10);

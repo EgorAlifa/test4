@@ -106,7 +106,7 @@ export const descriptor = () => ({
 export const meta = {
     descriptor,
     panels,
-    isChildAllowed: false
+    isChildAllowed: true
 };
 
 export default descriptor;

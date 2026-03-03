@@ -12,11 +12,24 @@
             <div
                 v-for="(item, index) in props.items"
                 :key="index"
-                class="acc-item">
+                class="acc-item"
+                :class="{ 'acc-item--drag-over': dragOverIndex === index }"
+                draggable="true"
+                @dragstart="onItemDragStart(index, $event)"
+                @dragover.prevent="onItemDragOver(index)"
+                @drop.prevent="onItemDrop(index)"
+                @dragend="onItemDragEnd">
                 <div class="acc-item__hd" @click="toggleItem(index)">
-                    <i class="mdi mdi-drag acc-item__drag" />
+                    <i class="mdi mdi-drag acc-item__drag" @mousedown.stop />
                     <span class="acc-item__num">{{ index + 1 }}</span>
                     <span class="acc-item__title">{{ item.title || 'Без названия' }}</span>
+                    <button
+                        class="star-btn"
+                        :class="{ 'star-btn--active': props.defaultOpenIndex === index }"
+                        :title="props.defaultOpenIndex === index ? 'Убрать открытый по умолчанию' : 'Открывать по умолчанию'"
+                        @click.stop="toggleDefaultOpen(index)">
+                        <i class="mdi" :class="props.defaultOpenIndex === index ? 'mdi-star' : 'mdi-star-outline'" />
+                    </button>
                     <button class="del-btn" @click.stop="removeItem(index)">
                         <i class="mdi mdi-close" />
                     </button>
@@ -44,10 +57,6 @@
             <ui-switch prop="multipleOpen">
                 Разрешить открывать несколько
             </ui-switch>
-
-            <ui-input prop="defaultOpenIndex" type="number" placeholder="0 = первый, -1 = ни один">
-                Открыт по умолчанию (индекс)
-            </ui-input>
 
             <!-- ── Иконка ───────────────────────────────────────────── -->
             <div class="section-label" style="margin-top: 12px">
@@ -176,6 +185,8 @@ export default {
         ...PanelInstanceTypeDescriptor,
         openItems: {},
         iconPickerOpen: null,  // null | 'closed' | 'open'
+        dragIndex: null,
+        dragOverIndex: null,
         quickIcons: QUICK_ICONS,
         iconPositionOptions: [
             { label: 'Справа', value: 'right' },
@@ -198,6 +209,50 @@ export default {
         },
         save() {
             this.propChanged('items');
+        },
+        toggleDefaultOpen(index) {
+            const next = this.props.defaultOpenIndex === index ? -1 : index;
+            this.props.defaultOpenIndex = next;
+            this.propChanged('defaultOpenIndex');
+        },
+
+        // ── Drag and drop ────────────────────────────────────────────
+        onItemDragStart(index, e) {
+            this.dragIndex = index;
+            e.dataTransfer.effectAllowed = 'move';
+        },
+        onItemDragOver(index) {
+            this.dragOverIndex = index;
+        },
+        onItemDrop(index) {
+            if (this.dragIndex === null || this.dragIndex === index) {
+                this.dragIndex = null;
+                this.dragOverIndex = null;
+                return;
+            }
+            const items = [...this.props.items];
+            const [moved] = items.splice(this.dragIndex, 1);
+            items.splice(index, 0, moved);
+            this.props.items = items;
+            this.propChanged('items');
+            // adjust defaultOpenIndex after reorder
+            const def = this.props.defaultOpenIndex;
+            if (def >= 0) {
+                if (def === this.dragIndex) {
+                    this.props.defaultOpenIndex = index;
+                } else if (def > this.dragIndex && def <= index) {
+                    this.props.defaultOpenIndex = def - 1;
+                } else if (def < this.dragIndex && def >= index) {
+                    this.props.defaultOpenIndex = def + 1;
+                }
+                this.propChanged('defaultOpenIndex');
+            }
+            this.dragIndex = null;
+            this.dragOverIndex = null;
+        },
+        onItemDragEnd() {
+            this.dragIndex = null;
+            this.dragOverIndex = null;
         },
 
         // ── Icon picker ──────────────────────────────────────────────
@@ -262,7 +317,9 @@ export default {
     margin-bottom: 5px;
     overflow: hidden;
     background: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
+.acc-item--drag-over { border-color: #4f6aff; box-shadow: 0 0 0 2px rgba(79,106,255,0.2); }
 .acc-item__hd {
     display: flex;
     align-items: center;
@@ -302,6 +359,25 @@ export default {
     border-top: 1px solid #f0f4f8;
     background: #fafcff;
 }
+
+.star-btn {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 13px;
+    padding: 0;
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.star-btn:hover { border-color: #fbbf24; color: #f59e0b; background: #fffbeb; }
+.star-btn--active { border-color: #f59e0b; color: #f59e0b; background: #fffbeb; }
 
 .del-btn {
     flex-shrink: 0;

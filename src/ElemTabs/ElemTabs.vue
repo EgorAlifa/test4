@@ -24,8 +24,10 @@
             <transition name="tabs-fade" mode="out-in">
                 <div
                     :key="activeIndex"
-                    class="elem-tabs__pane"
-                    v-html="activeTab.content" />
+                    class="elem-tabs__pane">
+                    <div v-if="!hasSlotContent" v-html="activeTab.content" />
+                    <slot />
+                </div>
             </transition>
         </div>
 
@@ -60,8 +62,12 @@ export default {
         barStyle() {
             return {
                 background: this.props.tabBarBg,
-                borderBottomColor: this.props.tabBarBorderColor
+                borderBottomColor: this.props.tabBarBorderColor,
+                gap: this.props.tabGap || '2px'
             };
+        },
+        hasSlotContent() {
+            return !!(this.$slots.default && this.$slots.default.length);
         },
         contentStyle() {
             return {
