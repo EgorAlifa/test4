@@ -371,22 +371,6 @@ export default {
         }
     },
     methods: {
-        // ── Dynamic panels: filter out SlotsPanel when not in gallery mode ──────
-        getPanels() {
-            const galleryOnly = [
-                () => import('./panels/SettingsPanel.vue'),
-                () => import('./panels/SlotsPanel.vue'),
-                () => import('./panels/AppearancePanel.vue'),
-                () => import('./panels/DesignerPanel.vue')
-            ];
-            const baseOnly = [
-                () => import('./panels/SettingsPanel.vue'),
-                () => import('./panels/AppearancePanel.vue'),
-                () => import('./panels/DesignerPanel.vue')
-            ];
-            return (this.props?.mode || Mode.GALLERY) === Mode.GALLERY ? galleryOnly : baseOnly;
-        },
-
         // ── Stack mode ────────────────────────────────────────────────────────
         hasStackState(name) {
             return (this.props.states || []).some((s) => s.name === name);

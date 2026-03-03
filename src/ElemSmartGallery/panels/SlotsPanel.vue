@@ -1,6 +1,10 @@
 <template>
     <ui-panel-container>
-        <ui-container>
+        <div v-if="props.mode && props.mode !== 'gallery'" class="sp-mode-notice">
+            <i class="mdi mdi-information-outline"></i>
+            Слоты с условиями доступны только в режиме «Галерея».
+        </div>
+        <ui-container v-else>
             <ui-draggable v-model="slots">
                 <ui-has-panel class="slot-item" v-for="(slot, i) in slots" :key="slot.id">
                     <div class="slot-item__label flex-v-center">
@@ -128,5 +132,23 @@ export default {
 }
 .drag-handle {
     cursor: move;
+}
+.sp-mode-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin: 12px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.5;
+}
+.sp-mode-notice .mdi {
+    font-size: 15px;
+    flex-shrink: 0;
+    margin-top: 1px;
 }
 </style>
