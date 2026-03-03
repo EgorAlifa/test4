@@ -1,0 +1,30 @@
+.slots-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--w-grid-cols), var(--w-grid-col-min-width));
+    grid-gap: var(--w-grid-gap);
+
+    &__percent {
+        min-height: var(--w-grid-row-min-height);
+    }
+
+    &__percent-editor {
+        min-height: calc(var(--w-grid-row-min-height) - 1.5em);
+    }
+}
+.slot-item {
+    min-height: var(--w-grid-row-min-height);
+    &__placeholder {
+        height: 100%;
+        outline: 1px dashed var(--color-muted);
+    }
+}
+.skeleton-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--w-grid-cols), 1fr);
+    grid-auto-rows: 1fr;
+    grid-gap: var(--w-grid-gap);
+    &__item {
+        height: var(--w-grid-row-min-height);
+        min-height: 1rem;
+    }
+}
