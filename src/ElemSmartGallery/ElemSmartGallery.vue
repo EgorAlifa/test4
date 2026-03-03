@@ -8,7 +8,7 @@
                     <div class="skeleton-grid__item skeleton" v-for="i in props.grid.cols * 2" :key="i"></div>
                 </template>
             </div>
-            <div class="slots-grid" :class="gridClasses" v-else>
+            <div class="slots-grid" :class="gridClasses" :style="appearanceStyle" v-else>
                 <div class="slot-item" v-for="name in slotNamesToRender" :key="name" :data-slot="name">
                     <slot :name="name">
                         <div class="slot-item__placeholder" v-if="isEditorMode">
@@ -28,20 +28,24 @@
 
         <!-- ── STACK MODE (event-driven single-slot switching) ─────────────── -->
         <template v-else-if="mode === 'stack'">
-            <slot :name="activeStackSlot" v-if="hasStackState(activeStackSlot)">
-                <div class="slot-item__placeholder" v-if="isEditorMode">
-                    <code>{{ activeStackSlot }}</code>
-                </div>
-            </slot>
+            <div class="sg-mode-wrapper" :style="appearanceStyle">
+                <slot :name="activeStackSlot" v-if="hasStackState(activeStackSlot)">
+                    <div class="slot-item__placeholder" v-if="isEditorMode">
+                        <code>{{ activeStackSlot }}</code>
+                    </div>
+                </slot>
+            </div>
         </template>
 
         <!-- ── CONTAINER MODE (show/hide single slot via events) ───────────── -->
         <template v-else-if="mode === 'container'">
-            <slot v-if="containerVisible">
-                <div class="slot-item__placeholder" v-if="isEditorMode">default slot</div>
-            </slot>
-            <div class="slot-item__placeholder" v-else-if="isEditorMode">
-                <code>скрыто</code>
+            <div class="sg-mode-wrapper" :style="appearanceStyle">
+                <slot v-if="containerVisible">
+                    <div class="slot-item__placeholder" v-if="isEditorMode">default slot</div>
+                </slot>
+                <div class="slot-item__placeholder" v-else-if="isEditorMode">
+                    <code>скрыто</code>
+                </div>
             </div>
         </template>
 
@@ -88,6 +92,22 @@ export default {
         /** Active display mode */
         mode() {
             return this.props.mode || Mode.GALLERY;
+        },
+
+        /**
+         * Inline styles from AppearancePanel props, applied to the inner container.
+         * Keeps Elem mixin's own cssStyle on the root w-elem untouched.
+         */
+        appearanceStyle() {
+            const p = this.props;
+            const style = {};
+            if (p.backgroundColor) style.backgroundColor = p.backgroundColor;
+            if (p.textColor)       style.color = p.textColor;
+            if (p.borderRadius && p.borderRadius !== '0') style.borderRadius = p.borderRadius;
+            if (p.boxShadow)       style.boxShadow = p.boxShadow;
+            const opacity = parseFloat(p.opacity);
+            if (!isNaN(opacity) && opacity < 1) style.opacity = opacity; // eslint-disable-line no-restricted-globals
+            return style;
         },
 
         /**
@@ -351,6 +371,22 @@ export default {
         }
     },
     methods: {
+        // ── Dynamic panels: filter out SlotsPanel when not in gallery mode ──────
+        getPanels() {
+            const galleryOnly = [
+                () => import('./panels/SettingsPanel.vue'),
+                () => import('./panels/SlotsPanel.vue'),
+                () => import('./panels/AppearancePanel.vue'),
+                () => import('./panels/DesignerPanel.vue')
+            ];
+            const baseOnly = [
+                () => import('./panels/SettingsPanel.vue'),
+                () => import('./panels/AppearancePanel.vue'),
+                () => import('./panels/DesignerPanel.vue')
+            ];
+            return (this.props.mode || Mode.GALLERY) === Mode.GALLERY ? galleryOnly : baseOnly;
+        },
+
         // ── Stack mode ────────────────────────────────────────────────────────
         hasStackState(name) {
             return (this.props.states || []).some((s) => s.name === name);
