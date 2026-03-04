@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.goodt.me/front/json-schema/editor/v2.8/env.schema.json",
+  "isDemo": false,
+  "isRegistrationAllowed": false,
+  "keepUserInfo": false,
+  "api": {
+    "http": {
+      "baseURL": "https://localhost/api",
+      "timeout": 120000
+    },
+    "access": {
+      "baseURL": "https://localhost/api",
+      "timeout": 20000
+    }
+  },
+  "assets": {
+    "cache": false
+  },
+  "$includes": [
+    "./config/production.local.json",
+    "./config/widgets.json"
+  ]
+}

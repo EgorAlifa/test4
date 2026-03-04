@@ -1,0 +1,21 @@
+{
+  "version": "platform@2.4.76",
+  "name": "@goodt-edition/platform",
+  "date": "2026-02-02T12:49:49.770Z",
+  "dependencies": {
+    "@goodt-edition/platform": "2.4.76",
+    "@goodt/build-deps": "2.0.12",
+    "@goodt/common-deps": "2.1.2",
+    "@goodt/editor": "2.9.66",
+    "@goodt/editor-common": "3.2.2",
+    "@goodt/package-loader": "2.0.7",
+    "@goodt/player": "2.9.19",
+    "@goodt/webpack": "1.8.0",
+    "goodt-dremio-sdk": "1.0.30",
+    "goodt-framework-css": "2.0.17",
+    "goodt-wcore": "1.14.73",
+    "goodteditor-ui": "1.0.94",
+    "vue": "2.7.16",
+    "vue-template-compiler": "2.7.16"
+  }
+}

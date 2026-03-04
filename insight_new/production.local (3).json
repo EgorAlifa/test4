@@ -1,0 +1,23 @@
+{
+"isRegistrationAllowed": false,
+"isDemo": false,
+"api": {
+    "http": {
+    "baseURL": "https://insight-test.goodt.me/api/",
+    "timeout": 360000,
+    "withCredentials": false
+    },
+   "access": {
+   "baseURL": "https://insight-test.goodt.me/accesscontrol/api",
+   "timeout": 360000
+   }
+},
+"services": [
+    {
+    "id": "Dremio",
+    "options": {
+        "baseURL": "https://insight-test.goodt.me/connector"
+    }
+    }
+  ]
+}
