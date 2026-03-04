@@ -28,11 +28,12 @@
                     v-if="isOpen(index)"
                     class="elem-accordion__body"
                     :style="bodyStyle">
-                    <div v-if="!hasSlotContent" class="elem-accordion__content" v-html="item.content" />
-                    <slot v-else />
+                    <div class="elem-accordion__content" v-html="item.content" />
                 </div>
             </transition>
         </div>
+        <!-- Общий слот для дочерних виджетов — всегда в DOM для определения drop-зоны -->
+        <slot />
             <component v-if="injectedCss" :is="'style'" v-html="injectedCss" />
             <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
         </div>
@@ -90,9 +91,6 @@ export default {
                 fontSize: this.props.contentFontSize,
                 padding: this.props.contentPadding
             };
-        },
-        hasSlotContent() {
-            return !!(this.$slots.default && this.$slots.default.length);
         },
         iconClasses() {
             const open = this.props.iconOpen || 'mdi mdi-chevron-up';

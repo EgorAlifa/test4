@@ -24,6 +24,13 @@
                     <span class="tab-item__num">{{ index + 1 }}</span>
                     <i v-if="tab.icon" :class="tab.icon" class="tab-item__icon-preview" />
                     <span class="tab-item__label">{{ tab.label || 'Без названия' }}</span>
+                    <button
+                        class="star-btn"
+                        :class="{ 'star-btn--active': (props.activeTab || 0) === index }"
+                        :title="(props.activeTab || 0) === index ? 'Открыта по умолчанию' : 'Сделать открытой по умолчанию'"
+                        @click.stop="setActiveTab(index)">
+                        <i class="mdi" :class="(props.activeTab || 0) === index ? 'mdi-star' : 'mdi-star-outline'" />
+                    </button>
                     <button class="del-btn" @click.stop="removeTab(index)">
                         <i class="mdi mdi-close" />
                     </button>
@@ -101,19 +108,6 @@
             <ui-select prop="indicatorType" :options="indicatorOptions">
                 Тип индикатора
             </ui-select>
-
-            <div class="form-label" style="margin-top:8px">Открытая вкладка по умолчанию</div>
-            <div class="active-tab-chips">
-                <button
-                    v-for="(tab, idx) in props.tabs"
-                    :key="idx"
-                    class="active-chip"
-                    :class="{ 'active-chip--sel': (props.activeTab || 0) === idx }"
-                    @click="setActiveTab(idx)">
-                    {{ idx + 1 }}
-                    <span v-if="tab.label" class="active-chip__label">{{ tab.label }}</span>
-                </button>
-            </div>
 
             <ui-switch prop="showBorder">Показывать рамку содержимого</ui-switch>
 
@@ -493,33 +487,23 @@ export default {
 }
 .content-textarea:focus { border-color: #4f6aff; }
 
-/* ── Active tab chips ─────────────────────────────────── */
-.active-tab-chips {
+/* ── Star button (default tab marker) ────────────────────────── */
+.star-btn {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-bottom: 6px;
-}
-.active-chip {
-    display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 6px;
-    background: #fff;
-    color: #64748b;
-    font-size: 11px;
-    font-weight: 500;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    color: #94a3b8;
+    font-size: 13px;
+    padding: 0;
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
 }
-.active-chip:hover { border-color: #a5b4fc; }
-.active-chip--sel { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
-.active-chip__label {
-    max-width: 80px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
+.star-btn:hover { border-color: #fbbf24; color: #f59e0b; background: #fffbeb; }
+.star-btn--active { border-color: #f59e0b; color: #f59e0b; background: #fffbeb; }
 </style>

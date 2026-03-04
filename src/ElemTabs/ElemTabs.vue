@@ -24,12 +24,10 @@
             <transition name="tabs-fade" mode="out-in">
                 <div
                     :key="activeIndex"
-                    class="elem-tabs__pane">
-                    <div v-if="!hasSlotContent" v-html="activeTab.content" />
-                    <slot />
-                </div>
+                    class="elem-tabs__pane"
+                    v-html="activeTab.content" />
             </transition>
-        </div>
+            <slot /></div>
 
             <component v-if="injectedCss" :is="'style'" v-html="injectedCss" />
             <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
@@ -61,13 +59,13 @@ export default {
         },
         barStyle() {
             return {
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'stretch',
                 background: this.props.tabBarBg,
-                borderBottomColor: this.props.tabBarBorderColor,
+                borderBottom: `1.5px solid ${this.props.tabBarBorderColor || '#e2e8f0'}`,
                 gap: this.props.tabGap || '2px'
             };
-        },
-        hasSlotContent() {
-            return !!(this.$slots.default && this.$slots.default.length);
         },
         contentStyle() {
             return {
