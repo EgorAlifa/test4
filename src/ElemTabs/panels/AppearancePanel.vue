@@ -134,16 +134,29 @@
 
             <!-- ── Расстояние между вкладками ────────────────────────────── -->
             <div class="section-label">Расстояние между вкладками</div>
-            <div class="slider-row">
+            <div class="gap-presets">
+                <button
+                    v-for="p in gapPresets"
+                    :key="p.label"
+                    class="gap-chip"
+                    :class="{ 'gap-chip--active': props.tabGap === p.value }"
+                    @click="applyGap(p.value)">
+                    {{ p.label }}
+                </button>
+            </div>
+            <div class="unit-row">
                 <input
-                    type="range"
-                    class="slider"
+                    type="number"
+                    class="unit-num"
+                    :value="gapNum"
                     min="0"
-                    max="20"
-                    step="1"
-                    :value="gapSliderPx"
-                    @input="onGapSlider" />
-                <span class="slider-val">{{ gapSliderPx }}px</span>
+                    step="0.5"
+                    @change="onGapNumChange" />
+                <select class="unit-sel" :value="gapUnit" @change="onGapUnitChange">
+                    <option value="px">px</option>
+                    <option value="rem">rem</option>
+                    <option value="em">em</option>
+                </select>
             </div>
 
             <!-- ── Рамка ───────────────────────────────────────────────────── -->
@@ -303,6 +316,13 @@ export default {
             { label: 'M 14px',  value: '14px' },
             { label: 'L 15px',  value: '15px' },
             { label: 'XL 16px', value: '16px' }
+        ],
+        gapPresets: [
+            { label: '0',     value: '0px' },
+            { label: '4px',   value: '4px' },
+            { label: '8px',   value: '8px' },
+            { label: '0.5rem', value: '0.5rem' },
+            { label: '1rem',  value: '1rem' }
         ]
     }),
     computed: {
@@ -371,8 +391,11 @@ export default {
                 });
             }
         },
-        gapSliderPx() {
-            return Math.min(20, parsePx(this.props.tabGap || '2px'));
+        gapNum() {
+            return parseFloat(this.props.tabGap || '2px') || 0;
+        },
+        gapUnit() {
+            return (this.props.tabGap || '2px').match(/[a-z%]+/)?.[0] || 'px';
         },
         radiusSliderPx() {
             const raw = this.props.tabBorderRadius || '8px';
@@ -415,9 +438,17 @@ export default {
             this.props.tabBorderRadius = r.css;
             this.propChanged('tabBorderRadius');
         },
-        onGapSlider(e) {
-            const px = parseInt(e.target.value, 10);
-            this.props.tabGap = `${px}px`;
+        applyGap(val) {
+            this.props.tabGap = val;
+            this.propChanged('tabGap');
+        },
+        onGapNumChange(e) {
+            const num = parseFloat(e.target.value) || 0;
+            this.props.tabGap = `${num}${this.gapUnit}`;
+            this.propChanged('tabGap');
+        },
+        onGapUnitChange(e) {
+            this.props.tabGap = `${this.gapNum}${e.target.value}`;
             this.propChanged('tabGap');
         },
         onRadiusSlider(e) {
@@ -688,4 +719,58 @@ export default {
 }
 .size-chip:hover { border-color: #a5b4fc; }
 .size-chip--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
+
+/* ── Gap unit input ───────────────────────────────────────────── */
+.gap-presets {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+.gap-chip {
+    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 500;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+    background: #fff;
+    color: #64748b;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.gap-chip:hover { border-color: #a5b4fc; }
+.gap-chip--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
+
+.unit-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    margin-bottom: 8px;
+    transition: border-color 0.15s;
+}
+.unit-row:focus-within { border-color: #4f6aff; }
+.unit-num {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #334155;
+    background: transparent;
+    min-width: 0;
+}
+.unit-sel {
+    border: none;
+    border-left: 1px solid #e2e8f0;
+    outline: none;
+    padding: 6px 8px;
+    font-size: 11px;
+    color: #64748b;
+    background: #f8fafc;
+    cursor: pointer;
+}
 </style>

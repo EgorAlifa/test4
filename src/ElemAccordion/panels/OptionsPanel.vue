@@ -13,7 +13,11 @@
                 v-for="(item, index) in props.items"
                 :key="index"
                 class="acc-item"
-                :class="{ 'acc-item--drag-over': dragOverIndex === index }"
+                :class="{
+                    'acc-item--drag-over': dragOverIndex === index,
+                    'acc-item--sub': (item.level || 0) === 1,
+                    'acc-item--disabled': item.enabled === false
+                }"
                 draggable="true"
                 @dragstart="onItemDragStart(index, $event)"
                 @dragover.prevent="onItemDragOver(index)"
@@ -29,6 +33,20 @@
                         :title="props.defaultOpenIndex === index ? 'Убрать открытый по умолчанию' : 'Открывать по умолчанию'"
                         @click.stop="toggleDefaultOpen(index)">
                         <i class="mdi" :class="props.defaultOpenIndex === index ? 'mdi-star' : 'mdi-star-outline'" />
+                    </button>
+                    <button
+                        class="icon-action-btn"
+                        :class="{ 'icon-action-btn--off': item.enabled === false }"
+                        :title="item.enabled !== false ? 'Скрыть раздел' : 'Показать раздел'"
+                        @click.stop="toggleEnabled(index)">
+                        <i class="mdi" :class="item.enabled !== false ? 'mdi-eye-outline' : 'mdi-eye-off-outline'" />
+                    </button>
+                    <button
+                        class="icon-action-btn"
+                        :class="{ 'icon-action-btn--active': (item.level || 0) === 1 }"
+                        :title="(item.level || 0) === 0 ? 'Сделать вложенным' : 'Сделать корневым'"
+                        @click.stop="toggleLevel(index)">
+                        <i class="mdi" :class="(item.level || 0) === 1 ? 'mdi-subdirectory-arrow-right' : 'mdi-format-indent-increase'" />
                     </button>
                     <button class="del-btn" @click.stop="removeItem(index)">
                         <i class="mdi mdi-close" />
@@ -214,6 +232,15 @@ export default {
             this.props.defaultOpenIndex = next;
             this.propChanged('defaultOpenIndex');
         },
+        toggleEnabled(index) {
+            this.props.items[index].enabled = this.props.items[index].enabled !== false ? false : true;
+            this.save();
+        },
+        toggleLevel(index) {
+            const current = this.props.items[index].level || 0;
+            this.props.items[index].level = current === 0 ? 1 : 0;
+            this.save();
+        },
 
         // ── Drag and drop ────────────────────────────────────────────
         onItemDragStart(index, e) {
@@ -377,6 +404,33 @@ export default {
 }
 .star-btn:hover { border-color: #fbbf24; color: #f59e0b; background: #fffbeb; }
 .star-btn--active { border-color: #f59e0b; color: #f59e0b; background: #fffbeb; }
+
+/* ── Generic icon action button ─────────────────────────────────── */
+.icon-action-btn {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 13px;
+    padding: 0;
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.icon-action-btn:hover { border-color: #a5b4fc; color: #4f6aff; background: #f0f4ff; }
+.icon-action-btn--off { color: #cbd5e1; border-color: #f1f5f9; }
+.icon-action-btn--active { border-color: #4f6aff; color: #4f6aff; background: #eff2ff; }
+
+/* ── Hierarchy visual indentation ────────────────────────────────── */
+.acc-item--sub { margin-left: 20px; border-color: #c7d2fe; }
+.acc-item--sub .acc-item__num { background: #e0e7ff; color: #4f6aff; }
+.acc-item--disabled { opacity: 0.55; }
+.acc-item--disabled .acc-item__title { text-decoration: line-through; color: #94a3b8; }
 
 .del-btn {
     flex-shrink: 0;

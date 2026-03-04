@@ -7,13 +7,13 @@ export const descriptor = () => ({
             type: Array,
             default() {
                 return [
-                    { label: 'Раздел 1', content: '<p>Текст, изображения и любой <strong>HTML</strong>-контент.</p>', icon: '' },
-                    { label: 'Раздел 2', content: '', icon: '' },
-                    { label: 'Раздел 3', content: '', icon: '' }
+                    { label: 'Раздел 1', content: '<p>Текст, изображения и любой <strong>HTML</strong>-контент.</p>', icon: '', enabled: true, level: 0 },
+                    { label: 'Раздел 2', content: '', icon: '', enabled: true, level: 0 },
+                    { label: 'Раздел 3', content: '', icon: '', enabled: true, level: 0 }
                 ];
             },
             factory() {
-                return { label: 'Новый раздел', content: '', icon: '' };
+                return { label: 'Новый раздел', content: '', icon: '', enabled: true, level: 0 };
             }
         },
         // ── Поведение ──────────────────────────────────────────────────
@@ -124,7 +124,11 @@ export const descriptor = () => ({
 export const meta = {
     descriptor,
     panels,
-    isChildAllowed: true
+    isChildAllowed: true,
+    slotNames: ({ props }) => {
+        const tabs = (props && props.tabs) || [];
+        return ['default', ...tabs.map((_, i) => `tab-${i}`)];
+    }
 };
 
 export default descriptor;

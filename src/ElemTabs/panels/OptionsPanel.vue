@@ -13,7 +13,11 @@
                 v-for="(tab, index) in props.tabs"
                 :key="index"
                 class="tab-item"
-                :class="{ 'tab-item--drag-over': dragOverIndex === index }"
+                :class="{
+                    'tab-item--drag-over': dragOverIndex === index,
+                    'tab-item--sub': (tab.level || 0) === 1,
+                    'tab-item--disabled': tab.enabled === false
+                }"
                 draggable="true"
                 @dragstart="onTabDragStart(index, $event)"
                 @dragover.prevent="onTabDragOver(index)"
@@ -30,6 +34,20 @@
                         :title="(props.activeTab || 0) === index ? 'Открыта по умолчанию' : 'Сделать открытой по умолчанию'"
                         @click.stop="setActiveTab(index)">
                         <i class="mdi" :class="(props.activeTab || 0) === index ? 'mdi-star' : 'mdi-star-outline'" />
+                    </button>
+                    <button
+                        class="icon-action-btn"
+                        :class="{ 'icon-action-btn--off': tab.enabled === false }"
+                        :title="tab.enabled !== false ? 'Скрыть вкладку' : 'Показать вкладку'"
+                        @click.stop="toggleEnabled(index)">
+                        <i class="mdi" :class="tab.enabled !== false ? 'mdi-eye-outline' : 'mdi-eye-off-outline'" />
+                    </button>
+                    <button
+                        class="icon-action-btn"
+                        :class="{ 'icon-action-btn--active': (tab.level || 0) === 1 }"
+                        :title="(tab.level || 0) === 0 ? 'Сделать вложенной' : 'Сделать корневой'"
+                        @click.stop="toggleLevel(index)">
+                        <i class="mdi" :class="(tab.level || 0) === 1 ? 'mdi-subdirectory-arrow-right' : 'mdi-format-indent-increase'" />
                     </button>
                     <button class="del-btn" @click.stop="removeTab(index)">
                         <i class="mdi mdi-close" />
@@ -180,6 +198,15 @@ export default {
         setActiveTab(idx) {
             this.props.activeTab = idx;
             this.propChanged('activeTab');
+        },
+        toggleEnabled(index) {
+            this.props.tabs[index].enabled = this.props.tabs[index].enabled !== false ? false : true;
+            this.save();
+        },
+        toggleLevel(index) {
+            const current = this.props.tabs[index].level || 0;
+            this.props.tabs[index].level = current === 0 ? 1 : 0;
+            this.save();
         },
 
         // ── Drag and drop ────────────────────────────────────────────
@@ -506,4 +533,31 @@ export default {
 }
 .star-btn:hover { border-color: #fbbf24; color: #f59e0b; background: #fffbeb; }
 .star-btn--active { border-color: #f59e0b; color: #f59e0b; background: #fffbeb; }
+
+/* ── Generic icon action button ─────────────────────────────────── */
+.icon-action-btn {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 13px;
+    padding: 0;
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.icon-action-btn:hover { border-color: #a5b4fc; color: #4f6aff; background: #f0f4ff; }
+.icon-action-btn--off { color: #cbd5e1; border-color: #f1f5f9; }
+.icon-action-btn--active { border-color: #4f6aff; color: #4f6aff; background: #eff2ff; }
+
+/* ── Hierarchy visual indentation ────────────────────────────────── */
+.tab-item--sub { margin-left: 20px; border-color: #c7d2fe; }
+.tab-item--sub .tab-item__num { background: #e0e7ff; color: #4f6aff; }
+.tab-item--disabled { opacity: 0.55; }
+.tab-item--disabled .tab-item__label { text-decoration: line-through; color: #94a3b8; }
 </style>
