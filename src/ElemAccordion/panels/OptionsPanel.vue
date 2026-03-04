@@ -48,15 +48,14 @@
 
             <ui-button type="ghost" @click="addItem">+ Добавить элемент</ui-button>
 
-            <!-- ── Поведение ────────────────────────────────────────── -->
-            <div class="section-label" style="margin-top: 12px">
-                <i class="mdi mdi-cog-outline" />
-                Поведение
+            <div class="hint-row">
+                <i class="mdi mdi-star" style="color:#f59e0b;font-size:12px" />
+                <span>— элемент, открытый по умолчанию</span>
             </div>
 
-            <ui-switch prop="multipleOpen">
-                Разрешить открывать несколько
-            </ui-switch>
+            <div class="divider" />
+
+            <ui-switch prop="multipleOpen">Несколько одновременно</ui-switch>
 
             <!-- ── Иконка ───────────────────────────────────────────── -->
             <div class="section-label" style="margin-top: 12px">
@@ -420,6 +419,21 @@ export default {
     transition: border-color 0.15s;
 }
 .content-textarea:focus { border-color: #4f6aff; }
+
+.hint-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 5px;
+    padding: 0 2px;
+}
+.divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 10px 0;
+}
 
 /* ── Icon picker ──────────────────────────────────────── */
 .icon-row {
