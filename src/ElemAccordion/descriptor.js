@@ -7,13 +7,13 @@ export const descriptor = () => ({
             type: Array,
             default() {
                 return [
-                    { title: 'Раздел 1', content: '<p>Содержимое первого раздела. Поддерживается <strong>HTML</strong> и изображения.</p>' },
-                    { title: 'Раздел 2', content: '<p>Содержимое второго раздела.</p>' },
-                    { title: 'Раздел 3', content: '<p>Содержимое третьего раздела.</p>' }
+                    { title: 'Раздел 1', content: '<p>Содержимое первого раздела. Поддерживается <strong>HTML</strong> и изображения.</p>', enabled: true, level: 0 },
+                    { title: 'Раздел 2', content: '<p>Содержимое второго раздела.</p>', enabled: true, level: 0 },
+                    { title: 'Раздел 3', content: '<p>Содержимое третьего раздела.</p>', enabled: true, level: 0 }
                 ];
             },
             factory() {
-                return { title: 'Новый раздел', content: '' };
+                return { title: 'Новый раздел', content: '', enabled: true, level: 0 };
             }
         },
         // ── Поведение ──────────────────────────────────────────────────
@@ -106,7 +106,11 @@ export const descriptor = () => ({
 export const meta = {
     descriptor,
     panels,
-    isChildAllowed: true
+    isChildAllowed: true,
+    slotNames: ({ props }) => {
+        const items = (props && props.items) || [];
+        return ['default', ...items.map((_, i) => `item-${i}`)];
+    }
 };
 
 export default descriptor;
