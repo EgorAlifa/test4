@@ -78,7 +78,7 @@ import { Popover } from 'goodteditor-ui';
 import { POPUP_LIFETIME } from './constants';
 import { buildSerializedStoreUrl } from './utils';
 import { meta, Vars } from './descriptor';
-import TiptapEditor from '../ElemText/components/TiptapEditor.vue';
+import TiptapEditor from './components/TiptapEditor.vue';
 
 const { store, ValueObject } = Managers.StoreManager;
 const { addRouteQueryParams } = useRouteQueryManager();
