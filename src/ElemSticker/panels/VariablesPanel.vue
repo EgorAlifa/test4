@@ -145,7 +145,7 @@
 
 <script>
 import { Panel } from '@goodt-wcore/panel';
-import { VAR_BINDING_PRESETS } from '../../common/mixins/varBindingsMixin';
+import { VAR_BINDING_PRESETS } from '../mixins/varBindingsMixin';
 
 export default {
     extends: Panel,
