@@ -3,24 +3,188 @@
         <ui-container>
 
             <!-- ── Пресеты стилей ──────────────────────────────────────── -->
-            <div class="section-label">Пресеты стилей</div>
+            <div class="section-label">Пресеты</div>
             <div class="presets-row">
                 <button
                     v-for="p in stylePresets"
                     :key="p.label"
                     class="preset-chip"
+                    :class="{ 'preset-chip--reset': p.isReset }"
                     :title="p.label"
                     @click="applyPreset(p)">
                     {{ p.label }}
                 </button>
             </div>
 
+            <!-- ── Стиль кнопок ────────────────────────────────────────── -->
+            <div class="section-label">Стиль кнопок</div>
+            <div class="opt-grid opt-grid--3">
+                <div
+                    v-for="v in buttonStyleOptions"
+                    :key="v.value"
+                    class="opt-card"
+                    :class="{ 'opt-card--active': props.buttonStyle === v.value }"
+                    @click="setButtonStyle(v.value)">
+                    <div class="btn-style-preview" :class="`btn-style-preview--${v.value}`">
+                        <span>Aa</span>
+                    </div>
+                    <div class="opt-card__label">{{ v.label }}</div>
+                </div>
+            </div>
+
+            <!-- ── Цвета ───────────────────────────────────────────────── -->
+            <div class="section-label">Цвета</div>
+
+            <ui-input-cp prop="buttonBackgroundColor">Фон кнопок</ui-input-cp>
+            <ui-input-cp prop="textColor">
+                Цвет текста
+                <template v-if="overriddenValues.textColor" #hint>
+                    <span class="hint-override">⚠ Переопределено: {{ overriddenValues.textColor }}</span>
+                </template>
+            </ui-input-cp>
+
+            <template v-if="props.highlightActivePage">
+                <ui-input-cp prop="activeColor">
+                    Цвет активной страницы
+                    <template v-if="overriddenValues.activeColor" #hint>
+                        <span class="hint-override">⚠ Переопределено: {{ overriddenValues.activeColor }}</span>
+                    </template>
+                </ui-input-cp>
+            </template>
+
+            <ui-switch prop="enableHoverColor">Эффект наведения</ui-switch>
+            <ui-input-cp v-if="props.enableHoverColor" prop="hoverColor">
+                Цвет при наведении
+                <template v-if="overriddenValues.hoverColor" #hint>
+                    <span class="hint-override">⚠ Переопределено: {{ overriddenValues.hoverColor }}</span>
+                </template>
+            </ui-input-cp>
+
+            <ui-input-cp prop="backgroundColor">
+                Фон контейнера
+                <template v-if="overriddenValues.backgroundColor" #hint>
+                    <span class="hint-override">⚠ Переопределено: {{ overriddenValues.backgroundColor }}</span>
+                </template>
+            </ui-input-cp>
+
+            <!-- ── Шрифт ───────────────────────────────────────────────── -->
+            <div class="section-label">Шрифт</div>
+            <div class="font-grid">
+                <button
+                    v-for="f in fontFamilyOptions"
+                    :key="f.value"
+                    class="font-chip"
+                    :class="{ 'font-chip--active': currentFontFamily === f.value }"
+                    :style="{ fontFamily: f.value || 'inherit' }"
+                    @click="setFontFamily(f.value)">
+                    {{ f.label }}
+                </button>
+            </div>
+            <div class="custom-font-row">
+                <input
+                    class="custom-font-input"
+                    placeholder="Свой шрифт, напр. Comfortaa"
+                    :value="customFontInput"
+                    @input="customFontInput = $event.target.value"
+                    @keydown.enter.prevent="applyCustomFont" />
+                <button class="custom-font-btn" :disabled="!customFontInput.trim()" @click="applyCustomFont">
+                    <i class="mdi mdi-check" />
+                </button>
+            </div>
+
+            <!-- ── Размер текста ───────────────────────────────────────── -->
+            <div class="section-label">Размер текста</div>
+            <div class="size-grid">
+                <div
+                    v-for="s in sizePresets"
+                    :key="s.label"
+                    class="size-card"
+                    :class="{ 'size-card--active': activeSizeLabel === s.label }"
+                    @click="applySizePreset(s)">
+                    <div class="size-card__stage">
+                        <span class="size-card__letter" :style="{ fontSize: s.previewPx + 'px' }">Аа</span>
+                    </div>
+                    <div class="size-card__name">{{ s.label }}</div>
+                </div>
+            </div>
+            <div class="slider-row">
+                <input
+                    type="range"
+                    class="slider"
+                    min="10"
+                    max="24"
+                    step="1"
+                    :value="fontSizePx"
+                    @input="onFontSizeSlider" />
+                <span class="slider-val">{{ fontSizePx }}px</span>
+            </div>
+
+            <!-- ── Скругление ──────────────────────────────────────────── -->
+            <div class="section-label">Скругление углов</div>
+            <div class="radius-grid">
+                <button
+                    v-for="r in radiusPresets"
+                    :key="r.label"
+                    class="radius-card"
+                    :class="{ 'radius-card--active': activeRadiusLabel === r.label }"
+                    @click="applyRadiusPreset(r)">
+                    <span class="radius-card__shape" :style="{ borderRadius: r.shape }" />
+                    <span class="radius-card__label">{{ r.label }}</span>
+                </button>
+            </div>
+            <div class="slider-row">
+                <input
+                    type="range"
+                    class="slider"
+                    min="0"
+                    max="32"
+                    step="1"
+                    :value="borderRadiusPx"
+                    @input="onRadiusSlider" />
+                <span class="slider-val">{{ borderRadiusPx }}px</span>
+            </div>
+
+            <!-- ── Тени ────────────────────────────────────────────────── -->
+            <div class="section-label">Тени</div>
+            <div class="opt-grid opt-grid--4">
+                <div
+                    v-for="sh in shadowPresets"
+                    :key="sh.label"
+                    class="opt-card"
+                    :class="{ 'opt-card--active': activeShadowLabel === sh.label }"
+                    @click="applyShadowPreset(sh)">
+                    <div class="opt-card__shadow-dot" :style="{ boxShadow: sh.preview }" />
+                    <div class="opt-card__label">{{ sh.label }}</div>
+                </div>
+            </div>
+
+            <!-- ── Отступы и интервалы ─────────────────────────────────── -->
+            <div class="section-label">Отступы и интервалы</div>
+
+            <ui-input-units
+                col-size="6-12"
+                min="0"
+                :units="FontSizeFirstPxUnits"
+                v-model="buttonPaddingString"
+                @change="saveButtonPadding">
+                Отступ кнопок
+            </ui-input-units>
+
+            <ui-input-units
+                col-size="6-12"
+                min="0"
+                :units="FontSizeFirstPxUnits"
+                v-model="buttonGapString"
+                @change="saveButtonGap">
+                Расстояние между кнопками
+            </ui-input-units>
+
             <!-- ── Пагинация ───────────────────────────────────────────── -->
             <div class="section-label">Пагинация</div>
 
             <ui-switch prop="enablePagination">Включить пагинацию</ui-switch>
 
-            <template v-if="props.enablePagination && (props.orientation === 'vertical' || props.orientation === 'dropdown' || props.orientation === 'burger')">
+            <template v-if="props.enablePagination && isListOrientation">
                 <ui-select
                     prop="paginationType"
                     :options="options.paginationTypes"
@@ -41,101 +205,15 @@
                 </ui-input>
             </template>
 
-            <template v-if="props.enablePagination && (props.orientation === 'dropdown' || props.orientation === 'burger')">
+            <template v-if="props.enablePagination && isMenuOrientation">
                 <ui-select
                     prop="openMode"
                     :options="options.openModes"
                     label="Режим открытия меню" />
             </template>
 
-            <!-- ── Кнопки ─────────────────────────────────────────────── -->
-            <div class="section-label">Кнопки</div>
-
-            <ui-select prop="buttonStyle" :options="options.buttonStyles" label="Стиль кнопок" />
-
-            <ui-input-cp prop="buttonBackgroundColor">Фон кнопок</ui-input-cp>
-
-            <ui-input-cp prop="textColor">
-                Цвет текста
-                <template v-if="overriddenValues.textColor" #hint>
-                    <span class="hint-override">⚠ Переопределено: {{ overriddenValues.textColor }}</span>
-                </template>
-            </ui-input-cp>
-
-            <template v-if="props.highlightActivePage">
-                <ui-input-cp prop="activeColor">
-                    Цвет активной страницы
-                    <template v-if="overriddenValues.activeColor" #hint>
-                        <span class="hint-override">⚠ Переопределено: {{ overriddenValues.activeColor }}</span>
-                    </template>
-                </ui-input-cp>
-            </template>
-
-            <ui-switch prop="enableHoverColor">Эффект наведения</ui-switch>
-
-            <ui-input-cp v-if="props.enableHoverColor" prop="hoverColor">
-                Цвет при наведении
-                <template v-if="overriddenValues.hoverColor" #hint>
-                    <span class="hint-override">⚠ Переопределено: {{ overriddenValues.hoverColor }}</span>
-                </template>
-            </ui-input-cp>
-
-            <!-- ── Фон контейнера ──────────────────────────────────────── -->
-            <div class="section-label">Контейнер</div>
-
-            <ui-input-cp prop="backgroundColor">
-                Фон контейнера
-                <template v-if="overriddenValues.backgroundColor" #hint>
-                    <span class="hint-override">⚠ Переопределено: {{ overriddenValues.backgroundColor }}</span>
-                </template>
-            </ui-input-cp>
-
-            <!-- ── Типографика ─────────────────────────────────────────── -->
-            <div class="section-label">Типографика</div>
-
-            <ui-input-units
-                col-size="6-12"
-                min="0"
-                :units="FontSizeFirstPxUnits"
-                v-model="fontSizeString"
-                @change="saveFontSize">
-                Размер шрифта
-            </ui-input-units>
-
-            <ui-input prop="fontFamily" placeholder="inherit">Семейство шрифта</ui-input>
-
-            <!-- ── Геометрия ───────────────────────────────────────────── -->
-            <div class="section-label">Геометрия</div>
-
-            <ui-input-units
-                col-size="6-12"
-                min="0"
-                :units="FontSizeFirstPxUnits"
-                v-model="buttonPaddingString"
-                @change="saveButtonPadding">
-                Отступ кнопок
-            </ui-input-units>
-
-            <ui-input-units
-                col-size="6-12"
-                min="0"
-                :units="FontSizeFirstPxUnits"
-                v-model="buttonGapString"
-                @change="saveButtonGap">
-                Расстояние между кнопками
-            </ui-input-units>
-
-            <ui-input prop="borderRadius" placeholder="0.375rem">Скругление углов</ui-input>
-
-            <!-- ── Тени ───────────────────────────────────────────────── -->
-            <div class="section-label">Тени</div>
-
-            <ui-input prop="boxShadow" placeholder="0 4px 6px rgba(0,0,0,0.1)">Тень контейнера</ui-input>
-            <ui-input prop="buttonShadow" placeholder="0 2px 4px rgba(0,0,0,0.05)">Тень кнопок</ui-input>
-            <ui-input prop="menuShadow" placeholder="0 4px 6px rgba(0,0,0,0.1)">Тень меню</ui-input>
-
             <!-- ── Границы (только dropdown / burger) ─────────────────── -->
-            <template v-if="props.orientation === 'dropdown' || props.orientation === 'burger'">
+            <template v-if="isMenuOrientation">
                 <div class="section-label">Границы</div>
 
                 <ui-checkbox prop="showMenuBorder">Граница списка</ui-checkbox>
@@ -170,6 +248,8 @@ const DEFAULTS = {
     backgroundColor: '#ffffff',
     textColor: '#1f2937',
     borderRadius: '0.375rem',
+    fontFamily: 'inherit',
+    fontSize: { size: 0.875, unit: 'rem' },
     boxShadow: '',
     buttonShadow: '',
     menuShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
@@ -179,6 +259,18 @@ const DEFAULTS = {
     toggleBorderColor: '#1f2937'
 };
 
+function remToPx(remStr) {
+    if (!remStr) return 0;
+    const s = String(remStr).trim();
+    if (s.endsWith('rem')) return Math.round(parseFloat(s) * 16); // eslint-disable-line no-magic-numbers
+    if (s.endsWith('px')) return Math.round(parseFloat(s));
+    return Math.round(parseFloat(s) * 16); // eslint-disable-line no-magic-numbers
+}
+
+function pxToRem(px) {
+    return Math.round((px / 16) * 1000) / 1000; // eslint-disable-line no-magic-numbers
+}
+
 export default {
     extends: Panel,
 
@@ -186,6 +278,9 @@ export default {
         /** @public */
         $meta: { name: 'Оформление', icon: 'palette-outline' },
         ...PanelInstanceTypeDescriptor,
+
+        customFontInput: '',
+
         options: {
             orientations: ORIENTATION_OPTIONS,
             buttonStyles: BUTTON_STYLE_OPTIONS,
@@ -198,6 +293,73 @@ export default {
                 { label: 'Нумерация страниц', value: 'pages' }
             ]
         },
+
+        buttonStyleOptions: [
+            { label: 'Заливка',  value: 'filled' },
+            { label: 'Обводка',  value: 'outlined' },
+            { label: 'Текст',    value: 'text' }
+        ],
+
+        fontFamilyOptions: [
+            { label: 'По умолч.',    value: 'inherit' },
+            { label: 'Inter',        value: 'Inter, sans-serif' },
+            { label: 'Roboto',       value: 'Roboto, sans-serif' },
+            { label: 'Montserrat',   value: 'Montserrat, sans-serif' },
+            { label: 'Open Sans',    value: "'Open Sans', sans-serif" },
+            { label: 'Poppins',      value: 'Poppins, sans-serif' },
+            { label: 'Nunito',       value: 'Nunito, sans-serif' },
+            { label: 'PT Sans',      value: "'PT Sans', sans-serif" },
+            { label: 'Rubik',        value: 'Rubik, sans-serif' },
+            { label: 'Oswald',       value: 'Oswald, sans-serif' },
+            { label: 'Merriweather', value: 'Merriweather, serif' },
+            { label: 'PT Serif',     value: "'PT Serif', serif" },
+            { label: 'Mono',         value: 'monospace' }
+        ],
+
+        sizePresets: [
+            { label: 'XS', rem: 0.75,  previewPx: 9 },
+            { label: 'S',  rem: 0.875, previewPx: 11 },
+            { label: 'M',  rem: 1,     previewPx: 13 },
+            { label: 'L',  rem: 1.125, previewPx: 15 },
+            { label: 'XL', rem: 1.25,  previewPx: 17 }
+        ],
+
+        radiusPresets: [
+            { label: 'Острые',  shape: '0',     css: '0rem' },
+            { label: 'Мягкие',  shape: '6px',   css: '0.375rem' },
+            { label: 'Круглые', shape: '12px',  css: '0.75rem' },
+            { label: 'Пилюля',  shape: '999px', css: '999px' }
+        ],
+
+        shadowPresets: [
+            {
+                label: 'Нет',
+                preview: 'none',
+                boxShadow: '', buttonShadow: '', menuShadow: ''
+            },
+            {
+                label: 'Лёгкая',
+                preview: '0 2px 6px rgba(0,0,0,0.15)',
+                boxShadow: '',
+                buttonShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                menuShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            },
+            {
+                label: 'Средняя',
+                preview: '0 4px 12px rgba(0,0,0,0.2)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                buttonShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                menuShadow: '0 4px 12px rgba(0,0,0,0.15)'
+            },
+            {
+                label: 'Объёмная',
+                preview: '0 8px 24px rgba(0,0,0,0.25)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                buttonShadow: '0 4px 10px rgba(0,0,0,0.15)',
+                menuShadow: '0 8px 24px rgba(0,0,0,0.15)'
+            }
+        ],
+
         stylePresets: [
             {
                 label: 'Минимал',
@@ -205,11 +367,8 @@ export default {
                 buttonBackgroundColor: 'transparent',
                 backgroundColor: 'transparent',
                 borderRadius: '0.25rem',
-                boxShadow: '',
-                buttonShadow: '',
-                menuShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                showMenuBorder: false,
-                showToggleBorder: false
+                boxShadow: '', buttonShadow: '', menuShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                showMenuBorder: false, showToggleBorder: false
             },
             {
                 label: 'Заполненный',
@@ -217,11 +376,8 @@ export default {
                 buttonBackgroundColor: '#f3f4f6',
                 backgroundColor: '#ffffff',
                 borderRadius: '0.375rem',
-                boxShadow: '',
-                buttonShadow: '',
-                menuShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                showMenuBorder: true,
-                showToggleBorder: true
+                boxShadow: '', buttonShadow: '', menuShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                showMenuBorder: true, showToggleBorder: true
             },
             {
                 label: 'Контурный',
@@ -229,23 +385,17 @@ export default {
                 buttonBackgroundColor: 'transparent',
                 backgroundColor: 'transparent',
                 borderRadius: '0.375rem',
-                boxShadow: '',
-                buttonShadow: '',
-                menuShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                showMenuBorder: true,
-                showToggleBorder: true
+                boxShadow: '', buttonShadow: '', menuShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                showMenuBorder: true, showToggleBorder: true
             },
             {
                 label: 'Пилюли',
                 buttonStyle: 'filled',
                 buttonBackgroundColor: '#f3f4f6',
                 backgroundColor: '#ffffff',
-                borderRadius: '2rem',
-                boxShadow: '',
-                buttonShadow: '',
-                menuShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                showMenuBorder: false,
-                showToggleBorder: false
+                borderRadius: '999px',
+                boxShadow: '', buttonShadow: '', menuShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                showMenuBorder: false, showToggleBorder: false
             },
             {
                 label: 'Карточки',
@@ -256,13 +406,9 @@ export default {
                 boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
                 buttonShadow: '0 1px 3px rgba(0,0,0,0.1)',
                 menuShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                showMenuBorder: false,
-                showToggleBorder: false
+                showMenuBorder: false, showToggleBorder: false
             },
-            {
-                label: 'Сброс',
-                ...DEFAULTS
-            }
+            { label: 'Сброс', isReset: true, ...DEFAULTS }
         ]
     }),
 
@@ -271,6 +417,59 @@ export default {
     },
 
     computed: {
+        isListOrientation() {
+            const o = this.props.orientation;
+            return o === 'vertical' || o === 'dropdown' || o === 'burger';
+        },
+
+        isMenuOrientation() {
+            const o = this.props.orientation;
+            return o === 'dropdown' || o === 'burger';
+        },
+
+        currentFontFamily() {
+            return this.props.fontFamily || 'inherit';
+        },
+
+        fontSizePx() {
+            const fs = this.props.fontSize || DEFAULTS.fontSize;
+            if (typeof fs === 'object') {
+                return fs.unit === 'px' ? Math.round(fs.size) : Math.round(fs.size * 16); // eslint-disable-line no-magic-numbers
+            }
+            return 14; // eslint-disable-line no-magic-numbers
+        },
+
+        activeSizeLabel() {
+            const px = this.fontSizePx;
+            const match = this.sizePresets.find(s => Math.round(s.rem * 16) === px); // eslint-disable-line no-magic-numbers
+            return match ? match.label : null;
+        },
+
+        borderRadiusPx() {
+            const r = this.props.borderRadius || DEFAULTS.borderRadius;
+            if (parseFloat(r) >= 100) return 32; // eslint-disable-line no-magic-numbers
+            return remToPx(r);
+        },
+
+        activeRadiusLabel() {
+            const raw = this.props.borderRadius || DEFAULTS.borderRadius;
+            if (parseFloat(raw) >= 100) return 'Пилюля'; // eslint-disable-line no-magic-numbers
+            const px = remToPx(raw);
+            if (px === 0) return 'Острые';
+            if (px >= 5 && px <= 7) return 'Мягкие'; // eslint-disable-line no-magic-numbers
+            if (px >= 11 && px <= 13) return 'Круглые'; // eslint-disable-line no-magic-numbers
+            return null;
+        },
+
+        activeShadowLabel() {
+            const bs = this.props.buttonShadow || '';
+            if (!bs && !this.props.boxShadow) return 'Нет';
+            if (bs.includes('rgba(0,0,0,0.1)') || bs.includes('rgba(0,0,0,0.1 )')) return 'Лёгкая';
+            if (bs.includes('rgba(0,0,0,0.12)')) return 'Средняя';
+            if (bs.includes('rgba(0,0,0,0.15)')) return 'Объёмная';
+            return null;
+        },
+
         overriddenValues() {
             const customStyles = this.props.customStyles || {};
             const overrides = {};
@@ -287,12 +486,8 @@ export default {
                         if (bgMatch) overrides.backgroundColor = bgMatch[1].trim();
                         if (textMatch) overrides.textColor = textMatch[1].trim();
                     }
-                    if (key === 'buttonHover') {
-                        overrides.hoverColor = colorMatch[1].trim();
-                    }
-                    if (key === 'buttonActive') {
-                        overrides.activeColor = colorMatch[1].trim();
-                    }
+                    if (key === 'buttonHover') overrides.hoverColor = colorMatch[1].trim();
+                    if (key === 'buttonActive') overrides.activeColor = colorMatch[1].trim();
                 }
             });
 
@@ -301,7 +496,7 @@ export default {
 
         fontSizeString: {
             get() {
-                const fontSize = this.props.fontSize || { size: 0.875, unit: 'rem' };
+                const fontSize = this.props.fontSize || DEFAULTS.fontSize;
                 return `${fontSize.size}${fontSize.unit}`;
             },
             set(val) {
@@ -352,6 +547,55 @@ export default {
     },
 
     methods: {
+        setButtonStyle(val) {
+            this.props.buttonStyle = val;
+            this.propChanged('buttonStyle');
+        },
+
+        setFontFamily(val) {
+            this.props.fontFamily = val;
+            this.propChanged('fontFamily');
+        },
+
+        applyCustomFont() {
+            const f = this.customFontInput.trim();
+            if (!f) return;
+            this.props.fontFamily = f;
+            this.propChanged('fontFamily');
+            this.customFontInput = '';
+        },
+
+        applySizePreset(s) {
+            this.props.fontSize = { size: s.rem, unit: 'rem' };
+            this.propChanged('fontSize');
+        },
+
+        onFontSizeSlider(e) {
+            const px = parseInt(e.target.value, 10);
+            this.props.fontSize = { size: pxToRem(px), unit: 'rem' };
+            this.propChanged('fontSize');
+        },
+
+        applyRadiusPreset(r) {
+            this.props.borderRadius = r.css;
+            this.propChanged('borderRadius');
+        },
+
+        onRadiusSlider(e) {
+            const px = parseInt(e.target.value, 10);
+            this.props.borderRadius = px >= 32 ? '999px' : `${pxToRem(px)}rem`; // eslint-disable-line no-magic-numbers
+            this.propChanged('borderRadius');
+        },
+
+        applyShadowPreset(sh) {
+            this.props.boxShadow = sh.boxShadow;
+            this.propChanged('boxShadow');
+            this.props.buttonShadow = sh.buttonShadow;
+            this.propChanged('buttonShadow');
+            this.props.menuShadow = sh.menuShadow;
+            this.propChanged('menuShadow');
+        },
+
         saveFontSize() {
             this.propChanged('fontSize');
         },
@@ -367,7 +611,8 @@ export default {
         applyPreset(preset) {
             const keys = [
                 'buttonStyle', 'buttonBackgroundColor', 'backgroundColor',
-                'borderRadius', 'boxShadow', 'buttonShadow', 'menuShadow',
+                'borderRadius', 'fontFamily',
+                'boxShadow', 'buttonShadow', 'menuShadow',
                 'showMenuBorder', 'menuBorderColor', 'showToggleBorder', 'toggleBorderColor'
             ];
             keys.forEach(key => {
@@ -389,8 +634,8 @@ export default {
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: #94a3b8;
-    margin-top: 10px;
-    margin-bottom: 4px;
+    margin-top: 12px;
+    margin-bottom: 5px;
 }
 
 /* ── Preset chips ─────────────────────────────────────────────── */
@@ -398,9 +643,8 @@ export default {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
-
 .preset-chip {
     padding: 4px 11px;
     border-radius: 20px;
@@ -413,15 +657,224 @@ export default {
     transition: border-color 0.12s, background 0.12s, color 0.12s;
     white-space: nowrap;
 }
-.preset-chip:hover {
-    border-color: #a5b4fc;
-    color: #4f6aff;
-    background: #f5f7ff;
+.preset-chip:hover { border-color: #a5b4fc; color: #4f6aff; background: #f5f7ff; }
+.preset-chip--reset:hover { border-color: #fca5a5; color: #dc2626; background: #fef2f2; }
+
+/* ── Opt-card grid ────────────────────────────────────────────── */
+.opt-grid {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 4px;
 }
-.preset-chip:last-child:hover {
-    border-color: #fca5a5;
-    color: #dc2626;
-    background: #fef2f2;
+.opt-grid--3 { grid-template-columns: repeat(3, 1fr); }
+.opt-grid--4 { grid-template-columns: repeat(4, 1fr); }
+
+.opt-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 4px 6px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #fafbfc;
+    transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
+    user-select: none;
+}
+.opt-card:hover { border-color: #a5b4fc; background: #f5f7ff; }
+.opt-card--active { border-color: #4f6aff; background: #eff2ff; box-shadow: 0 0 0 2px rgba(79,106,255,0.15); }
+.opt-card__label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
+    text-align: center;
+    line-height: 1.2;
+}
+.opt-card--active .opt-card__label { color: #4f6aff; }
+
+/* ── Button style preview ─────────────────────────────────────── */
+.btn-style-preview {
+    width: 48px;
+    height: 24px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+}
+.btn-style-preview--filled   { background: #3b82f6; color: #fff; border: none; }
+.btn-style-preview--outlined { background: transparent; color: #3b82f6; border: 1.5px solid #3b82f6; }
+.btn-style-preview--text     { background: transparent; color: #3b82f6; border: none; }
+
+/* ── Shadow dot ───────────────────────────────────────────────── */
+.opt-card__shadow-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+}
+
+/* ── Font grid ────────────────────────────────────────────────── */
+.font-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 6px;
+}
+.font-chip {
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    color: #334155;
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, color 0.12s;
+    white-space: nowrap;
+}
+.font-chip:hover { border-color: #a5b4fc; background: #f5f7ff; color: #4f6aff; }
+.font-chip--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
+
+/* ── Custom font row ──────────────────────────────────────────── */
+.custom-font-row {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 2px;
+}
+.custom-font-input {
+    flex: 1;
+    padding: 6px 9px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 7px;
+    font-size: 12px;
+    font-family: inherit;
+    color: #334155;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.custom-font-input:focus { border-color: #4f6aff; }
+.custom-font-input::placeholder { color: #b0bec5; }
+.custom-font-btn {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 7px;
+    background: #fff;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+.custom-font-btn:not(:disabled):hover { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; }
+.custom-font-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Size cards ───────────────────────────────────────────────── */
+.size-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    margin-bottom: 6px;
+}
+.size-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 4px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #fafbfc;
+    transition: border-color 0.12s, background 0.12s;
+    user-select: none;
+}
+.size-card:hover { border-color: #a5b4fc; background: #f5f7ff; }
+.size-card--active { border-color: #4f6aff; background: #eff2ff; }
+.size-card__stage {
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.size-card__letter { color: #334155; font-weight: 600; line-height: 1; }
+.size-card--active .size-card__letter { color: #4f6aff; }
+.size-card__name { font-size: 10px; font-weight: 600; color: #94a3b8; text-align: center; }
+.size-card--active .size-card__name { color: #4f6aff; }
+
+/* ── Radius cards ─────────────────────────────────────────────── */
+.radius-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    margin-bottom: 6px;
+}
+.radius-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 4px 6px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #fafbfc;
+    transition: border-color 0.12s, background 0.12s;
+    user-select: none;
+}
+.radius-card:hover { border-color: #a5b4fc; background: #f5f7ff; }
+.radius-card--active { border-color: #4f6aff; background: #eff2ff; }
+.radius-card__shape {
+    width: 24px;
+    height: 16px;
+    background: #cbd5e1;
+    display: block;
+}
+.radius-card--active .radius-card__shape { background: #818cf8; }
+.radius-card__label { font-size: 10px; font-weight: 600; color: #94a3b8; text-align: center; line-height: 1.2; }
+.radius-card--active .radius-card__label { color: #4f6aff; }
+
+/* ── Slider ───────────────────────────────────────────────────── */
+.slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+.slider {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 2px;
+    background: #e2e8f0;
+    outline: none;
+    cursor: pointer;
+}
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #4f6aff;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(79,106,255,0.4);
+}
+.slider-val {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+    min-width: 36px;
+    text-align: right;
 }
 
 /* ── Override hint ────────────────────────────────────────────── */
