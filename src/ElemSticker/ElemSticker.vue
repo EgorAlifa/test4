@@ -131,8 +131,8 @@
 
 <script>
 import { Elem } from '@goodt-wcore/elem';
-import { varBindingsMixin } from '../common/mixins/varBindingsMixin';
-import TiptapEditor from '../ElemText/components/TiptapEditor.vue';
+import { varBindingsMixin } from './mixins/varBindingsMixin';
+import TiptapEditor from './components/TiptapEditor.vue';
 import { meta } from './descriptor';
 import { getThemeColors } from './constants/stickerThemes';
 import { getPriorityConfig } from './constants/priorityLevels';

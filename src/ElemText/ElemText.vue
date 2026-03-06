@@ -61,7 +61,7 @@ import { store, unwrapStoreValue } from '@goodt-wcore/managers';
 import { resolveIconClass } from '@goodt-common/utils';
 
 import { meta } from './descriptor';
-import { varBindingsMixin } from '../common/mixins/varBindingsMixin';
+import { varBindingsMixin } from './mixins/varBindingsMixin';
 import TiptapEditor from './components/TiptapEditor.vue';
 import {
     formatPropForCss,
