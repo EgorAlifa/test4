@@ -5,10 +5,10 @@
             :class="[cssClass, `elem-tabs--pos-${props.tabPosition}`, `elem-tabs--ind-${props.indicatorType}`]"
             :style="[cssStyle, rootStyle]">
 
-            <!-- Панель вкладок (уровень 0) -->
+            <!-- Панель вкладок -->
             <div class="elem-tabs__bar" :style="barStyle">
                 <button
-                    v-for="tab in visibleRootTabs"
+                    v-for="tab in visibleTabs"
                     :key="tab.origIndex"
                     class="elem-tabs__tab"
                     :class="{ 'elem-tabs__tab--active': activeIndex === tab.origIndex }"
@@ -19,29 +19,17 @@
                 </button>
             </div>
 
-            <!-- Панель под-вкладок (уровень 1, показывается когда у активной вкладки есть дети) -->
-            <div v-if="activeSubTabs.length" class="elem-tabs__subbar">
-                <button
-                    v-for="(sub, si) in activeSubTabs"
-                    :key="sub.origIndex"
-                    class="elem-tabs__subtab"
-                    :class="{ 'elem-tabs__subtab--active': activeSubIndex === si }"
-                    @click="activeSubIndex = si">
-                    <i v-if="sub.icon" :class="sub.icon" class="elem-tabs__tab-icon" />
-                    <span>{{ sub.label }}</span>
-                </button>
-            </div>
-
-            <!-- Содержимое активной вкладки -->
+            <!-- Содержимое: все панели в DOM, показываем нужную через v-show -->
             <div class="elem-tabs__content" :style="contentStyle">
-                <transition name="tabs-fade" mode="out-in">
-                    <div :key="activeSlotName" class="elem-tabs__pane">
-                        <slot :name="activeSlotName">
-                            <div v-html="activeTab.content" />
-                        </slot>
-                    </div>
-                </transition>
-                <slot />
+                <div
+                    v-for="tab in visibleTabs"
+                    :key="`pane-${tab.origIndex}`"
+                    v-show="activeIndex === tab.origIndex"
+                    class="elem-tabs__pane">
+                    <slot :name="`tab-${tab.origIndex}`">
+                        <div v-html="tab.content" />
+                    </slot>
+                </div>
             </div>
 
             <component v-if="injectedCss" :is="'style'" v-html="injectedCss" />
@@ -60,74 +48,52 @@ export default {
     meta,
     data: () => ({
         ...ElemInstanceTypeDescriptor,
-        activeIndex: 0,
-        activeSubIndex: 0
+        activeIndex: 0
     }),
     computed: {
-        visibleRootTabs() {
+        visibleTabs() {
             return this.props.tabs
                 .map((tab, i) => ({ ...tab, origIndex: i }))
-                .filter(tab => (tab.level || 0) === 0 && tab.enabled !== false);
-        },
-        activeSubTabs() {
-            const result = [];
-            let found = false;
-            for (let i = 0; i < this.props.tabs.length; i++) {
-                const tab = this.props.tabs[i];
-                if (i === this.activeIndex) { found = true; continue; }
-                if (found) {
-                    const level = tab.level || 0;
-                    if (level === 0) break;
-                    if (level === 1 && tab.enabled !== false) {
-                        result.push({ ...tab, origIndex: i });
-                    }
-                }
-            }
-            return result;
-        },
-        activeTab() {
-            if (this.activeSubTabs.length > 0) {
-                const sub = this.activeSubTabs[this.activeSubIndex] || this.activeSubTabs[0];
-                if (sub) return sub;
-            }
-            return this.props.tabs[this.activeIndex] || { content: '' };
-        },
-        activeSlotName() {
-            if (this.activeSubTabs.length > 0) {
-                const sub = this.activeSubTabs[this.activeSubIndex] || this.activeSubTabs[0];
-                if (sub) return `tab-${sub.origIndex}`;
-            }
-            return `tab-${this.activeIndex}`;
+                .filter(tab => tab.enabled !== false);
         },
         rootStyle() {
+            const pos = this.props.tabPosition || 'top';
             return {
                 '--tabs-accent': this.props.tabIndicatorColor,
-                '--tabs-border': this.props.borderColor
+                '--tabs-border': this.props.borderColor,
+                display: 'flex',
+                flexDirection: pos === 'bottom' ? 'column-reverse' : pos === 'left' ? 'row' : 'column'
             };
         },
         barStyle() {
+            const isLeft = this.props.tabPosition === 'left';
             return {
                 display: 'flex',
-                flexWrap: 'wrap',
+                flexWrap: isLeft ? 'nowrap' : 'wrap',
+                flexDirection: isLeft ? 'column' : 'row',
                 alignItems: 'stretch',
                 background: this.props.tabBarBg,
-                borderBottom: `1.5px solid ${this.props.tabBarBorderColor || '#e2e8f0'}`,
-                gap: this.props.tabGap || '2px'
+                borderBottom: !isLeft ? `1.5px solid ${this.props.tabBarBorderColor || '#e2e8f0'}` : 'none',
+                borderRight: isLeft ? `1.5px solid ${this.props.tabBarBorderColor || '#e2e8f0'}` : 'none',
+                gap: this.props.tabGap || '2px',
+                flexShrink: isLeft ? '0' : undefined
             };
         },
         contentStyle() {
+            const pos = this.props.tabPosition || 'top';
+            const isLeft = pos === 'left';
             return {
+                flex: isLeft ? '1' : undefined,
+                minWidth: isLeft ? '0' : undefined,
                 background: this.props.contentBg,
                 color: this.props.contentColor,
                 fontSize: this.props.contentFontSize,
                 padding: this.props.contentPadding,
                 borderRadius: this.props.contentBorderRadius,
-                border: this.props.showBorder
-                    ? `1px solid ${this.props.borderColor}`
-                    : 'none',
-                borderTop: this.props.showBorder && this.props.tabPosition === 'top'
-                    ? 'none'
-                    : undefined
+                border: this.props.showBorder ? `1px solid ${this.props.borderColor}` : 'none',
+                borderTop: this.props.showBorder && pos === 'top' ? 'none' : undefined,
+                borderBottom: this.props.showBorder && pos === 'bottom' ? 'none' : undefined,
+                borderLeft: this.props.showBorder && isLeft ? 'none' : undefined
             };
         },
         tabStyles() {
@@ -182,9 +148,6 @@ export default {
             handler(val) {
                 this.activeIndex = val ?? 0;
             }
-        },
-        activeIndex() {
-            this.activeSubIndex = 0;
         }
     },
     methods: {

@@ -130,6 +130,16 @@ export default {
         grid-template-columns: 1fr auto auto;
     }
 }
+.noscroll {
+    min-width: 0;
+    overflow: hidden;
+}
+.noscroll .text-small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .drag-handle {
     cursor: move;
 }
