@@ -50,8 +50,12 @@
                         :style="c.value !== 'transparent' ? { background: c.value } : {}"
                         :title="c.label"
                         @click="setColorProp('buttonBackgroundColor', c.value)" />
+                    <label class="swatch swatch--custom" title="Свой цвет">
+                        <input type="color" class="swatch-color-input"
+                            :value="props.buttonBackgroundColor"
+                            @change="setColorProp('buttonBackgroundColor', $event.target.value)" />
+                    </label>
                 </div>
-                <ui-input-cp prop="buttonBackgroundColor" />
             </div>
 
             <!-- Цвет текста -->
@@ -69,8 +73,12 @@
                         :style="{ background: c.value }"
                         :title="c.label"
                         @click="setColorProp('textColor', c.value)" />
+                    <label class="swatch swatch--custom" title="Свой цвет">
+                        <input type="color" class="swatch-color-input"
+                            :value="props.textColor"
+                            @change="setColorProp('textColor', $event.target.value)" />
+                    </label>
                 </div>
-                <ui-input-cp prop="textColor" />
             </div>
 
             <!-- Цвет активной страницы -->
@@ -89,8 +97,12 @@
                             :style="{ background: c.value }"
                             :title="c.label"
                             @click="setColorProp('activeColor', c.value)" />
+                        <label class="swatch swatch--custom" title="Свой цвет">
+                            <input type="color" class="swatch-color-input"
+                                :value="props.activeColor"
+                                @change="setColorProp('activeColor', $event.target.value)" />
+                        </label>
                     </div>
-                    <ui-input-cp prop="activeColor" />
                 </div>
             </template>
 
@@ -110,8 +122,12 @@
                         :style="{ background: c.value }"
                         :title="c.label"
                         @click="setColorProp('hoverColor', c.value)" />
+                    <label class="swatch swatch--custom" title="Свой цвет">
+                        <input type="color" class="swatch-color-input"
+                            :value="props.hoverColor"
+                            @change="setColorProp('hoverColor', $event.target.value)" />
+                    </label>
                 </div>
-                <ui-input-cp prop="hoverColor" />
             </div>
 
             <!-- Фон контейнера -->
@@ -132,8 +148,12 @@
                         :style="c.value !== 'transparent' ? { background: c.value } : {}"
                         :title="c.label"
                         @click="setColorProp('backgroundColor', c.value)" />
+                    <label class="swatch swatch--custom" title="Свой цвет">
+                        <input type="color" class="swatch-color-input"
+                            :value="props.backgroundColor"
+                            @change="setColorProp('backgroundColor', $event.target.value)" />
+                    </label>
                 </div>
-                <ui-input-cp prop="backgroundColor" />
             </div>
 
             <!-- ── Шрифт ───────────────────────────────────────────────── -->
@@ -185,7 +205,11 @@
                     step="1"
                     :value="fontSizePx"
                     @input="onFontSizeSlider" />
-                <span class="slider-val">{{ fontSizePx }}px</span>
+                <span class="slider-val">{{ fontSizeDisplay }}</span>
+                <div class="unit-btns">
+                    <button class="unit-btn" :class="{ 'unit-btn--active': sizeUnit === 'rem' }" @click="sizeUnit = 'rem'">rem</button>
+                    <button class="unit-btn" :class="{ 'unit-btn--active': sizeUnit === 'px' }" @click="sizeUnit = 'px'">px</button>
+                </div>
             </div>
 
             <!-- ── Скругление ──────────────────────────────────────────── -->
@@ -210,7 +234,11 @@
                     step="1"
                     :value="borderRadiusPx"
                     @input="onRadiusSlider" />
-                <span class="slider-val">{{ borderRadiusPx }}px</span>
+                <span class="slider-val">{{ radiusDisplay }}</span>
+                <div class="unit-btns">
+                    <button class="unit-btn" :class="{ 'unit-btn--active': radiusUnit === 'rem' }" @click="radiusUnit = 'rem'">rem</button>
+                    <button class="unit-btn" :class="{ 'unit-btn--active': radiusUnit === 'px' }" @click="radiusUnit = 'px'">px</button>
+                </div>
             </div>
 
             <!-- ── Тени ────────────────────────────────────────────────── -->
@@ -349,6 +377,8 @@ export default {
         ...PanelInstanceTypeDescriptor,
 
         customFontInput: '',
+        sizeUnit: 'rem',
+        radiusUnit: 'rem',
 
         options: {
             orientations: ORIENTATION_OPTIONS,
@@ -563,6 +593,18 @@ export default {
                 return fs.unit === 'px' ? Math.round(fs.size) : Math.round(fs.size * 16); // eslint-disable-line no-magic-numbers
             }
             return 14; // eslint-disable-line no-magic-numbers
+        },
+
+        fontSizeDisplay() {
+            if (this.sizeUnit === 'rem') return `${pxToRem(this.fontSizePx)}rem`;
+            return `${this.fontSizePx}px`;
+        },
+
+        radiusDisplay() {
+            const px = this.borderRadiusPx;
+            if (px >= 32) return this.radiusUnit === 'rem' ? '∞' : '999px'; // eslint-disable-line no-magic-numbers
+            if (this.radiusUnit === 'rem') return `${pxToRem(px)}rem`;
+            return `${px}px`;
         },
 
         activeSizeLabel() {
@@ -1044,6 +1086,43 @@ export default {
     background: linear-gradient(135deg, #fff 40%, #f87171 40%, #f87171 60%, #fff 60%) !important;
     border-color: #e2e8f0;
 }
+.swatch--custom {
+    background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+    border-color: transparent;
+    cursor: pointer;
+    position: relative;
+    display: inline-flex;
+}
+.swatch-color-input {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    top: 50%;
+    left: 50%;
+    pointer-events: none;
+}
+
+/* ── Unit toggle ──────────────────────────────────────────────── */
+.unit-btns {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+}
+.unit-btn {
+    padding: 2px 5px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    line-height: 1.4;
+    transition: border-color 0.1s, color 0.1s, background 0.1s;
+}
+.unit-btn:hover { border-color: #a5b4fc; color: #4f6aff; }
+.unit-btn--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
 
 /* ── Override hint ────────────────────────────────────────────── */
 .hint-override {
