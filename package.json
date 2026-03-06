@@ -86,9 +86,6 @@
     },
     "dependencies": {
         "@goodt/common-deps": "*",
-        "@tiptap/extension-highlight": "^2.1.0",
-        "@tiptap/extension-placeholder": "^2.1.0",
-        "@tiptap/extension-text-align": "^2.1.0",
         "exceljs": "^4.4.0",
         "goodt-dremio-sdk": "1.0.30",
         "goodt-framework-css": "2.0.16",
