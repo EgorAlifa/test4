@@ -1,0 +1,41 @@
+/**
+ * ElemText Theme Variables — VIBE 2.0
+ *
+ * This file defines CSS custom properties that can be set by the platform theme.
+ * Actual styles are in ElemText.vue (scoped) to prevent style leakage.
+ *
+ * Usage: Platform can override these variables at the theme level:
+ * :root {
+ *   --elemtext-font-family: 'Inter', sans-serif;
+ *   --elemtext-primary-color: #1976d2;
+ * }
+ */
+
+:root {
+    /* Typography defaults */
+    --elemtext-font-family: inherit;
+    --elemtext-font-size: inherit;
+    --elemtext-font-weight: inherit;
+    --elemtext-line-height: inherit;
+    --elemtext-letter-spacing: normal;
+    --elemtext-text-transform: none;
+
+    /* Color defaults */
+    --elemtext-text-color: inherit;
+    --elemtext-bg-color: transparent;
+    --elemtext-link-color: var(--color-primary, #1976d2);
+    --elemtext-link-hover-color: var(--color-link, #1565c0);
+
+    /* Spacing defaults */
+    --elemtext-padding: 0;
+    --elemtext-margin: 0;
+
+    /* Border defaults */
+    --elemtext-border-color: transparent;
+    --elemtext-border-width: 0;
+    --elemtext-border-radius: 0;
+
+    /* Effects defaults */
+    --elemtext-box-shadow: none;
+    --elemtext-opacity: 1;
+}
