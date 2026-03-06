@@ -1,39 +1,7 @@
 /* Include this file with <style scoped|module lang="pcss" src="./style.pcss"></style> in Widget Elem */
 
-/* ── Sub-tabs bar (hierarchy level 1) ────────────────────────────── */
-.elem-tabs__subbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.elem-tabs__subtab {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 14px;
-    background: transparent;
-    border: none;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    color: #64748b;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-    white-space: nowrap;
-}
-
-.elem-tabs__subtab:hover {
-    background: #e8edff;
-    color: #4f6aff;
-}
-
-.elem-tabs__subtab--active {
-    background: #eff2ff;
-    color: #4f6aff;
-    font-weight: 600;
+/* ── Left position: content area fills remaining space ───────────── */
+.elem-tabs--pos-left .elem-tabs__content {
+    flex: 1;
+    min-width: 0;
 }

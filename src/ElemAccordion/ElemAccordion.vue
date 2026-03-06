@@ -24,49 +24,45 @@
                             :class="iconClasses[group.index]" />
                     </div>
 
-                    <!-- Контент с анимацией -->
-                    <transition name="acc-expand">
-                        <div
-                            v-if="isOpen(group.index)"
-                            class="elem-accordion__body"
-                            :style="bodyStyle">
+                    <!-- Контент: всегда в DOM, показывается через v-show для корректной работы дроп-зон -->
+                    <div
+                        v-show="isOpen(group.index)"
+                        class="elem-accordion__body"
+                        :style="bodyStyle">
 
-                            <!-- Именованный слот с fallback на HTML -->
-                            <slot :name="`item-${group.index}`">
-                                <div class="elem-accordion__content" v-html="group.item.content" />
-                            </slot>
+                        <!-- Именованный слот с fallback на HTML -->
+                        <slot :name="`item-${group.index}`">
+                            <div class="elem-accordion__content" v-html="group.item.content" />
+                        </slot>
 
-                            <!-- Вложенные разделы (level 1) -->
-                            <div v-if="group.subItems.length" class="elem-accordion__subitems">
+                        <!-- Вложенные разделы (level 1) -->
+                        <div v-if="group.subItems.length" class="elem-accordion__subitems">
+                            <div
+                                v-for="sub in group.subItems"
+                                :key="sub.index"
+                                class="elem-accordion__item elem-accordion__item--sub"
+                                :class="{ 'elem-accordion__item--open': isOpen(sub.index) }">
+
                                 <div
-                                    v-for="sub in group.subItems"
-                                    :key="sub.index"
-                                    class="elem-accordion__item elem-accordion__item--sub"
-                                    :class="{ 'elem-accordion__item--open': isOpen(sub.index) }">
+                                    class="elem-accordion__header elem-accordion__header--sub"
+                                    :style="subHeaderStyles[sub.index]"
+                                    @click.stop="toggle(sub.index)">
+                                    <i v-if="props.iconPosition === 'left'" class="elem-accordion__icon" :class="iconClasses[sub.index]" />
+                                    <span class="elem-accordion__title">{{ sub.item.title }}</span>
+                                    <i v-if="props.iconPosition !== 'left'" class="elem-accordion__icon" :class="iconClasses[sub.index]" />
+                                </div>
 
-                                    <div
-                                        class="elem-accordion__header elem-accordion__header--sub"
-                                        :style="subHeaderStyles[sub.index]"
-                                        @click.stop="toggle(sub.index)">
-                                        <i v-if="props.iconPosition === 'left'" class="elem-accordion__icon" :class="iconClasses[sub.index]" />
-                                        <span class="elem-accordion__title">{{ sub.item.title }}</span>
-                                        <i v-if="props.iconPosition !== 'left'" class="elem-accordion__icon" :class="iconClasses[sub.index]" />
-                                    </div>
-
-                                    <transition name="acc-expand">
-                                        <div
-                                            v-if="isOpen(sub.index)"
-                                            class="elem-accordion__body elem-accordion__body--sub"
-                                            :style="bodyStyle">
-                                            <slot :name="`item-${sub.index}`">
-                                                <div class="elem-accordion__content" v-html="sub.item.content" />
-                                            </slot>
-                                        </div>
-                                    </transition>
+                                <div
+                                    v-show="isOpen(sub.index)"
+                                    class="elem-accordion__body elem-accordion__body--sub"
+                                    :style="bodyStyle">
+                                    <slot :name="`item-${sub.index}`">
+                                        <div class="elem-accordion__content" v-html="sub.item.content" />
+                                    </slot>
                                 </div>
                             </div>
                         </div>
-                    </transition>
+                    </div>
                 </div>
             </template>
 

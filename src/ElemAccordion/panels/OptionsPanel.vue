@@ -14,18 +14,20 @@
                 :key="index"
                 class="acc-item"
                 :class="{
-                    'acc-item--drag-over': dragOverIndex === index,
+                    'acc-item--drag-over': dragOverIndex === index && !dropAsChild,
+                    'acc-item--drag-nest': dragOverIndex === index && dropAsChild,
                     'acc-item--sub': (item.level || 0) === 1,
                     'acc-item--disabled': item.enabled === false
                 }"
                 draggable="true"
                 @dragstart="onItemDragStart(index, $event)"
-                @dragover.prevent="onItemDragOver(index)"
+                @dragover.prevent="onItemDragOver(index, $event)"
                 @drop.prevent="onItemDrop(index)"
                 @dragend="onItemDragEnd">
                 <div class="acc-item__hd" @click="toggleItem(index)">
                     <i class="mdi mdi-drag acc-item__drag" @mousedown.stop />
                     <span class="acc-item__num">{{ index + 1 }}</span>
+                    <i v-if="(item.level || 0) === 1" class="mdi mdi-subdirectory-arrow-right acc-item__sub-icon" />
                     <span class="acc-item__title">{{ item.title || 'Без названия' }}</span>
                     <button
                         class="star-btn"
@@ -42,11 +44,11 @@
                         <i class="mdi" :class="item.enabled !== false ? 'mdi-eye-outline' : 'mdi-eye-off-outline'" />
                     </button>
                     <button
-                        class="icon-action-btn"
-                        :class="{ 'icon-action-btn--active': (item.level || 0) === 1 }"
-                        :title="(item.level || 0) === 0 ? 'Сделать вложенным' : 'Сделать корневым'"
-                        @click.stop="toggleLevel(index)">
-                        <i class="mdi" :class="(item.level || 0) === 1 ? 'mdi-subdirectory-arrow-right' : 'mdi-format-indent-increase'" />
+                        v-if="(item.level || 0) === 1"
+                        class="icon-action-btn icon-action-btn--active"
+                        title="Сделать корневым"
+                        @click.stop="setLevel0(index)">
+                        <i class="mdi mdi-format-indent-decrease" />
                     </button>
                     <button class="del-btn" @click.stop="removeItem(index)">
                         <i class="mdi mdi-close" />
@@ -204,6 +206,7 @@ export default {
         iconPickerOpen: null,  // null | 'closed' | 'open'
         dragIndex: null,
         dragOverIndex: null,
+        dropAsChild: false,
         quickIcons: QUICK_ICONS,
         iconPositionOptions: [
             { label: 'Справа', value: 'right' },
@@ -236,9 +239,8 @@ export default {
             this.props.items[index].enabled = this.props.items[index].enabled !== false ? false : true;
             this.save();
         },
-        toggleLevel(index) {
-            const current = this.props.items[index].level || 0;
-            this.props.items[index].level = current === 0 ? 1 : 0;
+        setLevel0(index) {
+            this.props.items[index].level = 0;
             this.save();
         },
 
@@ -247,38 +249,37 @@ export default {
             this.dragIndex = index;
             e.dataTransfer.effectAllowed = 'move';
         },
-        onItemDragOver(index) {
+        onItemDragOver(index, e) {
             this.dragOverIndex = index;
+            const rect = e.currentTarget.getBoundingClientRect();
+            this.dropAsChild = (e.clientY - rect.top) > rect.height * 0.65;
         },
         onItemDrop(index) {
             if (this.dragIndex === null || this.dragIndex === index) {
                 this.dragIndex = null;
                 this.dragOverIndex = null;
+                this.dropAsChild = false;
                 return;
             }
             const items = [...this.props.items];
             const [moved] = items.splice(this.dragIndex, 1);
-            items.splice(index, 0, moved);
+            const adjustedIndex = this.dragIndex < index ? index - 1 : index;
+            if (this.dropAsChild) {
+                moved.level = 1;
+                items.splice(adjustedIndex + 1, 0, moved);
+            } else {
+                items.splice(adjustedIndex, 0, moved);
+            }
             this.props.items = items;
             this.propChanged('items');
-            // adjust defaultOpenIndex after reorder
-            const def = this.props.defaultOpenIndex;
-            if (def >= 0) {
-                if (def === this.dragIndex) {
-                    this.props.defaultOpenIndex = index;
-                } else if (def > this.dragIndex && def <= index) {
-                    this.props.defaultOpenIndex = def - 1;
-                } else if (def < this.dragIndex && def >= index) {
-                    this.props.defaultOpenIndex = def + 1;
-                }
-                this.propChanged('defaultOpenIndex');
-            }
             this.dragIndex = null;
             this.dragOverIndex = null;
+            this.dropAsChild = false;
         },
         onItemDragEnd() {
             this.dragIndex = null;
             this.dragOverIndex = null;
+            this.dropAsChild = false;
         },
 
         // ── Icon picker ──────────────────────────────────────────────
@@ -346,6 +347,8 @@ export default {
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 .acc-item--drag-over { border-color: #4f6aff; box-shadow: 0 0 0 2px rgba(79,106,255,0.2); }
+.acc-item--drag-nest { border-color: #22c55e; box-shadow: 0 0 0 2px rgba(34,197,94,0.2); border-bottom-width: 3px; }
+.acc-item__sub-icon { color: #a5b4fc; font-size: 13px; flex-shrink: 0; }
 .acc-item__hd {
     display: flex;
     align-items: center;

@@ -15,7 +15,6 @@
                 class="tab-item"
                 :class="{
                     'tab-item--drag-over': dragOverIndex === index,
-                    'tab-item--sub': (tab.level || 0) === 1,
                     'tab-item--disabled': tab.enabled === false
                 }"
                 draggable="true"
@@ -41,13 +40,6 @@
                         :title="tab.enabled !== false ? 'Скрыть вкладку' : 'Показать вкладку'"
                         @click.stop="toggleEnabled(index)">
                         <i class="mdi" :class="tab.enabled !== false ? 'mdi-eye-outline' : 'mdi-eye-off-outline'" />
-                    </button>
-                    <button
-                        class="icon-action-btn"
-                        :class="{ 'icon-action-btn--active': (tab.level || 0) === 1 }"
-                        :title="(tab.level || 0) === 0 ? 'Сделать вложенной' : 'Сделать корневой'"
-                        @click.stop="toggleLevel(index)">
-                        <i class="mdi" :class="(tab.level || 0) === 1 ? 'mdi-subdirectory-arrow-right' : 'mdi-format-indent-increase'" />
                     </button>
                     <button class="del-btn" @click.stop="removeTab(index)">
                         <i class="mdi mdi-close" />
@@ -119,9 +111,18 @@
                 Вид и расположение
             </div>
 
-            <ui-select prop="tabPosition" :options="positionOptions">
-                Расположение вкладок
-            </ui-select>
+            <div class="form-label">Расположение вкладок</div>
+            <div class="pos-grid">
+                <div
+                    v-for="opt in positionOptions"
+                    :key="opt.value"
+                    class="pos-card"
+                    :class="{ 'pos-card--active': (props.tabPosition || 'top') === opt.value }"
+                    @click="setTabPosition(opt.value)">
+                    <i :class="`mdi mdi-${opt.icon}`" class="pos-card__icon" />
+                    <span class="pos-card__label">{{ opt.label }}</span>
+                </div>
+            </div>
 
             <ui-select prop="indicatorType" :options="indicatorOptions">
                 Тип индикатора
@@ -167,9 +168,9 @@ export default {
         dragOverIndex: null,
         quickIcons: QUICK_ICONS,
         positionOptions: [
-            { label: 'Сверху', value: 'top' },
-            { label: 'Снизу', value: 'bottom' },
-            { label: 'Слева', value: 'left' }
+            { label: 'Сверху', value: 'top', icon: 'dock-top' },
+            { label: 'Снизу', value: 'bottom', icon: 'dock-bottom' },
+            { label: 'Слева', value: 'left', icon: 'dock-left' }
         ],
         indicatorOptions: [
             { label: 'Подчёркивание', value: 'underline' },
@@ -203,10 +204,9 @@ export default {
             this.props.tabs[index].enabled = this.props.tabs[index].enabled !== false ? false : true;
             this.save();
         },
-        toggleLevel(index) {
-            const current = this.props.tabs[index].level || 0;
-            this.props.tabs[index].level = current === 0 ? 1 : 0;
-            this.save();
+        setTabPosition(val) {
+            this.props.tabPosition = val;
+            this.propChanged('tabPosition');
         },
 
         // ── Drag and drop ────────────────────────────────────────────
@@ -555,9 +555,32 @@ export default {
 .icon-action-btn--off { color: #cbd5e1; border-color: #f1f5f9; }
 .icon-action-btn--active { border-color: #4f6aff; color: #4f6aff; background: #eff2ff; }
 
-/* ── Hierarchy visual indentation ────────────────────────────────── */
-.tab-item--sub { margin-left: 20px; border-color: #c7d2fe; }
-.tab-item--sub .tab-item__num { background: #e0e7ff; color: #4f6aff; }
+/* ── Position cards ──────────────────────────────────────────────── */
+.pos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.pos-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.pos-card:hover { border-color: #a5b4fc; background: #f5f7ff; }
+.pos-card--active { border-color: #4f6aff; background: #eff2ff; }
+.pos-card__icon { font-size: 18px; color: #64748b; }
+.pos-card--active .pos-card__icon { color: #4f6aff; }
+.pos-card__label { font-size: 10px; font-weight: 600; color: #64748b; }
+.pos-card--active .pos-card__label { color: #4f6aff; }
+
 .tab-item--disabled { opacity: 0.55; }
 .tab-item--disabled .tab-item__label { text-decoration: line-through; color: #94a3b8; }
 </style>
