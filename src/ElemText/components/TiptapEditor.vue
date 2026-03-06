@@ -257,11 +257,11 @@ import { Editor, EditorContent } from '@tiptap/vue-2';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
-import TextAlign from '@tiptap/extension-text-align';
+import TextAlign from './extensions/TextAlign';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
-import Highlight from '@tiptap/extension-highlight';
-import Placeholder from '@tiptap/extension-placeholder';
+import Highlight from './extensions/Highlight';
+import Placeholder from './extensions/Placeholder';
 import FontSize from './extensions/FontSize';
 
 const DEFAULT_FONT_SIZE = 16; // eslint-disable-line no-magic-numbers
