@@ -35,15 +35,104 @@
             <!-- ── Цвета ───────────────────────────────────────────────── -->
             <div class="section-label">Цвета</div>
 
-            <ui-input-cp prop="buttonBackgroundColor">Фон кнопок</ui-input-cp>
-            <ui-input-cp prop="textColor">Цвет текста</ui-input-cp>
-            <ui-input-cp v-if="props.highlightActivePage" prop="activeColor">Цвет активной страницы</ui-input-cp>
+            <!-- Фон кнопок -->
+            <div class="color-block">
+                <div class="color-block__label">Фон кнопок</div>
+                <div class="color-swatches">
+                    <button
+                        v-for="c in colorPalettes.buttonBg"
+                        :key="c.value"
+                        class="swatch"
+                        :class="{
+                            'swatch--active': props.buttonBackgroundColor === c.value,
+                            'swatch--transparent': c.value === 'transparent'
+                        }"
+                        :style="c.value !== 'transparent' ? { background: c.value } : {}"
+                        :title="c.label"
+                        @click="setColorProp('buttonBackgroundColor', c.value)" />
+                    <div class="swatch-cp-wrap">
+                        <ui-input-cp prop="buttonBackgroundColor" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Цвет текста -->
+            <div class="color-block">
+                <div class="color-block__label">Цвет текста</div>
+                <div class="color-swatches">
+                    <button
+                        v-for="c in colorPalettes.text"
+                        :key="c.value"
+                        class="swatch"
+                        :class="{ 'swatch--active': props.textColor === c.value }"
+                        :style="{ background: c.value }"
+                        :title="c.label"
+                        @click="setColorProp('textColor', c.value)" />
+                    <div class="swatch-cp-wrap">
+                        <ui-input-cp prop="textColor" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Цвет активной страницы -->
+            <template v-if="props.highlightActivePage">
+                <div class="color-block">
+                    <div class="color-block__label">Цвет активной страницы</div>
+                    <div class="color-swatches">
+                        <button
+                            v-for="c in colorPalettes.active"
+                            :key="c.value"
+                            class="swatch"
+                            :class="{ 'swatch--active': props.activeColor === c.value }"
+                            :style="{ background: c.value }"
+                            :title="c.label"
+                            @click="setColorProp('activeColor', c.value)" />
+                        <div class="swatch-cp-wrap">
+                            <ui-input-cp prop="activeColor" />
+                        </div>
+                    </div>
+                </div>
+            </template>
 
             <!-- Эффект наведения -->
             <ui-switch prop="enableHoverColor">Эффект наведения</ui-switch>
-            <ui-input-cp v-if="props.enableHoverColor" prop="hoverColor">Цвет при наведении</ui-input-cp>
+            <div v-if="props.enableHoverColor" class="color-block">
+                <div class="color-block__label">Цвет при наведении</div>
+                <div class="color-swatches">
+                    <button
+                        v-for="c in colorPalettes.hover"
+                        :key="c.value"
+                        class="swatch"
+                        :class="{ 'swatch--active': props.hoverColor === c.value }"
+                        :style="{ background: c.value }"
+                        :title="c.label"
+                        @click="setColorProp('hoverColor', c.value)" />
+                    <div class="swatch-cp-wrap">
+                        <ui-input-cp prop="hoverColor" />
+                    </div>
+                </div>
+            </div>
 
-            <ui-input-cp prop="backgroundColor">Фон контейнера</ui-input-cp>
+            <!-- Фон контейнера -->
+            <div class="color-block">
+                <div class="color-block__label">Фон контейнера</div>
+                <div class="color-swatches">
+                    <button
+                        v-for="c in colorPalettes.containerBg"
+                        :key="c.value"
+                        class="swatch"
+                        :class="{
+                            'swatch--active': props.backgroundColor === c.value,
+                            'swatch--transparent': c.value === 'transparent'
+                        }"
+                        :style="c.value !== 'transparent' ? { background: c.value } : {}"
+                        :title="c.label"
+                        @click="setColorProp('backgroundColor', c.value)" />
+                    <div class="swatch-cp-wrap">
+                        <ui-input-cp prop="backgroundColor" />
+                    </div>
+                </div>
+            </div>
 
             <!-- ── Шрифт ───────────────────────────────────────────────── -->
             <div class="section-label">Шрифт</div>
@@ -305,6 +394,53 @@ export default {
             { label: 'Текст',    value: 'text' }
         ],
 
+        colorPalettes: {
+            buttonBg: [
+                { label: 'Прозрачный',    value: 'transparent' },
+                { label: 'Белый',         value: '#ffffff' },
+                { label: 'Светло-серый',  value: '#f3f4f6' },
+                { label: 'Серый',         value: '#e5e7eb' },
+                { label: 'Голубой',       value: '#eff6ff' },
+                { label: 'Синий',         value: '#3b82f6' },
+                { label: 'Индиго',        value: '#4f46e5' },
+                { label: 'Тёмный',        value: '#1e293b' }
+            ],
+            text: [
+                { label: 'Чёрный',        value: '#111827' },
+                { label: 'Тёмно-серый',   value: '#1f2937' },
+                { label: 'Серый',         value: '#64748b' },
+                { label: 'Белый',         value: '#ffffff' },
+                { label: 'Синий',         value: '#3b82f6' },
+                { label: 'Зелёный',       value: '#10b981' },
+                { label: 'Красный',       value: '#ef4444' }
+            ],
+            active: [
+                { label: 'Синий',         value: '#3b82f6' },
+                { label: 'Индиго',        value: '#4f46e5' },
+                { label: 'Фиолетовый',    value: '#8b5cf6' },
+                { label: 'Зелёный',       value: '#10b981' },
+                { label: 'Жёлтый',        value: '#f59e0b' },
+                { label: 'Красный',       value: '#ef4444' },
+                { label: 'Тёмный',        value: '#1e293b' }
+            ],
+            hover: [
+                { label: 'Синий',         value: '#2563eb' },
+                { label: 'Голубой',       value: '#60a5fa' },
+                { label: 'Индиго',        value: '#4338ca' },
+                { label: 'Зелёный',       value: '#059669' },
+                { label: 'Серый',         value: '#6b7280' },
+                { label: 'Тёмный',        value: '#1e293b' }
+            ],
+            containerBg: [
+                { label: 'Прозрачный',    value: 'transparent' },
+                { label: 'Белый',         value: '#ffffff' },
+                { label: 'Очень светлый', value: '#f8fafc' },
+                { label: 'Светло-серый',  value: '#f1f5f9' },
+                { label: 'Серый',         value: '#e2e8f0' },
+                { label: 'Тёмный',        value: '#1e293b' }
+            ]
+        },
+
         fontFamilyOptions: [
             { label: 'По умолч.',    value: 'inherit' },
             { label: 'Inter',        value: 'Inter, sans-serif' },
@@ -528,6 +664,11 @@ export default {
     },
 
     methods: {
+        setColorProp(prop, value) {
+            this.props[prop] = value;
+            this.propChanged(prop);
+        },
+
         setButtonStyle(val) {
             this.props.buttonStyle = val;
             this.propChanged('buttonStyle');
@@ -886,5 +1027,52 @@ export default {
 }
 .unit-btn:hover { border-color: #a5b4fc; color: #4f6aff; }
 .unit-btn--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
+
+/* ── Color blocks ─────────────────────────────────────────────── */
+.color-block {
+    margin-bottom: 6px;
+}
+.color-block__label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 5px;
+}
+.color-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 5px;
+}
+.swatch {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    flex-shrink: 0;
+    padding: 0;
+    outline: none;
+}
+.swatch:hover { transform: scale(1.18); }
+.swatch--active { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #4f6aff; }
+.swatch--transparent {
+    background: linear-gradient(135deg, #fff 40%, #f87171 40%, #f87171 60%, #fff 60%) !important;
+    border-color: #e2e8f0;
+}
+
+/* ui-input-cp встроен в ряд свотчей как "свой цвет" */
+.swatch-cp-wrap {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+.swatch-cp-wrap ::v-deep .ui-input-cp,
+.swatch-cp-wrap ::v-deep > * {
+    margin: 0 !important;
+    padding: 0 !important;
+}
 
 </style>
