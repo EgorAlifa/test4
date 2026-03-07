@@ -258,23 +258,39 @@
             <!-- ── Отступы и интервалы ─────────────────────────────────── -->
             <div class="section-label">Отступы и интервалы</div>
 
-            <ui-input-units
-                col-size="6-12"
-                min="0"
-                :units="FontSizeFirstPxUnits"
-                v-model="buttonPaddingString"
-                @change="saveButtonPadding">
-                Отступ кнопок
-            </ui-input-units>
+            <div class="spacing-label">Отступ кнопок</div>
+            <div class="slider-row">
+                <input
+                    type="range"
+                    class="slider"
+                    min="0"
+                    max="32"
+                    step="1"
+                    :value="paddingPx"
+                    @input="onPaddingSlider" />
+                <span class="slider-val">{{ paddingDisplay }}</span>
+                <div class="unit-btns">
+                    <button class="unit-btn" :class="{ 'unit-btn--active': paddingUnit === 'rem' }" @click="paddingUnit = 'rem'">rem</button>
+                    <button class="unit-btn" :class="{ 'unit-btn--active': paddingUnit === 'px' }" @click="paddingUnit = 'px'">px</button>
+                </div>
+            </div>
 
-            <ui-input-units
-                col-size="6-12"
-                min="0"
-                :units="FontSizeFirstPxUnits"
-                v-model="buttonGapString"
-                @change="saveButtonGap">
-                Расстояние между кнопками
-            </ui-input-units>
+            <div class="spacing-label">Расстояние между кнопками</div>
+            <div class="slider-row">
+                <input
+                    type="range"
+                    class="slider"
+                    min="0"
+                    max="24"
+                    step="1"
+                    :value="gapPx"
+                    @input="onGapSlider" />
+                <span class="slider-val">{{ gapDisplay }}</span>
+                <div class="unit-btns">
+                    <button class="unit-btn" :class="{ 'unit-btn--active': gapUnit === 'rem' }" @click="gapUnit = 'rem'">rem</button>
+                    <button class="unit-btn" :class="{ 'unit-btn--active': gapUnit === 'px' }" @click="gapUnit = 'px'">px</button>
+                </div>
+            </div>
 
             <!-- ── Пагинация ───────────────────────────────────────────── -->
             <div class="section-label">Пагинация</div>
@@ -333,8 +349,7 @@ import { Panel } from '@goodt-wcore/panel';
 import { PanelInstanceTypeDescriptor } from '../types';
 import {
     ORIENTATION_OPTIONS,
-    BUTTON_STYLE_OPTIONS,
-    FontSizeFirstPxUnits
+    BUTTON_STYLE_OPTIONS
 } from '../config';
 
 const DEFAULTS = {
@@ -379,6 +394,8 @@ export default {
         customFontInput: '',
         sizeUnit: 'rem',
         radiusUnit: 'rem',
+        paddingUnit: 'rem',
+        gapUnit: 'rem',
 
         options: {
             orientations: ORIENTATION_OPTIONS,
@@ -568,10 +585,6 @@ export default {
         ]
     }),
 
-    static: {
-        FontSizeFirstPxUnits
-    },
-
     computed: {
         isListOrientation() {
             const o = this.props.orientation;
@@ -679,38 +692,30 @@ export default {
             }
         },
 
-        buttonPaddingString: {
-            get() {
-                const padding = this.props.buttonPadding || { size: 0.75, unit: 'rem' };
-                return `${padding.size}${padding.unit}`;
-            },
-            set(val) {
-                if (typeof val === 'string') {
-                    const match = val.match(/^(\d+(?:\.\d+)?)(px|rem|em|%)$/);
-                    if (match != null) {
-                        this.props.buttonPadding = { size: parseFloat(match[1]), unit: match[2] };
-                    }
-                } else if (val != null && typeof val === 'object') {
-                    this.props.buttonPadding = val;
-                }
+        paddingPx() {
+            const p = this.props.buttonPadding || { size: 0.75, unit: 'rem' }; // eslint-disable-line no-magic-numbers
+            if (typeof p === 'object') {
+                return p.unit === 'px' ? Math.round(p.size) : Math.round(p.size * 16); // eslint-disable-line no-magic-numbers
             }
+            return 12; // eslint-disable-line no-magic-numbers
         },
 
-        buttonGapString: {
-            get() {
-                const gap = this.props.buttonGap || { size: 0.5, unit: 'rem' };
-                return `${gap.size}${gap.unit}`;
-            },
-            set(val) {
-                if (typeof val === 'string') {
-                    const match = val.match(/^(\d+(?:\.\d+)?)(px|rem|em|%)$/);
-                    if (match != null) {
-                        this.props.buttonGap = { size: parseFloat(match[1]), unit: match[2] };
-                    }
-                } else if (val != null && typeof val === 'object') {
-                    this.props.buttonGap = val;
-                }
+        paddingDisplay() {
+            if (this.paddingUnit === 'rem') return `${pxToRem(this.paddingPx)}rem`;
+            return `${this.paddingPx}px`;
+        },
+
+        gapPx() {
+            const g = this.props.buttonGap || { size: 0.5, unit: 'rem' }; // eslint-disable-line no-magic-numbers
+            if (typeof g === 'object') {
+                return g.unit === 'px' ? Math.round(g.size) : Math.round(g.size * 16); // eslint-disable-line no-magic-numbers
             }
+            return 8; // eslint-disable-line no-magic-numbers
+        },
+
+        gapDisplay() {
+            if (this.gapUnit === 'rem') return `${pxToRem(this.gapPx)}rem`;
+            return `${this.gapPx}px`;
         }
     },
 
@@ -769,15 +774,15 @@ export default {
             this.propChanged('menuShadow');
         },
 
-        saveFontSize() {
-            this.propChanged('fontSize');
-        },
-
-        saveButtonPadding() {
+        onPaddingSlider(e) {
+            const px = parseInt(e.target.value, 10);
+            this.props.buttonPadding = { size: pxToRem(px), unit: 'rem' };
             this.propChanged('buttonPadding');
         },
 
-        saveButtonGap() {
+        onGapSlider(e) {
+            const px = parseInt(e.target.value, 10);
+            this.props.buttonGap = { size: pxToRem(px), unit: 'rem' };
             this.propChanged('buttonGap');
         },
 
@@ -1048,6 +1053,14 @@ export default {
     white-space: nowrap;
     min-width: 36px;
     text-align: right;
+}
+
+/* ── Spacing label ────────────────────────────────────────────── */
+.spacing-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 3px;
 }
 
 /* ── Color blocks ─────────────────────────────────────────────── */
