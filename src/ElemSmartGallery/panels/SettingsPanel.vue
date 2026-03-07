@@ -2,90 +2,112 @@
     <ui-panel-container>
         <ui-container>
 
-            <!-- ── Режим работы ──────────────────────────────────────────── -->
-            <ui-select prop="mode" :options="modeOptions">Режим работы</ui-select>
+            <!-- ── Режим работы ─────────────────────────────────────────── -->
+            <div class="sp-section-label">Режим работы</div>
+            <div class="mode-grid">
+                <div
+                    v-for="m in modeOptions"
+                    :key="m.value"
+                    class="mode-card"
+                    :class="{ 'mode-card--active': currentMode === m.value }"
+                    @click="setMode(m.value)">
+                    <i class="mdi mode-card__icon" :class="m.icon" />
+                    <div class="mode-card__label">{{ m.label }}</div>
+                    <div class="mode-card__desc">{{ m.desc }}</div>
+                </div>
+            </div>
 
             <!-- ══════════════════ GALLERY mode ══════════════════════════ -->
             <template v-if="isGalleryMode">
 
-                <!-- Данные -->
-                <div class="sp-section-label">Данные</div>
-
-                <ui-has-panel>
-                    <ui-checkbox prop="awaitStoreFilter">
-                        {{ descriptor.props.awaitStoreFilter.label }}
-                    </ui-checkbox>
-                    <template #panel>
-                        <ui-panel :groups="[{ name: 'Настройка переменных', slot: 'default' }]">
-                            <ui-select prop="awaitVariableModeVariables" :options="awaitModeVariableOptions" multiple>
-                                Переменные
-                            </ui-select>
-                        </ui-panel>
-                    </template>
-                </ui-has-panel>
-
-                <ui-switch prop="isUseSkeleton">
-                    {{ descriptor.props.isUseSkeleton.label }}
+                <!-- Сетка -->
+                <div class="sp-section-label sp-section-label--mt">Сетка</div>
+                <div class="grid-presets">
+                    <button
+                        v-for="p in gridPresets"
+                        :key="p.label"
+                        class="grid-preset-btn"
+                        :class="{ 'grid-preset-btn--active': props.grid.cols === p.cols }"
+                        @click="setGrid(p)">
+                        {{ p.label }}
+                    </button>
+                </div>
+                <ui-input prop="grid.cols" min="1" type="number">
+                    {{ descriptor.props.grid.label.cols }}
+                </ui-input>
+                <ui-input-units prop="grid.gap" :units="SizeUnits">
+                    {{ descriptor.props.grid.label.gap }}
+                </ui-input-units>
+                <ui-switch prop="isEqualWidthColumns">
+                    {{ descriptor.props.isEqualWidthColumns.label }}
                 </ui-switch>
 
-                <ui-input v-model="props.events.updateData" @change="propChanged('events')">
-                    {{ descriptor.props.events.label.updateData }}
-                </ui-input>
-
+                <!-- Слоты -->
+                <div class="sp-section-label sp-section-label--mt">Слоты</div>
                 <ui-switch prop="isShowDefaultSlot">
                     <template #hint>
                         Отображает дефолтный слот когда ни одно из условий всех правил не выполняется.
                     </template>
                 </ui-switch>
-
+                <ui-switch prop="isUseSkeleton">
+                    {{ descriptor.props.isUseSkeleton.label }}
+                </ui-switch>
                 <ui-switch v-model="isDevMode">Показать все слоты</ui-switch>
 
-                <!-- Метрики -->
-                <div class="sp-section-label sp-section-label--mt">Метрики</div>
+                <!-- Дополнительно -->
+                <div class="adv-toggle" @click="showAdvanced = !showAdvanced">
+                    <i class="mdi" :class="showAdvanced ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
+                    Дополнительно
+                </div>
+                <template v-if="showAdvanced">
 
-                <ui-input
-                    :value="props.metrics[metricNameKey]"
-                    @input="setMetric(metricNameKey, $event)">
-                    Поле «имя» слота
-                </ui-input>
+                    <ui-input v-model="props.events.updateData" @change="propChanged('events')">
+                        {{ descriptor.props.events.label.updateData }}
+                    </ui-input>
 
-                <ui-switch prop="isSaveFirstMetricValue">
-                    {{ descriptor.props.isSaveFirstMetricValue.label }}
-                </ui-switch>
+                    <ui-has-panel>
+                        <ui-checkbox prop="awaitStoreFilter">
+                            {{ descriptor.props.awaitStoreFilter.label }}
+                        </ui-checkbox>
+                        <template #panel>
+                            <ui-panel :groups="[{ name: 'Настройка переменных', slot: 'default' }]">
+                                <ui-select prop="awaitVariableModeVariables" :options="awaitModeVariableOptions" multiple>
+                                    Переменные
+                                </ui-select>
+                            </ui-panel>
+                        </template>
+                    </ui-has-panel>
 
-                <ui-switch prop="isDremioPaginationLimit">
-                    <template #hint>
-                        Снимает дефолтное ограничение (1 строка) на источники фильтрации.
-                        Работает корректно только с операторами is null, is not null, in, not in.
-                    </template>
-                    {{ descriptor.props.isDremioPaginationLimit.label }}
-                </ui-switch>
+                    <div class="sp-section-label sp-section-label--mt">Метрики</div>
+                    <ui-input
+                        :value="props.metrics[metricNameKey]"
+                        @input="setMetric(metricNameKey, $event)">
+                        Поле «имя» слота
+                    </ui-input>
+                    <ui-switch prop="isSaveFirstMetricValue">
+                        {{ descriptor.props.isSaveFirstMetricValue.label }}
+                    </ui-switch>
 
-                <!-- Сетка -->
-                <div class="sp-section-label sp-section-label--mt">Сетка</div>
+                    <ui-switch prop="isDremioPaginationLimit">
+                        <template #hint>
+                            Снимает дефолтное ограничение (1 строка) на источники фильтрации.
+                            Работает корректно только с операторами is null, is not null, in, not in.
+                        </template>
+                        {{ descriptor.props.isDremioPaginationLimit.label }}
+                    </ui-switch>
 
-                <ui-input prop="grid.cols" min="1" type="number">
-                    {{ descriptor.props.grid.label.cols }}
-                </ui-input>
+                    <ui-input-units prop="grid.rowMinHeight" :units="SizeUnits" :options="rowHeightOptions">
+                        {{ descriptor.props.grid.label.rowMinHeight }}
+                    </ui-input-units>
 
-                <ui-input-units prop="grid.gap" :units="SizeUnits">
-                    {{ descriptor.props.grid.label.gap }}
-                </ui-input-units>
-
-                <ui-input-units prop="grid.rowMinHeight" :units="SizeUnits" :options="rowHeightOptions">
-                    {{ descriptor.props.grid.label.rowMinHeight }}
-                </ui-input-units>
-
-                <ui-switch prop="isEqualWidthColumns">
-                    {{ descriptor.props.isEqualWidthColumns.label }}
-                </ui-switch>
+                </template>
 
             </template>
 
             <!-- ══════════════════ STACK mode ═════════════════════════════ -->
             <template v-else-if="isStackMode">
 
-                <div class="sp-section-label">Активное состояние</div>
+                <div class="sp-section-label sp-section-label--mt">Активное состояние</div>
                 <select
                     class="select select-small w-100"
                     v-model="props.activeState"
@@ -171,9 +193,31 @@ import { Mode, Metric } from '../constants';
 import UiContainer from './components/UiContainer.vue';
 
 const MODE_OPTIONS = [
-    { value: Mode.GALLERY,   label: 'Галерея — слоты видны по условиям из данных' },
-    { value: Mode.STACK,     label: 'Стек — переключение слотов по событию' },
-    { value: Mode.CONTAINER, label: 'Контейнер — показать / скрыть по событию' }
+    {
+        value: Mode.GALLERY,
+        label: 'Галерея',
+        icon: 'mdi-view-grid',
+        desc: 'По условиям из данных',
+    },
+    {
+        value: Mode.STACK,
+        label: 'Стек',
+        icon: 'mdi-layers',
+        desc: 'Переключение по событию',
+    },
+    {
+        value: Mode.CONTAINER,
+        label: 'Контейнер',
+        icon: 'mdi-eye-outline',
+        desc: 'Показать / скрыть',
+    },
+];
+
+const GRID_PRESETS = [
+    { label: '×1', cols: 1, gap: '0' },
+    { label: '×2', cols: 2, gap: '1rem' },
+    { label: '×3', cols: 3, gap: '1rem' },
+    { label: '×4', cols: 4, gap: '0.5rem' },
 ];
 
 export default {
@@ -184,20 +228,25 @@ export default {
 
     static: {
         SizeUnits,
-        rowHeightOptions: [{ value: 'inherit', label: 'inherit' }]
+        rowHeightOptions: [{ value: 'inherit', label: 'inherit' }],
+        gridPresets: GRID_PRESETS,
     },
 
     data: () => ({
         newStateName: '',
-        metricNameKey: Metric.NAME
+        metricNameKey: Metric.NAME,
+        showAdvanced: false,
     }),
 
     computed: {
         modeOptions: () => MODE_OPTIONS,
 
-        isGalleryMode()   { return this.props.mode === Mode.GALLERY || !this.props.mode; },
-        isStackMode()     { return this.props.mode === Mode.STACK; },
-        isContainerMode() { return this.props.mode === Mode.CONTAINER; },
+        currentMode() {
+            return this.props.mode || Mode.GALLERY;
+        },
+        isGalleryMode()   { return this.currentMode === Mode.GALLERY; },
+        isStackMode()     { return this.currentMode === Mode.STACK; },
+        isContainerMode() { return this.currentMode === Mode.CONTAINER; },
 
         isDevMode: {
             get() { return this.elementInstance?.isDevMode ?? false; },
@@ -218,6 +267,17 @@ export default {
     },
 
     methods: {
+        setMode(value) {
+            this.$set(this.props, 'mode', value);
+            this.propChanged('mode');
+        },
+
+        setGrid(preset) {
+            this.props.grid.cols = preset.cols;
+            this.props.grid.gap = preset.gap;
+            this.propChanged('grid');
+        },
+
         setMetric(key, value) {
             this.$set(this.props.metrics, key, value || null);
             this.propChanged('metrics');
@@ -258,12 +318,89 @@ export default {
     color: #94a3b8;
     margin: 4px 0 4px;
 }
-.sp-section-label--mt { margin-top: 16px; }
+.sp-section-label--mt { margin-top: 8px; }
 
+/* ── Карточки режима ──────────────────────────────────────────────── */
+.mode-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+.mode-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 10px 6px 8px;
+    border-radius: 10px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s;
+    text-align: center;
+}
+.mode-card:hover { border-color: #94a3b8; background: #f8fafc; }
+.mode-card--active { border-color: #4f6aff; background: #f5f7ff; }
+.mode-card__icon {
+    font-size: 20px;
+    color: #94a3b8;
+    transition: color 0.12s;
+}
+.mode-card--active .mode-card__icon { color: #4f6aff; }
+.mode-card__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+.mode-card--active .mode-card__label { color: #4f6aff; }
+.mode-card__desc {
+    font-size: 10px;
+    color: #94a3b8;
+    line-height: 1.3;
+}
+
+/* ── Пресеты сетки ────────────────────────────────────────────────── */
+.grid-presets {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+.grid-preset-btn {
+    flex: 1;
+    padding: 6px 4px;
+    border-radius: 8px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.12s;
+}
+.grid-preset-btn:hover { border-color: #94a3b8; }
+.grid-preset-btn--active { border-color: #4f6aff; color: #4f6aff; background: #f5f7ff; }
+
+/* ── Дополнительно ────────────────────────────────────────────────── */
+.adv-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    padding: 6px 2px;
+    user-select: none;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 4px;
+}
+.adv-toggle:hover { color: #4f6aff; }
+.adv-toggle .mdi { font-size: 16px; }
+
+/* ── Стек ─────────────────────────────────────────────────────────── */
 .sp-add-row { margin-bottom: 6px; }
-
 .flex-1 { flex: 1; }
-
 .stack-state-row {
     display: flex;
     align-items: center;
