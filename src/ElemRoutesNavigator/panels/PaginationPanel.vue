@@ -50,10 +50,9 @@
                         :style="c.value !== 'transparent' ? { background: c.value } : {}"
                         :title="c.label"
                         @click="setColorProp('buttonBackgroundColor', c.value)" />
-                    <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_buttonBg')">
-                        <ui-input-cp ref="cp_buttonBg" prop="buttonBackgroundColor" />
-                    </div>
+                    <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_buttonBg')" />
                 </div>
+                <ui-input-cp ref="cp_buttonBg" prop="buttonBackgroundColor" class="color-custom-input" />
             </div>
 
             <!-- Цвет текста -->
@@ -68,10 +67,9 @@
                         :style="{ background: c.value }"
                         :title="c.label"
                         @click="setColorProp('textColor', c.value)" />
-                    <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_text')">
-                        <ui-input-cp ref="cp_text" prop="textColor" />
-                    </div>
+                    <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_text')" />
                 </div>
+                <ui-input-cp ref="cp_text" prop="textColor" class="color-custom-input" />
             </div>
 
             <!-- Цвет активной страницы -->
@@ -87,10 +85,9 @@
                             :style="{ background: c.value }"
                             :title="c.label"
                             @click="setColorProp('activeColor', c.value)" />
-                        <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_active')">
-                            <ui-input-cp ref="cp_active" prop="activeColor" />
-                        </div>
+                        <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_active')" />
                     </div>
+                    <ui-input-cp ref="cp_active" prop="activeColor" class="color-custom-input" />
                 </div>
             </template>
 
@@ -107,10 +104,9 @@
                         :style="{ background: c.value }"
                         :title="c.label"
                         @click="setColorProp('hoverColor', c.value)" />
-                    <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_hover')">
-                        <ui-input-cp ref="cp_hover" prop="hoverColor" />
-                    </div>
+                    <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_hover')" />
                 </div>
+                <ui-input-cp ref="cp_hover" prop="hoverColor" class="color-custom-input" />
             </div>
 
             <!-- Фон контейнера -->
@@ -128,10 +124,9 @@
                         :style="c.value !== 'transparent' ? { background: c.value } : {}"
                         :title="c.label"
                         @click="setColorProp('backgroundColor', c.value)" />
-                    <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_containerBg')">
-                        <ui-input-cp ref="cp_containerBg" prop="backgroundColor" />
-                    </div>
+                    <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_containerBg')" />
                 </div>
+                <ui-input-cp ref="cp_containerBg" prop="backgroundColor" class="color-custom-input" />
             </div>
 
             <!-- ── Шрифт ───────────────────────────────────────────────── -->
@@ -1074,9 +1069,8 @@ export default {
     border-color: #e2e8f0;
 }
 
-/* ── "Свой цвет" — радужный кружок, ui-input-cp скрыт внутри ── */
+/* ── "Свой цвет" — радужный кружок-триггер ── */
 .swatch-cp-wrap {
-    position: relative;
     width: 22px;
     height: 22px;
     border-radius: 50%;
@@ -1085,13 +1079,13 @@ export default {
     flex-shrink: 0;
     cursor: pointer;
     transition: transform 0.1s;
-    overflow: hidden; /* скрываем содержимое ui-input-cp визуально */
 }
 .swatch-cp-wrap:hover { transform: scale(1.18); }
-/* ui-input-cp внутри — полностью прозрачный, клик идёт через openCp() */
-.swatch-cp-wrap ::v-deep .ui-input-color-picker {
-    opacity: 0 !important;
-    pointer-events: none !important;
+
+/* ui-input-cp под свотчами — полная ширина, небольшой отступ сверху */
+.color-custom-input {
+    margin-top: 6px;
+    width: 100%;
 }
 
 </style>
