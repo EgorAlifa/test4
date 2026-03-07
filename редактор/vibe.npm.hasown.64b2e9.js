@@ -1,0 +1,2 @@
+export const __webpack_esm_id__=8740;export const __webpack_esm_ids__=[8740];export const __webpack_esm_modules__={50799:(_,e,o)=>{var t=Function.prototype.call,p=Object.prototype.hasOwnProperty,c=o(83897);_.exports=c.call(t,p)}};
+//# sourceMappingURL=vibe.npm.hasown.64b2e9.js.map

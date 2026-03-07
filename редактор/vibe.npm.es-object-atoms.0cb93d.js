@@ -1,0 +1,2 @@
+export const __webpack_esm_id__=4009;export const __webpack_esm_ids__=[4009];export const __webpack_esm_modules__={49158:_=>{_.exports=Object}};
+//# sourceMappingURL=vibe.npm.es-object-atoms.0cb93d.js.map

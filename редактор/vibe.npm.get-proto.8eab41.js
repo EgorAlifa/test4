@@ -1,0 +1,2 @@
+export const __webpack_esm_id__=7489;export const __webpack_esm_ids__=[7489];export const __webpack_esm_modules__={1730:(e,t,o)=>{var n=o(79078),r=o(16326),_=o(68662);e.exports=n?function(e){return n(e)}:r?function(e){if(!e||"object"!==typeof e&&"function"!==typeof e)throw new TypeError("getProto: not an object");return r(e)}:_?function(e){return _(e)}:null},16326:(e,t,o)=>{var n=o(49158);e.exports=n.getPrototypeOf||null},79078:e=>{e.exports="undefined"!==typeof Reflect&&Reflect.getPrototypeOf||null}};
+//# sourceMappingURL=vibe.npm.get-proto.8eab41.js.map

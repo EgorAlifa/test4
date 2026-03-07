@@ -1,0 +1,2 @@
+export const __webpack_esm_id__=1663;export const __webpack_esm_ids__=[1663];export const __webpack_esm_modules__={68662:(t,o,_)=>{var e,p=_(41200),r=_(88653);try{e=[].__proto__===Array.prototype}catch(f){if(!f||"object"!==typeof f||!("code"in f)||"ERR_PROTO_ACCESS"!==f.code)throw f}var c=!!e&&r&&r(Object.prototype,"__proto__"),n=Object,s=n.getPrototypeOf;t.exports=c&&"function"===typeof c.get?p([c.get]):"function"===typeof s&&function(t){return s(null==t?t:n(t))}}};
+//# sourceMappingURL=vibe.npm.dunder-proto.c73180.js.map

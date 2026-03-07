@@ -1,0 +1,28 @@
+{
+    "$schema": "https://docs.goodt.me/front/json-schema/editor/v2.9/env.schema.json",
+    "defaultClientId": 255,
+    "isDemo": false,
+    "keepUserInfo": true,
+    "api": {
+        "http": {
+            "baseURL": "https://rtl-editor-dev.goodt.me:9443/api",
+            "timeout": 120000
+        },
+        "access": {
+            "baseURL": "https://goodt-dev.goodt.me:8498/api",
+            "timeout": 20000
+        },
+        "license": {
+            "baseURL": "https://dev.goodt.me:8477/api",
+            "timeout": 20000
+        }
+    },
+    "services": [
+        {
+            "id": "Dremio",
+            "options": {
+                "baseURL": "https://goodt-dev.goodt.me:4400"
+            }
+        }
+    ]
+}

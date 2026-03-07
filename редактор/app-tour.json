@@ -1,0 +1,183 @@
+{
+  "onboardings": [
+    {
+      "type": "app-list",
+      "title": "Проекты",
+      "description": [
+        "Создавай интерактивные аналитические отчеты, портальные",
+        "решения и полнофункциональные веб-приложения."
+      ],
+      "steps": [
+        "Создай новый проект",
+        "Настрой авторизацию",
+        "Подключи данные",
+        "Настрой виджеты"
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki-learning/#/main",
+      "imageUrl": "i/onboarding/apps.svg"
+    },
+    {
+      "type": "template-list",
+      "title": "Шаблоны",
+      "description": [
+        "Создавай шаблоны - повторяемые элементы страницы: шапка",
+        "страницы, подвал страницы, боковые меню."
+      ],
+      "steps": [
+        "Создай новый шаблон",
+        "Настрой авторизацию",
+        "Подключи данные при необходимости",
+        "Настрой виджеты"
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_templates_pages",
+      "imageUrl": "i/onboarding/templates.svg"
+    },
+    {
+      "type": "data-providers",
+      "title": "Коннектор и подключения",
+      "description": [
+        "Подключайся к источникам данных на основе доступных",
+        "адаптеров - PostgreSQL, Dremio, ClickHouse и др."
+      ],
+      "steps": [
+        "Создай коннектор",
+        "Создай подключение"
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_connection",
+      "imageUrl": "i/onboarding/data_providers.svg"
+    },
+    {
+      "type": "datasets",
+      "title": "Датасеты",
+      "description": [
+        "Настраивай датасеты на основе загруженных файлов",
+        "и таблиц из активных подключений."
+      ],
+      "steps": [
+        "Создай папку",
+        "Создай датасет из файла или с помощью запроса к подключению",
+        "Настрой показатели"
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_insight_data_platform",
+      "imageUrl": "i/onboarding/datasets.svg"
+    },
+    {
+      "type": "library",
+      "title": "Библиотека",
+      "description": [
+        "Используй, храни и каталогизируй метрики",
+        "и измерения по заданной методологии."
+      ],
+      "steps": [
+        "Создай папку",
+        "Создай показатель"
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_insight_data_platform",
+      "imageUrl": "i/onboarding/library.svg"
+    },
+    {
+      "type": "publication-list",
+      "title": "Публикации",
+      "description": [
+        "Публикуй приложения без деплоя",
+        "и остановки работы над проектом."
+      ],
+      "steps": [
+        "Создай и опубликуй проект",
+        "Настрой параметры публикации"
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_publication_service",
+      "imageUrl": "i/onboarding/publications.svg"
+    }
+  ],
+  "hints": [
+    {
+      "id": "app-list",
+      "text": "Пространство для создания интерактивных аналитических отчетов, портальных решений и полнофункциональных веб-приложений.",
+      "wikiLink": "https://partner.goodt.me/wiki-learning/#/main"
+    },
+    {
+      "id": "template-list",
+      "text": "Шаблоны - повторяемые элементы страницы: шапка страницы, подвал страницы, боковые меню.",
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_templates_pages"
+    },
+    {
+      "id": "publication-list",
+      "text": "Публикация приложений без деплоя и остановки работы над проектом.",
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_publication_service"
+    },
+    {
+      "id": "dataset-migration",
+      "text": [
+        "С версией Insight 2.2 появляется новый механизм миграции.",
+        "Он предназначен для перевода настроенных в приложении",
+        "виджетов на новый формат работы платформы данных."
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_migration"
+    },
+    {
+      "id": "clients",
+      "text": [
+        "Клиенты - это пространства для объединения пользователей,",
+        "например, сотрудников одной компании или одного отдела внутри компании."
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_object_control"
+    },
+    {
+      "id": "library",
+      "text": [
+        "Создание и каталогизация метрик и измерений",
+        "по заданной методологии."
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_insight_data_platform"
+    },
+    {
+      "id": "data-providers",
+      "text": [
+        "Подключение к источникам данных при помощи доступных",
+        "адаптеров - PostgreSQL, Dremio, ClickHouse и др."
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_connection"
+    },
+    {
+      "id": "datasets",
+      "text": "Создание датасетов на основе загруженных файлов и таблиц из активных подключений.",
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_insight_data_platform"
+    },
+    {
+      "id": "auth-adapter",
+      "text": [
+        "Авторизация позволяет управлять доступом",
+        "к приложению для конечных пользователей",
+        "в режиме Плеер."
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_authorization"
+    },
+    {
+      "id": "data-providers-settings",
+      "text": [
+        "Провайдеры данных - это выбранные для",
+        "проекта коннекторы, содержащие нужные",
+        "для настройки виджетов датасеты."
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_connection"
+    },
+    {
+      "id": "versioning",
+      "text": [
+        "Управление версионностью - это возможность",
+        "создавать и хранить версии проектов со всеми",
+        "внесенными изменениями."
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki/#/version_manage"
+    },
+    {
+      "id": "variables",
+      "text": [
+        "Переменные обеспечивают фильтрацию",
+        "данных в виджетах."
+      ],
+      "wikiLink": "https://partner.goodt.me/wiki/#/wiki_filtering_widgets"
+    }
+  ]
+}

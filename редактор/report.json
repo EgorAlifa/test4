@@ -1,0 +1,21 @@
+{
+  "version": "platform@dev",
+  "name": "@goodt-edition/platform",
+  "date": "2026-03-06T13:07:09.499Z",
+  "dependencies": {
+    "@goodt-edition/platform": "dev",
+    "@goodt/build-deps": "2.0.12",
+    "@goodt/common-deps": "2.1.3",
+    "@goodt/editor": "https://gitlab.goodt.me/goodt/goodteditor/-/commit/462af904",
+    "@goodt/editor-common": "3.2.2",
+    "@goodt/package-loader": "2.0.7",
+    "@goodt/player": "https://gitlab.goodt.me/goodt/goodteditor-player/-/commit/ccfff6b4",
+    "@goodt/webpack": "1.8.0",
+    "goodt-dremio-sdk": "1.0.31",
+    "goodt-framework-css": "2.0.17",
+    "goodt-wcore": "0.0.0",
+    "goodteditor-ui": "1.0.94",
+    "vue": "2.7.16",
+    "vue-template-compiler": "2.7.16"
+  }
+}
