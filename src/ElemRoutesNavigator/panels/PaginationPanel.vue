@@ -50,8 +50,8 @@
                         :style="c.value !== 'transparent' ? { background: c.value } : {}"
                         :title="c.label"
                         @click="setColorProp('buttonBackgroundColor', c.value)" />
-                    <div class="swatch-cp-wrap">
-                        <ui-input-cp prop="buttonBackgroundColor" />
+                    <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_buttonBg')">
+                        <ui-input-cp ref="cp_buttonBg" prop="buttonBackgroundColor" />
                     </div>
                 </div>
             </div>
@@ -68,8 +68,8 @@
                         :style="{ background: c.value }"
                         :title="c.label"
                         @click="setColorProp('textColor', c.value)" />
-                    <div class="swatch-cp-wrap">
-                        <ui-input-cp prop="textColor" />
+                    <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_text')">
+                        <ui-input-cp ref="cp_text" prop="textColor" />
                     </div>
                 </div>
             </div>
@@ -87,8 +87,8 @@
                             :style="{ background: c.value }"
                             :title="c.label"
                             @click="setColorProp('activeColor', c.value)" />
-                        <div class="swatch-cp-wrap">
-                            <ui-input-cp prop="activeColor" />
+                        <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_active')">
+                            <ui-input-cp ref="cp_active" prop="activeColor" />
                         </div>
                     </div>
                 </div>
@@ -107,8 +107,8 @@
                         :style="{ background: c.value }"
                         :title="c.label"
                         @click="setColorProp('hoverColor', c.value)" />
-                    <div class="swatch-cp-wrap">
-                        <ui-input-cp prop="hoverColor" />
+                    <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_hover')">
+                        <ui-input-cp ref="cp_hover" prop="hoverColor" />
                     </div>
                 </div>
             </div>
@@ -128,8 +128,8 @@
                         :style="c.value !== 'transparent' ? { background: c.value } : {}"
                         :title="c.label"
                         @click="setColorProp('backgroundColor', c.value)" />
-                    <div class="swatch-cp-wrap">
-                        <ui-input-cp prop="backgroundColor" />
+                    <div class="swatch-cp-wrap" title="Свой цвет" @click="openCp('cp_containerBg')">
+                        <ui-input-cp ref="cp_containerBg" prop="backgroundColor" />
                     </div>
                 </div>
             </div>
@@ -664,6 +664,17 @@ export default {
     },
 
     methods: {
+        openCp(refName) {
+            const cp = this.$refs[refName];
+            if (!cp) return;
+            if (typeof cp.togglePopover === 'function') {
+                cp.togglePopover();
+            } else if (cp.$el) {
+                const trigger = cp.$el.querySelector('.ui-input-color-picker-icon-preview');
+                if (trigger) trigger.click();
+            }
+        },
+
         setColorProp(prop, value) {
             this.props[prop] = value;
             this.propChanged(prop);
@@ -1074,31 +1085,13 @@ export default {
     flex-shrink: 0;
     cursor: pointer;
     transition: transform 0.1s;
-    overflow: visible; /* popover appendToBody — overflow не мешает */
+    overflow: hidden; /* скрываем содержимое ui-input-cp визуально */
 }
 .swatch-cp-wrap:hover { transform: scale(1.18); }
-/* Прячем весь ui-input-cp визуально, но оставляем кликабельным через icon-preview */
+/* ui-input-cp внутри — полностью прозрачный, клик идёт через openCp() */
 .swatch-cp-wrap ::v-deep .ui-input-color-picker {
-    position: absolute !important;
-    inset: 0 !important;
     opacity: 0 !important;
-    overflow: visible !important;
     pointer-events: none !important;
-}
-.swatch-cp-wrap ::v-deep .ui-input-color-picker-wrapper {
-    position: absolute !important;
-    inset: 0 !important;
-    pointer-events: none !important;
-}
-/* icon-preview — реальный триггер togglePopover, растягиваем на весь кружок */
-.swatch-cp-wrap ::v-deep .ui-input-color-picker-icon-preview {
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    cursor: pointer !important;
-    margin: 0 !important;
-    pointer-events: all !important;
 }
 
 </style>
