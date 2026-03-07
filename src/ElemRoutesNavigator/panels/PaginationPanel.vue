@@ -1074,20 +1074,31 @@ export default {
     flex-shrink: 0;
     cursor: pointer;
     transition: transform 0.1s;
-    overflow: hidden; /* обрезаем триггер-кнопку внутри */
+    overflow: visible; /* popover appendToBody — overflow не мешает */
 }
 .swatch-cp-wrap:hover { transform: scale(1.18); }
-/* Скрываем триггер ui-input-cp, но оставляем кликабельным.
-   Popover платформы аппендится к body — он появится поверх всего. */
-.swatch-cp-wrap ::v-deep > * {
+/* Прячем весь ui-input-cp визуально, но оставляем кликабельным через icon-preview */
+.swatch-cp-wrap ::v-deep .ui-input-color-picker {
     position: absolute !important;
     inset: 0 !important;
     opacity: 0 !important;
-    cursor: pointer !important;
+    overflow: visible !important;
+    pointer-events: none !important;
+}
+.swatch-cp-wrap ::v-deep .ui-input-color-picker-wrapper {
+    position: absolute !important;
+    inset: 0 !important;
+    pointer-events: none !important;
+}
+/* icon-preview — реальный триггер togglePopover, растягиваем на весь кружок */
+.swatch-cp-wrap ::v-deep .ui-input-color-picker-icon-preview {
+    position: absolute !important;
+    inset: 0 !important;
     width: 100% !important;
     height: 100% !important;
+    cursor: pointer !important;
     margin: 0 !important;
-    padding: 0 !important;
+    pointer-events: all !important;
 }
 
 </style>
