@@ -35,126 +35,15 @@
             <!-- ── Цвета ───────────────────────────────────────────────── -->
             <div class="section-label">Цвета</div>
 
-            <!-- Фон кнопок -->
-            <div class="color-block">
-                <div class="color-block__label">Фон кнопок</div>
-                <div class="color-swatches">
-                    <button
-                        v-for="c in colorPalettes.buttonBg"
-                        :key="c.value"
-                        class="swatch"
-                        :class="{
-                            'swatch--active': props.buttonBackgroundColor === c.value,
-                            'swatch--transparent': c.value === 'transparent'
-                        }"
-                        :style="c.value !== 'transparent' ? { background: c.value } : {}"
-                        :title="c.label"
-                        @click="setColorProp('buttonBackgroundColor', c.value)" />
-                    <label class="swatch swatch--custom" title="Свой цвет">
-                        <input type="color" class="swatch-color-input"
-                            :value="props.buttonBackgroundColor"
-                            @change="setColorProp('buttonBackgroundColor', $event.target.value)" />
-                    </label>
-                </div>
-            </div>
-
-            <!-- Цвет текста -->
-            <div class="color-block">
-                <div class="color-block__label">
-                    Цвет текста
-                    <span v-if="overriddenValues.textColor" class="hint-override">⚠ Переопределено</span>
-                </div>
-                <div class="color-swatches">
-                    <button
-                        v-for="c in colorPalettes.text"
-                        :key="c.value"
-                        class="swatch"
-                        :class="{ 'swatch--active': props.textColor === c.value }"
-                        :style="{ background: c.value }"
-                        :title="c.label"
-                        @click="setColorProp('textColor', c.value)" />
-                    <label class="swatch swatch--custom" title="Свой цвет">
-                        <input type="color" class="swatch-color-input"
-                            :value="props.textColor"
-                            @change="setColorProp('textColor', $event.target.value)" />
-                    </label>
-                </div>
-            </div>
-
-            <!-- Цвет активной страницы -->
-            <template v-if="props.highlightActivePage">
-                <div class="color-block">
-                    <div class="color-block__label">
-                        Цвет активной страницы
-                        <span v-if="overriddenValues.activeColor" class="hint-override">⚠ Переопределено</span>
-                    </div>
-                    <div class="color-swatches">
-                        <button
-                            v-for="c in colorPalettes.active"
-                            :key="c.value"
-                            class="swatch"
-                            :class="{ 'swatch--active': props.activeColor === c.value }"
-                            :style="{ background: c.value }"
-                            :title="c.label"
-                            @click="setColorProp('activeColor', c.value)" />
-                        <label class="swatch swatch--custom" title="Свой цвет">
-                            <input type="color" class="swatch-color-input"
-                                :value="props.activeColor"
-                                @change="setColorProp('activeColor', $event.target.value)" />
-                        </label>
-                    </div>
-                </div>
-            </template>
+            <ui-input-cp prop="buttonBackgroundColor">Фон кнопок</ui-input-cp>
+            <ui-input-cp prop="textColor">Цвет текста</ui-input-cp>
+            <ui-input-cp v-if="props.highlightActivePage" prop="activeColor">Цвет активной страницы</ui-input-cp>
 
             <!-- Эффект наведения -->
             <ui-switch prop="enableHoverColor">Эффект наведения</ui-switch>
-            <div v-if="props.enableHoverColor" class="color-block">
-                <div class="color-block__label">
-                    Цвет при наведении
-                    <span v-if="overriddenValues.hoverColor" class="hint-override">⚠ Переопределено</span>
-                </div>
-                <div class="color-swatches">
-                    <button
-                        v-for="c in colorPalettes.hover"
-                        :key="c.value"
-                        class="swatch"
-                        :class="{ 'swatch--active': props.hoverColor === c.value }"
-                        :style="{ background: c.value }"
-                        :title="c.label"
-                        @click="setColorProp('hoverColor', c.value)" />
-                    <label class="swatch swatch--custom" title="Свой цвет">
-                        <input type="color" class="swatch-color-input"
-                            :value="props.hoverColor"
-                            @change="setColorProp('hoverColor', $event.target.value)" />
-                    </label>
-                </div>
-            </div>
+            <ui-input-cp v-if="props.enableHoverColor" prop="hoverColor">Цвет при наведении</ui-input-cp>
 
-            <!-- Фон контейнера -->
-            <div class="color-block">
-                <div class="color-block__label">
-                    Фон контейнера
-                    <span v-if="overriddenValues.backgroundColor" class="hint-override">⚠ Переопределено</span>
-                </div>
-                <div class="color-swatches">
-                    <button
-                        v-for="c in colorPalettes.containerBg"
-                        :key="c.value"
-                        class="swatch"
-                        :class="{
-                            'swatch--active': props.backgroundColor === c.value,
-                            'swatch--transparent': c.value === 'transparent'
-                        }"
-                        :style="c.value !== 'transparent' ? { background: c.value } : {}"
-                        :title="c.label"
-                        @click="setColorProp('backgroundColor', c.value)" />
-                    <label class="swatch swatch--custom" title="Свой цвет">
-                        <input type="color" class="swatch-color-input"
-                            :value="props.backgroundColor"
-                            @change="setColorProp('backgroundColor', $event.target.value)" />
-                    </label>
-                </div>
-            </div>
+            <ui-input-cp prop="backgroundColor">Фон контейнера</ui-input-cp>
 
             <!-- ── Шрифт ───────────────────────────────────────────────── -->
             <div class="section-label">Шрифт</div>
@@ -447,63 +336,6 @@ export default {
             { label: 'Пилюля',  shape: '999px', css: '999px' }
         ],
 
-        colorPalettes: {
-            buttonBg: [
-                { label: 'Прозрачный',    value: 'transparent' },
-                { label: 'Белый',         value: '#ffffff' },
-                { label: 'Светло-серый',  value: '#f3f4f6' },
-                { label: 'Серый',         value: '#e5e7eb' },
-                { label: 'Голубой',       value: '#eff6ff' },
-                { label: 'Синий',         value: '#3b82f6' },
-                { label: 'Индиго',        value: '#4f46e5' },
-                { label: 'Фиолетовый',    value: '#8b5cf6' },
-                { label: 'Зелёный',       value: '#10b981' },
-                { label: 'Красный',       value: '#ef4444' },
-                { label: 'Тёмный',        value: '#1e293b' }
-            ],
-            text: [
-                { label: 'Чёрный',        value: '#111827' },
-                { label: 'Тёмно-серый',   value: '#1f2937' },
-                { label: 'Серый',         value: '#64748b' },
-                { label: 'Белый',         value: '#ffffff' },
-                { label: 'Синий',         value: '#3b82f6' },
-                { label: 'Индиго',        value: '#4f46e5' },
-                { label: 'Фиолетовый',    value: '#8b5cf6' },
-                { label: 'Зелёный',       value: '#10b981' },
-                { label: 'Красный',       value: '#ef4444' }
-            ],
-            active: [
-                { label: 'Синий',         value: '#3b82f6' },
-                { label: 'Индиго',        value: '#4f46e5' },
-                { label: 'Фиолетовый',    value: '#8b5cf6' },
-                { label: 'Зелёный',       value: '#10b981' },
-                { label: 'Жёлтый',        value: '#f59e0b' },
-                { label: 'Красный',       value: '#ef4444' },
-                { label: 'Розовый',       value: '#ec4899' },
-                { label: 'Тёмный',        value: '#1e293b' }
-            ],
-            hover: [
-                { label: 'Синий',         value: '#2563eb' },
-                { label: 'Голубой',       value: '#60a5fa' },
-                { label: 'Индиго',        value: '#4338ca' },
-                { label: 'Фиолетовый',    value: '#7c3aed' },
-                { label: 'Зелёный',       value: '#059669' },
-                { label: 'Серый',         value: '#6b7280' },
-                { label: 'Красный',       value: '#dc2626' },
-                { label: 'Тёмный',        value: '#1e293b' }
-            ],
-            containerBg: [
-                { label: 'Прозрачный',    value: 'transparent' },
-                { label: 'Белый',         value: '#ffffff' },
-                { label: 'Очень светлый', value: '#f8fafc' },
-                { label: 'Светло-серый',  value: '#f1f5f9' },
-                { label: 'Серый',         value: '#e2e8f0' },
-                { label: 'Голубой',       value: '#eff6ff' },
-                { label: 'Тёмный',        value: '#1e293b' },
-                { label: 'Чёрный',        value: '#0f172a' }
-            ]
-        },
-
         shadowPresets: [
             {
                 label: 'Нет',
@@ -651,30 +483,6 @@ export default {
             return null;
         },
 
-        overriddenValues() {
-            const customStyles = this.props.customStyles || {};
-            const overrides = {};
-
-            Object.keys(customStyles).forEach(key => {
-                const css = customStyles[key];
-                if (!css || !css.trim()) return;
-
-                const colorMatch = css.match(/(?:background-)?color:\s*([^;!]+)/i);
-                if (colorMatch) {
-                    if (key === 'button' || key === 'container') {
-                        const bgMatch = css.match(/background-color:\s*([^;!]+)/i);
-                        const textMatch = css.match(/(?:^|;)\s*color:\s*([^;!]+)/i);
-                        if (bgMatch) overrides.backgroundColor = bgMatch[1].trim();
-                        if (textMatch) overrides.textColor = textMatch[1].trim();
-                    }
-                    if (key === 'buttonHover') overrides.hoverColor = colorMatch[1].trim();
-                    if (key === 'buttonActive') overrides.activeColor = colorMatch[1].trim();
-                }
-            });
-
-            return overrides;
-        },
-
         fontSizeString: {
             get() {
                 const fontSize = this.props.fontSize || DEFAULTS.fontSize;
@@ -720,11 +528,6 @@ export default {
     },
 
     methods: {
-        setColorProp(prop, value) {
-            this.props[prop] = value;
-            this.propChanged(prop);
-        },
-
         setButtonStyle(val) {
             this.props.buttonStyle = val;
             this.propChanged('buttonStyle');
@@ -1063,59 +866,6 @@ export default {
     margin-bottom: 3px;
 }
 
-/* ── Color blocks ─────────────────────────────────────────────── */
-.color-block {
-    margin-bottom: 6px;
-}
-.color-block__label {
-    font-size: 12px;
-    font-weight: 500;
-    color: #475569;
-    margin-bottom: 5px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-.color-swatches {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-bottom: 5px;
-}
-.swatch {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    border: 2px solid rgba(0, 0, 0, 0.1);
-    cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.1s;
-    flex-shrink: 0;
-    padding: 0;
-    outline: none;
-}
-.swatch:hover { transform: scale(1.18); }
-.swatch--active { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #4f6aff; }
-.swatch--transparent {
-    background: linear-gradient(135deg, #fff 40%, #f87171 40%, #f87171 60%, #fff 60%) !important;
-    border-color: #e2e8f0;
-}
-.swatch--custom {
-    background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
-    border-color: transparent;
-    cursor: pointer;
-    position: relative;
-    display: inline-flex;
-}
-.swatch-color-input {
-    position: absolute;
-    width: 0;
-    height: 0;
-    opacity: 0;
-    top: 50%;
-    left: 50%;
-    pointer-events: none;
-}
-
 /* ── Unit toggle ──────────────────────────────────────────────── */
 .unit-btns {
     display: flex;
@@ -1137,9 +887,4 @@ export default {
 .unit-btn:hover { border-color: #a5b4fc; color: #4f6aff; }
 .unit-btn--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
 
-/* ── Override hint ────────────────────────────────────────────── */
-.hint-override {
-    color: #f59e0b;
-    font-size: 0.75rem;
-}
 </style>
