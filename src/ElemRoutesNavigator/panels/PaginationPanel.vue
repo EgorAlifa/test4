@@ -1063,14 +1063,29 @@ export default {
     border-color: #e2e8f0;
 }
 
-/* ui-input-cp встроен в ряд свотчей как "свой цвет" */
+/* ── "Свой цвет" — радужный кружок, ui-input-cp скрыт внутри ── */
 .swatch-cp-wrap {
-    display: inline-flex;
-    align-items: center;
+    position: relative;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+    border: 2px solid rgba(0, 0, 0, 0.1);
     flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.1s;
+    overflow: hidden; /* обрезаем триггер-кнопку внутри */
 }
-.swatch-cp-wrap ::v-deep .ui-input-cp,
+.swatch-cp-wrap:hover { transform: scale(1.18); }
+/* Скрываем триггер ui-input-cp, но оставляем кликабельным.
+   Popover платформы аппендится к body — он появится поверх всего. */
 .swatch-cp-wrap ::v-deep > * {
+    position: absolute !important;
+    inset: 0 !important;
+    opacity: 0 !important;
+    cursor: pointer !important;
+    width: 100% !important;
+    height: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
 }
