@@ -198,6 +198,7 @@
 
 <script>
 import { Elem, Managers } from 'goodt-wcore';
+import { useElemDatasetMixin, ElemDatasetMixinTypes } from '@goodt-common/data';
 import { meta } from './descriptor';
 import { VIEWS, LOCALE_DATA, PRESETS, SELECTION_MODES, AGENDA_DAYS_AHEAD, HOUR_HEIGHT } from './constants';
 
@@ -227,16 +228,23 @@ function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); retu
 export default {
     extends: Elem,
     meta,
+    mixins: [useElemDatasetMixin()],
+    hooks: {
+        then() {
+            this.buildDimensionValues();
+        }
+    },
 
     data: () => ({
+        ...ElemDatasetMixinTypes,
         currentView: 'month',
         navDate: new Date(),
         today: new Date(),
         rangeStart: null,
         rangeEnd: null,
         hoveredDate: null,
-        nowMinute: 0,
-        nowTimer: null
+        nowTimer: null,
+        dimensionValues: []
     }),
 
     computed: {
@@ -273,9 +281,18 @@ export default {
                 '--cal-radius':         p.calRadius,
                 '--cal-event-radius':   p.calEventRadius,
                 '--cal-shadow':         p.calShadow,
-                '--cal-font-family':    p.calFontFamily || 'inherit',
-                '--cal-font-size':      p.calFontSize || '13px'
+                '--cal-font-family':      p.calFontFamily || 'inherit',
+                '--cal-font-size':        p.calFontSize || '13px',
+                '--cal-font-weight':      p.calFontWeight || '400',
+                '--cal-letter-spacing':   p.calLetterSpacing || '0',
+                '--cal-text-transform':   p.calTextTransform || 'none'
             };
+        },
+
+        // ── Dataset result ───────────────────────────────────────────
+        hasResult() {
+            const { result, props: { dimension } } = this;
+            return result?.rows?.length > 0 && Boolean(dimension);
         },
 
         calDynamicClass() {
@@ -473,6 +490,19 @@ export default {
     },
 
     methods: {
+        // ── Dataset ──────────────────────────────────────────────────
+        buildDimensionValues() {
+            const { dimension } = this.props;
+            if (!this.hasResult || !dimension) { this.dimensionValues = []; return; }
+            this.dimensionValues = this.result.rows.map((row) => row[dimension]).filter(Boolean);
+        },
+
+        hasDataForDay(date) {
+            if (!this.dimensionValues.length) return false;
+            const iso = isoDate(date);
+            return this.dimensionValues.some((v) => String(v).includes(iso));
+        },
+
         // ── Build day cell data ──────────────────────────────────────
         _buildDay(date, inMonth) {
             const iso = isoDate(date);
@@ -485,6 +515,7 @@ export default {
                 inMonth,
                 isToday: isSameDay(date, this.today),
                 isWeekend: date.getDay() === 0 || date.getDay() === 6,
+                hasData: this.hasDataForDay(date),
                 events: this._eventsForDay(date)
             };
         },
@@ -621,7 +652,8 @@ export default {
                 'elem-cal__cell--range-start': isRangeStart,
                 'elem-cal__cell--range-end': isRangeEnd,
                 'elem-cal__cell--in-range': isInRange,
-                'elem-cal__cell--has-events': day.events.length > 0
+                'elem-cal__cell--has-events': day.events.length > 0,
+                'elem-cal__cell--has-data': day.hasData
             };
         },
 
@@ -683,8 +715,11 @@ export default {
     --cal-radius:         12px;
     --cal-event-radius:   4px;
     --cal-shadow:         0 4px 24px rgba(79, 106, 255, 0.10), 0 1px 4px rgba(0, 0, 0, 0.06);
-    --cal-font-family:    inherit;
-    --cal-font-size:      13px;
+    --cal-font-family:     inherit;
+    --cal-font-size:       13px;
+    --cal-font-weight:     400;
+    --cal-letter-spacing:  0;
+    --cal-text-transform:  none;
 
     display: flex;
     flex-direction: column;
@@ -696,6 +731,9 @@ export default {
     box-shadow: var(--cal-shadow);
     font-family: var(--cal-font-family);
     font-size: var(--cal-font-size);
+    font-weight: var(--cal-font-weight);
+    letter-spacing: var(--cal-letter-spacing);
+    text-transform: var(--cal-text-transform);
     overflow: hidden;
     box-sizing: border-box;
     -webkit-font-smoothing: antialiased;
@@ -955,6 +993,25 @@ export default {
     padding: 0 4px;
     line-height: 1.4;
 }
+
+/* ── Data dot: cell has matching record in dataset ───────────────── */
+.elem-cal__cell--has-data .elem-cal__day-num {
+    position: relative;
+}
+.elem-cal__cell--has-data .elem-cal__day-num::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--cal-accent);
+    opacity: 0.75;
+}
+.elem-cal__cell--today.elem-cal__cell--has-data .elem-cal__day-num::after { background: #fff; opacity: 0.9; }
+.elem-cal__cell--selected.elem-cal__cell--has-data .elem-cal__day-num::after { background: rgba(255, 255, 255, 0.8); }
 
 /* ── Week / Day view ─────────────────────────────────────────────── */
 .elem-cal__week,
