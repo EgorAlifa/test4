@@ -33,15 +33,18 @@
             <div class="p-section">
                 <div class="p-section__label">Цвета</div>
                 <div class="color-row">
-                    <label v-for="c in colorFields" :key="c.key" class="color-item">
-                        <div class="color-item__swatch" :style="{ background: props[c.key] }" />
-                        <input
-                            type="color"
-                            class="color-item__input"
-                            :value="simpleColor(props[c.key])"
-                            @input="set(c.key, $event.target.value)" />
+                    <div v-for="c in colorFields" :key="c.key" class="color-item" @click="openColor(c.key)">
+                        <div class="color-item__swatch" :style="{ background: props[c.key] }">
+                            <input
+                                :ref="`clr_${c.key}`"
+                                type="color"
+                                class="color-item__input"
+                                :value="simpleColor(props[c.key])"
+                                @input="set(c.key, $event.target.value)"
+                                @click.stop />
+                        </div>
                         <span class="color-item__label">{{ c.label }}</span>
-                    </label>
+                    </div>
                 </div>
             </div>
 
@@ -245,6 +248,12 @@ export default {
             this.propChanged(key);
         },
 
+        openColor(key) {
+            const ref = this.$refs[`clr_${key}`];
+            const el = Array.isArray(ref) ? ref[0] : ref;
+            if (el) el.click();
+        },
+
         simpleColor(val) {
             if (!val) return '#000000';
             return val.startsWith('#') && val.length <= 9 ? val : '#4f6aff';
@@ -335,12 +344,47 @@ export default {
 .preset-card__check { position: absolute; top: 4px; right: 4px; width: 16px; height: 16px; border-radius: 50%; background: #4f6aff; color: #fff; display: flex; align-items: center; justify-content: center; }
 
 /* ── Color row ────────────────────────────────────────────────── */
-.color-row { display: flex; flex-wrap: wrap; gap: 6px 10px; }
-.color-item { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; position: relative; }
-.color-item__swatch { width: 28px; height: 28px; border-radius: 8px; border: 2px solid rgba(0,0,0,0.1); transition: transform 0.12s, box-shadow 0.12s; cursor: pointer; }
-.color-item:hover .color-item__swatch { transform: scale(1.12); box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
-.color-item__input { position: absolute; opacity: 0; width: 28px; height: 28px; top: 0; left: 0; cursor: pointer; }
-.color-item__label { font-size: 9px; font-weight: 600; color: #94a3b8; text-align: center; line-height: 1.2; max-width: 40px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.color-row { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+.color-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    width: 44px;
+}
+.color-item__swatch {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 2px solid rgba(0,0,0,0.1);
+    transition: transform 0.12s, box-shadow 0.12s;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.color-item:hover .color-item__swatch { transform: scale(1.1); box-shadow: 0 2px 8px rgba(0,0,0,0.22); }
+.color-item__input {
+    position: absolute;
+    inset: -4px;
+    opacity: 0;
+    width: calc(100% + 8px);
+    height: calc(100% + 8px);
+    cursor: pointer;
+    padding: 0;
+    border: none;
+}
+.color-item__label {
+    font-size: 9px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-align: center;
+    line-height: 1.3;
+    width: 44px;
+    white-space: normal;
+    word-break: break-word;
+    hyphens: auto;
+}
 
 /* ── Font family chips ────────────────────────────────────────── */
 .font-grid {
