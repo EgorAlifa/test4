@@ -32,17 +32,33 @@
             <!-- ── Цвета ───────────────────────────────────────────── -->
             <div class="p-section">
                 <div class="p-section__label">Цвета</div>
-                <ui-input-cp prop="calHeaderBg">Фон шапки</ui-input-cp>
-                <ui-input-cp prop="calHeaderColor">Текст шапки</ui-input-cp>
-                <ui-input-cp prop="calBg">Фон виджета</ui-input-cp>
-                <ui-input-cp prop="calCellBg">Фон ячейки</ui-input-cp>
-                <ui-input-cp prop="calAccentColor">Акцентный цвет</ui-input-cp>
-                <ui-input-cp prop="calTodayBg">Фон «Сегодня»</ui-input-cp>
-                <ui-input-cp prop="calTodayColor">Цвет числа «Сегодня»</ui-input-cp>
-                <ui-input-cp prop="calSelectedBg">Фон выделения</ui-input-cp>
-                <ui-input-cp prop="calSelectedColor">Цвет текста выделения</ui-input-cp>
-                <ui-input-cp prop="calWeekendColor">Цвет выходных</ui-input-cp>
-                <ui-input-cp prop="calCellBorderColor">Цвет границ ячеек</ui-input-cp>
+
+                <!-- Визуальная сетка свотчей — быстрый обзор всех цветов -->
+                <div class="swatch-grid">
+                    <div
+                        v-for="c in colorFields"
+                        :key="c.key"
+                        class="swatch-item"
+                        :title="c.label">
+                        <div class="swatch-item__dot" :style="{ background: props[c.key] }" />
+                        <span class="swatch-item__label">{{ c.label }}</span>
+                    </div>
+                </div>
+
+                <!-- ui-input-cp для редактирования -->
+                <div class="cp-list">
+                    <ui-input-cp prop="calHeaderBg">Фон шапки</ui-input-cp>
+                    <ui-input-cp prop="calHeaderColor">Текст шапки</ui-input-cp>
+                    <ui-input-cp prop="calBg">Фон виджета</ui-input-cp>
+                    <ui-input-cp prop="calCellBg">Фон ячейки</ui-input-cp>
+                    <ui-input-cp prop="calAccentColor">Акцент</ui-input-cp>
+                    <ui-input-cp prop="calTodayBg">Фон «Сегодня»</ui-input-cp>
+                    <ui-input-cp prop="calTodayColor">Число «Сегодня»</ui-input-cp>
+                    <ui-input-cp prop="calSelectedBg">Фон выделения</ui-input-cp>
+                    <ui-input-cp prop="calSelectedColor">Текст выделения</ui-input-cp>
+                    <ui-input-cp prop="calWeekendColor">Выходные</ui-input-cp>
+                    <ui-input-cp prop="calCellBorderColor">Границы ячеек</ui-input-cp>
+                </div>
             </div>
 
             <!-- ── Шрифт ───────────────────────────────────────────── -->
@@ -179,6 +195,19 @@ export default {
     data: () => ({
         presets: PRESETS,
         customFontInput: '',
+        colorFields: [
+            { key: 'calHeaderBg',        label: 'Шапка' },
+            { key: 'calHeaderColor',     label: 'Текст шапки' },
+            { key: 'calBg',              label: 'Фон' },
+            { key: 'calCellBg',          label: 'Ячейка' },
+            { key: 'calAccentColor',     label: 'Акцент' },
+            { key: 'calTodayBg',         label: 'Сегодня' },
+            { key: 'calTodayColor',      label: 'Число' },
+            { key: 'calSelectedBg',      label: 'Выделение' },
+            { key: 'calSelectedColor',   label: 'Выбор текст' },
+            { key: 'calWeekendColor',    label: 'Выходные' },
+            { key: 'calCellBorderColor', label: 'Границы' }
+        ],
         fontFamilyOptions: [
             { label: 'По умолчанию',  value: '' },
             { label: 'Inter',         value: 'Inter, sans-serif' },
@@ -369,6 +398,43 @@ export default {
     word-break: break-word;
     hyphens: auto;
 }
+
+/* ── Color swatch grid ────────────────────────────────────────── */
+.swatch-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #e8ecf4;
+}
+.swatch-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    width: 38px;
+}
+.swatch-item__dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 1.5px solid rgba(0, 0, 0, 0.10);
+    flex-shrink: 0;
+}
+.swatch-item__label {
+    font-size: 8px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-align: center;
+    line-height: 1.2;
+    width: 38px;
+    white-space: normal;
+    word-break: break-word;
+}
+.cp-list { display: flex; flex-direction: column; }
 
 /* ── Font family chips ────────────────────────────────────────── */
 .font-grid {
