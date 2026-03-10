@@ -299,7 +299,8 @@ export default {
             return {
                 [`elem-cal--${this.currentView}`]: true,
                 'elem-cal--no-weekends': !this.props.calShowWeekends,
-                'elem-cal--week-numbers': this.props.calShowWeekNumbers
+                'elem-cal--week-numbers': this.props.calShowWeekNumbers,
+                'elem-cal--editor': this.isEditorMode
             };
         },
 
@@ -537,6 +538,7 @@ export default {
 
         // ── Navigation ───────────────────────────────────────────────
         prevPeriod() {
+            if (this.isEditorMode) return;
             const d = new Date(this.navDate);
             if (this.currentView === 'month') d.setMonth(d.getMonth() - 1);
             else if (this.currentView === 'week') d.setDate(d.getDate() - 7);
@@ -546,6 +548,7 @@ export default {
         },
 
         nextPeriod() {
+            if (this.isEditorMode) return;
             const d = new Date(this.navDate);
             if (this.currentView === 'month') d.setMonth(d.getMonth() + 1);
             else if (this.currentView === 'week') d.setDate(d.getDate() + 7);
@@ -555,22 +558,26 @@ export default {
         },
 
         goToday() {
+            if (this.isEditorMode) return;
             this.navDate = new Date();
         },
 
         setView(v) {
+            if (this.isEditorMode) return;
             this.currentView = v;
             this.props.calView = v;
             this.propChanged('calView');
         },
 
         drillDown(day) {
+            if (this.isEditorMode) return;
             this.navDate = new Date(day.date);
             this.setView('day');
         },
 
         // ── Selection ────────────────────────────────────────────────
         onDayClick(day) {
+            if (this.isEditorMode) return;
             const mode = this.props.calSelectionMode || SELECTION_MODES.SINGLE;
             if (mode === SELECTION_MODES.NONE) return;
 
@@ -594,16 +601,19 @@ export default {
         },
 
         onDayHover(day) {
+            if (this.isEditorMode) return;
             if (this.props.calSelectionMode === SELECTION_MODES.RANGE && this.rangeStart && !this.rangeEnd) {
                 this.hoveredDate = day.date;
             }
         },
 
         onWeekColClick(day) {
+            if (this.isEditorMode) return;
             this._commitDate(day.iso);
         },
 
         onEventClick(ev) {
+            if (this.isEditorMode) return;
             this.$eventTrigger && this.$eventTrigger('calendarEventClick', ev);
         },
 
@@ -1292,6 +1302,14 @@ export default {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+/* ── Editor mode: disable all pointer interaction ────────────────── */
+.elem-cal--editor,
+.elem-cal--editor * {
+    cursor: default !important;
+    pointer-events: none !important;
+    user-select: none !important;
 }
 
 /* ── No-weekends modifier ────────────────────────────────────────── */
