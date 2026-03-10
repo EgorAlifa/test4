@@ -178,13 +178,41 @@ export const descriptor = () => ({
             type: String,
             default: '13px'
         },
+        // ── Dataset / Dremio integration ──────────────────────────────
+        dimension: {
+            type: String,
+            default: '',
+            label: 'Измерение (столбец дат в источнике)'
+        },
+        metrics: {
+            type: Object,
+            default: () => ({ date: null }),
+            label: 'Метрики источника данных'
+        },
+        // ── Typography extras ─────────────────────────────────────────
+        calFontWeight: {
+            type: String,
+            default: '400'
+        },
+        calLetterSpacing: {
+            type: String,
+            default: '0'
+        },
+        calTextTransform: {
+            type: String,
+            default: 'none'
+        },
         // ── Custom CSS ────────────────────────────────────────────────
         calCustomCss: {
             type: String,
             default: ''
         }
     },
-    vars: {},
+    vars: {
+        date: { description: 'Выбранная дата (ISO)' },
+        dateStart: { description: 'Начало диапазона (ISO)' },
+        dateEnd: { description: 'Конец диапазона (ISO)' }
+    },
     cssVars: {}
 });
 
