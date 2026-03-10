@@ -1,6 +1,6 @@
 export default [
+    () => import('./DataPanel.vue'),
     () => import('./SettingsPanel.vue'),
     () => import('./AppearancePanel.vue'),
-    () => import('./DataPanel.vue'),
     () => import('./DesignerPanel.vue')
 ];
