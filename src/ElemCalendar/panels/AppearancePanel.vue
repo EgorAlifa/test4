@@ -32,20 +32,17 @@
             <!-- ── Цвета ───────────────────────────────────────────── -->
             <div class="p-section">
                 <div class="p-section__label">Цвета</div>
-                <div class="color-row">
-                    <div v-for="c in colorFields" :key="c.key" class="color-item" @click="openColor(c.key)">
-                        <div class="color-item__swatch" :style="{ background: props[c.key] }">
-                            <input
-                                :ref="`clr_${c.key}`"
-                                type="color"
-                                class="color-item__input"
-                                :value="simpleColor(props[c.key])"
-                                @input="set(c.key, $event.target.value)"
-                                @click.stop />
-                        </div>
-                        <span class="color-item__label">{{ c.label }}</span>
-                    </div>
-                </div>
+                <ui-input-cp prop="calHeaderBg">Фон шапки</ui-input-cp>
+                <ui-input-cp prop="calHeaderColor">Текст шапки</ui-input-cp>
+                <ui-input-cp prop="calBg">Фон виджета</ui-input-cp>
+                <ui-input-cp prop="calCellBg">Фон ячейки</ui-input-cp>
+                <ui-input-cp prop="calAccentColor">Акцентный цвет</ui-input-cp>
+                <ui-input-cp prop="calTodayBg">Фон «Сегодня»</ui-input-cp>
+                <ui-input-cp prop="calTodayColor">Цвет числа «Сегодня»</ui-input-cp>
+                <ui-input-cp prop="calSelectedBg">Фон выделения</ui-input-cp>
+                <ui-input-cp prop="calSelectedColor">Цвет текста выделения</ui-input-cp>
+                <ui-input-cp prop="calWeekendColor">Цвет выходных</ui-input-cp>
+                <ui-input-cp prop="calCellBorderColor">Цвет границ ячеек</ui-input-cp>
             </div>
 
             <!-- ── Шрифт ───────────────────────────────────────────── -->
@@ -182,19 +179,6 @@ export default {
     data: () => ({
         presets: PRESETS,
         customFontInput: '',
-        colorFields: [
-            { key: 'calHeaderBg',        label: 'Шапка' },
-            { key: 'calHeaderColor',     label: 'Текст шапки' },
-            { key: 'calBg',              label: 'Фон' },
-            { key: 'calCellBg',          label: 'Ячейка' },
-            { key: 'calAccentColor',     label: 'Акцент' },
-            { key: 'calTodayBg',         label: 'Сегодня' },
-            { key: 'calTodayColor',      label: 'Цифра сегодня' },
-            { key: 'calSelectedBg',      label: 'Выделение' },
-            { key: 'calSelectedColor',   label: 'Текст выбора' },
-            { key: 'calWeekendColor',    label: 'Выходные' },
-            { key: 'calCellBorderColor', label: 'Граница ячеек' }
-        ],
         fontFamilyOptions: [
             { label: 'По умолчанию',  value: '' },
             { label: 'Inter',         value: 'Inter, sans-serif' },
