@@ -206,6 +206,11 @@ export const descriptor = () => ({
         calCustomCss: {
             type: String,
             default: ''
+        },
+        // ── Designer per-element CSS (JSON object) ────────────────────
+        calDesignerCss: {
+            type: String,
+            default: '{}'
         }
     },
     vars: {

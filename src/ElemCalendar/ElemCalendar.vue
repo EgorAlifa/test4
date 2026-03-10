@@ -456,8 +456,23 @@ export default {
         },
 
         customCssContent() {
-            const css = this.props.calCustomCss;
-            return css ? `.elem-cal { ${css} }` : null;
+            const SELS = {
+                header: '.elem-cal__header', title: '.elem-cal__title',
+                navBtn: '.elem-cal__nav-btn', viewBtn: '.elem-cal__view-btn',
+                weekday: '.elem-cal__weekday', cell: '.elem-cal__cell',
+                dayNum: '.elem-cal__day-num', todayCell: '.elem-cal__cell--today',
+                selectedCell: '.elem-cal__cell--selected', event: '.elem-cal__event',
+                weekEvent: '.elem-cal__week-event', agendaEvent: '.elem-cal__agenda-event'
+            };
+            const parts = [];
+            if (this.props.calCustomCss) parts.push(`.elem-cal { ${this.props.calCustomCss} }`);
+            try {
+                const blocks = JSON.parse(this.props.calDesignerCss || '{}');
+                Object.entries(blocks).forEach(([k, css]) => {
+                    if (css && SELS[k]) parts.push(`${SELS[k]} { ${css} }`);
+                });
+            } catch (e) { /* noop */ }
+            return parts.length ? parts.join('\n') : null;
         }
     },
 
@@ -1302,6 +1317,9 @@ export default {
 
 /* ── No-weekends modifier ────────────────────────────────────────── */
 .elem-cal--no-weekends .elem-cal__cell--weekend {
+    display: none;
+}
+.elem-cal--no-weekends .elem-cal__weekday--weekend {
     display: none;
 }
 .elem-cal--no-weekends .elem-cal__grid {
