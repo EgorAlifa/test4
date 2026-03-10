@@ -1,0 +1,224 @@
+.pre-wrap {
+    white-space: pre-wrap;
+}
+
+.caption-top, .caption-bottom {
+    flex-direction: column;
+}
+
+:is(.caption.caption-right, .caption.caption-bottom) .caption__text {
+    order: 1;
+}
+
+.mark-pos-top {
+    top: 0;
+}
+.mark-pos-right {
+    right: 0.0625rem;
+}
+.mark-pos-bottom {
+    bottom: 0;
+}
+.mark-pos-left {
+    left: 0.125rem;
+}
+
+.popup-window {
+    position: fixed;
+    width: 25rem;
+    background: #fff;
+    box-shadow: 0 0.125rem 1rem #00000029;
+    outline: none;
+    z-index: 1090;
+}
+.popup-window-item {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+.popup-window-item:last-child {
+    border: 0;
+}
+
+.offset-btn:not(:last-child) {
+    margin-bottom: 1rem;
+}
+
+.ui-input-date-picker {
+    &-input {
+        &.custom-input {
+            color: var(--w-idp-input_color);
+            border: none;
+            background: transparent;
+            font-size: var(--w-idp-input_font-size);
+            font-family: var(--w-idp-input_font-family);
+            &::placeholder {
+                color: var(--w-idp-input-placeholder_color);
+            }
+        }
+    }
+    &-icon {
+        color: var(--w-idp-icon_color);
+        font-size: var(--w-idp-icon_font-size);
+    }
+}
+
+.radius-none {
+    border-radius: 0;
+}
+
+.radius-right-none {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+.radius-left-none {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+
+@b cal-date-before {
+    composes: pos-abs w-100 h-100 top-0 left-0 round from global;
+    background: var(--w-cal-date-before_background);
+    border-radius: var(--w-cal-date-before_border-radius, var(--border-radius5));
+}
+
+@b cal-date {
+    composes: cursor-pointer u-select-none d-inline-flex flex-center round lh-1 pos-rel from global;
+    color: var(--w-cal-date_color);
+    background: var(--w-cal-date_background);
+    width: var(--w-cal-date_width);
+    height: var(--w-cal-date_height);
+    margin: var(--w-cal-date_margin);
+    font-family: var(--w-cal-date_font-family);
+    font-size: var(--w-cal-date_font-size);
+    font-style: var(--w-cal-date_font-style);
+    font-weight: var(--w-cal-date_font-weight);
+    border-style: var(--w-cal-date_border-style);
+    border-color: var(--w-cal-date_border-color);
+    border-width: var(--w-cal-date_border-width);
+    box-shadow: var(--w-cal-date_box-shadow);
+    border-radius: var(--w-cal-date_border-radius);
+    box-sizing: var(--w-cal-date_box-sizing);
+    padding: var(--w-cal-date_padding);
+
+    @e extra {
+        border-radius: var(--border-radius5);
+    }
+}
+
+@b caption {
+    composes: lh-1 mar-h-2 from global;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+
+    @e text {
+        order: 0;
+        font-family: var(--w-caption-text_font-family);
+        color: var(--w-caption-text_color);
+        font-size: var(--w-caption-text_font-size);
+    }
+}
+
+@b preset-holder {
+    composes: d-flex pad-l1 from global;
+    gap: 0.5rem;
+}
+
+
+@b preset-slot {
+    composes: h-100 d-flex flex-center from global;
+    background: var(--w-preset-slot_background);
+    flex-direction: var(--w-preset-slot_flex-direction, column);
+    gap: 1rem;
+
+    @e btn {
+        width: var(--w-preset-slot-btn_width);
+        height: var(--w-preset-slot-btn_height);
+        font-size: var(--w-preset-slot-btn_font-size);
+        font-weight: var(--w-preset-slot-btn_font-weight);
+        font-family: var(--w-preset-slot-btn_font-family);
+        border-radius: var(--w-preset-slot-btn_border-radius);
+        border: var(--w-preset-slot-btn_border);
+        color: var(--w-preset-slot-btn_color) !important;
+        background: var(--w-preset-slot-btn_background) !important;
+    }
+}
+
+@b elem-calendar-header {
+    composes: mar-bot-3 pad-3 from global;
+    background: var(--w-header_background);
+    color: var(--w-header_color);
+    font-size: var(--w-header_font-size);
+    font-family: var(--w-header_font-family);
+    font-style: var(--w-header_font-style);
+    font-weight: var(--w-header_font-weight);
+    width: var(--w-header_width, auto);
+    height: var(--w-header_height, auto);
+    margin-inline: auto;
+
+    @e icon {
+        composes: icon cursor-pointer radius-1 from global;
+        background: var(--w-header-icon_background);
+    }
+}
+
+@b cal-day {
+    color: var(--w-cal-day_color);
+    font-size: var(--w-cal-day_font-size);
+    font-family: var(--w-cal-day_font-family);
+    font-style: var(--w-cal-day_font-style);
+    font-weight: var(--w-cal-day_font-weight);
+    background-color: var(--w-cal-day_background-color);
+
+    @e weekend {
+        color: var(--w-cal-day-weekend_color);
+        font-size: var(--w-cal-day-weekend_font-size);
+        font-family: var(--w-cal-day-weekend_font-family);
+        font-style: var(--w-cal-day-weekend_font-style);
+        font-weight: var(--w-cal-day-weekend_font-weight);
+        background-color: var(--w-cal-day-weekend_background-color);
+    }
+}
+
+@b interval {
+    composes: d-flex pos-rel text-small mar-bot-2 from global;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.875rem;
+    @e label-begin {
+        grid-column: 1/5;
+    }
+    @e label-end {
+        grid-column: 5/-1;
+    }
+}
+
+@b interval-row {
+    display: grid;
+    grid-template-columns: minmax(55px, 1fr) minmax(110px, 2fr) minmax(55px, 1fr) auto;
+    align-items: center;
+    gap: 0 0.25rem;
+
+    @e clear {
+        composes: mdi mdi-close cursor-pointer from global;
+        margin-left: -2px;
+    }
+}
+
+@b dp-reset-btn {
+    color: var(--w-reset-btn-color);
+    background: var(--w-reset-btn-bgcolor);
+    font-size: var(--w-reset-btn-fontsize);
+    width: var(--w-reset-btn-width);
+    height: var(--w-reset-btn-height);
+    border-radius: var(--w-reset-btn-border-radius);
+    margin-inline: var(--w-reset-btn-mar-inline);
+    margin-block: var(--w-reset-btn-mar-block);
+    align-self: var(--w-reset-btn-align);
+}
+
+@b date-list {
+    @e element {
+        margin-right: 0.5rem;
+    }
+}
