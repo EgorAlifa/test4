@@ -122,23 +122,75 @@
                     :value="props.calEventsVar"
                     :list="`store-list-${_uid}`"
                     @input="set('calEventsVar', $event)">
-                    Переменная хранилища (JSON)
+                    Переменная хранилища (JSON-массив)
                 </ui-input>
+                <span class="p-hint" style="display:block;margin-top:-4px;margin-bottom:10px">
+                    Укажите переменную, содержащую массив событий из хранилища
+                </span>
 
-                <div class="p-row p-row--col">
-                    <span class="p-row__label">Статические события (JSON)</span>
-                    <textarea
-                        class="p-textarea"
-                        :value="props.calEventsJson"
-                        placeholder='[{"title":"Встреча","date":"2026-03-15","color":"#4f6aff"}]'
-                        spellcheck="false"
-                        rows="5"
-                        @input="set('calEventsJson', $event.target.value)" />
-                    <span class="p-hint">
-                        Поля: <code>title</code>, <code>date</code>, <code>endDate</code>,
-                        <code>startTime</code>, <code>endTime</code>, <code>color</code>, <code>desc</code>
-                    </span>
+                <!-- ── Визуальный редактор событий ────────────────── -->
+                <div class="p-field-label">Статические события</div>
+                <div class="ev-list">
+                    <div
+                        v-for="(ev, idx) in localEvents"
+                        :key="idx"
+                        class="ev-card">
+                        <div class="ev-card__head">
+                            <input
+                                class="ev-card__title-input"
+                                :value="ev.title"
+                                placeholder="Название"
+                                @input="updateEvent(idx, 'title', $event.target.value)" />
+                            <button class="ev-card__color-btn" @click="openEvColor(idx)">
+                                <span class="ev-card__color-dot" :style="{ background: ev.color || '#4f6aff' }" />
+                                <input
+                                    :ref="`evclr_${idx}`"
+                                    type="color"
+                                    class="ev-card__color-input"
+                                    :value="ev.color || '#4f6aff'"
+                                    @input="updateEvent(idx, 'color', $event.target.value)"
+                                    @click.stop />
+                            </button>
+                            <button class="ev-card__del" @click="removeEvent(idx)" title="Удалить">
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="ev-card__row">
+                            <label class="ev-card__field">
+                                <span>Дата</span>
+                                <input type="date" :value="ev.date" @input="updateEvent(idx, 'date', $event.target.value)" />
+                            </label>
+                            <label class="ev-card__field">
+                                <span>До</span>
+                                <input type="date" :value="ev.endDate" @input="updateEvent(idx, 'endDate', $event.target.value)" />
+                            </label>
+                        </div>
+                        <div class="ev-card__row">
+                            <label class="ev-card__field">
+                                <span>Начало</span>
+                                <input type="time" :value="ev.startTime" @input="updateEvent(idx, 'startTime', $event.target.value)" />
+                            </label>
+                            <label class="ev-card__field">
+                                <span>Конец</span>
+                                <input type="time" :value="ev.endTime" @input="updateEvent(idx, 'endTime', $event.target.value)" />
+                            </label>
+                        </div>
+                        <input
+                            class="ev-card__desc-input"
+                            :value="ev.desc"
+                            placeholder="Описание (необязательно)"
+                            @input="updateEvent(idx, 'desc', $event.target.value)" />
+                    </div>
+                    <div v-if="!localEvents.length" class="ev-empty">Нет событий</div>
                 </div>
+                <button class="ev-add-btn" @click="addEvent">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right:5px">
+                        <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Добавить событие
+                </button>
             </div>
 
             <!-- ── Отображение ───────────────────────────────────────── -->
@@ -191,6 +243,7 @@ export default {
     meta: { name: 'Настройки', icon: 'cog' },
 
     data: () => ({
+        localEvents: [],
         allViews: [
             { value: 'month', label: 'Месяц' },
             { value: 'week', label: 'Неделя' },
@@ -220,10 +273,50 @@ export default {
         }
     },
 
+    watch: {
+        'props.calEventsJson': {
+            immediate: true,
+            handler(val) {
+                try {
+                    const parsed = val ? JSON.parse(val) : [];
+                    if (Array.isArray(parsed)) this.localEvents = parsed;
+                } catch (e) { /* keep current */ }
+            }
+        }
+    },
+
     methods: {
         set(key, val) {
             this.props[key] = val;
             this.propChanged(key);
+        },
+
+        _saveEvents() {
+            this.set('calEventsJson', JSON.stringify(this.localEvents));
+        },
+
+        addEvent() {
+            const today = new Date();
+            const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            this.localEvents = [...this.localEvents, { title: '', date: iso, color: '#4f6aff', endDate: '', startTime: '', endTime: '', desc: '' }];
+            this._saveEvents();
+        },
+
+        removeEvent(idx) {
+            this.localEvents = this.localEvents.filter((_, i) => i !== idx);
+            this._saveEvents();
+        },
+
+        updateEvent(idx, field, val) {
+            const ev = { ...this.localEvents[idx], [field]: val };
+            this.localEvents = this.localEvents.map((e, i) => i === idx ? ev : e);
+            this._saveEvents();
+        },
+
+        openEvColor(idx) {
+            const ref = this.$refs[`evclr_${idx}`];
+            const el = Array.isArray(ref) ? ref[0] : ref;
+            if (el) el.click();
         },
 
         toggleBool(key) {
@@ -416,4 +509,149 @@ export default {
     font-size: 10px;
     color: #4f6aff;
 }
+.p-field-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+
+/* ── Event editor ─────────────────────────────────────────────── */
+.ev-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.ev-empty { font-size: 11px; color: #94a3b8; text-align: center; padding: 10px 0; }
+
+.ev-card {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 9px 10px;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.ev-card__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.ev-card__title-input {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+    border: none;
+    background: transparent;
+    outline: none;
+    min-width: 0;
+    padding: 0;
+}
+.ev-card__title-input::placeholder { color: #cbd5e1; font-weight: 400; }
+
+.ev-card__color-btn {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.ev-card__color-dot {
+    display: block;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.12);
+}
+.ev-card__color-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: none;
+}
+.ev-card__del {
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.12s, color 0.12s;
+}
+.ev-card__del:hover { background: #fee2e2; color: #ef4444; }
+
+.ev-card__row {
+    display: flex;
+    gap: 8px;
+}
+.ev-card__field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+.ev-card__field span {
+    font-size: 9px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.ev-card__field input {
+    font-size: 11px;
+    color: #334155;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 5px;
+    padding: 3px 6px;
+    background: #fff;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.12s;
+}
+.ev-card__field input:focus { border-color: #4f6aff; }
+
+.ev-card__desc-input {
+    font-size: 11px;
+    color: #334155;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 5px;
+    padding: 4px 7px;
+    background: #fff;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.12s;
+}
+.ev-card__desc-input::placeholder { color: #cbd5e1; }
+.ev-card__desc-input:focus { border-color: #4f6aff; }
+
+.ev-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 7px;
+    border: 1.5px dashed #cbd5e1;
+    border-radius: 8px;
+    background: transparent;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+.ev-add-btn:hover { border-color: #4f6aff; color: #4f6aff; background: #f5f7ff; }
 </style>
