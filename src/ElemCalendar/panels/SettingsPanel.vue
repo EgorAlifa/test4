@@ -89,8 +89,7 @@
                     <ui-input
                         :value="props.calDateVar"
                         :list="`store-list-${_uid}`"
-                        @input="set('calDateVar', $event)"
-                        @change="set('calDateVar', $event)">
+                        @input="set('calDateVar', $event)">
                         Переменная: выбранная дата
                     </ui-input>
 
@@ -98,15 +97,13 @@
                         <ui-input
                             :value="props.calStartVar"
                             :list="`store-list-${_uid}`"
-                            @input="set('calStartVar', $event)"
-                            @change="set('calStartVar', $event)">
+                            @input="set('calStartVar', $event)">
                             Переменная: начало диапазона
                         </ui-input>
                         <ui-input
                             :value="props.calEndVar"
                             :list="`store-list-${_uid}`"
-                            @input="set('calEndVar', $event)"
-                            @change="set('calEndVar', $event)">
+                            @input="set('calEndVar', $event)">
                             Переменная: конец диапазона
                         </ui-input>
                     </template>
@@ -124,8 +121,7 @@
                 <ui-input
                     :value="props.calEventsVar"
                     :list="`store-list-${_uid}`"
-                    @input="set('calEventsVar', $event)"
-                    @change="set('calEventsVar', $event)">
+                    @input="set('calEventsVar', $event)">
                     Переменная хранилища (JSON)
                 </ui-input>
 
