@@ -1308,14 +1308,6 @@ export default {
     overflow: hidden;
 }
 
-/* ── Editor mode: disable pointer interaction on children only ──────
-   Root element keeps pointer-events: auto so the editor overlay can
-   detect clicks on the widget and select it.                        */
-.elem-cal--editor * {
-    cursor: default !important;
-    pointer-events: none !important;
-    user-select: none !important;
-}
 
 /* ── No-weekends modifier ────────────────────────────────────────── */
 .elem-cal--no-weekends .elem-cal__cell--weekend {
