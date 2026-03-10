@@ -1,4 +1,5 @@
 <template>
+    <w-elem>
     <div class="elem-cal" :class="calDynamicClass" :style="[cssStyle, calCssVars]">
         <!-- ── Header ──────────────────────────────────────────────── -->
         <div v-if="props.calShowHeader" class="elem-cal__header">
@@ -194,6 +195,7 @@
         <!-- ── Custom CSS injection ────────────────────────────────── -->
         <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
     </div>
+    </w-elem>
 </template>
 
 <script>
@@ -789,7 +791,7 @@ export default {
     border-radius: 20px;
     background: transparent;
     color: inherit;
-    font-size: 12px;
+    font-size: 0.92em;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
@@ -800,7 +802,7 @@ export default {
 .elem-cal__title-wrap { flex: 1; text-align: center; }
 .elem-cal__title {
     margin: 0;
-    font-size: 15px;
+    font-size: 1.15em;
     font-weight: 700;
     letter-spacing: 0.01em;
     color: inherit;
@@ -821,7 +823,7 @@ export default {
     border-radius: 6px;
     background: transparent;
     color: rgba(255, 255, 255, 0.75);
-    font-size: 12px;
+    font-size: 0.92em;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
@@ -863,7 +865,7 @@ export default {
 .elem-cal__weekday {
     padding: 7px 4px 6px;
     text-align: center;
-    font-size: 11px;
+    font-size: 0.85em;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -888,7 +890,7 @@ export default {
     align-items: flex-start;
     justify-content: center;
     padding-top: 8px;
-    font-size: 10px;
+    font-size: 0.77em;
     color: #c0cdd9;
     font-weight: 500;
     border-right: 1px solid var(--cal-cell-border);
@@ -942,8 +944,8 @@ export default {
 }
 
 .elem-cal__day-num {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 0.92em;
+    font-weight: var(--cal-font-weight);
     line-height: 1;
     color: #334155;
     flex-shrink: 0;
@@ -987,8 +989,8 @@ export default {
 }
 
 .elem-cal__event-label {
-    font-size: 10px;
-    font-weight: 500;
+    font-size: 0.77em;
+    font-weight: var(--cal-font-weight);
     color: #334155;
     white-space: nowrap;
     overflow: hidden;
@@ -997,7 +999,7 @@ export default {
 }
 
 .elem-cal__more {
-    font-size: 10px;
+    font-size: 0.77em;
     color: #94a3b8;
     font-weight: 600;
     padding: 0 4px;
@@ -1061,7 +1063,7 @@ export default {
 .elem-cal__week-col-hd--weekend .elem-cal__week-dow { color: var(--cal-weekend-color); }
 
 .elem-cal__week-dow {
-    font-size: 10px;
+    font-size: 0.77em;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -1069,7 +1071,7 @@ export default {
 }
 
 .elem-cal__week-num {
-    font-size: 18px;
+    font-size: 1.38em;
     font-weight: 700;
     color: #334155;
     line-height: 1.2;
@@ -1084,7 +1086,7 @@ export default {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 1.08em;
 }
 
 .elem-cal__week-body {
@@ -1107,7 +1109,7 @@ export default {
     align-items: flex-start;
     justify-content: flex-end;
     padding: 2px 6px 0 0;
-    font-size: 10px;
+    font-size: 0.77em;
     color: #94a3b8;
     font-weight: 500;
     box-sizing: border-box;
@@ -1144,7 +1146,8 @@ export default {
     background: var(--cal-accent);
     color: #fff;
     padding: 3px 6px;
-    font-size: 11px;
+    font-size: 0.85em;
+    font-weight: var(--cal-font-weight);
     cursor: pointer;
     overflow: hidden;
     transition: opacity 0.12s, transform 0.1s;
@@ -1164,7 +1167,7 @@ export default {
 
 .elem-cal__week-event-time {
     display: block;
-    font-size: 10px;
+    font-size: 0.77em;
     opacity: 0.8;
     line-height: 1.3;
 }
@@ -1203,7 +1206,7 @@ export default {
     height: 100%;
     min-height: 120px;
     color: #94a3b8;
-    font-size: 14px;
+    font-size: 1.08em;
 }
 
 .elem-cal__agenda-group {
@@ -1234,7 +1237,7 @@ export default {
 
 .elem-cal__agenda-day-num {
     display: block;
-    font-size: 18px;
+    font-size: 1.38em;
     font-weight: 700;
     color: #334155;
     line-height: 1.2;
@@ -1242,7 +1245,7 @@ export default {
 
 .elem-cal__agenda-day-name {
     display: block;
-    font-size: 10px;
+    font-size: 0.77em;
     color: #94a3b8;
     font-weight: 600;
     text-transform: uppercase;
@@ -1280,21 +1283,22 @@ export default {
 .elem-cal__agenda-event-body { flex: 1; min-width: 0; }
 
 .elem-cal__agenda-event-time {
-    font-size: 11px;
+    font-size: 0.85em;
     color: #94a3b8;
     font-weight: 600;
     margin-bottom: 2px;
 }
 
 .elem-cal__agenda-event-title {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 1em;
+    font-weight: var(--cal-font-weight);
     color: #1e293b;
     line-height: 1.3;
 }
 
 .elem-cal__agenda-event-desc {
-    font-size: 11px;
+    font-size: 0.85em;
+    font-weight: var(--cal-font-weight);
     color: #64748b;
     margin-top: 2px;
     line-height: 1.4;
