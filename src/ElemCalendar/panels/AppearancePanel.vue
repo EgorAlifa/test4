@@ -106,7 +106,7 @@
 
                 <!-- Font weight -->
                 <div class="p-field-label" style="margin-top:10px">Насыщенность</div>
-                <div class="seg-ctrl">
+                <div class="seg-ctrl seg-ctrl--wrap">
                     <button
                         v-for="fw in fontWeights"
                         :key="fw.value"
@@ -186,7 +186,7 @@
 
 <script>
 import { Panel } from 'goodt-wcore';
-import { PRESETS } from '../constants';
+import { PRESETS, buildDemoEvents } from '../constants';
 
 export default {
     extends: Panel,
@@ -290,6 +290,11 @@ export default {
             this.set('calPreset', key);
             const p = preset.props;
             Object.keys(p).forEach((k) => this.set(k, p[k]));
+            if (key === 'demo') {
+                const now = new Date();
+                const events = buildDemoEvents(now.getFullYear(), now.getMonth() + 1);
+                this.set('calEventsJson', JSON.stringify(events));
+            }
         },
 
         presetBorderStyle(p) {
@@ -496,6 +501,7 @@ export default {
 
 /* ── Segmented control ────────────────────────────────────────── */
 .seg-ctrl { display: flex; background: #f1f5f9; border-radius: 7px; padding: 2px; gap: 1px; }
+.seg-ctrl--wrap { flex-wrap: wrap; }
 .seg-ctrl__btn { padding: 4px 9px; border: none; border-radius: 5px; background: transparent; color: #64748b; font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.12s, color 0.12s; white-space: nowrap; }
 .seg-ctrl__btn:hover { color: #334155; }
 .seg-ctrl__btn--active { background: #fff; color: #4f6aff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }

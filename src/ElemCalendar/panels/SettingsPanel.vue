@@ -191,6 +191,21 @@
                     </svg>
                     Добавить событие
                 </button>
+                <div class="ev-actions">
+                    <button class="ev-action-btn ev-action-btn--demo" @click="loadDemoEvents" title="Загрузить реалистичные примеры событий">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right:4px">
+                            <path d="M6 1v5.5M6 6.5l-2-2M6 6.5l2-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M1 9h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                        Демо-события
+                    </button>
+                    <button v-if="localEvents.length" class="ev-action-btn ev-action-btn--clear" @click="clearAllEvents" title="Удалить все события">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right:4px">
+                            <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                        Очистить все
+                    </button>
+                </div>
             </div>
 
             <!-- ── Отображение ───────────────────────────────────────── -->
@@ -235,6 +250,7 @@
 
 <script>
 import { Panel, Managers } from 'goodt-wcore';
+import { buildDemoEvents } from '../constants';
 
 const { store } = Managers.StoreManager;
 
@@ -335,6 +351,17 @@ export default {
         isViewAvailable(v) {
             const arr = this.props.calAvailableViews;
             return Array.isArray(arr) ? arr.includes(v) : true;
+        },
+
+        loadDemoEvents() {
+            const now = new Date();
+            this.localEvents = buildDemoEvents(now.getFullYear(), now.getMonth() + 1);
+            this._saveEvents();
+        },
+
+        clearAllEvents() {
+            this.localEvents = [];
+            this._saveEvents();
         },
 
         toggleView(v, checked) {
@@ -654,4 +681,35 @@ export default {
     transition: border-color 0.12s, color 0.12s, background 0.12s;
 }
 .ev-add-btn:hover { border-color: #4f6aff; color: #4f6aff; background: #f5f7ff; }
+
+.ev-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+.ev-action-btn {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    justify-content: center;
+    padding: 6px 8px;
+    border-radius: 7px;
+    border: 1.5px solid;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.ev-action-btn--demo {
+    border-color: #c4b5fd;
+    background: #faf5ff;
+    color: #7c3aed;
+}
+.ev-action-btn--demo:hover { background: #ede9fe; border-color: #7c3aed; }
+.ev-action-btn--clear {
+    border-color: #fca5a5;
+    background: #fff5f5;
+    color: #ef4444;
+}
+.ev-action-btn--clear:hover { background: #fee2e2; border-color: #ef4444; }
 </style>
