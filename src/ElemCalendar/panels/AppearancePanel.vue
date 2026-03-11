@@ -59,6 +59,13 @@
                     <ui-input-cp prop="calWeekendColor">Выходные</ui-input-cp>
                     <ui-input-cp prop="calCellBorderColor">Границы ячеек</ui-input-cp>
                 </div>
+
+                <!-- Heatmap colors — visible always for easy access -->
+                <div class="p-field-label" style="margin-top:10px">Тепловая карта</div>
+                <div class="cp-list">
+                    <ui-input-cp prop="calHeatmapColorLow">Цвет минимума</ui-input-cp>
+                    <ui-input-cp prop="calHeatmapColorHigh">Цвет максимума</ui-input-cp>
+                </div>
             </div>
 
             <!-- ── Шрифт ───────────────────────────────────────────── -->

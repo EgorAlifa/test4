@@ -46,7 +46,7 @@ export const descriptor = () => ({
         calAvailableViews: {
             type: Array,
             default() {
-                return ['month', 'week', 'day', 'agenda'];
+                return ['month', 'week', 'day', 'agenda', 'year'];
             },
             label: 'Доступные виды'
         },
@@ -97,6 +97,37 @@ export const descriptor = () => ({
             type: String,
             default: '',
             label: 'Статические события (JSON)'
+        },
+        // ── Heatmap / metric ─────────────────────────────────────────
+        calHeatmapEnabled: {
+            type: Boolean,
+            default: false,
+            label: 'Тепловая карта'
+        },
+        calMetricVar: {
+            type: String,
+            default: '',
+            label: 'Переменная хранилища: метрика'
+        },
+        calMetricJson: {
+            type: String,
+            default: '',
+            label: 'Статическая метрика (JSON)'
+        },
+        calHeatmapColorLow: {
+            type: String,
+            default: '#f0f9ff',
+            label: 'Цвет минимума тепловой карты'
+        },
+        calHeatmapColorHigh: {
+            type: String,
+            default: '#4f46e5',
+            label: 'Цвет максимума тепловой карты'
+        },
+        calHeatmapShowValue: {
+            type: Boolean,
+            default: true,
+            label: 'Показывать значение метрики в ячейке'
         },
         // ── Appearance: preset ────────────────────────────────────────
         calPreset: {

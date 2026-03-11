@@ -208,6 +208,42 @@
                 </div>
             </div>
 
+            <!-- ── Метрика / Тепловая карта ─────────────────────────── -->
+            <div class="p-section">
+                <div class="p-section__label">Метрика и тепловая карта</div>
+
+                <label class="toggle-row">
+                    <span class="toggle-row__label">Включить тепловую карту</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calHeatmapEnabled }" @click="toggleBool('calHeatmapEnabled')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <label class="toggle-row">
+                    <span class="toggle-row__label">Показывать значение в ячейке</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calHeatmapShowValue }" @click="toggleBool('calHeatmapShowValue')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+
+                <ui-input
+                    :value="props.calMetricVar"
+                    :list="`store-list-${_uid}`"
+                    @input="set('calMetricVar', $event)">
+                    Переменная хранилища (метрика)
+                </ui-input>
+                <span class="p-hint" style="display:block;margin-top:-4px;margin-bottom:8px">
+                    Массив <code>[{"date":"YYYY-MM-DD","value":42},…]</code> или объект <code>{"2026-03-01":42,…}</code>
+                </span>
+
+                <div class="p-field-label">Статическая метрика (JSON)</div>
+                <textarea
+                    class="p-textarea"
+                    rows="3"
+                    placeholder='[{"date":"2026-03-01","value":120},{"date":"2026-03-02","value":85}]'
+                    :value="props.calMetricJson"
+                    @input="set('calMetricJson', $event.target.value)" />
+            </div>
+
             <!-- ── Отображение ───────────────────────────────────────── -->
             <div class="p-section">
                 <div class="p-section__label">Элементы интерфейса</div>
@@ -264,13 +300,15 @@ export default {
             { value: 'month', label: 'Месяц' },
             { value: 'week', label: 'Неделя' },
             { value: 'day', label: 'День' },
-            { value: 'agenda', label: 'Список' }
+            { value: 'agenda', label: 'Список' },
+            { value: 'year', label: 'Год' }
         ],
         viewOptions: [
             { value: 'month', label: 'Месяц' },
             { value: 'week', label: 'Неделя' },
             { value: 'day', label: 'День' },
-            { value: 'agenda', label: 'Список' }
+            { value: 'agenda', label: 'Список' },
+            { value: 'year', label: 'Год' }
         ],
         localeOptions: [
             { value: 'ru', label: 'RU' },

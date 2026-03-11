@@ -2,7 +2,8 @@ export const VIEWS = Object.freeze({
     MONTH: 'month',
     WEEK: 'week',
     DAY: 'day',
-    AGENDA: 'agenda'
+    AGENDA: 'agenda',
+    YEAR: 'year'
 });
 
 export const LOCALES = Object.freeze({
@@ -29,7 +30,7 @@ export const LOCALE_DATA = {
         weekdays: ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'],
         weekdaysShort: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],
         today: 'Сегодня',
-        views: { month: 'Месяц', week: 'Неделя', day: 'День', agenda: 'Список' },
+        views: { month: 'Месяц', week: 'Неделя', day: 'День', agenda: 'Список', year: 'Год' },
         noEvents: 'Нет событий',
         allDay: 'Весь день'
     },
@@ -39,7 +40,7 @@ export const LOCALE_DATA = {
         weekdays: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
         weekdaysShort: ['Su','Mo','Tu','We','Th','Fr','Sa'],
         today: 'Today',
-        views: { month: 'Month', week: 'Week', day: 'Day', agenda: 'Agenda' },
+        views: { month: 'Month', week: 'Week', day: 'Day', agenda: 'Agenda', year: 'Year' },
         noEvents: 'No events',
         allDay: 'All day'
     }

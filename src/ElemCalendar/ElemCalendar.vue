@@ -60,10 +60,15 @@
                         :key="day.key"
                         class="elem-cal__cell"
                         :class="dayCellClass(day)"
+                        :style="heatmapCellStyle(day)"
                         @click="onDayClick(day)"
-                        @mouseenter="onDayHover(day)">
+                        @mouseenter="onDayHover(day, $event)"
+                        @mouseleave="hideTooltip">
                         <div class="elem-cal__cell-inner">
-                            <span class="elem-cal__day-num">{{ day.d }}</span>
+                            <div class="elem-cal__cell-top">
+                                <span class="elem-cal__day-num">{{ day.d }}</span>
+                                <span v-if="props.calHeatmapShowValue && getMetricValue(day.iso) !== undefined" class="elem-cal__metric-val">{{ formatMetric(getMetricValue(day.iso)) }}</span>
+                            </div>
                             <div class="elem-cal__events-wrap">
                                 <div
                                     v-for="ev in day.events.slice(0, maxEventsPerCell)"
@@ -192,6 +197,50 @@
             </div>
         </div>
 
+        <!-- ── Year view ─────────────────────────────────────────────── -->
+        <div v-else-if="currentView === 'year'" class="elem-cal__year">
+            <div
+                v-for="month in yearMonths"
+                :key="month.m"
+                class="elem-cal__year-month">
+                <div class="elem-cal__year-month-hd" @click="goToMonth(month.m)">{{ month.label }}</div>
+                <div class="elem-cal__year-month-grid">
+                    <div v-for="(wd, wi) in weekdayHeaders" :key="`yw-${wi}`" class="elem-cal__year-wd">{{ wd.charAt(0) }}</div>
+                    <template v-for="(cell, ci) in month.cells">
+                        <div
+                            v-if="cell"
+                            :key="`yd-${month.m}-${ci}`"
+                            class="elem-cal__year-day"
+                            :class="yearDayClass(cell)"
+                            :style="yearDayStyle(cell)"
+                            @click="goToDay(cell)"
+                            @mouseenter="showTooltip(cell, $event)"
+                            @mouseleave="hideTooltip">{{ cell.d }}</div>
+                        <div v-else :key="`ye-${month.m}-${ci}`" class="elem-cal__year-day elem-cal__year-day--empty" />
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Tooltip ───────────────────────────────────────────────── -->
+        <div v-if="tooltipDay" class="elem-cal__tooltip" :style="tooltipStyle">
+            <div class="elem-cal__tooltip-date">{{ tooltipDateLabel }}</div>
+            <div v-if="tooltipMetricVal !== null" class="elem-cal__tooltip-metric">
+                <span class="elem-cal__tooltip-metric-icon">◉</span> {{ tooltipMetricVal }}
+            </div>
+            <div v-if="tooltipDay.events && tooltipDay.events.length" class="elem-cal__tooltip-events">
+                <div
+                    v-for="ev in tooltipDay.events.slice(0, 5)"
+                    :key="ev.id || ev.title"
+                    class="elem-cal__tooltip-ev">
+                    <span class="elem-cal__tooltip-ev-dot" :style="{ background: ev.color || props.calAccentColor }" />
+                    <span class="elem-cal__tooltip-ev-title">{{ ev.title }}</span>
+                </div>
+                <div v-if="tooltipDay.events.length > 5" class="elem-cal__tooltip-more">+{{ tooltipDay.events.length - 5 }} ещё</div>
+            </div>
+            <div v-else class="elem-cal__tooltip-empty">Нет событий</div>
+        </div>
+
         <!-- ── Custom CSS injection ────────────────────────────────── -->
         <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
     </div>
@@ -227,6 +276,22 @@ function startOfWeek(date, firstDay) {
 }
 function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
 
+// ── Heatmap color helpers ──────────────────────────────────────────
+function hexToRgb(hex) {
+    if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return null;
+    const c = hex.length === 4 ? hex.replace(/([^#])/g, '$1$1') : hex;
+    const m = /^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(c);
+    return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : null;
+}
+function lerpColor(lowHex, highHex, t) {
+    const lo = hexToRgb(lowHex) || [240, 249, 255];
+    const hi = hexToRgb(highHex) || [79, 70, 229];
+    const r = Math.round(lo[0] + (hi[0] - lo[0]) * t);
+    const g = Math.round(lo[1] + (hi[1] - lo[1]) * t);
+    const b = Math.round(lo[2] + (hi[2] - lo[2]) * t);
+    return `rgb(${r},${g},${b})`;
+}
+
 export default {
     extends: Elem,
     meta,
@@ -246,7 +311,9 @@ export default {
         rangeEnd: null,
         hoveredDate: null,
         nowTimer: null,
-        dimensionValues: []
+        dimensionValues: [],
+        tooltipDay: null,
+        tooltipMeta: { x: 0, y: 0 }
     }),
 
     computed: {
@@ -434,6 +501,7 @@ export default {
             if (this.currentView === 'day') {
                 return `${d} ${months[m]} ${y}`;
             }
+            if (this.currentView === 'year') return `${y}`;
             return `${months[m]} ${y}`;
         },
 
@@ -473,6 +541,71 @@ export default {
                 });
             } catch (e) { /* noop */ }
             return parts.length ? parts.join('\n') : null;
+        },
+
+        // ── Metric / heatmap data ────────────────────────────────────
+        metricData() {
+            let raw = [];
+            if (this.props.calMetricVar) {
+                try {
+                    const v = store.state[this.props.calMetricVar]?.value;
+                    if (v) raw = typeof v === 'string' ? JSON.parse(v) : (Array.isArray(v) ? v : []);
+                } catch (e) { /* noop */ }
+            }
+            if (!raw.length && this.props.calMetricJson) {
+                try {
+                    const parsed = JSON.parse(this.props.calMetricJson);
+                    if (Array.isArray(parsed)) raw = parsed;
+                    else if (parsed && typeof parsed === 'object') return parsed; // map format
+                } catch (e) { /* noop */ }
+            }
+            const map = {};
+            raw.forEach((item) => {
+                if (item && item.date) map[item.date.slice(0, 10)] = Number(item.value);
+            });
+            return map;
+        },
+
+        metricMinMax() {
+            const vals = Object.values(this.metricData).filter((v) => !isNaN(v));
+            if (!vals.length) return { min: 0, max: 1 };
+            return { min: Math.min(...vals), max: Math.max(...vals) };
+        },
+
+        // ── Year view months ─────────────────────────────────────────
+        yearMonths() {
+            const y = this.navDate.getFullYear();
+            return Array.from({ length: 12 }, (_, m) => {
+                const total = daysInMonth(y, m);
+                const firstDow = new Date(y, m, 1).getDay();
+                const offset = (firstDow - this.firstDay + 7) % 7;
+                const cells = [];
+                for (let i = 0; i < offset; i++) cells.push(null);
+                for (let d = 1; d <= total; d++) {
+                    const date = new Date(y, m, d);
+                    const iso = isoDate(date);
+                    cells.push({ d, iso, date, isToday: isSameDay(date, this.today), isWeekend: date.getDay() === 0 || date.getDay() === 6, events: this._eventsForDay(date) });
+                }
+                return { m, label: this.locale.months[m], cells };
+            });
+        },
+
+        // ── Tooltip ──────────────────────────────────────────────────
+        tooltipStyle() {
+            return { position: 'fixed', left: `${this.tooltipMeta.x}px`, top: `${this.tooltipMeta.y}px`, zIndex: 9999, pointerEvents: 'none' };
+        },
+
+        tooltipDateLabel() {
+            if (!this.tooltipDay) return '';
+            const d = this.tooltipDay.date;
+            if (!d) return '';
+            return `${this.locale.weekdays[d.getDay()]}, ${d.getDate()} ${this.locale.months[d.getMonth()]} ${d.getFullYear()}`;
+        },
+
+        tooltipMetricVal() {
+            if (!this.tooltipDay || !this.props.calHeatmapEnabled) return null;
+            const val = this.getMetricValue(this.tooltipDay.iso);
+            return val !== undefined ? this.formatMetric(val) : null;
         }
     },
 
@@ -560,6 +693,7 @@ export default {
             else if (this.currentView === 'week') d.setDate(d.getDate() - 7);
             else if (this.currentView === 'day') d.setDate(d.getDate() - 1);
             else if (this.currentView === 'agenda') d.setMonth(d.getMonth() - 1);
+            else if (this.currentView === 'year') d.setFullYear(d.getFullYear() - 1);
             this.navDate = d;
         },
 
@@ -569,6 +703,7 @@ export default {
             else if (this.currentView === 'week') d.setDate(d.getDate() + 7);
             else if (this.currentView === 'day') d.setDate(d.getDate() + 1);
             else if (this.currentView === 'agenda') d.setMonth(d.getMonth() + 1);
+            else if (this.currentView === 'year') d.setFullYear(d.getFullYear() + 1);
             this.navDate = d;
         },
 
@@ -611,10 +746,11 @@ export default {
             }
         },
 
-        onDayHover(day) {
+        onDayHover(day, event) {
             if (this.props.calSelectionMode === SELECTION_MODES.RANGE && this.rangeStart && !this.rangeEnd) {
                 this.hoveredDate = day.date;
             }
+            if (event) this.showTooltip(day, event);
         },
 
         onWeekColClick(day) {
@@ -697,6 +833,77 @@ export default {
                 height: `${height}px`,
                 background: ev.color || this.props.calAccentColor
             };
+        },
+
+        // ── Tooltip ──────────────────────────────────────────────────
+        showTooltip(day, event) {
+            const rect = event.currentTarget.getBoundingClientRect();
+            const x = Math.min(rect.right + 8, window.innerWidth - 260);
+            const y = Math.max(4, Math.min(rect.top, window.innerHeight - 210));
+            this.tooltipDay = day;
+            this.tooltipMeta = { x, y };
+        },
+
+        hideTooltip() {
+            this.tooltipDay = null;
+        },
+
+        // ── Heatmap ──────────────────────────────────────────────────
+        _heatmapBg(iso) {
+            if (!this.props.calHeatmapEnabled) return null;
+            const val = this.metricData[iso];
+            if (val === undefined) return null;
+            const { min, max } = this.metricMinMax;
+            const t = max > min ? (val - min) / (max - min) : 0.5;
+            const low = this.props.calHeatmapColorLow || '#f0f9ff';
+            const high = this.props.calHeatmapColorHigh || this.props.calAccentColor || '#4f46e5';
+            return lerpColor(low, high, t);
+        },
+
+        heatmapCellStyle(day) {
+            if (day.isToday) return {};
+            const bg = this._heatmapBg(day.iso);
+            return bg ? { background: bg } : {};
+        },
+
+        getMetricValue(iso) {
+            return this.metricData[iso];
+        },
+
+        formatMetric(val) {
+            if (val === undefined || val === null) return '';
+            const num = Number(val);
+            if (isNaN(num)) return String(val);
+            if (Math.abs(num) >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+            if (Math.abs(num) >= 1e3) return (num / 1e3).toFixed(1) + 'K';
+            return Number.isInteger(num) ? String(num) : num.toFixed(1);
+        },
+
+        // ── Year view navigation ─────────────────────────────────────
+        goToMonth(m) {
+            const d = new Date(this.navDate);
+            d.setMonth(m);
+            this.navDate = d;
+            this.setView('month');
+        },
+
+        goToDay(cell) {
+            this.navDate = new Date(cell.date);
+            this.setView('day');
+        },
+
+        yearDayClass(cell) {
+            return {
+                'elem-cal__year-day--today': cell.isToday,
+                'elem-cal__year-day--weekend': cell.isWeekend,
+                'elem-cal__year-day--has-events': cell.events.length > 0
+            };
+        },
+
+        yearDayStyle(cell) {
+            if (cell.isToday) return {};
+            const bg = this._heatmapBg(cell.iso);
+            return bg ? { background: bg } : {};
         },
 
         // ── Helpers ──────────────────────────────────────────────────
@@ -947,6 +1154,24 @@ export default {
     height: 100%;
     padding: 5px 5px 3px;
     box-sizing: border-box;
+}
+
+.elem-cal__cell-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.elem-cal__metric-val {
+    font-size: 0.77em;
+    font-weight: 700;
+    color: var(--cal-accent);
+    line-height: 22px;
+    text-align: right;
+    flex-shrink: 0;
+    padding-right: 2px;
+    opacity: 0.85;
 }
 
 .elem-cal__day-num {
@@ -1314,6 +1539,131 @@ export default {
     overflow: hidden;
 }
 
+
+/* ── Year view ───────────────────────────────────────────────────── */
+.elem-cal__year {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 12px;
+    align-content: start;
+}
+
+.elem-cal__year-month {
+    background: var(--cal-cell-bg);
+    border: 1px solid var(--cal-cell-border);
+    border-radius: 10px;
+    padding: 10px 8px;
+}
+
+.elem-cal__year-month-hd {
+    font-size: 0.85em;
+    font-weight: 700;
+    color: #334155;
+    text-align: center;
+    margin-bottom: 7px;
+    padding: 3px 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+.elem-cal__year-month-hd:hover { background: var(--cal-cell-hover-bg); color: var(--cal-accent); }
+
+.elem-cal__year-month-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+}
+
+.elem-cal__year-wd {
+    text-align: center;
+    font-size: 0.69em;
+    font-weight: 700;
+    color: #94a3b8;
+    padding: 2px 0 4px;
+    text-transform: uppercase;
+}
+
+.elem-cal__year-day {
+    text-align: center;
+    font-size: 0.77em;
+    font-weight: 500;
+    color: #475569;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+    line-height: 1;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+.elem-cal__year-day:hover:not(.elem-cal__year-day--empty):not(.elem-cal__year-day--today) { background: var(--cal-cell-hover-bg); }
+.elem-cal__year-day--empty { cursor: default; pointer-events: none; }
+.elem-cal__year-day--today { background: var(--cal-today-color) !important; color: #fff !important; font-weight: 700; }
+.elem-cal__year-day--weekend { color: var(--cal-weekend-color); }
+.elem-cal__year-day--has-events::after {
+    content: '';
+    position: absolute;
+    bottom: 1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--cal-accent);
+}
+.elem-cal__year-day--today.elem-cal__year-day--has-events::after { background: rgba(255,255,255,0.7); }
+
+/* ── Tooltip ─────────────────────────────────────────────────────── */
+.elem-cal__tooltip {
+    min-width: 165px;
+    max-width: 245px;
+    padding: 10px 12px;
+    background: #1e293b;
+    color: #f1f5f9;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.14);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.elem-cal__tooltip-date {
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 7px;
+    font-size: 0.92em;
+}
+
+.elem-cal__tooltip-metric {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.10);
+    border-radius: 6px;
+    margin-bottom: 7px;
+    font-size: 0.92em;
+    font-weight: 700;
+    color: #e0e7ff;
+}
+.elem-cal__tooltip-metric-icon { color: var(--cal-accent); font-size: 0.85em; }
+
+.elem-cal__tooltip-events { display: flex; flex-direction: column; gap: 4px; }
+
+.elem-cal__tooltip-ev {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.92em;
+}
+.elem-cal__tooltip-ev-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.elem-cal__tooltip-ev-title { color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+.elem-cal__tooltip-more { font-size: 0.85em; color: #64748b; margin-top: 2px; }
+.elem-cal__tooltip-empty { font-size: 0.85em; color: #64748b; font-style: italic; }
 
 /* ── No-weekends modifier ────────────────────────────────────────── */
 .elem-cal--no-weekends .elem-cal__cell--weekend {
