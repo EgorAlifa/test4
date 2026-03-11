@@ -2,7 +2,8 @@ export const VIEWS = Object.freeze({
     MONTH: 'month',
     WEEK: 'week',
     DAY: 'day',
-    AGENDA: 'agenda'
+    AGENDA: 'agenda',
+    YEAR: 'year'
 });
 
 export const LOCALES = Object.freeze({
@@ -29,7 +30,7 @@ export const LOCALE_DATA = {
         weekdays: ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'],
         weekdaysShort: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],
         today: 'Сегодня',
-        views: { month: 'Месяц', week: 'Неделя', day: 'День', agenda: 'Список' },
+        views: { month: 'Месяц', week: 'Неделя', day: 'День', agenda: 'Список', year: 'Год' },
         noEvents: 'Нет событий',
         allDay: 'Весь день'
     },
@@ -39,7 +40,7 @@ export const LOCALE_DATA = {
         weekdays: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
         weekdaysShort: ['Su','Mo','Tu','We','Th','Fr','Sa'],
         today: 'Today',
-        views: { month: 'Month', week: 'Week', day: 'Day', agenda: 'Agenda' },
+        views: { month: 'Month', week: 'Week', day: 'Day', agenda: 'Agenda', year: 'Year' },
         noEvents: 'No events',
         allDay: 'All day'
     }
@@ -184,6 +185,98 @@ export const PRESETS = Object.freeze({
             calSelectedColor: '#ffffff',
             calRangeBg: 'rgba(14,165,233,0.10)'
         }
+    },
+    nature: {
+        label: 'Природа',
+        props: {
+            calBg: '#f0fdf4',
+            calHeaderBg: 'linear-gradient(135deg, #15803d, #22c55e)',
+            calHeaderColor: '#ffffff',
+            calAccentColor: '#16a34a',
+            calTodayBg: '#dcfce7',
+            calTodayColor: '#15803d',
+            calWeekendColor: '#16a34a',
+            calCellBg: '#ffffff',
+            calCellHoverBg: '#f0fdf4',
+            calCellBorderColor: '#d1fae5',
+            calEventRadius: '6px',
+            calRadius: '14px',
+            calShadow: '0 4px 20px rgba(21,128,61,0.14), 0 1px 4px rgba(0,0,0,0.05)',
+            calFontFamily: 'inherit',
+            calFontSize: '13px',
+            calSelectedBg: '#16a34a',
+            calSelectedColor: '#ffffff',
+            calRangeBg: 'rgba(22,163,74,0.10)'
+        }
+    },
+    sunset: {
+        label: 'Закат',
+        props: {
+            calBg: '#fffbf5',
+            calHeaderBg: 'linear-gradient(135deg, #ea580c, #f59e0b)',
+            calHeaderColor: '#ffffff',
+            calAccentColor: '#ea580c',
+            calTodayBg: '#fff7ed',
+            calTodayColor: '#c2410c',
+            calWeekendColor: '#dc2626',
+            calCellBg: '#ffffff',
+            calCellHoverBg: '#fff7ed',
+            calCellBorderColor: '#fed7aa',
+            calEventRadius: '8px',
+            calRadius: '16px',
+            calShadow: '0 6px 30px rgba(234,88,12,0.16), 0 2px 8px rgba(245,158,11,0.12)',
+            calFontFamily: 'inherit',
+            calFontSize: '13px',
+            calSelectedBg: '#ea580c',
+            calSelectedColor: '#ffffff',
+            calRangeBg: 'rgba(234,88,12,0.10)'
+        }
+    },
+    neon: {
+        label: 'Неон',
+        props: {
+            calBg: '#020617',
+            calHeaderBg: '#020617',
+            calHeaderColor: '#22d3ee',
+            calAccentColor: '#22d3ee',
+            calTodayBg: 'rgba(34,211,238,0.12)',
+            calTodayColor: '#22d3ee',
+            calWeekendColor: '#f472b6',
+            calCellBg: '#0f172a',
+            calCellHoverBg: 'rgba(34,211,238,0.07)',
+            calCellBorderColor: 'rgba(34,211,238,0.12)',
+            calEventRadius: '4px',
+            calRadius: '12px',
+            calShadow: '0 0 0 1px rgba(34,211,238,0.15), 0 0 40px rgba(34,211,238,0.08)',
+            calFontFamily: 'JetBrains Mono, monospace',
+            calFontSize: '12px',
+            calSelectedBg: '#22d3ee',
+            calSelectedColor: '#020617',
+            calRangeBg: 'rgba(34,211,238,0.10)'
+        }
+    },
+    demo: {
+        label: '📅 Демо',
+        props: {
+            calBg: '#ffffff',
+            calHeaderBg: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+            calHeaderColor: '#ffffff',
+            calAccentColor: '#4f46e5',
+            calTodayBg: '#ede9fe',
+            calTodayColor: '#4f46e5',
+            calWeekendColor: '#ef4444',
+            calCellBg: '#ffffff',
+            calCellHoverBg: '#f5f3ff',
+            calCellBorderColor: '#e8e6f4',
+            calEventRadius: '5px',
+            calRadius: '14px',
+            calShadow: '0 4px 32px rgba(79,70,229,0.14), 0 1px 6px rgba(0,0,0,0.07)',
+            calFontFamily: 'inherit',
+            calFontSize: '13px',
+            calSelectedBg: '#4f46e5',
+            calSelectedColor: '#ffffff',
+            calRangeBg: 'rgba(79,70,229,0.10)'
+        }
     }
 });
 
@@ -194,3 +287,58 @@ export const EVENT_COLORS = [
 
 export const HOUR_HEIGHT = 60; // px per hour in week/day view
 export const AGENDA_DAYS_AHEAD = 60;
+
+// ── Demo events generator ───────────────────────────────────────────
+export function buildDemoEvents(year, month) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const date = (day) => `${year}-${pad(month)}-${pad(day)}`;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const clamp = (d) => Math.min(Math.max(d, 1), daysInMonth);
+
+    const nthWeekday = (nth, dow) => {
+        let count = 0;
+        for (let d = 1; d <= daysInMonth; d++) {
+            if (new Date(year, month - 1, d).getDay() === dow) {
+                count++;
+                if (count === nth) return d;
+            }
+        }
+        return null;
+    };
+
+    const mon1 = nthWeekday(1, 1);
+    const mon2 = nthWeekday(2, 1);
+    const mon3 = nthWeekday(3, 1);
+    const fri1 = nthWeekday(1, 5);
+    const fri2 = nthWeekday(2, 5);
+    const fri3 = nthWeekday(3, 5);
+    const wed1 = nthWeekday(1, 3);
+    const wed2 = nthWeekday(2, 3);
+    const thu2 = nthWeekday(2, 4);
+
+    const ev = [];
+
+    if (mon1) ev.push({ title: 'Планирование спринта', date: date(mon1), color: '#4f46e5', startTime: '10:00', endTime: '12:00', desc: 'Разбираем задачи на 2 недели' });
+    if (fri1) ev.push({ title: 'Ретроспектива', date: date(fri1), color: '#7c3aed', startTime: '15:00', endTime: '16:00', desc: 'Что прошло хорошо, что улучшить' });
+    if (wed1) ev.push({ title: 'Демо продукта', date: date(wed1), color: '#0ea5e9', startTime: '14:00', endTime: '15:00', desc: 'Показываем фичи стейкхолдерам' });
+    if (thu2) ev.push({ title: 'KPI-дашборд: обзор', date: date(thu2), color: '#f59e0b', startTime: '11:00', endTime: '12:00', desc: 'Ключевые метрики месяца' });
+    if (mon2) ev.push({ title: 'Планирование спринта 2', date: date(mon2), color: '#4f46e5', startTime: '10:00', endTime: '12:00', desc: 'Разбираем задачи на второй спринт' });
+    if (fri2) ev.push({ title: 'Ревью релиза', date: date(fri2), color: '#10b981', startTime: '16:00', endTime: '17:00', desc: 'Финальная проверка перед деплоем' });
+    if (wed2) ev.push({ title: 'Командный обед', date: date(wed2), color: '#ec4899', startTime: '13:00', endTime: '14:00', desc: 'Неформальная встреча команды' });
+    if (fri3) ev.push({ title: 'Деплой в прод', date: date(fri3), color: '#ef4444', startTime: '12:00', endTime: '13:00', desc: 'Выкатываем релиз' });
+    if (mon3) ev.push({ title: '1-on-1 с тимлидом', date: date(mon3), color: '#14b8a6', startTime: '09:00', endTime: '09:30', desc: 'Индивидуальная встреча' });
+
+    const mid = clamp(15);
+    ev.push({ title: 'Дедлайн: сдача MVP', date: date(mid), color: '#ef4444', desc: 'Ключевой дедлайн месяца' });
+
+    const eoDay = clamp(daysInMonth - 1);
+    const eoDow = new Date(year, month - 1, eoDay).getDay();
+    const reportDay = eoDow === 0 ? clamp(eoDay - 2) : eoDow === 6 ? clamp(eoDay - 1) : eoDay;
+    ev.push({ title: 'Ежемесячный отчёт', date: date(reportDay), color: '#f59e0b', startTime: '10:00', endTime: '11:00', desc: 'Итоги месяца для руководства' });
+
+    const hackStart = clamp(mon2 ? mon2 + 1 : 10);
+    const hackEnd = clamp(hackStart + 1);
+    ev.push({ title: 'Хакатон', date: date(hackStart), endDate: date(hackEnd), color: '#7c3aed', desc: 'Внутренний хакатон команды' });
+
+    return ev.filter(Boolean);
+}
