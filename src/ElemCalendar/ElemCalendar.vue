@@ -1019,6 +1019,9 @@ export default {
         _commitDate(iso) {
             this.props.calSelectedDate = iso;
             this.propChanged('calSelectedDate');
+            // Primary: vars panel (Variables editor)
+            this.$storeCommit({ date: iso });
+            // Fallback: legacy manual prop
             if (this.props.calDateVar) {
                 store.commit(
                     { [this.props.calDateVar]: new ValueObject(iso, store.state[this.props.calDateVar]?.meta) },
@@ -1032,6 +1035,9 @@ export default {
             this.props.calSelectedEnd = end;
             this.propChanged('calSelectedStart');
             this.propChanged('calSelectedEnd');
+            // Primary: vars panel (Variables editor)
+            this.$storeCommit({ dateStart: start, dateEnd: end });
+            // Fallback: legacy manual props
             if (this.props.calStartVar) {
                 store.commit({ [this.props.calStartVar]: new ValueObject(start) }, { context: this });
             }
@@ -2130,8 +2136,8 @@ export default {
 .elem-cal__compact {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px;
+    gap: 6px;
+    padding: 10px 12px;
     height: 100%;
     box-sizing: border-box;
     overflow-y: auto;
@@ -2197,26 +2203,31 @@ export default {
 /* Calendar grid */
 .compact__grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
+    grid-template-columns: repeat(7, 26px);
+    gap: 1px;
+    justify-content: center;
 }
 .compact__wd {
-    text-align: center;
-    font-size: 0.69em;
+    width: 26px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65em;
     font-weight: 700;
     color: #94a3b8;
-    padding: 2px 0 4px;
     text-transform: uppercase;
 }
 .compact__day {
-    aspect-ratio: 1;
+    width: 26px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.77em;
     font-weight: 500;
     color: #475569;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
     transition: background 0.1s, color 0.1s;
     user-select: none;
@@ -2232,15 +2243,15 @@ export default {
     background: var(--cal-accent) !important;
     color: #fff !important;
     font-weight: 700;
-    border-radius: 6px;
+    border-radius: 4px;
 }
 .compact__day--in-range {
     background: var(--cal-range-bg);
     border-radius: 0;
 }
-.compact__day--range-start { border-radius: 6px 0 0 6px; }
-.compact__day--range-end   { border-radius: 0 6px 6px 0; }
-.compact__day--range-start.compact__day--range-end { border-radius: 6px; }
+.compact__day--range-start { border-radius: 4px 0 0 4px; }
+.compact__day--range-end   { border-radius: 0 4px 4px 0; }
+.compact__day--range-start.compact__day--range-end { border-radius: 4px; }
 
 /* Range drag bar */
 .compact__bar-section {
