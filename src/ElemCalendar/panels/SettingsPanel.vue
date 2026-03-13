@@ -6,9 +6,9 @@
             <div class="p-section">
                 <div class="p-section__label">Вид и поведение</div>
 
-                <div class="p-row">
+                <div class="p-row p-row--col">
                     <span class="p-row__label">Вид по умолчанию</span>
-                    <div class="seg-ctrl">
+                    <div class="seg-ctrl seg-ctrl--wrap">
                         <button
                             v-for="v in viewOptions"
                             :key="v.value"
@@ -71,6 +71,13 @@
             <div class="p-section">
                 <div class="p-section__label">Выбор дат</div>
 
+                <div class="p-hint" style="margin-bottom:8px">
+                    Клик по дате записывает значение в переменную хранилища.
+                    Другие виджеты (таблицы, графики) могут использовать эту
+                    переменную как фильтр — так и происходит синхронизация
+                    с источником данных.
+                </div>
+
                 <div class="p-row">
                     <span class="p-row__label">Режим</span>
                     <div class="seg-ctrl">
@@ -118,6 +125,22 @@
             <div class="p-section">
                 <div class="p-section__label">События</div>
 
+                <!-- Источники данных — краткая шпаргалка -->
+                <div class="sources-map">
+                    <div class="sources-map__row">
+                        <span class="sources-map__badge sources-map__badge--store">Хранилище</span>
+                        <span class="sources-map__text">Переменная → JSON-массив событий от других виджетов</span>
+                    </div>
+                    <div class="sources-map__row">
+                        <span class="sources-map__badge sources-map__badge--static">Статика</span>
+                        <span class="sources-map__text">Ручной ввод событий прямо здесь</span>
+                    </div>
+                    <div class="sources-map__row">
+                        <span class="sources-map__badge sources-map__badge--dataset">Данные</span>
+                        <span class="sources-map__text">Столбцы источника → маппинг в панели «Данные»</span>
+                    </div>
+                </div>
+
                 <ui-input
                     :value="props.calEventsVar"
                     :list="`store-list-${_uid}`"
@@ -125,7 +148,7 @@
                     Переменная хранилища (JSON-массив)
                 </ui-input>
                 <span class="p-hint" style="display:block;margin-top:-4px;margin-bottom:10px">
-                    Укажите переменную, содержащую массив событий из хранилища
+                    Если задана — берёт приоритет над статическими событиями ниже
                 </span>
 
                 <!-- ── Визуальный редактор событий ────────────────── -->
@@ -533,6 +556,10 @@ export default {
     padding: 2px;
     gap: 1px;
 }
+.seg-ctrl--wrap {
+    flex-wrap: wrap;
+    width: 100%;
+}
 .seg-ctrl__btn {
     padding: 4px 10px;
     border: none;
@@ -844,5 +871,40 @@ export default {
     flex-direction: row;
     align-items: flex-end;
     gap: 8px;
+}
+
+/* ── Sources map ──────────────────────────────────────────────── */
+.sources-map {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    padding: 9px 11px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.sources-map__row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.sources-map__badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+.sources-map__badge--store  { background: #ede9fe; color: #6d28d9; }
+.sources-map__badge--static { background: #dcfce7; color: #16a34a; }
+.sources-map__badge--dataset{ background: #dbeafe; color: #1d4ed8; }
+.sources-map__text {
+    font-size: 10px;
+    color: #64748b;
+    line-height: 1.4;
 }
 </style>

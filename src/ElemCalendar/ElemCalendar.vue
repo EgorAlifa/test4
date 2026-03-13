@@ -92,43 +92,45 @@
 
         <!-- ── Week view ───────────────────────────────────────────── -->
         <div v-else-if="currentView === 'week'" class="elem-cal__week">
-            <div class="elem-cal__week-head">
-                <div class="elem-cal__time-gutter" />
-                <div
-                    v-for="day in weekDays"
-                    :key="day.key"
-                    class="elem-cal__week-col-hd"
-                    :class="{ 'elem-cal__week-col-hd--today': day.isToday, 'elem-cal__week-col-hd--weekend': day.isWeekend }"
-                    @click="drillDown(day)">
-                    <div class="elem-cal__week-dow">{{ locale.weekdaysShort[day.dow] }}</div>
-                    <div class="elem-cal__week-num" :class="{ 'elem-cal__week-num--today': day.isToday }">{{ day.d }}</div>
-                </div>
-            </div>
-            <div class="elem-cal__week-body">
-                <div class="elem-cal__time-col">
-                    <div v-for="h in 24" :key="h" class="elem-cal__hour-label">
-                        {{ formatHour(h - 1) }}
-                    </div>
-                </div>
-                <div class="elem-cal__week-cols">
+            <div class="elem-cal__week-scroller">
+                <div class="elem-cal__week-head">
+                    <div class="elem-cal__time-gutter" />
                     <div
                         v-for="day in weekDays"
                         :key="day.key"
-                        class="elem-cal__week-col"
-                        :class="{ 'elem-cal__week-col--today': day.isToday }"
-                        @click="onWeekColClick(day, $event)">
-                        <div v-for="h in 24" :key="h" class="elem-cal__hour-slot" />
-                        <div
-                            v-for="ev in day.events"
-                            :key="ev.id"
-                            class="elem-cal__week-event"
-                            :style="weekEventStyle(ev)"
-                            :title="ev.title"
-                            @click.stop="onEventClick(ev)">
-                            <span class="elem-cal__week-event-title">{{ ev.title }}</span>
-                            <span class="elem-cal__week-event-time">{{ ev.startTime }}</span>
+                        class="elem-cal__week-col-hd"
+                        :class="{ 'elem-cal__week-col-hd--today': day.isToday, 'elem-cal__week-col-hd--weekend': day.isWeekend }"
+                        @click="drillDown(day)">
+                        <div class="elem-cal__week-dow">{{ locale.weekdaysShort[day.dow] }}</div>
+                        <div class="elem-cal__week-num" :class="{ 'elem-cal__week-num--today': day.isToday }">{{ day.d }}</div>
+                    </div>
+                </div>
+                <div class="elem-cal__week-body">
+                    <div class="elem-cal__time-col">
+                        <div v-for="h in 24" :key="h" class="elem-cal__hour-label">
+                            {{ formatHour(h - 1) }}
                         </div>
-                        <div v-if="day.isToday" class="elem-cal__now-line" :style="nowLineStyle" />
+                    </div>
+                    <div class="elem-cal__week-cols">
+                        <div
+                            v-for="day in weekDays"
+                            :key="day.key"
+                            class="elem-cal__week-col"
+                            :class="{ 'elem-cal__week-col--today': day.isToday }"
+                            @click="onWeekColClick(day, $event)">
+                            <div v-for="h in 24" :key="h" class="elem-cal__hour-slot" />
+                            <div
+                                v-for="ev in day.events"
+                                :key="ev.id"
+                                class="elem-cal__week-event"
+                                :style="weekEventStyle(ev)"
+                                :title="ev.title"
+                                @click.stop="onEventClick(ev)">
+                                <span class="elem-cal__week-event-title">{{ ev.title }}</span>
+                                <span class="elem-cal__week-event-time">{{ ev.startTime }}</span>
+                            </div>
+                            <div v-if="day.isToday" class="elem-cal__now-line" :style="nowLineStyle" />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -136,35 +138,37 @@
 
         <!-- ── Day view ────────────────────────────────────────────── -->
         <div v-else-if="currentView === 'day'" class="elem-cal__day-view">
-            <div class="elem-cal__day-head">
-                <div class="elem-cal__time-gutter" />
-                <div
-                    class="elem-cal__week-col-hd elem-cal__week-col-hd--single"
-                    :class="{ 'elem-cal__week-col-hd--today': dayViewDay && dayViewDay.isToday }">
-                    <div class="elem-cal__week-dow">{{ dayViewDay ? locale.weekdays[dayViewDay.dow] : '' }}</div>
-                    <div class="elem-cal__week-num" :class="{ 'elem-cal__week-num--today': dayViewDay && dayViewDay.isToday }">
-                        {{ dayViewDay ? dayViewDay.d : '' }}
+            <div class="elem-cal__week-scroller">
+                <div class="elem-cal__day-head">
+                    <div class="elem-cal__time-gutter" />
+                    <div
+                        class="elem-cal__week-col-hd elem-cal__week-col-hd--single"
+                        :class="{ 'elem-cal__week-col-hd--today': dayViewDay && dayViewDay.isToday }">
+                        <div class="elem-cal__week-dow">{{ dayViewDay ? locale.weekdays[dayViewDay.dow] : '' }}</div>
+                        <div class="elem-cal__week-num" :class="{ 'elem-cal__week-num--today': dayViewDay && dayViewDay.isToday }">
+                            {{ dayViewDay ? dayViewDay.d : '' }}
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="elem-cal__week-body">
-                <div class="elem-cal__time-col">
-                    <div v-for="h in 24" :key="h" class="elem-cal__hour-label">{{ formatHour(h - 1) }}</div>
-                </div>
-                <div class="elem-cal__week-cols">
-                    <div class="elem-cal__week-col elem-cal__week-col--full" :class="{ 'elem-cal__week-col--today': dayViewDay && dayViewDay.isToday }">
-                        <div v-for="h in 24" :key="h" class="elem-cal__hour-slot" />
-                        <div
-                            v-for="ev in dayViewEvents"
-                            :key="ev.id"
-                            class="elem-cal__week-event"
-                            :style="weekEventStyle(ev)"
-                            :title="ev.title"
-                            @click.stop="onEventClick(ev)">
-                            <span class="elem-cal__week-event-title">{{ ev.title }}</span>
-                            <span class="elem-cal__week-event-time">{{ ev.startTime }}</span>
+                <div class="elem-cal__week-body">
+                    <div class="elem-cal__time-col">
+                        <div v-for="h in 24" :key="h" class="elem-cal__hour-label">{{ formatHour(h - 1) }}</div>
+                    </div>
+                    <div class="elem-cal__week-cols">
+                        <div class="elem-cal__week-col elem-cal__week-col--full" :class="{ 'elem-cal__week-col--today': dayViewDay && dayViewDay.isToday }">
+                            <div v-for="h in 24" :key="h" class="elem-cal__hour-slot" />
+                            <div
+                                v-for="ev in dayViewEvents"
+                                :key="ev.id"
+                                class="elem-cal__week-event"
+                                :style="weekEventStyle(ev)"
+                                :title="ev.title"
+                                @click.stop="onEventClick(ev)">
+                                <span class="elem-cal__week-event-title">{{ ev.title }}</span>
+                                <span class="elem-cal__week-event-time">{{ ev.startTime }}</span>
+                            </div>
+                            <div v-if="dayViewDay && dayViewDay.isToday" class="elem-cal__now-line" :style="nowLineStyle" />
                         </div>
-                        <div v-if="dayViewDay && dayViewDay.isToday" class="elem-cal__now-line" :style="nowLineStyle" />
                     </div>
                 </div>
             </div>
@@ -1300,12 +1304,27 @@ export default {
     overflow: hidden;
 }
 
+/* Single scroll container — header is sticky inside it so both
+   header cols and body cols always share the same layout width,
+   eliminating the scrollbar-gutter misalignment. */
+.elem-cal__week-scroller {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
 .elem-cal__week-head,
 .elem-cal__day-head {
     display: flex;
     border-bottom: 1px solid var(--cal-cell-border);
     flex-shrink: 0;
     background: var(--cal-bg);
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
 
 .elem-cal__time-gutter {
@@ -1356,12 +1375,9 @@ export default {
 
 .elem-cal__week-body {
     display: flex;
-    flex: 1;
-    overflow-y: scroll;
-    overflow-x: hidden;
-    min-height: 0;
-    scrollbar-gutter: stable;
+    flex-shrink: 0;
 }
+
 
 .elem-cal__time-col {
     width: 52px;
