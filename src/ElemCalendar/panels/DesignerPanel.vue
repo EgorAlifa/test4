@@ -21,16 +21,12 @@
                     <div
                         class="block__hd"
                         @click="toggle(block.key)">
-                        <div class="block__hd-left">
-                            <i class="mdi mdi-circle-small block__dot" :class="hasValue(block.key) ? 'block__dot--active' : ''" />
-                            <span class="block__label">{{ block.label }}</span>
-                        </div>
-                        <div class="block__hd-right">
-                            <code class="block__sel">{{ block.sel }}</code>
-                            <i class="mdi block__chevron" :class="isOpen(block.key) ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
-                        </div>
+                        <i class="mdi mdi-circle-small block__dot" :class="hasValue(block.key) ? 'block__dot--active' : ''" />
+                        <span class="block__label">{{ block.label }}</span>
+                        <i class="mdi block__chevron" :class="isOpen(block.key) ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
                     </div>
                     <div v-if="isOpen(block.key)" class="block__body">
+                        <code class="block__sel">{{ block.sel }}</code>
                         <textarea
                             class="block__textarea"
                             :value="getVal(block.key)"
@@ -47,16 +43,12 @@
             <!-- Свободный CSS на весь виджет -->
             <div class="block block--global">
                 <div class="block__hd" @click="globalOpen = !globalOpen">
-                    <div class="block__hd-left">
-                        <i class="mdi mdi-circle-small block__dot" :class="props.calCustomCss ? 'block__dot--active' : ''" />
-                        <span class="block__label">Весь виджет (свободный CSS)</span>
-                    </div>
-                    <div class="block__hd-right">
-                        <code class="block__sel">.elem-cal</code>
-                        <i class="mdi block__chevron" :class="globalOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
-                    </div>
+                    <i class="mdi mdi-circle-small block__dot" :class="props.calCustomCss ? 'block__dot--active' : ''" />
+                    <span class="block__label">Весь виджет (свободный CSS)</span>
+                    <i class="mdi block__chevron" :class="globalOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
                 </div>
                 <div v-if="globalOpen" class="block__body">
+                    <code class="block__sel">.elem-cal</code>
                     <textarea
                         class="block__textarea"
                         :value="localGlobalCss"
@@ -286,8 +278,8 @@ export default {
 .block__hd {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 8px 10px;
+    gap: 4px;
+    padding: 9px 10px;
     background: #f8fafc;
     cursor: pointer;
     user-select: none;
@@ -295,13 +287,6 @@ export default {
 }
 .block__hd:hover { background: #f1f5ff; }
 
-.block__hd-left {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex: 1;
-    min-width: 0;
-}
 .block__dot {
     font-size: 18px;
     color: #e2e8f0;
@@ -314,27 +299,22 @@ export default {
     font-size: 12px;
     font-weight: 600;
     color: #1e293b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
 }
 
-.block__hd-right {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-}
 .block__sel {
+    display: block;
     font-family: monospace;
     font-size: 10px;
-    color: #334155;
-    background: #e2e8f0;
-    padding: 2px 6px;
+    color: #4f6aff;
+    background: #eef2ff;
+    padding: 2px 7px;
     border-radius: 4px;
-    white-space: nowrap;
+    margin-bottom: 6px;
+    width: fit-content;
 }
-.block__chevron { font-size: 16px; color: #94a3b8; }
+.block__chevron { font-size: 16px; color: #94a3b8; flex-shrink: 0; }
 
 .block__body {
     padding: 10px;
