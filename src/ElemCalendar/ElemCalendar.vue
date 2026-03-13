@@ -62,7 +62,7 @@
                     </svg>
                 </button>
                 <span class="compact__month-label">{{ currentTitle }}</span>
-                <button class="compact__today-chip" @click="goToday">{{ locale.today }}</button>
+                <button v-if="props.calCompactShowToday !== false" class="compact__today-chip" @click="applyPreset({ key: 'today' })">{{ locale.today }}</button>
                 <button class="compact__nav" @click="nextPeriod">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                         <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -74,15 +74,19 @@
             <div v-if="compactSelectionHint" class="compact__hint">{{ compactSelectionHint }}</div>
 
             <!-- Calendar grid -->
-            <div class="compact__grid">
+            <div class="compact__grid" :class="{ 'compact__grid--no-weekends': !props.calShowWeekends }">
                 <div
                     v-for="(wd, i) in weekdayHeaders"
                     :key="`cwd-${i}`"
                     class="compact__wd"
-                    :class="{ 'compact__wd--hidden': isWeekendCol(i) && !props.calShowWeekends }">
+                    :class="{ 'compact__wd--weekend': isWeekendCol(i) }">
                     {{ wd.charAt(0) }}
                 </div>
-                <div v-for="i in compactGridOffset" :key="`ce-${i}`" class="compact__day compact__day--empty" />
+                <div
+                    v-for="(c, i) in compactOffsetCells"
+                    :key="`ce-${i}`"
+                    class="compact__day compact__day--empty"
+                    :class="{ 'compact__day--weekend': c.isWeekend }" />
                 <div
                     v-for="cell in compactCells"
                     :key="cell.iso"
@@ -781,11 +785,17 @@ export default {
             return this.props.calSelectedEnd || '';
         },
 
-        compactGridOffset() {
+        compactOffsetCells() {
             const y = this.navDate.getFullYear();
             const m = this.navDate.getMonth();
             const firstDow = new Date(y, m, 1).getDay();
-            return (firstDow - this.firstDay + 7) % 7;
+            const count = (firstDow - this.firstDay + 7) % 7;
+            const cells = [];
+            for (let i = 0; i < count; i++) {
+                const dow = (this.firstDay + i) % 7;
+                cells.push({ isWeekend: dow === 0 || dow === 6 });
+            }
+            return cells;
         },
 
         compactCells() {
@@ -815,26 +825,24 @@ export default {
         },
 
         compactPresetsList() {
-            const defaults = {
-                today:      'Сегодня',
-                yesterday:  'Вчера',
-                week:       'Эта неделя',
-                last_week:  'Пр. неделя',
-                month:      'Этот месяц',
-                last_month: 'Пр. месяц',
-                d7:         '7 дней',
-                d30:        '30 дней',
-                d90:        '90 дней',
-                year:       'Этот год'
-            };
-            const custom = this.props.calPresetLabels || {};
-            const hidden = new Set(this.props.calHiddenPresets || []);
-            return Object.keys(defaults)
-                .filter(key => !hidden.has(key))
-                .map(key => ({
-                    key,
-                    label: custom[key] !== undefined ? custom[key] : defaults[key]
-                }));
+            if (this.props.calPresetsJson) {
+                try {
+                    const parsed = JSON.parse(this.props.calPresetsJson);
+                    if (Array.isArray(parsed)) return parsed;
+                } catch (e) { /* fall through */ }
+            }
+            return [
+                { key: 'today',      label: 'Сегодня' },
+                { key: 'yesterday',  label: 'Вчера' },
+                { key: 'week',       label: 'Эта неделя' },
+                { key: 'last_week',  label: 'Пр. неделя' },
+                { key: 'month',      label: 'Этот месяц' },
+                { key: 'last_month', label: 'Пр. месяц' },
+                { key: 'd7',         label: '7 дней' },
+                { key: 'd30',        label: '30 дней' },
+                { key: 'd90',        label: '90 дней' },
+                { key: 'year',       label: 'Этот год' }
+            ];
         },
 
         // Hint text shown above the grid when in step 1 (awaiting end click)
@@ -1154,7 +1162,6 @@ export default {
             return {
                 'compact__day--today':       cell.isToday,
                 'compact__day--weekend':     cell.isWeekend,
-                'compact__day--no-weekend':  cell.isWeekend && !this.props.calShowWeekends,
                 'compact__day--range-start': cell.isStart,
                 'compact__day--range-end':   cell.isEnd,
                 'compact__day--in-range':    cell.inRange
@@ -2297,10 +2304,12 @@ export default {
 .compact__btn--apply:hover { opacity: 0.88; }
 .compact__btn--apply:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* Hidden weekends in compact grid */
-.compact__day--no-weekend,
-.compact__wd--hidden {
-    visibility: hidden;
-    pointer-events: none;
+/* No-weekends: collapse weekend columns, matching large calendar behaviour */
+.compact__grid--no-weekends {
+    grid-template-columns: repeat(5, 1fr);
+}
+.compact__grid--no-weekends .compact__wd--weekend,
+.compact__grid--no-weekends .compact__day--weekend {
+    display: none;
 }
 </style>

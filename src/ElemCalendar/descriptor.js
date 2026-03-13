@@ -18,15 +18,15 @@ export const descriptor = () => ({
             default: true,
             label: 'Компактный режим: показывать кнопки-пресеты'
         },
-        calPresetLabels: {
-            type: Object,
+        calPresetsJson: {
+            type: String,
             default: null,
-            label: 'Компактный режим: пользовательские подписи пресетов { key: label }'
+            label: 'Компактный режим: пресеты дат (JSON-массив [{key,label}])'
         },
-        calHiddenPresets: {
-            type: Array,
-            default: null,
-            label: 'Компактный режим: скрытые пресеты (массив ключей)'
+        calCompactShowToday: {
+            type: Boolean,
+            default: true,
+            label: 'Компактный режим: показывать кнопку «Сегодня» в шапке'
         },
         // ── View & behaviour ──────────────────────────────────────────
         calView: {

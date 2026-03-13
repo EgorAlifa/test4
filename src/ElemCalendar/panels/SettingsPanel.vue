@@ -214,21 +214,39 @@
                     </div>
                 </label>
 
-                <!-- Preset management list -->
-                <div v-if="props.calCompactShowPresets !== false" class="preset-list">
-                    <div v-for="p in defaultPresets" :key="p.key" class="preset-row">
-                        <button
-                            class="preset-row__dot"
-                            :class="{ 'preset-row__dot--on': !isPresetHidden(p.key) }"
-                            :title="isPresetHidden(p.key) ? 'Показать' : 'Скрыть'"
-                            @click="togglePresetHidden(p.key)" />
-                        <input
-                            class="preset-row__input"
-                            :class="{ 'preset-row__input--dim': isPresetHidden(p.key) }"
-                            :value="getPresetLabel(p.key)"
-                            :placeholder="p.defaultLabel"
-                            @change="setPresetLabel(p.key, $event.target.value)" />
+                <!-- Preset management list (static-events style) -->
+                <div v-if="props.calCompactShowPresets !== false" class="preset-section">
+                    <div v-if="localPresets.length === 0" class="preset-empty">Нет пресетов</div>
+                    <div class="preset-cards">
+                        <div v-for="(p, idx) in localPresets" :key="`${p.key}-${idx}`" class="preset-card">
+                            <input
+                                class="preset-card__input"
+                                type="text"
+                                :value="p.label"
+                                @input="updatePreset(idx, $event.target.value)" />
+                            <button class="preset-card__del" @click="removePreset(idx)">✕</button>
+                        </div>
                     </div>
+                    <div class="preset-add-row">
+                        <select v-model="presetToAdd" class="preset-add-select">
+                            <option value="">— добавить пресет —</option>
+                            <option v-for="p in availableToAdd" :key="p.key" :value="p.key">{{ p.label }}</option>
+                        </select>
+                        <button v-if="presetToAdd" class="preset-add-btn" @click="addPreset">+</button>
+                    </div>
+                    <div class="preset-actions">
+                        <button class="preset-action-btn" @click="resetPresetsToDefault">По умолчанию</button>
+                    </div>
+                </div>
+
+                <label class="toggle-row">
+                    <span class="toggle-row__label">Кнопка «Сегодня»</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowToday !== false }" @click="toggleBool('calCompactShowToday')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <div class="p-hint" style="margin:0 0 6px">
+                    Дублирует пресет «Сегодня». Если он активен, кнопку можно скрыть.
                 </div>
                 <label class="toggle-row">
                     <span class="toggle-row__label">Нижняя панель (ввод дат)</span>
@@ -311,23 +329,42 @@ export default {
             { value: 'single', label: 'Дата' },
             { value: 'range', label: 'Диапазон' }
         ],
-        defaultPresets: [
-            { key: 'today',      defaultLabel: 'Сегодня' },
-            { key: 'yesterday',  defaultLabel: 'Вчера' },
-            { key: 'week',       defaultLabel: 'Эта неделя' },
-            { key: 'last_week',  defaultLabel: 'Пр. неделя' },
-            { key: 'month',      defaultLabel: 'Этот месяц' },
-            { key: 'last_month', defaultLabel: 'Пр. месяц' },
-            { key: 'd7',         defaultLabel: '7 дней' },
-            { key: 'd30',        defaultLabel: '30 дней' },
-            { key: 'd90',        defaultLabel: '90 дней' },
-            { key: 'year',       defaultLabel: 'Этот год' }
-        ]
+        allPresets: [
+            { key: 'today',      label: 'Сегодня' },
+            { key: 'yesterday',  label: 'Вчера' },
+            { key: 'week',       label: 'Эта неделя' },
+            { key: 'last_week',  label: 'Пр. неделя' },
+            { key: 'month',      label: 'Этот месяц' },
+            { key: 'last_month', label: 'Пр. месяц' },
+            { key: 'd7',         label: '7 дней' },
+            { key: 'd30',        label: '30 дней' },
+            { key: 'd90',        label: '90 дней' },
+            { key: 'year',       label: 'Этот год' }
+        ],
+        localPresets: [],
+        presetToAdd: ''
     }),
 
     computed: {
         storeVarNames() {
             try { return Object.keys(store.state || {}).filter(Boolean).sort(); } catch (e) { return []; }
+        },
+        availableToAdd() {
+            const activeKeys = new Set(this.localPresets.map(p => p.key));
+            return this.allPresets.filter(p => !activeKeys.has(p.key));
+        }
+    },
+
+    watch: {
+        'props.calPresetsJson': {
+            immediate: true,
+            handler(val) {
+                try {
+                    const parsed = val ? JSON.parse(val) : null;
+                    if (Array.isArray(parsed)) { this.localPresets = parsed; return; }
+                } catch (e) { /* fall through */ }
+                this.localPresets = [...this.allPresets];
+            }
         }
     },
 
@@ -364,33 +401,31 @@ export default {
             this.set('calAvailableViews', arr);
         },
 
-        isPresetHidden(key) {
-            const h = this.props.calHiddenPresets;
-            return Array.isArray(h) && h.includes(key);
+        _savePresets() {
+            this.set('calPresetsJson', JSON.stringify(this.localPresets));
         },
 
-        togglePresetHidden(key) {
-            const h = Array.isArray(this.props.calHiddenPresets) ? [...this.props.calHiddenPresets] : [];
-            const idx = h.indexOf(key);
-            if (idx === -1) h.push(key);
-            else h.splice(idx, 1);
-            this.set('calHiddenPresets', h);
+        updatePreset(idx, label) {
+            this.localPresets = this.localPresets.map((p, i) => i === idx ? { ...p, label } : p);
+            this._savePresets();
         },
 
-        getPresetLabel(key) {
-            const labels = this.props.calPresetLabels;
-            return (labels && labels[key] !== undefined) ? labels[key] : '';
+        removePreset(idx) {
+            this.localPresets = this.localPresets.filter((_, i) => i !== idx);
+            this._savePresets();
         },
 
-        setPresetLabel(key, val) {
-            const labels = { ...(this.props.calPresetLabels || {}) };
-            const def = (this.defaultPresets.find(p => p.key === key) || {}).defaultLabel || '';
-            if (!val || val.trim() === def) {
-                delete labels[key];
-            } else {
-                labels[key] = val.trim();
-            }
-            this.set('calPresetLabels', labels);
+        addPreset() {
+            const def = this.allPresets.find(p => p.key === this.presetToAdd);
+            if (!def) return;
+            this.localPresets = [...this.localPresets, { key: def.key, label: def.label }];
+            this.presetToAdd = '';
+            this._savePresets();
+        },
+
+        resetPresetsToDefault() {
+            this.localPresets = [...this.allPresets];
+            this._savePresets();
         }
     }
 };
@@ -591,54 +626,103 @@ export default {
     margin-bottom: 6px;
 }
 
-/* ── Preset management list ───────────────────────────────────── */
-.preset-list {
+/* ── Preset management (static-events style) ──────────────────── */
+.preset-section {
+    margin-top: 6px;
+    margin-bottom: 8px;
+}
+.preset-empty {
+    font-size: 11px;
+    color: #94a3b8;
+    padding: 4px 0;
+    font-style: italic;
+}
+.preset-cards {
     display: flex;
     flex-direction: column;
     gap: 3px;
-    margin-top: 6px;
-    padding: 6px 8px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    margin-bottom: 6px;
 }
-.preset-row {
+.preset-card {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 4px 6px;
 }
-.preset-row__dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 1.5px solid #cbd5e1;
-    background: #fff;
-    cursor: pointer;
-    flex-shrink: 0;
-    padding: 0;
-    transition: background 0.12s, border-color 0.12s;
-}
-.preset-row__dot--on {
-    background: #4f6aff;
-    border-color: #4f6aff;
-}
-.preset-row__input {
+.preset-card__input {
     flex: 1;
     font-size: 11px;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    padding: 2px 5px;
+    border: none;
     background: transparent;
     color: #334155;
     outline: none;
     min-width: 0;
-    transition: border-color 0.12s, background 0.12s, opacity 0.12s;
+    padding: 0;
 }
-.preset-row__input:focus {
-    border-color: #4f6aff;
+.preset-card__input:focus { color: #1e293b; }
+.preset-card__del {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0 2px;
+    flex-shrink: 0;
+    line-height: 1;
+    transition: color 0.12s;
+}
+.preset-card__del:hover { color: #ef4444; }
+.preset-add-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+.preset-add-select {
+    flex: 1;
+    font-size: 11px;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    padding: 3px 6px;
     background: #fff;
+    color: #334155;
+    outline: none;
+    min-width: 0;
+    cursor: pointer;
 }
-.preset-row__input--dim { opacity: 0.35; }
+.preset-add-btn {
+    border: 1px solid #4f6aff;
+    border-radius: 5px;
+    background: #4f6aff;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+    transition: opacity 0.12s;
+}
+.preset-add-btn:hover { opacity: 0.85; }
+.preset-actions { display: flex; gap: 6px; }
+.preset-action-btn {
+    flex: 1;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #f8fafc;
+    color: #64748b;
+    padding: 5px 0;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.preset-action-btn:hover { background: #e2e8f0; }
 
 /* ── Var select ───────────────────────────────────────────────── */
 .p-var-select {
