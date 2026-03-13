@@ -342,3 +342,20 @@ export function buildDemoEvents(year, month) {
 
     return ev.filter(Boolean);
 }
+
+// ── Demo metric generator ───────────────────────────────────────────
+export function buildDemoMetric(year, month) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const result = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dow = new Date(year, month - 1, d).getDay();
+        const isWeekend = dow === 0 || dow === 6;
+        const trend = Math.round((d / daysInMonth) * 200);
+        const weekendDip = isWeekend ? -300 : 0;
+        const noise = Math.round(Math.sin(d * 1.7) * 80 + Math.cos(d * 2.3) * 60);
+        const val = Math.max(30, 600 + trend + weekendDip + noise);
+        result.push({ date: `${year}-${pad(month)}-${pad(d)}`, value: val });
+    }
+    return result;
+}

@@ -328,7 +328,7 @@ export default {
 .block__sel {
     font-family: monospace;
     font-size: 10px;
-    color: #64748b;
+    color: #334155;
     background: #e2e8f0;
     padding: 2px 6px;
     border-radius: 4px;

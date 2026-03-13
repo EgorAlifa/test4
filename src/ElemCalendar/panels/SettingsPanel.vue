@@ -235,13 +235,49 @@
                     Массив <code>[{"date":"YYYY-MM-DD","value":42},…]</code> или объект <code>{"2026-03-01":42,…}</code>
                 </span>
 
-                <div class="p-field-label">Статическая метрика (JSON)</div>
-                <textarea
-                    class="p-textarea"
-                    rows="3"
-                    placeholder='[{"date":"2026-03-01","value":120},{"date":"2026-03-02","value":85}]'
-                    :value="props.calMetricJson"
-                    @input="set('calMetricJson', $event.target.value)" />
+                <!-- ── Визуальный редактор метрики ───────────────── -->
+                <div class="p-field-label">Статические значения метрики</div>
+                <div class="ev-list">
+                    <div
+                        v-for="(pt, idx) in localMetric"
+                        :key="idx"
+                        class="metric-card">
+                        <label class="ev-card__field" style="flex:2">
+                            <span>Дата</span>
+                            <input type="date" :value="pt.date" @input="updateMetricPoint(idx, 'date', $event.target.value)" />
+                        </label>
+                        <label class="ev-card__field" style="flex:1">
+                            <span>Значение</span>
+                            <input type="number" step="any" :value="pt.value" @input="updateMetricPoint(idx, 'value', $event.target.value)" />
+                        </label>
+                        <button class="ev-card__del" style="align-self:flex-end;margin-bottom:2px" @click="removeMetricPoint(idx)">
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div v-if="!localMetric.length" class="ev-empty">Нет точек данных</div>
+                </div>
+                <button class="ev-add-btn" @click="addMetricPoint">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right:5px">
+                        <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Добавить точку
+                </button>
+                <div class="ev-actions">
+                    <button class="ev-action-btn ev-action-btn--demo" @click="loadDemoMetric" title="Сгенерировать демо-метрику">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right:4px">
+                            <path d="M1 10 L3 6 L5 8 L7 4 L9 6 L11 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        </svg>
+                        Демо-метрика
+                    </button>
+                    <button v-if="localMetric.length" class="ev-action-btn ev-action-btn--clear" @click="clearMetric">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right:4px">
+                            <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                        Очистить
+                    </button>
+                </div>
             </div>
 
             <!-- ── Отображение ───────────────────────────────────────── -->
@@ -286,7 +322,7 @@
 
 <script>
 import { Panel, Managers } from 'goodt-wcore';
-import { buildDemoEvents } from '../constants';
+import { buildDemoEvents, buildDemoMetric } from '../constants';
 
 const { store } = Managers.StoreManager;
 
@@ -296,6 +332,7 @@ export default {
 
     data: () => ({
         localEvents: [],
+        localMetric: [],
         allViews: [
             { value: 'month', label: 'Месяц' },
             { value: 'week', label: 'Неделя' },
@@ -334,6 +371,18 @@ export default {
                 try {
                     const parsed = val ? JSON.parse(val) : [];
                     if (Array.isArray(parsed)) this.localEvents = parsed;
+                } catch (e) { /* keep current */ }
+            }
+        },
+        'props.calMetricJson': {
+            immediate: true,
+            handler(val) {
+                try {
+                    const parsed = val ? JSON.parse(val) : [];
+                    if (Array.isArray(parsed)) this.localMetric = parsed;
+                    else if (parsed && typeof parsed === 'object') {
+                        this.localMetric = Object.entries(parsed).map(([date, value]) => ({ date, value: String(value) }));
+                    }
                 } catch (e) { /* keep current */ }
             }
         }
@@ -389,6 +438,39 @@ export default {
         isViewAvailable(v) {
             const arr = this.props.calAvailableViews;
             return Array.isArray(arr) ? arr.includes(v) : true;
+        },
+
+        // ── Metric editor ────────────────────────────────────────────
+        _saveMetric() {
+            this.set('calMetricJson', JSON.stringify(this.localMetric));
+        },
+
+        addMetricPoint() {
+            const today = new Date();
+            const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            this.localMetric = [...this.localMetric, { date: iso, value: '0' }];
+            this._saveMetric();
+        },
+
+        removeMetricPoint(idx) {
+            this.localMetric = this.localMetric.filter((_, i) => i !== idx);
+            this._saveMetric();
+        },
+
+        updateMetricPoint(idx, field, val) {
+            this.localMetric = this.localMetric.map((p, i) => i === idx ? { ...p, [field]: val } : p);
+            this._saveMetric();
+        },
+
+        loadDemoMetric() {
+            const now = new Date();
+            this.localMetric = buildDemoMetric(now.getFullYear(), now.getMonth() + 1).map((p) => ({ date: p.date, value: String(p.value) }));
+            this._saveMetric();
+        },
+
+        clearMetric() {
+            this.localMetric = [];
+            this._saveMetric();
         },
 
         loadDemoEvents() {
@@ -750,4 +832,17 @@ export default {
     color: #ef4444;
 }
 .ev-action-btn--clear:hover { background: #fee2e2; border-color: #ef4444; }
+
+/* ── Metric card editor ───────────────────────────────────────── */
+.metric-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.metric-card {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 8px;
+}
 </style>
