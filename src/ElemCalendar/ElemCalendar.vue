@@ -40,6 +40,7 @@
 
         <!-- ── Compact mode (dashboard date-range picker) ───────────── -->
         <div v-if="compactMode" class="elem-cal__compact">
+          <div class="compact__inner">
 
             <!-- Preset chips -->
             <div class="compact__presets">
@@ -114,6 +115,8 @@
                 <button class="compact__btn compact__btn--reset" @click="onCompactReset">Сбросить</button>
                 <button class="compact__btn compact__btn--apply" :disabled="!compactStart" @click="onCompactApply">Применить</button>
             </div>
+
+          </div>
         </div>
 
         <!-- ── Month view ──────────────────────────────────────────── -->
@@ -2006,12 +2009,19 @@ export default {
 ═══════════════════════════════════════════════════════════════════ */
 .elem-cal__compact {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    justify-content: center;
+    align-items: flex-start;
     padding: 10px 12px;
     height: 100%;
     box-sizing: border-box;
     overflow-y: auto;
+}
+.compact__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 224px;
+    flex-shrink: 0;
 }
 
 /* Preset chips */
@@ -2087,12 +2097,10 @@ export default {
 /* Calendar grid */
 .compact__grid {
     display: grid;
-    grid-template-columns: repeat(7, 26px);
-    gap: 1px;
-    justify-content: center;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
 }
 .compact__wd {
-    width: 26px;
     height: 20px;
     display: flex;
     align-items: center;
@@ -2103,8 +2111,8 @@ export default {
     text-transform: uppercase;
 }
 .compact__day {
-    width: 26px;
-    height: 24px;
+    aspect-ratio: 1;
+    height: auto;
     display: flex;
     align-items: center;
     justify-content: center;
