@@ -13,6 +13,16 @@ export const descriptor = () => ({
             default: true,
             label: 'Компактный режим: показывать нижнюю панель (ввод дат + кнопки)'
         },
+        calCompactShowPresets: {
+            type: Boolean,
+            default: true,
+            label: 'Компактный режим: показывать кнопки-пресеты'
+        },
+        calPresetLabels: {
+            type: Object,
+            default: null,
+            label: 'Компактный режим: пользовательские подписи пресетов { key: label }'
+        },
         // ── View & behaviour ──────────────────────────────────────────
         calView: {
             type: String,

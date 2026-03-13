@@ -208,6 +208,12 @@
                     </div>
                 </label>
                 <label class="toggle-row">
+                    <span class="toggle-row__label">Пресеты дат</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowPresets !== false }" @click="toggleBool('calCompactShowPresets')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <label class="toggle-row">
                     <span class="toggle-row__label">Нижняя панель (ввод дат)</span>
                     <div class="toggle" :class="{ 'toggle--on': props.calCompactShowBottom !== false }" @click="toggleBool('calCompactShowBottom')">
                         <div class="toggle__thumb" />

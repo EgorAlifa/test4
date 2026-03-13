@@ -43,15 +43,23 @@
           <div class="compact__inner">
 
             <!-- Preset chips -->
-            <div class="compact__presets">
-                <button
+            <div v-if="props.calCompactShowPresets !== false" class="compact__presets">
+                <div
                     v-for="p in compactPresetsList"
                     :key="p.key"
                     class="compact__preset"
-                    :class="{ 'compact__preset--active': activePreset === p.key }"
-                    @click="applyPreset(p)">
-                    {{ p.label }}
-                </button>
+                    :class="{
+                        'compact__preset--active': activePreset === p.key,
+                        'compact__preset--editing': isEditorMode
+                    }"
+                    @click="isEditorMode ? null : applyPreset(p)">
+                    <button-label-editor
+                        v-if="isEditorMode"
+                        :value="p.label"
+                        :placeholder="p.key"
+                        @change="onPresetLabelChange(p.key, $event)" />
+                    <span v-else>{{ p.label }}</span>
+                </div>
             </div>
 
             <!-- Month header -->
@@ -363,6 +371,7 @@ import { Elem, Managers } from 'goodt-wcore';
 import { useElemDatasetMixin, ElemDatasetMixinTypes } from '@goodt-common/data';
 import { meta } from './descriptor';
 import { VIEWS, LOCALE_DATA, PRESETS, SELECTION_MODES, AGENDA_DAYS_AHEAD, HOUR_HEIGHT } from './constants';
+import ButtonLabelEditor from '../ElemButton/components/ButtonLabelEditor.vue';
 
 const { store, ValueObject } = Managers.StoreManager;
 
@@ -406,6 +415,7 @@ function lerpColor(lowHex, highHex, t) {
 export default {
     extends: Elem,
     meta,
+    components: { ButtonLabelEditor },
     mixins: [useElemDatasetMixin()],
     hooks: {
         then() {
@@ -815,18 +825,23 @@ export default {
         },
 
         compactPresetsList() {
-            return [
-                { key: 'today',     label: 'Сегодня' },
-                { key: 'yesterday', label: 'Вчера' },
-                { key: 'week',      label: 'Эта неделя' },
-                { key: 'last_week', label: 'Пр. неделя' },
-                { key: 'month',     label: 'Этот месяц' },
-                { key: 'last_month',label: 'Пр. месяц' },
-                { key: 'd7',        label: '7 дней' },
-                { key: 'd30',       label: '30 дней' },
-                { key: 'd90',       label: '90 дней' },
-                { key: 'year',      label: 'Этот год' }
-            ];
+            const defaults = {
+                today:      'Сегодня',
+                yesterday:  'Вчера',
+                week:       'Эта неделя',
+                last_week:  'Пр. неделя',
+                month:      'Этот месяц',
+                last_month: 'Пр. месяц',
+                d7:         '7 дней',
+                d30:        '30 дней',
+                d90:        '90 дней',
+                year:       'Этот год'
+            };
+            const custom = this.props.calPresetLabels || {};
+            return Object.keys(defaults).map(key => ({
+                key,
+                label: custom[key] !== undefined ? custom[key] : defaults[key]
+            }));
         },
 
         // Hint text shown above the grid when in step 1 (awaiting end click)
@@ -1226,6 +1241,14 @@ export default {
                 this._setCompactRange(iso, iso);
             }
             // If already in step 0, the range is already committed — nothing to do
+        },
+
+        onPresetLabelChange(key, html) {
+            const plain = (html || '').replace(/<[^>]*>/g, '').trim();
+            const labels = { ...(this.props.calPresetLabels || {}) };
+            labels[key] = plain;
+            this.props.calPresetLabels = labels;
+            this.propChanged('calPresetLabels');
         },
 
         startEditingStart() {
@@ -2092,6 +2115,35 @@ export default {
     background: var(--cal-accent);
     border-color: var(--cal-accent);
     color: #fff;
+}
+.compact__preset--editing {
+    cursor: default;
+    border-color: var(--cal-cell-border);
+    color: #475569;
+}
+.compact__preset--editing:hover {
+    border-color: rgba(79, 106, 255, 0.4);
+    color: #475569;
+}
+
+/* ButtonLabelEditor inside preset chip */
+.compact__preset--editing ::v-deep .btn-label-editor { display: contents; }
+.compact__preset--editing ::v-deep .btn-label-editor__content { display: contents; }
+.compact__preset--editing ::v-deep .ProseMirror {
+    outline: none;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    min-width: 1ch;
+    color: inherit;
+    font: inherit;
+    white-space: nowrap;
+    cursor: text;
+    user-select: text;
+    -webkit-user-select: text;
+
+    p { margin: 0; padding: 0; display: inline; }
 }
 
 /* Month navigation */
