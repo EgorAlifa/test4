@@ -1,5 +1,5 @@
 <template>
-    <w-elem>
+    <w-elem style="height:100%;display:block">
     <div class="elem-cal" :class="calDynamicClass" :style="[cssStyle, calCssVars]">
         <!-- ── Header ──────────────────────────────────────────────── -->
         <div v-if="props.calShowHeader" class="elem-cal__header">
@@ -470,7 +470,33 @@ export default {
             if (!raw.length && this.props.calEventsJson) {
                 try { raw = JSON.parse(this.props.calEventsJson); } catch (e) { /* noop */ }
             }
-            if (!Array.isArray(raw)) return [];
+            if (!Array.isArray(raw)) raw = [];
+
+            // From dataset rows — merge with static events
+            if (this.hasResult && this.props.dimension) {
+                const dateCol = this.props.dimension;
+                const titleCol = this.props.calDataTitleCol;
+                const colorCol = this.props.calDataColorCol;
+                const startCol = this.props.calDataStartTimeCol;
+                const endCol = this.props.calDataEndTimeCol;
+                const descCol = this.props.calDataDescCol;
+                const dsEvents = (this.result.rows || []).map((row, i) => {
+                    const rawDate = row[dateCol];
+                    if (!rawDate) return null;
+                    const dateStr = String(rawDate).slice(0, 10);
+                    return {
+                        id: `ds-${i}`,
+                        title: titleCol && row[titleCol] != null ? String(row[titleCol]) : dateStr,
+                        date: dateStr, endDate: dateStr,
+                        startTime: startCol && row[startCol] != null ? String(row[startCol]) : '',
+                        endTime: endCol && row[endCol] != null ? String(row[endCol]) : '',
+                        color: colorCol && row[colorCol] != null ? String(row[colorCol]) : '',
+                        desc: descCol && row[descCol] != null ? String(row[descCol]) : ''
+                    };
+                }).filter(Boolean);
+                raw = [...dsEvents, ...raw];
+            }
+
             return raw.map((ev, i) => ({
                 id: ev.id || `ev-${i}`,
                 title: ev.title || ev.name || '(без названия)',
@@ -552,17 +578,25 @@ export default {
                     if (v) raw = typeof v === 'string' ? JSON.parse(v) : (Array.isArray(v) ? v : []);
                 } catch (e) { /* noop */ }
             }
+            let map = {};
             if (!raw.length && this.props.calMetricJson) {
                 try {
                     const parsed = JSON.parse(this.props.calMetricJson);
                     if (Array.isArray(parsed)) raw = parsed;
-                    else if (parsed && typeof parsed === 'object') return parsed; // map format
+                    else if (parsed && typeof parsed === 'object') map = parsed; // map format
                 } catch (e) { /* noop */ }
             }
-            const map = {};
             raw.forEach((item) => {
                 if (item && item.date) map[item.date.slice(0, 10)] = Number(item.value);
             });
+            // From dataset when metric column is mapped
+            if (!Object.keys(map).length && this.hasResult && this.props.calMetricDataCol && this.props.dimension) {
+                (this.result.rows || []).forEach((row) => {
+                    const d = row[this.props.dimension];
+                    const v = row[this.props.calMetricDataCol];
+                    if (d != null && v != null) map[String(d).slice(0, 10)] = Number(v);
+                });
+            }
             return map;
         },
 
@@ -950,7 +984,7 @@ export default {
     flex-direction: column;
     width: 100%;
     height: 100%;
-    min-height: 320px;
+    min-height: 0;
     background: var(--cal-bg);
     border-radius: var(--cal-radius);
     box-shadow: var(--cal-shadow);
@@ -1323,9 +1357,10 @@ export default {
 .elem-cal__week-body {
     display: flex;
     flex: 1;
-    overflow-y: auto;
+    overflow-y: scroll;
     overflow-x: hidden;
     min-height: 0;
+    scrollbar-gutter: stable;
 }
 
 .elem-cal__time-col {
@@ -1544,6 +1579,7 @@ export default {
 .elem-cal__year {
     flex: 1;
     overflow-y: auto;
+    min-height: 0;
     padding: 12px;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));

@@ -2,24 +2,62 @@
     <w-panel>
         <ui-container>
 
+            <!-- ── Источник данных ──────────────────────────────────── -->
             <div class="p-section__label">Источник данных</div>
 
-            <!-- Dimension: date column -->
             <ui-select
                 prop="dimension"
                 :options="dimensionOptions"
                 label="Столбец дат (измерение)" />
 
-            <!-- Metric: data column -->
-            <ui-select
-                prop="metrics.date"
-                :options="metricOptions"
-                label="Метрика данных" />
-
             <div class="p-hint">
-                Выбранное измерение используется для подсветки дат в календаре,
-                у которых есть данные в источнике.
-                При клике на такую дату метрика передаётся в хранилище.
+                Выберите столбец с датами — он становится основой для отображения
+                событий и тепловой карты. При клике на дату метрика передаётся в хранилище.
+            </div>
+
+            <!-- ── Маппинг событий ──────────────────────────────────── -->
+            <div class="p-section">
+                <div class="p-section__label">Маппинг в события</div>
+                <div class="p-hint" style="margin-bottom:8px">
+                    Укажите, какие столбцы становятся полями каждого события.
+                    «Столбец дат» обязателен — остальные необязательны.
+                </div>
+
+                <ui-select
+                    prop="calDataTitleCol"
+                    :options="allColOptions"
+                    label="Заголовок события" />
+                <ui-select
+                    prop="calDataColorCol"
+                    :options="allColOptions"
+                    label="Цвет (hex или CSS)" />
+                <ui-select
+                    prop="calDataStartTimeCol"
+                    :options="allColOptions"
+                    label="Время начала (HH:MM)" />
+                <ui-select
+                    prop="calDataEndTimeCol"
+                    :options="allColOptions"
+                    label="Время конца (HH:MM)" />
+                <ui-select
+                    prop="calDataDescCol"
+                    :options="allColOptions"
+                    label="Описание" />
+            </div>
+
+            <!-- ── Тепловая карта ───────────────────────────────────── -->
+            <div class="p-section">
+                <div class="p-section__label">Метрика / тепловая карта</div>
+                <div class="p-hint" style="margin-bottom:8px">
+                    Числовой столбец, значения которого окрашивают ячейки
+                    по градиенту (мин → макс). Включите «Тепловую карту»
+                    в панели «Настройки».
+                </div>
+
+                <ui-select
+                    prop="calMetricDataCol"
+                    :options="metricOptions"
+                    label="Столбец метрики" />
             </div>
 
         </ui-container>
@@ -43,8 +81,11 @@ export default {
         dimensionOptions() {
             return this.buildOptions(this.dimensions, { empty: true });
         },
-        metricOptions() {
+        allColOptions() {
             return this.buildOptions([...this.dimensions, ...this.metrics], { empty: true });
+        },
+        metricOptions() {
+            return this.buildOptions(this.metrics, { empty: true });
         }
     }
 };
@@ -59,11 +100,16 @@ export default {
     color: #94a3b8;
     margin-bottom: 8px;
 }
+.p-section {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #f1f5f9;
+}
 .p-hint {
     font-size: 11px;
     color: #94a3b8;
     line-height: 1.5;
-    margin-top: 8px;
+    margin-top: 6px;
     padding: 8px 10px;
     background: #f8fafc;
     border-radius: 7px;

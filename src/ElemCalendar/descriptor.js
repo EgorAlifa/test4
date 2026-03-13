@@ -92,6 +92,37 @@ export const descriptor = () => ({
             default: '',
             label: 'Переменная хранилища: события (JSON)'
         },
+        // ── Dataset column mapping for events ─────────────────────────
+        calDataTitleCol: {
+            type: String,
+            default: '',
+            label: 'Столбец заголовка события'
+        },
+        calDataColorCol: {
+            type: String,
+            default: '',
+            label: 'Столбец цвета события'
+        },
+        calDataStartTimeCol: {
+            type: String,
+            default: '',
+            label: 'Столбец времени начала'
+        },
+        calDataEndTimeCol: {
+            type: String,
+            default: '',
+            label: 'Столбец времени конца'
+        },
+        calDataDescCol: {
+            type: String,
+            default: '',
+            label: 'Столбец описания события'
+        },
+        calMetricDataCol: {
+            type: String,
+            default: '',
+            label: 'Столбец метрики (тепловая карта)'
+        },
         // ── Events data ───────────────────────────────────────────────
         calEventsJson: {
             type: String,
