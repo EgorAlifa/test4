@@ -8,6 +8,11 @@ export const descriptor = () => ({
             default: 'full',
             label: 'Режим: full (полный) | compact (компактный фильтр дат)'
         },
+        calCompactShowBottom: {
+            type: Boolean,
+            default: true,
+            label: 'Компактный режим: показывать нижнюю панель (ввод дат + кнопки)'
+        },
         // ── View & behaviour ──────────────────────────────────────────
         calView: {
             type: String,

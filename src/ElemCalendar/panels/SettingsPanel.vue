@@ -19,7 +19,7 @@
                         :class="{ 'mode-card--active': props.calMode === 'compact' }"
                         @click="set('calMode', 'compact')">
                         <div class="mode-card__icon">📅</div>
-                        <div class="mode-card__title">Фильтр дат</div>
+                        <div class="mode-card__title">Компактный календарь</div>
                         <div class="mode-card__desc">Компактный выбор диапазона between для дашбордов и отчётов.</div>
                     </div>
                 </div>
@@ -162,6 +162,57 @@
                 <datalist :id="`store-list-${_uid}`">
                     <option v-for="v in storeVarNames" :key="v" :value="v" />
                 </datalist>
+            </div>
+
+            <!-- ── Настройки компактного режима ───────────────────── -->
+            <div v-if="props.calMode === 'compact'" class="p-section">
+                <div class="p-section__label">Параметры календаря</div>
+
+                <div class="p-row">
+                    <span class="p-row__label">Язык</span>
+                    <div class="seg-ctrl">
+                        <button
+                            v-for="l in localeOptions"
+                            :key="l.value"
+                            class="seg-ctrl__btn"
+                            :class="{ 'seg-ctrl__btn--active': props.calLocale === l.value }"
+                            @click="setLocale(l.value)">
+                            {{ l.label }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-row">
+                    <span class="p-row__label">Первый день недели</span>
+                    <div class="seg-ctrl">
+                        <button
+                            class="seg-ctrl__btn"
+                            :class="{ 'seg-ctrl__btn--active': props.calFirstDay === 1 }"
+                            @click="set('calFirstDay', 1)">Пн</button>
+                        <button
+                            class="seg-ctrl__btn"
+                            :class="{ 'seg-ctrl__btn--active': props.calFirstDay === 0 }"
+                            @click="set('calFirstDay', 0)">Вс</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Отображение (компактный режим) ──────────────────── -->
+            <div v-if="props.calMode === 'compact'" class="p-section">
+                <div class="p-section__label">Элементы интерфейса</div>
+
+                <label class="toggle-row">
+                    <span class="toggle-row__label">Показывать выходные</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calShowWeekends }" @click="toggleBool('calShowWeekends')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <label class="toggle-row">
+                    <span class="toggle-row__label">Нижняя панель (ввод дат)</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowBottom !== false }" @click="toggleBool('calCompactShowBottom')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
             </div>
 
             <!-- ── Отображение (полный режим) ──────────────────────── -->

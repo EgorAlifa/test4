@@ -75,7 +75,13 @@
 
             <!-- Calendar grid -->
             <div class="compact__grid">
-                <div v-for="(wd, i) in weekdayHeaders" :key="`cwd-${i}`" class="compact__wd">{{ wd.charAt(0) }}</div>
+                <div
+                    v-for="(wd, i) in weekdayHeaders"
+                    :key="`cwd-${i}`"
+                    class="compact__wd"
+                    :class="{ 'compact__wd--hidden': isWeekendCol(i) && !props.calShowWeekends }">
+                    {{ wd.charAt(0) }}
+                </div>
                 <div v-for="i in compactGridOffset" :key="`ce-${i}`" class="compact__day compact__day--empty" />
                 <div
                     v-for="cell in compactCells"
@@ -89,31 +95,51 @@
                 </div>
             </div>
 
-            <!-- Manual date inputs -->
-            <div class="compact__inputs">
-                <div class="compact__input-group">
-                    <span class="compact__input-label">С</span>
-                    <input
-                        type="date"
-                        class="compact__input"
-                        :value="compactStart"
-                        @change="onCompactInputStart($event.target.value)" />
+            <!-- Tap-to-edit date chips + action buttons -->
+            <div v-if="props.calCompactShowBottom !== false" class="compact__bottom">
+                <div class="compact__chips">
+                    <div
+                        class="compact__chip"
+                        :class="{ 'compact__chip--active': editingStart }"
+                        @click.stop="startEditingStart">
+                        <span class="compact__chip-label">С</span>
+                        <input
+                            v-if="editingStart"
+                            ref="inputStart"
+                            type="date"
+                            class="compact__chip-input"
+                            :value="compactStart"
+                            @change="onCompactInputStart($event.target.value); editingStart = false"
+                            @blur="editingStart = false"
+                            @keydown.enter="$refs.inputStart && $refs.inputStart.blur()"
+                            @keydown.esc="editingStart = false"
+                            @click.stop />
+                        <span v-else class="compact__chip-value">{{ compactStart ? formatChipDate(compactStart) : '—' }}</span>
+                    </div>
+                    <span class="compact__chip-sep">→</span>
+                    <div
+                        class="compact__chip"
+                        :class="{ 'compact__chip--active': editingEnd }"
+                        @click.stop="startEditingEnd">
+                        <span class="compact__chip-label">По</span>
+                        <input
+                            v-if="editingEnd"
+                            ref="inputEnd"
+                            type="date"
+                            class="compact__chip-input"
+                            :value="compactEnd"
+                            @change="onCompactInputEnd($event.target.value); editingEnd = false"
+                            @blur="editingEnd = false"
+                            @keydown.enter="$refs.inputEnd && $refs.inputEnd.blur()"
+                            @keydown.esc="editingEnd = false"
+                            @click.stop />
+                        <span v-else class="compact__chip-value">{{ compactEnd ? formatChipDate(compactEnd) : '—' }}</span>
+                    </div>
                 </div>
-                <div class="compact__input-sep">—</div>
-                <div class="compact__input-group">
-                    <span class="compact__input-label">По</span>
-                    <input
-                        type="date"
-                        class="compact__input"
-                        :value="compactEnd"
-                        @change="onCompactInputEnd($event.target.value)" />
+                <div class="compact__actions">
+                    <button class="compact__btn compact__btn--reset" @click="onCompactReset">Сбросить</button>
+                    <button class="compact__btn compact__btn--apply" :disabled="!compactStart" @click="onCompactApply">Применить</button>
                 </div>
-            </div>
-
-            <!-- Action buttons -->
-            <div class="compact__actions">
-                <button class="compact__btn compact__btn--reset" @click="onCompactReset">Сбросить</button>
-                <button class="compact__btn compact__btn--apply" :disabled="!compactStart" @click="onCompactApply">Применить</button>
             </div>
 
           </div>
@@ -402,7 +428,9 @@ export default {
         // ── Compact mode state ───────────────────────────────────────
         compactHoverCell: null,
         compactClickStep: 0,       // 0 = idle, 1 = start selected, awaiting end click
-        activePreset: null
+        activePreset: null,
+        editingStart: false,
+        editingEnd: false
     }),
 
     computed: {
@@ -1118,6 +1146,7 @@ export default {
             return {
                 'compact__day--today':       cell.isToday,
                 'compact__day--weekend':     cell.isWeekend,
+                'compact__day--no-weekend':  cell.isWeekend && !this.props.calShowWeekends,
                 'compact__day--range-start': cell.isStart,
                 'compact__day--range-end':   cell.isEnd,
                 'compact__day--in-range':    cell.inRange
@@ -1197,6 +1226,22 @@ export default {
                 this._setCompactRange(iso, iso);
             }
             // If already in step 0, the range is already committed — nothing to do
+        },
+
+        startEditingStart() {
+            this.editingStart = true;
+            this.$nextTick(() => this.$refs.inputStart && this.$refs.inputStart.focus());
+        },
+
+        startEditingEnd() {
+            this.editingEnd = true;
+            this.$nextTick(() => this.$refs.inputEnd && this.$refs.inputEnd.focus());
+        },
+
+        formatChipDate(iso) {
+            if (!iso) return '—';
+            const [y, m, d] = iso.split('-');
+            return `${d}.${m}.${y.slice(2)}`;
         },
 
         onCompactInputStart(val) {
@@ -2156,14 +2201,21 @@ export default {
     min-height: 16px;
 }
 
-/* Manual inputs */
-.compact__inputs {
+/* Bottom panel: tap-to-edit chips + action buttons */
+.compact__bottom {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 6px;
     padding-top: 2px;
 }
-.compact__input-group {
+
+/* Date chips row */
+.compact__chips {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.compact__chip {
     display: flex;
     align-items: center;
     gap: 5px;
@@ -2172,18 +2224,27 @@ export default {
     background: var(--cal-cell-bg);
     border: 1.5px solid var(--cal-cell-border);
     border-radius: 8px;
-    padding: 4px 8px;
+    padding: 5px 8px;
+    cursor: pointer;
     transition: border-color 0.12s;
+    user-select: none;
 }
-.compact__input-group:focus-within { border-color: var(--cal-accent); }
-.compact__input-label {
+.compact__chip:hover { border-color: var(--cal-accent); }
+.compact__chip--active { border-color: var(--cal-accent); }
+.compact__chip-label {
     font-size: 10px;
     font-weight: 700;
     color: #94a3b8;
     text-transform: uppercase;
     flex-shrink: 0;
 }
-.compact__input {
+.compact__chip-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    min-width: 0;
+}
+.compact__chip-input {
     flex: 1;
     border: none;
     background: transparent;
@@ -2193,9 +2254,10 @@ export default {
     font-weight: 500;
     min-width: 0;
     width: 100%;
+    cursor: text;
 }
-.compact__input-sep {
-    font-size: 14px;
+.compact__chip-sep {
+    font-size: 13px;
     color: #cbd5e1;
     flex-shrink: 0;
 }
@@ -2204,7 +2266,6 @@ export default {
 .compact__actions {
     display: flex;
     gap: 6px;
-    padding-top: 2px;
 }
 .compact__btn {
     flex: 1;
@@ -2228,4 +2289,11 @@ export default {
 }
 .compact__btn--apply:hover { opacity: 0.88; }
 .compact__btn--apply:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Hidden weekends in compact grid */
+.compact__day--no-weekend,
+.compact__wd--hidden {
+    visibility: hidden;
+    pointer-events: none;
+}
 </style>
