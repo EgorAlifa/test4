@@ -2,6 +2,12 @@ import panels from './panels';
 
 export const descriptor = () => ({
     props: {
+        // ── Mode ──────────────────────────────────────────────────────
+        calMode: {
+            type: String,
+            default: 'full',
+            label: 'Режим: full (полный) | compact (компактный фильтр дат)'
+        },
         // ── View & behaviour ──────────────────────────────────────────
         calView: {
             type: String,
@@ -97,11 +103,6 @@ export const descriptor = () => ({
             type: String,
             default: '',
             label: 'Столбец заголовка события'
-        },
-        calDataColorCol: {
-            type: String,
-            default: '',
-            label: 'Столбец цвета события'
         },
         calDataStartTimeCol: {
             type: String,

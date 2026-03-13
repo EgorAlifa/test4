@@ -1,8 +1,8 @@
 <template>
     <w-elem style="height:100%;display:block">
     <div class="elem-cal" :class="calDynamicClass" :style="[cssStyle, calCssVars]">
-        <!-- ── Header ──────────────────────────────────────────────── -->
-        <div v-if="props.calShowHeader" class="elem-cal__header">
+        <!-- ── Header (full mode only) ─────────────────────────────── -->
+        <div v-if="props.calShowHeader && !compactMode" class="elem-cal__header">
             <div class="elem-cal__nav">
                 <button class="elem-cal__nav-btn" title="Назад" @click="prevPeriod">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -38,8 +38,102 @@
             </div>
         </div>
 
+        <!-- ── Compact mode (dashboard date-range picker) ───────────── -->
+        <div v-if="compactMode" class="elem-cal__compact">
+
+            <!-- Preset chips -->
+            <div class="compact__presets">
+                <button
+                    v-for="p in compactPresetsList"
+                    :key="p.key"
+                    class="compact__preset"
+                    :class="{ 'compact__preset--active': activePreset === p.key }"
+                    @click="applyPreset(p)">
+                    {{ p.label }}
+                </button>
+            </div>
+
+            <!-- Month header -->
+            <div class="compact__head">
+                <button class="compact__nav" @click="prevPeriod">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                        <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <span class="compact__month-label">{{ currentTitle }}</span>
+                <button class="compact__nav" @click="nextPeriod">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                        <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Calendar grid -->
+            <div class="compact__grid">
+                <div v-for="(wd, i) in weekdayHeaders" :key="`cwd-${i}`" class="compact__wd">{{ wd.charAt(0) }}</div>
+                <div v-for="i in compactGridOffset" :key="`ce-${i}`" class="compact__day compact__day--empty" />
+                <div
+                    v-for="cell in compactCells"
+                    :key="cell.iso"
+                    class="compact__day"
+                    :class="compactCellClass(cell)"
+                    @mousedown="onCompactDayDown(cell, $event)"
+                    @mouseenter="onCompactDayEnter(cell)"
+                    @mouseup="onCompactDayUp"
+                    @touchstart.prevent="onCompactDayDown(cell, $event)"
+                    @touchend="onCompactDayUp">
+                    {{ cell.d }}
+                </div>
+            </div>
+
+            <!-- Range drag bar -->
+            <div class="compact__bar-section">
+                <div class="compact__bar" ref="cBar" @mousedown.self="onBarTrackDown">
+                    <div
+                        class="compact__bar-fill"
+                        :style="barFillStyle"
+                        @mousedown.stop="onBarFillDown" />
+                    <div
+                        class="compact__bar-handle compact__bar-handle--start"
+                        :style="barHandleStartStyle"
+                        @mousedown.stop="e => onBarHandleDown('start', e)"
+                        @touchstart.prevent.stop="e => onBarHandleDown('start', e)" />
+                    <div
+                        class="compact__bar-handle compact__bar-handle--end"
+                        :style="barHandleEndStyle"
+                        @mousedown.stop="e => onBarHandleDown('end', e)"
+                        @touchstart.prevent.stop="e => onBarHandleDown('end', e)" />
+                </div>
+                <div class="compact__bar-labels">
+                    <span>{{ barStartLabel }}</span>
+                    <span>{{ barEndLabel }}</span>
+                </div>
+            </div>
+
+            <!-- Manual date inputs -->
+            <div class="compact__inputs">
+                <div class="compact__input-group">
+                    <span class="compact__input-label">С</span>
+                    <input
+                        type="date"
+                        class="compact__input"
+                        :value="compactStart"
+                        @change="onCompactInputStart($event.target.value)" />
+                </div>
+                <div class="compact__input-sep">—</div>
+                <div class="compact__input-group">
+                    <span class="compact__input-label">По</span>
+                    <input
+                        type="date"
+                        class="compact__input"
+                        :value="compactEnd"
+                        @change="onCompactInputEnd($event.target.value)" />
+                </div>
+            </div>
+        </div>
+
         <!-- ── Month view ──────────────────────────────────────────── -->
-        <div v-if="currentView === 'month'" class="elem-cal__month">
+        <div v-else-if="currentView === 'month'" class="elem-cal__month">
             <div class="elem-cal__weekrow">
                 <div v-if="props.calShowWeekNumbers" class="elem-cal__wnum-hd" />
                 <div
@@ -317,7 +411,13 @@ export default {
         nowTimer: null,
         dimensionValues: [],
         tooltipDay: null,
-        tooltipMeta: { x: 0, y: 0 }
+        tooltipMeta: { x: 0, y: 0 },
+        // ── Compact mode state ───────────────────────────────────────
+        compactHoverCell: null,
+        compactGripDrag: false,    // dragging a day on the grid
+        compactGripStart: null,    // cell where grid-drag started
+        activePreset: null,
+        barDrag: { active: false, type: null, refDay: 0, rangeLen: 0 }
     }),
 
     computed: {
@@ -480,7 +580,6 @@ export default {
             if (this.hasResult && this.props.dimension) {
                 const dateCol = this.props.dimension;
                 const titleCol = this.props.calDataTitleCol;
-                const colorCol = this.props.calDataColorCol;
                 const startCol = this.props.calDataStartTimeCol;
                 const endCol = this.props.calDataEndTimeCol;
                 const descCol = this.props.calDataDescCol;
@@ -494,7 +593,7 @@ export default {
                         date: dateStr, endDate: dateStr,
                         startTime: startCol && row[startCol] != null ? String(row[startCol]) : '',
                         endTime: endCol && row[endCol] != null ? String(row[endCol]) : '',
-                        color: colorCol && row[colorCol] != null ? String(row[colorCol]) : '',
+                        color: '',
                         desc: descCol && row[descCol] != null ? String(row[descCol]) : ''
                     };
                 }).filter(Boolean);
@@ -644,6 +743,122 @@ export default {
             if (!this.tooltipDay || !this.props.calHeatmapEnabled) return null;
             const val = this.getMetricValue(this.tooltipDay.iso);
             return val !== undefined ? this.formatMetric(val) : null;
+        },
+
+        // ── Compact mode ─────────────────────────────────────────────
+        compactMode() {
+            return this.props.calMode === 'compact';
+        },
+
+        compactStart() {
+            if (this.props.calStartVar) {
+                const v = store.state[this.props.calStartVar]?.value;
+                if (v) return String(v).slice(0, 10);
+            }
+            if (this.rangeStart) return isoDate(this.rangeStart);
+            return this.props.calSelectedStart || '';
+        },
+
+        compactEnd() {
+            if (this.props.calEndVar) {
+                const v = store.state[this.props.calEndVar]?.value;
+                if (v) return String(v).slice(0, 10);
+            }
+            if (this.rangeEnd) return isoDate(this.rangeEnd);
+            return this.props.calSelectedEnd || '';
+        },
+
+        compactGridOffset() {
+            const y = this.navDate.getFullYear();
+            const m = this.navDate.getMonth();
+            const firstDow = new Date(y, m, 1).getDay();
+            return (firstDow - this.firstDay + 7) % 7;
+        },
+
+        compactCells() {
+            const y = this.navDate.getFullYear();
+            const m = this.navDate.getMonth();
+            const total = daysInMonth(y, m);
+            const start = parseIso(this.compactStart);
+            const hoverEnd = this.compactHoverCell ? this.compactHoverCell.date : null;
+            const end = parseIso(this.compactEnd) || (this.compactGripDrag && hoverEnd ? hoverEnd : null);
+            const rangeMin = start && end ? (start <= end ? start : end) : start;
+            const rangeMax = start && end ? (start <= end ? end : start) : null;
+            const cells = [];
+            for (let d = 1; d <= total; d++) {
+                const date = new Date(y, m, d);
+                const iso = isoDate(date);
+                const isStart = start && isSameDay(date, rangeMin);
+                const isEnd = rangeMax && isSameDay(date, rangeMax);
+                const inRange = rangeMin && rangeMax && date > rangeMin && date < rangeMax;
+                cells.push({
+                    d, iso, date,
+                    isToday: isSameDay(date, this.today),
+                    isWeekend: date.getDay() === 0 || date.getDay() === 6,
+                    isStart, isEnd, inRange
+                });
+            }
+            return cells;
+        },
+
+        compactPresetsList() {
+            return [
+                { key: 'today',     label: 'Сегодня' },
+                { key: 'yesterday', label: 'Вчера' },
+                { key: 'week',      label: 'Эта неделя' },
+                { key: 'last_week', label: 'Пр. неделя' },
+                { key: 'month',     label: 'Этот месяц' },
+                { key: 'last_month',label: 'Пр. месяц' },
+                { key: 'd7',        label: '7 дней' },
+                { key: 'd30',       label: '30 дней' },
+                { key: 'd90',       label: '90 дней' },
+                { key: 'year',      label: 'Этот год' }
+            ];
+        },
+
+        // Bar styles — represent selected range relative to current month
+        _barContext() {
+            const y = this.navDate.getFullYear();
+            const m = this.navDate.getMonth();
+            const total = daysInMonth(y, m);
+            const monthStart = new Date(y, m, 1);
+            const monthEnd = new Date(y, m, total);
+            const s = parseIso(this.compactStart);
+            const e = parseIso(this.compactEnd);
+            if (!s && !e) return null;
+            const clampS = s ? Math.max(s, monthStart) : monthStart;
+            const clampE = e ? Math.min(e, monthEnd) : monthEnd;
+            const left = ((clampS.getDate() - 1) / total) * 100;
+            const right = 100 - (clampE.getDate() / total) * 100;
+            const startPct = ((s ? Math.max(s, monthStart) : monthStart).getDate() - 1) / total * 100;
+            const endPct = (e ? Math.min(e, monthEnd) : monthEnd).getDate() / total * 100;
+            return { left, right, startPct, endPct, total, y, m };
+        },
+
+        barFillStyle() {
+            const ctx = this._barContext;
+            if (!ctx) return { display: 'none' };
+            return { left: `${ctx.left}%`, right: `${ctx.right}%` };
+        },
+
+        barHandleStartStyle() {
+            const ctx = this._barContext;
+            if (!ctx || !this.compactStart) return { display: 'none' };
+            return { left: `${ctx.startPct}%` };
+        },
+
+        barHandleEndStyle() {
+            const ctx = this._barContext;
+            if (!ctx || !this.compactEnd) return { display: 'none' };
+            return { right: `${100 - ctx.endPct}%` };
+        },
+
+        barStartLabel() {
+            return this.compactStart ? this.compactStart.split('-').reverse().join('.') : '';
+        },
+
+        barEndLabel() {
+            return this.compactEnd ? this.compactEnd.split('-').reverse().join('.') : '';
         }
     },
 
@@ -727,7 +942,8 @@ export default {
         // ── Navigation ───────────────────────────────────────────────
         prevPeriod() {
             const d = new Date(this.navDate);
-            if (this.currentView === 'month') d.setMonth(d.getMonth() - 1);
+            if (this.compactMode) { d.setMonth(d.getMonth() - 1); }
+            else if (this.currentView === 'month') d.setMonth(d.getMonth() - 1);
             else if (this.currentView === 'week') d.setDate(d.getDate() - 7);
             else if (this.currentView === 'day') d.setDate(d.getDate() - 1);
             else if (this.currentView === 'agenda') d.setMonth(d.getMonth() - 1);
@@ -737,7 +953,8 @@ export default {
 
         nextPeriod() {
             const d = new Date(this.navDate);
-            if (this.currentView === 'month') d.setMonth(d.getMonth() + 1);
+            if (this.compactMode) { d.setMonth(d.getMonth() + 1); }
+            else if (this.currentView === 'month') d.setMonth(d.getMonth() + 1);
             else if (this.currentView === 'week') d.setDate(d.getDate() + 7);
             else if (this.currentView === 'day') d.setDate(d.getDate() + 1);
             else if (this.currentView === 'agenda') d.setMonth(d.getMonth() + 1);
@@ -942,6 +1159,176 @@ export default {
             if (cell.isToday) return {};
             const bg = this._heatmapBg(cell.iso);
             return bg ? { background: bg } : {};
+        },
+
+        // ── Compact mode methods ─────────────────────────────────────
+        compactCellClass(cell) {
+            return {
+                'compact__day--today':       cell.isToday,
+                'compact__day--weekend':     cell.isWeekend,
+                'compact__day--range-start': cell.isStart,
+                'compact__day--range-end':   cell.isEnd,
+                'compact__day--in-range':    cell.inRange
+            };
+        },
+
+        applyPreset(p) {
+            this.activePreset = p.key;
+            const t = this.today;
+            const y = t.getFullYear(), m = t.getMonth(), d = t.getDate();
+            let s, e;
+            if (p.key === 'today')      { s = isoDate(t); e = s; }
+            else if (p.key === 'yesterday') { const y2 = addDays(t, -1); s = isoDate(y2); e = s; }
+            else if (p.key === 'week')  { const w = startOfWeek(t, this.firstDay); s = isoDate(w); e = isoDate(addDays(w, 6)); }
+            else if (p.key === 'last_week') { const w = startOfWeek(addDays(t, -7), this.firstDay); s = isoDate(w); e = isoDate(addDays(w, 6)); }
+            else if (p.key === 'month') { s = `${y}-${String(m+1).padStart(2,'0')}-01`; e = isoDate(new Date(y, m+1, 0)); }
+            else if (p.key === 'last_month') { const pm = m === 0 ? 11 : m-1; const py = m === 0 ? y-1 : y; s = `${py}-${String(pm+1).padStart(2,'0')}-01`; e = isoDate(new Date(py, pm+1, 0)); }
+            else if (p.key === 'd7')    { s = isoDate(addDays(t, -6)); e = isoDate(t); }
+            else if (p.key === 'd30')   { s = isoDate(addDays(t, -29)); e = isoDate(t); }
+            else if (p.key === 'd90')   { s = isoDate(addDays(t, -89)); e = isoDate(t); }
+            else if (p.key === 'year')  { s = `${y}-01-01`; e = `${y}-12-31`; }
+            if (s) this._setCompactRange(s, e || s);
+        },
+
+        _setCompactRange(start, end) {
+            this.rangeStart = parseIso(start);
+            this.rangeEnd = parseIso(end);
+            this._commitRange(start, end);
+            if (this.rangeStart) this.navDate = new Date(this.rangeStart.getFullYear(), this.rangeStart.getMonth(), 1);
+        },
+
+        onCompactDayDown(cell, event) {
+            this.compactGripDrag = true;
+            this.compactGripStart = cell;
+            this.activePreset = null;
+            this.rangeStart = cell.date;
+            this.rangeEnd = null;
+            this.compactHoverCell = cell;
+            // attach global up listener for grid drag
+            window.addEventListener('mouseup', this._compactGripUp, { once: true });
+        },
+
+        onCompactDayEnter(cell) {
+            if (this.compactGripDrag) {
+                this.compactHoverCell = cell;
+            }
+        },
+
+        onCompactDayUp() {
+            if (!this.compactGripDrag) return;
+            const start = this.compactGripStart;
+            const end = this.compactHoverCell || start;
+            const s = start.date <= end.date ? start.date : end.date;
+            const e = start.date <= end.date ? end.date : start.date;
+            this.compactGripDrag = false;
+            this.compactHoverCell = null;
+            this._setCompactRange(isoDate(s), isoDate(e));
+        },
+
+        _compactGripUp() {
+            this.onCompactDayUp();
+        },
+
+        // Range bar drag
+        onBarHandleDown(type, event) {
+            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            const y = this.navDate.getFullYear();
+            const m = this.navDate.getMonth();
+            const start = parseIso(this.compactStart);
+            const end = parseIso(this.compactEnd);
+            const rangeLen = start && end ? Math.round((end - start) / 86400000) : 0;
+            this.barDrag = { active: true, type, refDay: 0, rangeLen, startClientX: clientX };
+            window.addEventListener('mousemove', this._onBarMove);
+            window.addEventListener('touchmove', this._onBarMove, { passive: false });
+            window.addEventListener('mouseup',   this._onBarUp, { once: true });
+            window.addEventListener('touchend',  this._onBarUp, { once: true });
+        },
+
+        onBarFillDown(event) {
+            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            const bar = this.$refs.cBar;
+            if (!bar) return;
+            const rect = bar.getBoundingClientRect();
+            const pct = (clientX - rect.left) / rect.width;
+            const total = daysInMonth(this.navDate.getFullYear(), this.navDate.getMonth());
+            const refDay = Math.max(1, Math.min(total, Math.round(pct * total) + 1));
+            const start = parseIso(this.compactStart);
+            const end = parseIso(this.compactEnd);
+            const rangeLen = start && end ? Math.round((end - start) / 86400000) : 0;
+            this.barDrag = { active: true, type: 'fill', refDay, rangeLen, startClientX: clientX, origStart: this.compactStart, origEnd: this.compactEnd };
+            window.addEventListener('mousemove', this._onBarMove);
+            window.addEventListener('touchmove', this._onBarMove, { passive: false });
+            window.addEventListener('mouseup',   this._onBarUp, { once: true });
+            window.addEventListener('touchend',  this._onBarUp, { once: true });
+        },
+
+        onBarTrackDown(event) {
+            // Click on empty part of bar — set range start there
+            const bar = this.$refs.cBar;
+            if (!bar) return;
+            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            const rect = bar.getBoundingClientRect();
+            const pct = (clientX - rect.left) / rect.width;
+            const y = this.navDate.getFullYear();
+            const m = this.navDate.getMonth();
+            const total = daysInMonth(y, m);
+            const day = Math.max(1, Math.min(total, Math.round(pct * total) + 1));
+            const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            this.activePreset = null;
+            this._setCompactRange(iso, iso);
+        },
+
+        _onBarMove(event) {
+            if (!this.barDrag.active) return;
+            event.preventDefault && event.preventDefault();
+            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            const bar = this.$refs.cBar;
+            if (!bar) return;
+            const rect = bar.getBoundingClientRect();
+            const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            const y = this.navDate.getFullYear();
+            const m = this.navDate.getMonth();
+            const total = daysInMonth(y, m);
+            const day = Math.max(1, Math.min(total, Math.round(pct * (total - 1)) + 1));
+            const dayIso = `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const { type, rangeLen, refDay, origStart, origEnd } = this.barDrag;
+
+            if (type === 'start') {
+                const e = this.compactEnd || dayIso;
+                if (dayIso <= e) this._setCompactRange(dayIso, e);
+            } else if (type === 'end') {
+                const s = this.compactStart || dayIso;
+                if (dayIso >= s) this._setCompactRange(s, dayIso);
+            } else if (type === 'fill') {
+                const delta = day - refDay;
+                if (delta !== 0) {
+                    this.barDrag.refDay = day;
+                    const s = parseIso(this.compactStart);
+                    const e = parseIso(this.compactEnd);
+                    if (s && e) {
+                        this._setCompactRange(isoDate(addDays(s, delta)), isoDate(addDays(e, delta)));
+                    }
+                }
+            }
+            this.activePreset = null;
+        },
+
+        _onBarUp() {
+            this.barDrag = { active: false, type: null, refDay: 0, rangeLen: 0 };
+            window.removeEventListener('mousemove', this._onBarMove);
+            window.removeEventListener('touchmove', this._onBarMove);
+        },
+
+        onCompactInputStart(val) {
+            if (!val) return;
+            this.activePreset = null;
+            this._setCompactRange(val, this.compactEnd && this.compactEnd >= val ? this.compactEnd : val);
+        },
+
+        onCompactInputEnd(val) {
+            if (!val) return;
+            this.activePreset = null;
+            this._setCompactRange(this.compactStart && this.compactStart <= val ? this.compactStart : val, val);
         },
 
         // ── Helpers ──────────────────────────────────────────────────
@@ -1735,5 +2122,218 @@ export default {
 }
 .elem-cal--no-weekends.elem-cal--week-numbers .elem-cal__weekrow {
     grid-template-columns: 28px repeat(5, 1fr);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Compact mode — dashboard / report date-range picker
+═══════════════════════════════════════════════════════════════════ */
+.elem-cal__compact {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    height: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+/* Preset chips */
+.compact__presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.compact__preset {
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1.5px solid var(--cal-cell-border);
+    background: var(--cal-cell-bg);
+    color: #475569;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, color 0.12s;
+    white-space: nowrap;
+}
+.compact__preset:hover { border-color: var(--cal-accent); color: var(--cal-accent); }
+.compact__preset--active {
+    background: var(--cal-accent);
+    border-color: var(--cal-accent);
+    color: #fff;
+}
+
+/* Month navigation */
+.compact__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 2px 0;
+}
+.compact__nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 7px;
+    background: var(--cal-cell-hover-bg);
+    color: #475569;
+    cursor: pointer;
+    transition: background 0.12s;
+    flex-shrink: 0;
+    padding: 0;
+}
+.compact__nav:hover { background: var(--cal-cell-border); }
+.compact__month-label {
+    font-size: 0.95em;
+    font-weight: 700;
+    color: #1e293b;
+    flex: 1;
+    text-align: center;
+}
+
+/* Calendar grid */
+.compact__grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+.compact__wd {
+    text-align: center;
+    font-size: 0.69em;
+    font-weight: 700;
+    color: #94a3b8;
+    padding: 2px 0 4px;
+    text-transform: uppercase;
+}
+.compact__day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.77em;
+    font-weight: 500;
+    color: #475569;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+    user-select: none;
+}
+.compact__day:hover:not(.compact__day--empty):not(.compact__day--today):not(.compact__day--in-range) {
+    background: var(--cal-cell-hover-bg);
+}
+.compact__day--empty { cursor: default; pointer-events: none; }
+.compact__day--today { background: var(--cal-today-bg); color: var(--cal-today-color); font-weight: 700; }
+.compact__day--weekend { color: var(--cal-weekend-color); }
+.compact__day--range-start,
+.compact__day--range-end {
+    background: var(--cal-accent) !important;
+    color: #fff !important;
+    font-weight: 700;
+    border-radius: 6px;
+}
+.compact__day--in-range {
+    background: var(--cal-range-bg);
+    border-radius: 0;
+}
+.compact__day--range-start { border-radius: 6px 0 0 6px; }
+.compact__day--range-end   { border-radius: 0 6px 6px 0; }
+.compact__day--range-start.compact__day--range-end { border-radius: 6px; }
+
+/* Range drag bar */
+.compact__bar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.compact__bar {
+    position: relative;
+    height: 20px;
+    background: var(--cal-cell-hover-bg);
+    border-radius: 10px;
+    cursor: crosshair;
+    user-select: none;
+    overflow: visible;
+}
+.compact__bar-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: var(--cal-range-bg);
+    border: 1.5px solid var(--cal-accent);
+    border-radius: 10px;
+    cursor: grab;
+    min-width: 4px;
+}
+.compact__bar-fill:active { cursor: grabbing; }
+.compact__bar-handle {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--cal-accent);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    cursor: ew-resize;
+    z-index: 2;
+}
+.compact__bar-handle--start { transform: translate(-50%, -50%); }
+.compact__bar-handle--end   { transform: translate(50%, -50%); }
+
+.compact__bar-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #94a3b8;
+    font-weight: 500;
+    padding: 0 2px;
+}
+
+/* Manual inputs */
+.compact__inputs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-top: 2px;
+}
+.compact__input-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 1;
+    min-width: 0;
+    background: var(--cal-cell-bg);
+    border: 1.5px solid var(--cal-cell-border);
+    border-radius: 8px;
+    padding: 4px 8px;
+    transition: border-color 0.12s;
+}
+.compact__input-group:focus-within { border-color: var(--cal-accent); }
+.compact__input-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+.compact__input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 11px;
+    color: #334155;
+    font-weight: 500;
+    min-width: 0;
+    width: 100%;
+}
+.compact__input-sep {
+    font-size: 14px;
+    color: #cbd5e1;
+    flex-shrink: 0;
 }
 </style>
