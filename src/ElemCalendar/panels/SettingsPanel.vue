@@ -213,6 +213,23 @@
                         <div class="toggle__thumb" />
                     </div>
                 </label>
+
+                <!-- Preset management list -->
+                <div v-if="props.calCompactShowPresets !== false" class="preset-list">
+                    <div v-for="p in defaultPresets" :key="p.key" class="preset-row">
+                        <button
+                            class="preset-row__dot"
+                            :class="{ 'preset-row__dot--on': !isPresetHidden(p.key) }"
+                            :title="isPresetHidden(p.key) ? 'Показать' : 'Скрыть'"
+                            @click="togglePresetHidden(p.key)" />
+                        <input
+                            class="preset-row__input"
+                            :class="{ 'preset-row__input--dim': isPresetHidden(p.key) }"
+                            :value="getPresetLabel(p.key)"
+                            :placeholder="p.defaultLabel"
+                            @change="setPresetLabel(p.key, $event.target.value)" />
+                    </div>
+                </div>
                 <label class="toggle-row">
                     <span class="toggle-row__label">Нижняя панель (ввод дат)</span>
                     <div class="toggle" :class="{ 'toggle--on': props.calCompactShowBottom !== false }" @click="toggleBool('calCompactShowBottom')">
@@ -293,6 +310,18 @@ export default {
             { value: 'none', label: 'Нет' },
             { value: 'single', label: 'Дата' },
             { value: 'range', label: 'Диапазон' }
+        ],
+        defaultPresets: [
+            { key: 'today',      defaultLabel: 'Сегодня' },
+            { key: 'yesterday',  defaultLabel: 'Вчера' },
+            { key: 'week',       defaultLabel: 'Эта неделя' },
+            { key: 'last_week',  defaultLabel: 'Пр. неделя' },
+            { key: 'month',      defaultLabel: 'Этот месяц' },
+            { key: 'last_month', defaultLabel: 'Пр. месяц' },
+            { key: 'd7',         defaultLabel: '7 дней' },
+            { key: 'd30',        defaultLabel: '30 дней' },
+            { key: 'd90',        defaultLabel: '90 дней' },
+            { key: 'year',       defaultLabel: 'Этот год' }
         ]
     }),
 
@@ -333,6 +362,35 @@ export default {
             if (checked && !arr.includes(v)) arr.push(v);
             if (!checked) arr = arr.filter((x) => x !== v);
             this.set('calAvailableViews', arr);
+        },
+
+        isPresetHidden(key) {
+            const h = this.props.calHiddenPresets;
+            return Array.isArray(h) && h.includes(key);
+        },
+
+        togglePresetHidden(key) {
+            const h = Array.isArray(this.props.calHiddenPresets) ? [...this.props.calHiddenPresets] : [];
+            const idx = h.indexOf(key);
+            if (idx === -1) h.push(key);
+            else h.splice(idx, 1);
+            this.set('calHiddenPresets', h);
+        },
+
+        getPresetLabel(key) {
+            const labels = this.props.calPresetLabels;
+            return (labels && labels[key] !== undefined) ? labels[key] : '';
+        },
+
+        setPresetLabel(key, val) {
+            const labels = { ...(this.props.calPresetLabels || {}) };
+            const def = (this.defaultPresets.find(p => p.key === key) || {}).defaultLabel || '';
+            if (!val || val.trim() === def) {
+                delete labels[key];
+            } else {
+                labels[key] = val.trim();
+            }
+            this.set('calPresetLabels', labels);
         }
     }
 };
@@ -532,6 +590,55 @@ export default {
     color: #64748b;
     margin-bottom: 6px;
 }
+
+/* ── Preset management list ───────────────────────────────────── */
+.preset-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 6px;
+    padding: 6px 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+.preset-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.preset-row__dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid #cbd5e1;
+    background: #fff;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    transition: background 0.12s, border-color 0.12s;
+}
+.preset-row__dot--on {
+    background: #4f6aff;
+    border-color: #4f6aff;
+}
+.preset-row__input {
+    flex: 1;
+    font-size: 11px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 2px 5px;
+    background: transparent;
+    color: #334155;
+    outline: none;
+    min-width: 0;
+    transition: border-color 0.12s, background 0.12s, opacity 0.12s;
+}
+.preset-row__input:focus {
+    border-color: #4f6aff;
+    background: #fff;
+}
+.preset-row__input--dim { opacity: 0.35; }
 
 /* ── Var select ───────────────────────────────────────────────── */
 .p-var-select {

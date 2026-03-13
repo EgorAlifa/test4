@@ -23,6 +23,11 @@ export const descriptor = () => ({
             default: null,
             label: 'Компактный режим: пользовательские подписи пресетов { key: label }'
         },
+        calHiddenPresets: {
+            type: Array,
+            default: null,
+            label: 'Компактный режим: скрытые пресеты (массив ключей)'
+        },
         // ── View & behaviour ──────────────────────────────────────────
         calView: {
             type: String,
