@@ -112,6 +112,15 @@
                         @input="set('calEndVar', $event)">
                         Переменная: дата конца
                     </ui-input>
+                    <ui-input
+                        :value="props.calRangeVar"
+                        :list="`store-list-${_uid}`"
+                        @input="set('calRangeVar', $event)">
+                        Переменная: диапазон (массив)
+                    </ui-input>
+                    <div class="p-hint" style="margin:-4px 0 4px">
+                        Если задана — оба значения пишутся в одну переменную как <code>["start", "end"]</code>.
+                    </div>
                 </template>
 
                 <!-- Full mode: selection mode picker + vars -->
@@ -290,6 +299,16 @@
                         <div class="toggle__thumb" />
                     </div>
                 </label>
+                <label class="toggle-row">
+                    <span class="toggle-row__label">Тепловая карта</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calHeatmapEnabled }" @click="toggleBool('calHeatmapEnabled')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <div v-if="props.calHeatmapEnabled" class="p-hint" style="margin:0 0 6px">
+                    Привяжите столбец метрики в панели <strong>Данные</strong> (поле «Столбец метрики»),
+                    затем укажите переменную хранилища или статичный JSON с данными метрики.
+                </div>
             </div>
 
         </ui-container>

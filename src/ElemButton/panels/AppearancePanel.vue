@@ -9,6 +9,7 @@
                     v-for="p in cssPresets"
                     :key="p.label"
                     class="css-preset-chip"
+                    :class="{ 'css-preset-chip--active': activePreset === p.label }"
                     :title="p.label"
                     @click="applyCssPreset(p)">
                     {{ p.label }}
@@ -40,6 +41,7 @@
                         spellcheck="false"
                         :placeholder="el.placeholder"
                         @input="onStyleChange(el.key)" />
+                    <div class="css-autosave-note"><i class="mdi mdi-check-circle-outline" /> Применяется автоматически</div>
                     <div class="css-hint-box">
                         <i class="mdi mdi-information-outline" />
                         <div>
@@ -70,6 +72,7 @@ export default {
         localStyles: { btn: '', hover: '' },
         cssElOpen:   { btn: false, hover: false },
         debounceTimer: null,
+        activePreset: null,
         cssElements: [
             {
                 key: 'btn',
@@ -179,6 +182,7 @@ export default {
         },
 
         applyCssPreset(p) {
+            this.activePreset = p.label;
             this.localStyles.btn = p.btn;
             this.props.btnCustomCss = p.btn; this.propChanged('btnCustomCss');
             this.localStyles.hover = p.hover;
@@ -220,6 +224,7 @@ export default {
     white-space: nowrap;
 }
 .css-preset-chip:hover { border-color: #a5b4fc; color: #4f6aff; background: #f5f7ff; }
+.css-preset-chip--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
 
 /* ── Per-element editor ───────────────────────────────────────── */
 .css-el-wrap {
@@ -331,6 +336,17 @@ export default {
     transition: border-color 0.15s;
 }
 .css-textarea:focus { border-color: #4f6aff; background: #fff; }
+
+/* ── Auto-save note ──────────────────────────────────────────── */
+.css-autosave-note {
+    font-size: 11px;
+    color: #22c55e;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: -4px;
+}
+.css-autosave-note .mdi { font-size: 13px; }
 
 /* ── Blue hint box ───────────────────────────────────────────── */
 .css-hint-box {

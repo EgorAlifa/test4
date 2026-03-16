@@ -827,6 +827,8 @@ export default {
     text-align: center;
     color: #64748b;
     background: #fff;
+    overflow: hidden;
+    min-width: 0;
 }
 .opt-card:hover { border-color: #a5b4fc; color: #334155; }
 .opt-card--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; }
