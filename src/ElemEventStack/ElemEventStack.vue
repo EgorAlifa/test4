@@ -1,7 +1,11 @@
 <template>
-    <div :class="cssClass" :style="cssStyle">
+    <div :class="cssClass" :style="[cssStyle, activeStateCssStyle]">
         <slot :name="slotDefault" v-if="hasState(slotDefault)">
-            <code v-if="isEditorMode">{{ slotDefault }} slot</code>
+            <div v-if="isEditorMode" class="stack-slot-placeholder">
+                <i class="mdi mdi-view-carousel-outline stack-slot-placeholder__icon" />
+                <div class="stack-slot-placeholder__name">{{ slotDefault }}</div>
+                <div class="stack-slot-placeholder__hint">Перетащите виджеты сюда</div>
+            </div>
         </slot>
     </div>
 </template>
@@ -19,6 +23,11 @@ const descriptor = () => ({
             default() {
                 return [{ name: 'default', event: '' }];
             }
+        },
+        stateStyles: {
+            type: String,
+            default: '{}',
+            label: 'CSS стили для состояний (JSON-объект { имяСостояния: "css..." })'
         },
         height: {
             type: String,
@@ -39,6 +48,30 @@ export default {
             descriptor: descriptor(),
             slotDefault: null
         };
+    },
+    computed: {
+        activeStateCssStyle() {
+            try {
+                const map = JSON.parse(this.props.stateStyles || '{}');
+                const css = map[this.slotDefault];
+                if (!css) return null;
+                // Parse inline CSS string into a style object
+                const styleObj = {};
+                css.split(';').forEach((decl) => {
+                    const idx = decl.indexOf(':');
+                    if (idx < 0) return;
+                    const prop = decl.slice(0, idx).trim();
+                    const val = decl.slice(idx + 1).trim();
+                    if (prop && val) {
+                        // Convert kebab-case to camelCase
+                        styleObj[prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = val;
+                    }
+                });
+                return styleObj;
+            } catch (e) {
+                return null;
+            }
+        }
     },
     created() {
         this.slotDefault = this.props.activeState;
@@ -74,3 +107,32 @@ export default {
     }
 };
 </script>
+
+<style scoped>
+.stack-slot-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 80px;
+    border: 2px dashed #c7d2fe;
+    border-radius: 10px;
+    background: #f5f7ff;
+    padding: 18px 12px;
+    pointer-events: none;
+}
+.stack-slot-placeholder__icon {
+    font-size: 28px;
+    color: #a5b4fc;
+}
+.stack-slot-placeholder__name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #6366f1;
+}
+.stack-slot-placeholder__hint {
+    font-size: 11px;
+    color: #94a3b8;
+}
+</style>
