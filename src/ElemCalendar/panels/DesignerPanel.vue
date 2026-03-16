@@ -40,6 +40,37 @@
                 </div>
             </div>
 
+            <!-- Блоки компактного режима -->
+            <template v-if="props.calMode === 'compact'">
+                <div class="p-section__label p-section__label--compact">Компактный режим</div>
+                <div class="blocks-list">
+                    <div
+                        v-for="block in compactBlocks"
+                        :key="block.key"
+                        class="block">
+                        <div
+                            class="block__hd"
+                            @click="toggle(block.key)">
+                            <i class="mdi mdi-circle-small block__dot" :class="hasValue(block.key) ? 'block__dot--active' : ''" />
+                            <span class="block__label">{{ block.label }}</span>
+                            <i class="mdi block__chevron" :class="isOpen(block.key) ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
+                        </div>
+                        <div v-if="isOpen(block.key)" class="block__body">
+                            <code class="block__sel">{{ block.sel }}</code>
+                            <textarea
+                                class="block__textarea"
+                                :value="getVal(block.key)"
+                                :placeholder="block.hint || 'color: red;\nfont-size: 14px;'"
+                                spellcheck="false"
+                                @input="setVal(block.key, $event.target.value)" />
+                            <div v-if="hasValue(block.key)" class="block__actions">
+                                <button class="block__reset" @click="setVal(block.key, '')">Сбросить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
             <!-- Свободный CSS на весь виджет -->
             <div class="block block--global">
                 <div class="block__hd" @click="globalOpen = !globalOpen">
@@ -67,6 +98,57 @@
 
 <script>
 import { Panel } from 'goodt-wcore';
+
+const COMPACT_BLOCKS = [
+    {
+        key: 'compactHead',
+        label: 'Шапка (компакт)',
+        sel: '.compact__head',
+        hint: 'background: #4f6aff;\ncolor: #fff;\npadding: 8px 12px;'
+    },
+    {
+        key: 'compactWeekday',
+        label: 'Подписи дней (компакт)',
+        sel: '.compact__wd',
+        hint: 'color: #4f6aff;\nfont-size: 0.75em;'
+    },
+    {
+        key: 'compactDay',
+        label: 'Ячейка дня (компакт)',
+        sel: '.compact__day',
+        hint: 'border-radius: 0;\nborder: 1px solid #e0e7ff;'
+    },
+    {
+        key: 'compactDayNum',
+        label: 'Число дня (компакт)',
+        sel: '.compact__day-num',
+        hint: 'font-weight: 700;\nborder-radius: 4px;'
+    },
+    {
+        key: 'compactRangeStart',
+        label: 'Начало диапазона',
+        sel: '.compact__day--range-start .compact__day-num',
+        hint: 'background: var(--cal-accent) !important;\ncolor: #fff !important;'
+    },
+    {
+        key: 'compactRangeEnd',
+        label: 'Конец диапазона',
+        sel: '.compact__day--range-end .compact__day-num',
+        hint: 'background: var(--cal-accent) !important;\ncolor: #fff !important;'
+    },
+    {
+        key: 'compactInRange',
+        label: 'Дни в диапазоне',
+        sel: '.compact__day--in-range',
+        hint: 'background: var(--cal-range-bg);'
+    },
+    {
+        key: 'compactPreset',
+        label: 'Пресет дат (компакт)',
+        sel: '.compact__preset',
+        hint: 'border-radius: 20px;\nborder: 1.5px solid currentColor;'
+    }
+];
 
 const BLOCKS = [
     {
@@ -149,6 +231,7 @@ export default {
 
     data: () => ({
         blocks: BLOCKS,
+        compactBlocks: COMPACT_BLOCKS,
         openKeys: [],
         globalOpen: false,
         localGlobalCss: '',
@@ -223,6 +306,10 @@ export default {
     text-transform: uppercase;
     color: #94a3b8;
     margin-bottom: 10px;
+}
+.p-section__label--compact {
+    color: #4f6aff;
+    margin-top: 16px;
 }
 
 /* ── CSS vars reference ───────────────────────────────────────── */

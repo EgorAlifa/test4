@@ -113,6 +113,11 @@ export const descriptor = () => ({
             default: '',
             label: 'Переменная хранилища: конец диапазона'
         },
+        calRangeVar: {
+            type: String,
+            default: '',
+            label: 'Переменная хранилища: диапазон (JSON-массив [start, end])'
+        },
         calEventsVar: {
             type: String,
             default: '',

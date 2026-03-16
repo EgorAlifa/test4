@@ -54,7 +54,7 @@ export default {
     data: () => ({
         copyModes: [
             { value: '',     label: 'Ничего',    icon: 'mdi-minus-circle-outline' },
-            { value: 'url',  label: 'Снимок',    icon: 'mdi-share-variant' },
+            { value: 'url',  label: 'Поделиться', icon: 'mdi-share-variant' },
             { value: 'text', label: 'Свой текст', icon: 'mdi-text-box-outline' }
         ]
     }),

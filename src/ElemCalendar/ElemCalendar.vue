@@ -1034,6 +1034,9 @@ export default {
             if (this.props.calEndVar) {
                 store.commit({ [this.props.calEndVar]: new ValueObject(end) }, { context: this });
             }
+            if (this.props.calRangeVar) {
+                store.commit({ [this.props.calRangeVar]: new ValueObject(JSON.stringify([start, end])) }, { context: this });
+            }
         },
 
         // ── Cell classes ─────────────────────────────────────────────
