@@ -144,13 +144,17 @@
                     </div>
 
                     <template v-if="props.calSelectionMode !== 'none'">
+
+                        <!-- single / range: single-date var -->
                         <ui-input
+                            v-if="props.calSelectionMode !== 'multi'"
                             :value="props.calDateVar"
                             :list="`store-list-${_uid}`"
                             @input="set('calDateVar', $event)">
                             Переменная: выбранная дата
                         </ui-input>
 
+                        <!-- range: start + end vars -->
                         <template v-if="props.calSelectionMode === 'range'">
                             <ui-input
                                 :value="props.calStartVar"
@@ -165,6 +169,22 @@
                                 Переменная: конец диапазона
                             </ui-input>
                         </template>
+
+                        <!-- multi: single var receives the full array -->
+                        <template v-if="props.calSelectionMode === 'multi'">
+                            <div class="p-hint" style="margin-bottom:8px">
+                                Кликните по нескольким датам — каждый клик добавляет или убирает дату.
+                                Весь массив пишется в одну переменную хранилища в формате
+                                <code>["2024-01-05","2024-01-12"]</code>.
+                            </div>
+                            <ui-input
+                                :value="props.calDatesVar"
+                                :list="`store-list-${_uid}`"
+                                @input="set('calDatesVar', $event)">
+                                Переменная: список дат (массив)
+                            </ui-input>
+                        </template>
+
                     </template>
                 </template>
 
@@ -346,7 +366,8 @@ export default {
         selModes: [
             { value: 'none', label: 'Нет' },
             { value: 'single', label: 'Дата' },
-            { value: 'range', label: 'Диапазон' }
+            { value: 'range', label: 'Диапазон' },
+            { value: 'multi', label: 'Несколько' }
         ],
         allPresets: [
             { key: 'today',      label: 'Сегодня' },
