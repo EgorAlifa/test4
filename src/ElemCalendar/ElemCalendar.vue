@@ -390,6 +390,18 @@ function startOfWeek(date, firstDay) {
     return d;
 }
 function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+// Returns every ISO date string from start to end inclusive
+function expandDateRange(start, end) {
+    if (!start || !end) return [];
+    const result = [];
+    let cur = parseIso(start);
+    const last = parseIso(end);
+    if (!cur || !last) return [];
+    const [s, e] = cur <= last ? [cur, last] : [last, cur];
+    cur = s;
+    while (cur <= e) { result.push(isoDate(cur)); cur = addDays(cur, 1); }
+    return result;
+}
 
 // ── Heatmap color helpers ──────────────────────────────────────────
 function hexToRgb(hex) {
@@ -847,9 +859,7 @@ export default {
             ];
         },
 
-        // Hint text shown above the grid when in step 1 (awaiting end click)
         compactSelectionHint() {
-            if (this.compactClickStep === 1) return 'Выберите конечную дату';
             return '';
         }
     },
@@ -1062,10 +1072,8 @@ export default {
             this.propChanged('calSelectedStart');
             this.propChanged('calSelectedEnd');
             // Primary: vars panel (Variables editor)
-            // date = range start (or single selected date in compact mode)
-            // range = JSON array of [start, end] for single-variable binding
-            const rangeJson = start && end ? JSON.stringify([start, end]) : '';
-            this.$storeCommit({ date: start, dateStart: start, dateEnd: end, range: rangeJson });
+            // date = range start (also serves as the selected date in compact mode)
+            this.$storeCommit({ date: start, dateStart: start, dateEnd: end });
             // Fallback: legacy manual props
             if (this.props.calDateVar && start) {
                 store.commit(
@@ -1080,7 +1088,9 @@ export default {
                 store.commit({ [this.props.calEndVar]: new ValueObject(end) }, { context: this });
             }
             if (this.props.calRangeVar) {
-                store.commit({ [this.props.calRangeVar]: new ValueObject(rangeJson) }, { context: this });
+                // Expand full range so other widgets get every date, not just [start, end]
+                const allDates = expandDateRange(start, end);
+                store.commit({ [this.props.calRangeVar]: new ValueObject(JSON.stringify(allDates)) }, { context: this });
             }
         },
 
@@ -1266,13 +1276,12 @@ export default {
         onCompactDayClick(cell) {
             this.activePreset = null;
             if (this.compactClickStep === 0) {
-                // First click: immediately select as a single day and enter awaiting-end mode
+                // First click: select a single date; only commit `date` — no range yet
                 this.rangeStart = cell.date;
                 this.rangeEnd = null;
                 this.compactHoverCell = cell;
                 this.compactClickStep = 1;
-                // Commit the single-date selection right away so other widgets react
-                this._commitRange(cell.iso, cell.iso);
+                this._commitDate(cell.iso);
             } else {
                 // Second click: extend to a full range and commit
                 const s = this.rangeStart;
