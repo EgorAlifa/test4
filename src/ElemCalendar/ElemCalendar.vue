@@ -860,7 +860,13 @@ export default {
         },
         'props.calSelectedDate'(v) {
             if (v) { const d = parseIso(v); if (d) this.navDate = new Date(d); }
-        }
+        },
+        // ── Heatmap auto-toggle ──────────────────────────────────────
+        // Enable heatmap automatically when any metric source is provided;
+        // disable when all sources are cleared.
+        'props.calMetricVar'()   { this._autoHeatmap(); },
+        'props.calMetricJson'()  { this._autoHeatmap(); },
+        'props.calMetricDataCol'() { this._autoHeatmap(); }
     },
 
     mounted() {
@@ -1056,8 +1062,17 @@ export default {
             this.propChanged('calSelectedStart');
             this.propChanged('calSelectedEnd');
             // Primary: vars panel (Variables editor)
-            this.$storeCommit({ dateStart: start, dateEnd: end });
+            // date = range start (or single selected date in compact mode)
+            // range = JSON array of [start, end] for single-variable binding
+            const rangeJson = start && end ? JSON.stringify([start, end]) : '';
+            this.$storeCommit({ date: start, dateStart: start, dateEnd: end, range: rangeJson });
             // Fallback: legacy manual props
+            if (this.props.calDateVar && start) {
+                store.commit(
+                    { [this.props.calDateVar]: new ValueObject(start, store.state[this.props.calDateVar]?.meta) },
+                    { context: this }
+                );
+            }
             if (this.props.calStartVar) {
                 store.commit({ [this.props.calStartVar]: new ValueObject(start) }, { context: this });
             }
@@ -1065,7 +1080,7 @@ export default {
                 store.commit({ [this.props.calEndVar]: new ValueObject(end) }, { context: this });
             }
             if (this.props.calRangeVar) {
-                store.commit({ [this.props.calRangeVar]: new ValueObject(JSON.stringify([start, end])) }, { context: this });
+                store.commit({ [this.props.calRangeVar]: new ValueObject(rangeJson) }, { context: this });
             }
         },
 
@@ -1073,8 +1088,8 @@ export default {
             const json = JSON.stringify(dates);
             this.props.calSelectedDates = json;
             this.propChanged('calSelectedDates');
-            // Primary: vars panel variable
-            this.$storeCommit({ datesList: dates });
+            // Primary: vars panel variable (JSON string, consistent with store conventions)
+            this.$storeCommit({ datesList: json });
             // Fallback: manual store var
             if (this.props.calDatesVar) {
                 store.commit(
@@ -1251,13 +1266,15 @@ export default {
         onCompactDayClick(cell) {
             this.activePreset = null;
             if (this.compactClickStep === 0) {
-                // First click: set start, enter awaiting-end mode
+                // First click: immediately select as a single day and enter awaiting-end mode
                 this.rangeStart = cell.date;
                 this.rangeEnd = null;
                 this.compactHoverCell = cell;
                 this.compactClickStep = 1;
+                // Commit the single-date selection right away so other widgets react
+                this._commitRange(cell.iso, cell.iso);
             } else {
-                // Second click: set end and commit
+                // Second click: extend to a full range and commit
                 const s = this.rangeStart;
                 const e = cell.date;
                 const [start, end] = s <= e ? [s, e] : [e, s];
@@ -1326,6 +1343,17 @@ export default {
         // ── Helpers ──────────────────────────────────────────────────
         formatHour(h) {
             return `${String(h).padStart(2, '0')}:00`;
+        },
+
+        _autoHeatmap() {
+            const hasMetric = Boolean(
+                this.props.calMetricVar ||
+                this.props.calMetricJson ||
+                this.props.calMetricDataCol
+            );
+            if (hasMetric === this.props.calHeatmapEnabled) return;
+            this.props.calHeatmapEnabled = hasMetric;
+            this.propChanged('calHeatmapEnabled');
         },
 
         _tickNow() {
