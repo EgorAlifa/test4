@@ -41,11 +41,11 @@
                     </div>
 
                     <textarea
-                        v-model="localStyles[el.key]"
                         class="dp-textarea"
+                        :value="localStyles[el.key]"
                         spellcheck="false"
                         placeholder="font-weight: 700;&#10;letter-spacing: 0.05em;"
-                        @input="onInput" />
+                        @input="onStyleInput(el.key, $event.target.value)" />
 
                     <div class="dp-hint-box">
                         <i class="mdi mdi-information-outline" />
@@ -112,17 +112,18 @@ export default {
             return [
                 {
                     key: 'container',
-                    label: 'Контейнер (сетка)',
-                    selector: '.slots-grid'
+                    label: 'Контейнер',
+                    // gallery → .slots-grid; stack/container → .sg-mode-wrapper
+                    selector: '.slots-grid  /  .sg-mode-wrapper'
                 },
                 {
                     key: 'slot',
-                    label: 'Слот',
+                    label: 'Ячейка слота',
                     selector: '.slot-item'
                 },
                 {
                     key: 'stackSlot',
-                    label: 'Плейсхолдер',
+                    label: 'Плейсхолдер (только в редакторе)',
                     selector: '.slot-item__placeholder'
                 }
             ];
@@ -144,6 +145,11 @@ export default {
     methods: {
         toggle(key) {
             this.$set(this.open, key, !this.open[key]);
+        },
+
+        onStyleInput(key, val) {
+            this.$set(this.localStyles, key, val);
+            this.onInput();
         },
 
         onInput() {

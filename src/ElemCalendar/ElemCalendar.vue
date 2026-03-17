@@ -1072,8 +1072,9 @@ export default {
             this.propChanged('calSelectedStart');
             this.propChanged('calSelectedEnd');
             // Primary: vars panel (Variables editor)
-            // date = range start (also serves as the selected date in compact mode)
-            this.$storeCommit({ date: start, dateStart: start, dateEnd: end });
+            // date = range start; datesList = every date in the range as a JSON array
+            const allDates = expandDateRange(start, end);
+            this.$storeCommit({ date: start, dateStart: start, dateEnd: end, datesList: JSON.stringify(allDates) });
             // Fallback: legacy manual props
             if (this.props.calDateVar && start) {
                 store.commit(
@@ -1265,10 +1266,17 @@ export default {
 
         _setCompactRange(start, end) {
             this.rangeStart = parseIso(start);
-            this.rangeEnd = parseIso(end);
             this.compactClickStep = 0;
             this.compactHoverCell = null;
-            this._commitRange(start, end);
+            // Single day (presets Today/Yesterday, double-click same date):
+            // commit only `date` — no range variables written
+            if (start && start === end) {
+                this.rangeEnd = null;
+                this._commitDate(start);
+            } else {
+                this.rangeEnd = parseIso(end);
+                this._commitRange(start, end);
+            }
             if (this.rangeStart) this.navDate = new Date(this.rangeStart.getFullYear(), this.rangeStart.getMonth(), 1);
         },
 
