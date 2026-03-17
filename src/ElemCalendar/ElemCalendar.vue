@@ -434,7 +434,9 @@ export default {
         compactClickStep: 0,       // 0 = idle, 1 = start selected, awaiting end click
         activePreset: null,
         editingStart: false,
-        editingEnd: false
+        editingEnd: false,
+        // ── Multi mode state ─────────────────────────────────────────
+        selectedDates: []          // Array of ISO date strings for 'multi' mode
     }),
 
     computed: {
@@ -874,6 +876,25 @@ export default {
         if (this.props.calSelectedStart) this.rangeStart = parseIso(this.props.calSelectedStart);
         if (this.props.calSelectedEnd) this.rangeEnd = parseIso(this.props.calSelectedEnd);
 
+        // Init multi-selection: prefer store var, fall back to prop
+        if (this.props.calDatesVar) {
+            try {
+                const sv = store.state[this.props.calDatesVar]?.value;
+                if (sv) {
+                    const parsed = typeof sv === 'string' ? JSON.parse(sv) : (Array.isArray(sv) ? sv : []);
+                    if (Array.isArray(parsed) && parsed.length) {
+                        this.selectedDates = parsed.map(String).filter(Boolean);
+                    }
+                }
+            } catch (e) { /* noop */ }
+        }
+        if (!this.selectedDates.length && this.props.calSelectedDates) {
+            try {
+                const parsed = JSON.parse(this.props.calSelectedDates);
+                if (Array.isArray(parsed)) this.selectedDates = parsed.map(String).filter(Boolean);
+            } catch (e) { /* noop */ }
+        }
+
         // Tick timer for "now" line
         this._tickNow();
         this.nowTimer = setInterval(() => this._tickNow(), 60000);
@@ -988,6 +1009,15 @@ export default {
                     }
                     this._commitRange(isoDate(this.rangeStart), isoDate(this.rangeEnd));
                 }
+            } else if (mode === SELECTION_MODES.MULTI) {
+                // Toggle: clicking a selected date removes it; clicking unselected adds it
+                const idx = this.selectedDates.indexOf(day.iso);
+                if (idx >= 0) {
+                    this.selectedDates = this.selectedDates.filter((d) => d !== day.iso);
+                } else {
+                    this.selectedDates = [...this.selectedDates, day.iso].sort();
+                }
+                this._commitMultiple(this.selectedDates);
             }
         },
 
@@ -1039,6 +1069,21 @@ export default {
             }
         },
 
+        _commitMultiple(dates) {
+            const json = JSON.stringify(dates);
+            this.props.calSelectedDates = json;
+            this.propChanged('calSelectedDates');
+            // Primary: vars panel variable
+            this.$storeCommit({ datesList: dates });
+            // Fallback: manual store var
+            if (this.props.calDatesVar) {
+                store.commit(
+                    { [this.props.calDatesVar]: new ValueObject(json, store.state[this.props.calDatesVar]?.meta) },
+                    { context: this }
+                );
+            }
+        },
+
         // ── Cell classes ─────────────────────────────────────────────
         dayCellClass(day) {
             const mode = this.props.calSelectionMode || SELECTION_MODES.SINGLE;
@@ -1051,6 +1096,7 @@ export default {
             const rangeMin = this.rangeStart && hovered ? (this.rangeStart < hovered ? this.rangeStart : hovered) : null;
             const rangeMax = this.rangeStart && hovered ? (this.rangeStart < hovered ? hovered : this.rangeStart) : null;
             const isInRange = mode === SELECTION_MODES.RANGE && rangeMin && rangeMax && day.date > rangeMin && day.date < rangeMax;
+            const isMultiSelected = mode === SELECTION_MODES.MULTI && this.selectedDates.includes(day.iso);
 
             return {
                 'elem-cal__cell--other-month': !day.inMonth,
@@ -1060,6 +1106,7 @@ export default {
                 'elem-cal__cell--range-start': isRangeStart,
                 'elem-cal__cell--range-end': isRangeEnd,
                 'elem-cal__cell--in-range': isInRange,
+                'elem-cal__cell--multi-selected': isMultiSelected,
                 'elem-cal__cell--has-events': day.events.length > 0,
                 'elem-cal__cell--has-data': day.hasData
             };
@@ -1147,10 +1194,12 @@ export default {
         },
 
         yearDayClass(cell) {
+            const mode = this.props.calSelectionMode || SELECTION_MODES.SINGLE;
             return {
                 'elem-cal__year-day--today': cell.isToday,
                 'elem-cal__year-day--weekend': cell.isWeekend,
-                'elem-cal__year-day--has-events': cell.events.length > 0
+                'elem-cal__year-day--has-events': cell.events.length > 0,
+                'elem-cal__year-day--multi-selected': mode === SELECTION_MODES.MULTI && this.selectedDates.includes(cell.iso)
             };
         },
 
@@ -1515,6 +1564,28 @@ export default {
 .elem-cal__cell--selected .elem-cal__day-num { color: var(--cal-selected-color) !important; font-weight: 700; }
 
 .elem-cal__cell--in-range { background: var(--cal-range-bg) !important; }
+
+/* ── Multi selection ─────────────────────────────────────────────── */
+.elem-cal__cell--multi-selected {
+    background: var(--cal-selected-bg) !important;
+    position: relative;
+}
+.elem-cal__cell--multi-selected .elem-cal__day-num {
+    color: var(--cal-selected-color) !important;
+    font-weight: 700;
+}
+/* Small check badge in top-right corner for multi-selected dates */
+.elem-cal__cell--multi-selected::after {
+    content: '✓';
+    position: absolute;
+    top: 3px;
+    right: 4px;
+    font-size: 9px;
+    line-height: 1;
+    color: var(--cal-selected-color);
+    opacity: 0.75;
+    pointer-events: none;
+}
 
 .elem-cal__cell-inner {
     display: flex;
@@ -1999,6 +2070,11 @@ export default {
     background: var(--cal-accent);
 }
 .elem-cal__year-day--today.elem-cal__year-day--has-events::after { background: rgba(255,255,255,0.7); }
+.elem-cal__year-day--multi-selected {
+    background: var(--cal-selected-bg) !important;
+    color: var(--cal-selected-color) !important;
+    font-weight: 700;
+}
 
 /* ── Tooltip ─────────────────────────────────────────────────────── */
 .elem-cal__tooltip {

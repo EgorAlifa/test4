@@ -14,7 +14,8 @@ export const LOCALES = Object.freeze({
 export const SELECTION_MODES = Object.freeze({
     NONE: 'none',
     SINGLE: 'single',
-    RANGE: 'range'
+    RANGE: 'range',
+    MULTI: 'multi'
 });
 
 export const WEEK_START = Object.freeze({

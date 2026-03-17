@@ -29,20 +29,26 @@
         <!-- ── STACK MODE (event-driven single-slot switching) ─────────────── -->
         <template v-else-if="mode === 'stack'">
             <div class="sg-mode-wrapper" :style="appearanceStyle">
-                <slot :name="activeStackSlot" v-if="hasStackState(activeStackSlot)">
-                    <div class="slot-item__placeholder" v-if="isEditorMode">
-                        <code>{{ activeStackSlot }}</code>
-                    </div>
-                </slot>
+                <!-- .slot-item wrapper keeps CSS selectors consistent with Gallery mode -->
+                <div class="slot-item" v-if="hasStackState(activeStackSlot)">
+                    <slot :name="activeStackSlot">
+                        <div class="slot-item__placeholder" v-if="isEditorMode">
+                            <code>{{ activeStackSlot }}</code>
+                        </div>
+                    </slot>
+                </div>
             </div>
         </template>
 
         <!-- ── CONTAINER MODE (show/hide single slot via events) ───────────── -->
         <template v-else-if="mode === 'container'">
             <div class="sg-mode-wrapper" :style="appearanceStyle">
-                <slot v-if="containerVisible">
-                    <div class="slot-item__placeholder" v-if="isEditorMode">default slot</div>
-                </slot>
+                <!-- .slot-item wrapper keeps CSS selectors consistent with Gallery mode -->
+                <div class="slot-item" v-if="containerVisible">
+                    <slot>
+                        <div class="slot-item__placeholder" v-if="isEditorMode">default slot</div>
+                    </slot>
+                </div>
                 <div class="slot-item__placeholder" v-else-if="isEditorMode">
                     <code>скрыто</code>
                 </div>
@@ -112,21 +118,25 @@ export default {
 
         /**
          * Custom CSS injected by DesignerPanel.
-         * Keys: container (slots-grid), slot (slot-item), stackSlot (stack placeholder)
+         * Keys: container, slot, stackSlot.
+         * container CSS is applied to both .slots-grid (gallery) and .sg-mode-wrapper
+         * (stack/container) so styles work in all modes.
          */
         customCssContent() {
             const styles = this.props.customStyles;
             if (!styles || typeof styles !== 'object') return null;
-            const selectorMap = {
-                container: '.slots-grid',
-                slot:      '.slot-item',
-                stackSlot: '.slot-item__placeholder'
-            };
-            const css = Object.entries(selectorMap)
-                .filter(([key]) => styles[key])
-                .map(([key, selector]) => `${selector} { ${styles[key]} }`)
-                .join('\n');
-            return css || null;
+            const rules = [];
+            if (styles.container) {
+                rules.push(`.slots-grid { ${styles.container} }`);
+                rules.push(`.sg-mode-wrapper { ${styles.container} }`);
+            }
+            if (styles.slot) {
+                rules.push(`.slot-item { ${styles.slot} }`);
+            }
+            if (styles.stackSlot) {
+                rules.push(`.slot-item__placeholder { ${styles.stackSlot} }`);
+            }
+            return rules.length ? rules.join('\n') : null;
         },
 
         /**

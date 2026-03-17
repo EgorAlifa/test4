@@ -107,17 +107,11 @@
             <!-- ══════════════════ STACK mode ═════════════════════════════ -->
             <template v-else-if="isStackMode">
 
-                <div class="sp-section-label sp-section-label--mt">Активное состояние</div>
-                <select
-                    class="select select-small w-100"
-                    v-model="props.activeState"
-                    @change="propChanged('activeState')">
-                    <option v-for="state in props.states" :value="state.name" :key="state.name">
-                        {{ state.name }}
-                    </option>
-                </select>
-
                 <div class="sp-section-label sp-section-label--mt">Состояния</div>
+                <div class="stack-hint">
+                    <i class="mdi mdi-information-outline"></i>
+                    Выберите состояние — виджеты, перетащенные в контейнер, попадут в его слот.
+                </div>
                 <form class="row row-collapse sp-add-row" @submit.prevent="addState">
                     <div class="col">
                         <input
@@ -135,12 +129,14 @@
                 </form>
 
                 <div v-for="state in props.states" :key="state.name" class="stack-state-row">
-                    <code
-                        class="cursor-pointer stack-state-row__name"
-                        title="Нажмите для предпросмотра"
-                        @click="previewState(state)">
-                        {{ state.name }}
-                    </code>
+                    <div
+                        class="stack-state-row__name-btn"
+                        :class="{ 'stack-state-row__name-btn--active': props.activeState === state.name }"
+                        title="Нажмите, чтобы выбрать активный слот"
+                        @click="setActiveState(state)">
+                        <i class="mdi mdi-eye stack-state-row__eye" v-if="props.activeState === state.name" />
+                        <code>{{ state.name }}</code>
+                    </div>
                     <div class="form-control form-control-icon-left flex-1">
                         <input
                             class="input input-small w-100"
@@ -288,8 +284,11 @@ export default {
             const name = this.newStateName.trim();
             if (!name || this.props.states.some((s) => s.name === name)) return;
             this.props.states.push({ name, event: '' });
+            // Auto-activate the new state so dropped widgets land in its slot
+            this.props.activeState = name;
             this.newStateName = '';
             this.propChanged('states');
+            this.propChanged('activeState');
         },
 
         removeState(state) {
@@ -302,7 +301,13 @@ export default {
             this.propChanged('states');
         },
 
-        previewState(state) {
+        /**
+         * Select the active state both in props (so the builder inserts widgets
+         * into the correct slot) and on the live instance (immediate visual update).
+         */
+        setActiveState(state) {
+            this.props.activeState = state.name;
+            this.propChanged('activeState');
             if (this.elementInstance) this.elementInstance.activeStackSlot = state.name;
         }
     }
@@ -407,8 +412,34 @@ export default {
     gap: 6px;
     margin-bottom: 6px;
 }
-.stack-state-row__name {
+.stack-state-row__name-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     min-width: 60px;
     flex-shrink: 0;
+    padding: 3px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: border-color 0.12s, background 0.12s;
 }
+.stack-state-row__name-btn:hover { border-color: #a5b4fc; background: #f5f7ff; }
+.stack-state-row__name-btn--active { border-color: #4f6aff; background: #eff2ff; }
+.stack-state-row__name-btn--active code { color: #4f6aff; }
+.stack-state-row__eye { font-size: 13px; color: #4f6aff; }
+.stack-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.5;
+    margin-bottom: 6px;
+    padding: 7px 9px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+}
+.stack-hint .mdi { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
 </style>

@@ -118,6 +118,16 @@ export const descriptor = () => ({
             default: '',
             label: 'Переменная хранилища: диапазон (JSON-массив [start, end])'
         },
+        calDatesVar: {
+            type: String,
+            default: '',
+            label: 'Переменная хранилища: список дат (JSON-массив ["YYYY-MM-DD", ...])'
+        },
+        calSelectedDates: {
+            type: String,
+            default: '',
+            label: 'Выбранные даты (JSON-массив ISO дат, режим "multi")'
+        },
         calEventsVar: {
             type: String,
             default: '',
@@ -304,7 +314,8 @@ export const descriptor = () => ({
     vars: {
         date: { description: 'Выбранная дата (ISO)' },
         dateStart: { description: 'Начало диапазона (ISO)' },
-        dateEnd: { description: 'Конец диапазона (ISO)' }
+        dateEnd: { description: 'Конец диапазона (ISO)' },
+        datesList: { description: 'Массив выбранных дат (JSON, режим "multi")' }
     },
     cssVars: {}
 });
