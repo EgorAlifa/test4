@@ -315,6 +315,7 @@ export const descriptor = () => ({
         date: { description: 'Выбранная дата (ISO)' },
         dateStart: { description: 'Начало диапазона (ISO)' },
         dateEnd: { description: 'Конец диапазона (ISO)' },
+        range: { description: 'Диапазон дат (JSON-массив [start, end])' },
         datesList: { description: 'Массив выбранных дат (JSON, режим "multi")' }
     },
     cssVars: {}
