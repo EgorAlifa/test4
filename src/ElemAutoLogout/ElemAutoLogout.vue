@@ -182,48 +182,39 @@ export default {
         },
 
         /**
-         * Perform logout via AuthManager adapter, then redirect to the auth page.
+         * Perform logout via AuthManager.instance.logout().
          *
-         * adapter.logout() only clears the session — it does NOT redirect the
-         * browser.  After clearing the session we must explicitly redirect:
-         *   - DEFAULT → adapter.login() performs window.location.replace(keycloakLoginUrl),
-         *               a full-page browser navigation that bypasses Vue Router entirely
-         *               and avoids the NavigationRedirected unhandled promise rejection
-         *               that AuthManager.instance.login() triggers via the router's
-         *               _loginHandlers / beforeEach guard chain.
-         *   - CUSTOM  → navigate to the configured URL
+         * AuthManager.instance.logout() fires all _logoutHandlers registered by
+         * the platform (router, session manager, etc.) — this is the correct
+         * platform-level logout, analogous to how ElemAuthContainer uses
+         * AuthManager.instance.login() for the platform-level login redirect.
+         *
+         * Calling adapter.logout() directly would bypass these handlers; for the
+         * Keycloak SSO adapter it is literally a no-op (calls super → Promise.resolve).
+         *
+         * Redirect behaviour:
+         *   - DEFAULT: the platform's _logoutHandlers are responsible for the
+         *              redirect — we do not trigger it manually.
+         *   - CUSTOM:  navigate to the configured URL after the handlers resolve.
          */
         async performLogout() {
             console.log(LOG_PREFIX, 'performLogout — start');
             this.clearTimers();
             this.showWarning = false;
 
-            /** @type {{ adapter: import('@goodt-common/auth/adapters/Adapter').default }} */
-            const { adapter } = AuthManager.instance;
-            if (!adapter) {
-                console.warn(LOG_PREFIX, 'no AuthManager adapter found — aborting logout');
-                return;
-            }
-
-            console.log(LOG_PREFIX, 'calling adapter.logout()');
-            try {
-                await adapter.logout();
-                console.log(LOG_PREFIX, 'adapter.logout() resolved — session cleared');
-            } catch (err) {
-                console.warn(LOG_PREFIX, 'adapter.logout() threw — proceeding to redirect anyway', err);
-            }
-
             const { redirectType, customRedirectUrl } = this.props;
-            console.log(LOG_PREFIX, 'redirecting', { redirectType, customRedirectUrl });
+            console.log(LOG_PREFIX, 'calling AuthManager.instance.logout()', { redirectType, customRedirectUrl });
+
+            try {
+                await AuthManager.instance.logout();
+                console.log(LOG_PREFIX, 'AuthManager.instance.logout() resolved');
+            } catch (err) {
+                console.warn(LOG_PREFIX, 'AuthManager.instance.logout() threw', err);
+            }
 
             if (redirectType === RedirectType.CUSTOM && customRedirectUrl) {
                 console.log(LOG_PREFIX, `navigating to custom URL: ${customRedirectUrl}`);
                 window.location.href = customRedirectUrl;
-            } else {
-                // adapter.login() → window.location.replace(keycloak.createLoginUrl())
-                // Full browser redirect to Keycloak — no Vue Router, no uncaught promises.
-                console.log(LOG_PREFIX, 'calling adapter.login() to redirect to Keycloak login page');
-                adapter.login();
             }
         }
     }
