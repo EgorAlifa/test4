@@ -139,7 +139,12 @@ export default {
         },
 
         /**
-         * Perform logout via AuthManager adapter and redirect accordingly.
+         * Perform logout via AuthManager adapter, then redirect to the auth page.
+         *
+         * adapter.logout() only clears the session — it does NOT redirect the
+         * browser.  After clearing the session we must explicitly redirect:
+         *   - DEFAULT → AuthManager.instance.login() (same as ElemAuthContainer)
+         *   - CUSTOM  → navigate to the configured URL
          */
         async performLogout() {
             this.clearTimers();
@@ -151,17 +156,19 @@ export default {
                 return;
             }
 
-            const { redirectType, customRedirectUrl } = this.props;
-            const isCustom = redirectType === RedirectType.CUSTOM && customRedirectUrl;
-            const logoutOptions = isCustom ? { redirectUri: customRedirectUrl } : {};
-
             try {
-                await adapter.logout(logoutOptions);
+                // adapter.logout() accepts no arguments; it only clears the session
+                await adapter.logout();
             } catch {
-                // Fallback: navigate directly if logout method fails
-                if (isCustom) {
-                    window.location.href = customRedirectUrl;
-                }
+                // ignore — proceed to redirect regardless
+            }
+
+            const { redirectType, customRedirectUrl } = this.props;
+            if (redirectType === RedirectType.CUSTOM && customRedirectUrl) {
+                window.location.href = customRedirectUrl;
+            } else {
+                // Redirect to the Keycloak login page, identical to ElemAuthContainer behaviour
+                AuthManager.instance.login();
             }
         }
     }
