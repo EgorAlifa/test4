@@ -1,0 +1,20 @@
+.ui-form {
+    display: flex;
+    flex-direction: var(--w-direction, column);
+    align-items: var(--w-align, normal);
+    gap: var(--w-gap, 1rem);
+
+    &__footer {
+        text-align: var(--w-btnAlign, right);
+    }
+}
+
+.v-enter-active,
+.v-leave-active {
+    transition: all 0.25s ease;
+}
+.v-enter,
+.v-leave-to {
+    opacity: 0;
+    transform: translateY(-1rem);
+}
