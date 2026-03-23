@@ -30,6 +30,8 @@ import { meta } from './descriptor';
 import { ElemInstanceTypeDescriptor } from './types';
 import { RedirectType, ACTIVITY_EVENTS } from './constants';
 
+const LOG_PREFIX = '[ElemAutoLogout]';
+
 export default {
     extends: Elem,
     meta,
@@ -38,11 +40,23 @@ export default {
         countdown: 0
     }),
     mounted() {
+        console.log(LOG_PREFIX, 'mounted', {
+            isEditorMode: this.isEditorMode,
+            timeoutSeconds: this.props.timeoutSeconds,
+            warningEnabled: this.props.warningEnabled,
+            warningDuration: this.props.warningDuration,
+            redirectType: this.props.redirectType,
+            customRedirectUrl: this.props.customRedirectUrl
+        });
+
         if (!this.isEditorMode) {
             this.startTracking();
+        } else {
+            console.log(LOG_PREFIX, 'editor mode — activity tracking disabled');
         }
     },
     beforeDestroy() {
+        console.log(LOG_PREFIX, 'beforeDestroy — stopping tracking');
         this.stopTracking();
     },
     methods: {
@@ -52,6 +66,7 @@ export default {
          * Attach activity listeners and start the inactivity timer.
          */
         startTracking() {
+            console.log(LOG_PREFIX, 'startTracking — attaching listeners:', ACTIVITY_EVENTS);
             this._boundHandleActivity = this.handleActivity.bind(this);
             ACTIVITY_EVENTS.forEach((event) => {
                 document.addEventListener(event, this._boundHandleActivity, { passive: true });
@@ -68,6 +83,7 @@ export default {
                     document.removeEventListener(event, this._boundHandleActivity);
                 });
                 this._boundHandleActivity = null;
+                console.log(LOG_PREFIX, 'stopTracking — listeners removed');
             }
             this.clearTimers();
         },
@@ -93,12 +109,21 @@ export default {
             const effectiveWarning = warningEnabled ? Math.min(warningDuration, timeoutSeconds) : 0;
             const idleDelay = (timeoutSeconds - effectiveWarning) * 1000;
 
+            console.log(LOG_PREFIX, 'resetTimer', {
+                timeoutSeconds,
+                effectiveWarning,
+                idleDelayMs: idleDelay,
+                logoutAt: new Date(Date.now() + timeoutSeconds * 1000).toLocaleTimeString()
+            });
+
             if (effectiveWarning > 0) {
                 this._idleTimer = setTimeout(() => {
+                    console.log(LOG_PREFIX, 'idle threshold reached — showing warning');
                     this.startWarning(effectiveWarning);
                 }, idleDelay);
             } else {
                 this._idleTimer = setTimeout(() => {
+                    console.log(LOG_PREFIX, 'idle threshold reached — no warning, logging out immediately');
                     this.performLogout();
                 }, timeoutSeconds * 1000);
             }
@@ -109,13 +134,16 @@ export default {
          * @param {number} seconds
          */
         startWarning(seconds) {
+            console.log(LOG_PREFIX, `startWarning — ${seconds}s until logout`);
             this.showWarning = true;
             this.countdown = seconds;
 
             this._countdownInterval = setInterval(() => {
                 this.countdown -= 1;
+                console.log(LOG_PREFIX, `warning countdown: ${this.countdown}s`);
                 if (this.countdown <= 0) {
                     clearInterval(this._countdownInterval);
+                    console.log(LOG_PREFIX, 'countdown reached zero — logging out');
                     this.performLogout();
                 }
             }, 1000);
@@ -135,6 +163,7 @@ export default {
          * "Stay logged in" button handler — dismiss warning and reset timer.
          */
         onStayLoggedIn() {
+            console.log(LOG_PREFIX, 'user chose to stay — resetting timer');
             this.resetTimer();
         },
 
@@ -145,30 +174,47 @@ export default {
          * browser.  After clearing the session we must explicitly redirect:
          *   - DEFAULT → AuthManager.instance.login() (same as ElemAuthContainer)
          *   - CUSTOM  → navigate to the configured URL
+         *
+         * AuthManager.instance.login() fires _loginHandlers registered by the
+         * router, which calls router.push('/login').  Vue Router 3 rejects the
+         * push promise with NavigationRedirected when a beforeEach guard
+         * intercepts it — that rejection must be caught to avoid an unhandled
+         * promise error in the console.
          */
         async performLogout() {
+            console.log(LOG_PREFIX, 'performLogout — start');
             this.clearTimers();
             this.showWarning = false;
 
             /** @type {{ adapter: import('@goodt-common/auth/adapters/Adapter').default }} */
             const { adapter } = AuthManager.instance;
             if (!adapter) {
+                console.warn(LOG_PREFIX, 'no AuthManager adapter found — aborting logout');
                 return;
             }
 
+            console.log(LOG_PREFIX, 'calling adapter.logout()');
             try {
-                // adapter.logout() accepts no arguments; it only clears the session
                 await adapter.logout();
-            } catch {
-                // ignore — proceed to redirect regardless
+                console.log(LOG_PREFIX, 'adapter.logout() resolved — session cleared');
+            } catch (err) {
+                console.warn(LOG_PREFIX, 'adapter.logout() threw — proceeding to redirect anyway', err);
             }
 
             const { redirectType, customRedirectUrl } = this.props;
+            console.log(LOG_PREFIX, 'redirecting', { redirectType, customRedirectUrl });
+
             if (redirectType === RedirectType.CUSTOM && customRedirectUrl) {
+                console.log(LOG_PREFIX, `navigating to custom URL: ${customRedirectUrl}`);
                 window.location.href = customRedirectUrl;
             } else {
-                // Redirect to the Keycloak login page, identical to ElemAuthContainer behaviour
-                AuthManager.instance.login();
+                console.log(LOG_PREFIX, 'calling AuthManager.instance.login() to redirect to Keycloak login page');
+                // Vue Router 3 rejects the push promise with NavigationRedirected when the
+                // router's beforeEach guard intercepts the push — catch it to keep the
+                // console clean.
+                AuthManager.instance.login().catch((err) => {
+                    console.log(LOG_PREFIX, 'navigation to login page completed (NavigationRedirected is expected here)', err?.message);
+                });
             }
         }
     }
