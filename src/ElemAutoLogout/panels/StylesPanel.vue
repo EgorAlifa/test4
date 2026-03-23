@@ -2,20 +2,6 @@
     <w-panel>
         <ui-container>
 
-            <!-- ── CSS пресеты ────────────────────────────────────────── -->
-            <div class="section-label">Пресеты стилей</div>
-            <div class="css-presets">
-                <button
-                    v-for="p in cssPresets"
-                    :key="p.label"
-                    class="css-preset-chip"
-                    :class="{ 'css-preset-chip--active': activePreset === p.label }"
-                    :title="p.label"
-                    @click="applyCssPreset(p)">
-                    {{ p.label }}
-                </button>
-            </div>
-
             <!-- ── Per-element CSS editors ────────────────────────────── -->
             <div v-for="el in cssElements" :key="el.key" class="css-el-wrap">
                 <div class="css-el-hd" @click="cssElOpen[el.key] = !cssElOpen[el.key]">
@@ -71,7 +57,6 @@ export default {
         localStyles: { overlay: '', dialog: '', btn: '' },
         cssElOpen:   { overlay: false, dialog: false, btn: false },
         debounceTimer: null,
-        activePreset: null,
         cssElements: [
             {
                 key: 'overlay',
@@ -91,39 +76,12 @@ export default {
                 selector: '.auto-logout__dialog-btn',
                 placeholder: 'background: #3b82f6;\nborder-radius: 8px;'
             }
-        ],
-        cssPresets: [
-            {
-                label: 'Тёмная тема',
-                overlay: 'background: rgba(0,0,0,0.72);',
-                dialog:  'background: #1e293b;\ncolor: #f1f5f9;\nborder-radius: 12px;\nbox-shadow: 0 8px 40px rgba(0,0,0,0.6);',
-                btn:     'background: #3b82f6;\nborder-color: #3b82f6;\ncolor: #fff;'
-            },
-            {
-                label: 'Стекло',
-                overlay: 'background: rgba(15,23,42,0.55);\nbackdrop-filter: blur(6px);',
-                dialog:  'background: rgba(255,255,255,0.15);\nbackdrop-filter: blur(18px);\nborder: 1px solid rgba(255,255,255,0.25);\nborder-radius: 20px;\ncolor: #fff;\nbox-shadow: 0 8px 32px rgba(0,0,0,0.25);',
-                btn:     'background: rgba(255,255,255,0.2);\nborder: 1.5px solid rgba(255,255,255,0.4);\ncolor: #fff;'
-            },
-            {
-                label: 'Опасность',
-                overlay: 'background: rgba(127,29,29,0.55);',
-                dialog:  'background: #fff;\nborder-top: 4px solid #ef4444;\nborder-radius: 12px;',
-                btn:     'background: #ef4444;\nborder-color: #ef4444;\ncolor: #fff;'
-            },
-            {
-                label: 'Мягкая',
-                overlay: 'background: rgba(100,116,139,0.35);',
-                dialog:  'background: #f8fafc;\nborder: 1px solid #e2e8f0;\nborder-radius: 20px;\nbox-shadow: 0 4px 24px rgba(0,0,0,0.08);',
-                btn:     'background: #64748b;\nborder-color: #64748b;\ncolor: #fff;'
-            },
-            { label: 'Сброс', overlay: '', dialog: '', btn: '' }
         ]
     }),
     mounted() {
-        this.localStyles.overlay = this.props.overlayCustomCss    || '';
-        this.localStyles.dialog  = this.props.dialogCustomCss     || '';
-        this.localStyles.btn     = this.props.dialogBtnCustomCss  || '';
+        this.localStyles.overlay = this.props.overlayCustomCss   || '';
+        this.localStyles.dialog  = this.props.dialogCustomCss    || '';
+        this.localStyles.btn     = this.props.dialogBtnCustomCss || '';
     },
     beforeUnmount() {
         if (this.debounceTimer) clearTimeout(this.debounceTimer);
@@ -163,16 +121,6 @@ export default {
             this.propChanged(propMap[key]);
         },
 
-        applyCssPreset(p) {
-            this.activePreset = p.label;
-            ['overlay', 'dialog', 'btn'].forEach((key) => {
-                this.localStyles[key] = p[key];
-            });
-            this.props.overlayCustomCss   = p.overlay;   this.propChanged('overlayCustomCss');
-            this.props.dialogCustomCss    = p.dialog;    this.propChanged('dialogCustomCss');
-            this.props.dialogBtnCustomCss = p.btn;       this.propChanged('dialogBtnCustomCss');
-        },
-
         resetAllCss() {
             ['overlay', 'dialog', 'btn'].forEach((key) => this.resetElement(key));
         }
@@ -181,32 +129,6 @@ export default {
 </script>
 
 <style scoped>
-.section-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #94a3b8;
-    margin-top: 4px;
-    margin-bottom: 6px;
-}
-
-.css-presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
-.css-preset-chip {
-    padding: 4px 11px;
-    border-radius: 20px;
-    border: 1.5px solid #e2e8f0;
-    background: #fff;
-    color: #475569;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: border-color 0.12s, background 0.12s, color 0.12s;
-    white-space: nowrap;
-}
-.css-preset-chip:hover { border-color: #a5b4fc; color: #4f6aff; background: #f5f7ff; }
-.css-preset-chip--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
-
 .css-el-wrap {
     border: 1px solid #e2e8f0;
     border-radius: 10px;
