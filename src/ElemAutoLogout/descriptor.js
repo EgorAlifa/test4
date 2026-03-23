@@ -47,6 +47,21 @@ export const descriptor = () => ({
                 stayLoggedIn: 'Оставаться в системе',
                 seconds: 'сек.'
             })
+        },
+        overlayCustomCss: {
+            type: String,
+            default: '',
+            label: 'CSS подложки (overlay)'
+        },
+        dialogCustomCss: {
+            type: String,
+            default: '',
+            label: 'CSS диалогового окна'
+        },
+        dialogBtnCustomCss: {
+            type: String,
+            default: '',
+            label: 'CSS кнопки в диалоге'
         }
     }
 });

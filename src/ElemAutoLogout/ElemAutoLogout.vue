@@ -1,5 +1,6 @@
 <template>
     <w-elem>
+        <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
         <!-- Displayed only in editor mode as a visual placeholder -->
         <div v-if="isEditorMode" class="auto-logout__placeholder">
             <i class="mdi mdi-timer-off-outline"></i>
@@ -39,6 +40,16 @@ export default {
         showWarning: false,
         countdown: 0
     }),
+    computed: {
+        customCssContent() {
+            const { overlayCustomCss, dialogCustomCss, dialogBtnCustomCss } = this.props;
+            let css = '';
+            if (overlayCustomCss) css += `.auto-logout__overlay { ${overlayCustomCss} }`;
+            if (dialogCustomCss)  css += `.auto-logout__dialog { ${dialogCustomCss} }`;
+            if (dialogBtnCustomCss) css += `.auto-logout__dialog-btn { ${dialogBtnCustomCss} }`;
+            return css || null;
+        }
+    },
     mounted() {
         console.log(LOG_PREFIX, 'mounted', {
             isEditorMode: this.isEditorMode,
