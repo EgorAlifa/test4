@@ -102,8 +102,8 @@
                     v-for="t in textTransformOptions"
                     :key="t.value"
                     class="opt-card"
-                    :class="{ 'opt-card--active': (props.btnTextTransform || 'none') === t.value }"
-                    @click="setBtnTextTransform(t.value)">
+                    :class="{ 'opt-card--active': (props.textTransform || 'none') === t.value }"
+                    @click="setTextTransform(t.value)">
                     <span class="opt-card__typo-preview" :style="{ textTransform: t.value }">Аа</span>
                     <div class="opt-card__label">{{ t.label }}</div>
                 </div>
@@ -150,8 +150,8 @@
 
             <div class="divider" />
 
-            <!-- ══ DIALOG ═════════════════════════════════════════════════ -->
-            <div class="section-label">Диалог</div>
+            <!-- ══ WARNING WINDOW ═════════════════════════════════════════ -->
+            <div class="section-label">Окно предупреждения</div>
             <ui-input-cp prop="dialogBgColor">Фон диалога</ui-input-cp>
             <ui-input-cp prop="dialogTextColor">Цвет текста</ui-input-cp>
             <ui-input-cp prop="iconColor">Цвет иконки</ui-input-cp>
@@ -211,7 +211,7 @@ const DEFAULTS = {
     dialogBgColor: '', dialogTextColor: '', dialogRadius: 8, dialogMaxWidth: 380,
     btnBgColor: '', btnTextColor: '', btnRadius: 8, iconColor: '',
     fontFamily: '',
-    btnFontSize: '', btnFontWeight: '', btnTextTransform: 'none', letterSpacing: '',
+    btnFontSize: '', btnFontWeight: '', textTransform: 'none', letterSpacing: '',
     overlayCustomCss: '', dialogCustomCss: '', dialogBtnCustomCss: ''
 };
 
@@ -321,7 +321,7 @@ export default {
                 fontFamily:    p.fontFamily        || 'inherit',
                 fontSize:      p.btnFontSize       || '13px',
                 fontWeight:    p.btnFontWeight     || '500',
-                textTransform: p.btnTextTransform  || 'none',
+                textTransform: p.textTransform  || 'none',
                 letterSpacing: p.letterSpacing     || '0.02em',
                 pointerEvents: 'none'
             };
@@ -331,8 +331,9 @@ export default {
         },
         previewTextStyle() {
             return {
-                fontFamily:    this.props.fontFamily   || 'inherit',
+                fontFamily:    this.props.fontFamily    || 'inherit',
                 letterSpacing: this.props.letterSpacing || 'inherit',
+                textTransform: this.props.textTransform || 'none',
                 color: 'inherit'
             };
         },
@@ -417,8 +418,8 @@ export default {
             this.props.fontFamily = val; this.propChanged('fontFamily');
             this.activePreset = this.detectActivePreset();
         },
-        setBtnTextTransform(val) {
-            this.props.btnTextTransform = val; this.propChanged('btnTextTransform');
+        setTextTransform(val) {
+            this.props.textTransform = val; this.propChanged('textTransform');
         },
         onLetterSpacingSlider(e) {
             const hundredths = parseInt(e.target.value, 10);
