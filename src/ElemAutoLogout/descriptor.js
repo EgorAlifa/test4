@@ -48,6 +48,53 @@ export const descriptor = () => ({
                 seconds: 'сек.'
             })
         },
+        /* ── Visual styling props (Стили panel) ─────────────────── */
+        overlayColor: {
+            type: String,
+            default: '#000000',
+            label: 'Цвет подложки'
+        },
+        overlayOpacity: {
+            type: Number,
+            default: 45,
+            label: 'Непрозрачность подложки (%)'
+        },
+        dialogBgColor: {
+            type: String,
+            default: '',
+            label: 'Фон диалога'
+        },
+        dialogTextColor: {
+            type: String,
+            default: '',
+            label: 'Цвет текста диалога'
+        },
+        dialogRadius: {
+            type: Number,
+            default: 8,
+            label: 'Скругление диалога (px)'
+        },
+        btnBgColor: {
+            type: String,
+            default: '',
+            label: 'Фон кнопки'
+        },
+        btnTextColor: {
+            type: String,
+            default: '',
+            label: 'Цвет текста кнопки'
+        },
+        btnRadius: {
+            type: Number,
+            default: 8,
+            label: 'Скругление кнопки (px)'
+        },
+        iconColor: {
+            type: String,
+            default: '',
+            label: 'Цвет иконки'
+        },
+        /* ── Raw CSS overrides (Я дизайнер panel) ───────────────── */
         overlayCustomCss: {
             type: String,
             default: '',
