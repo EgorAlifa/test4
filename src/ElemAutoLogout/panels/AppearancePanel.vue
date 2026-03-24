@@ -2,7 +2,25 @@
     <w-panel>
         <ui-container>
 
-            <!-- ══ PRESETS ══════════════════════════════════════════════ -->
+            <!-- ══ LIVE PREVIEW ══════════════════════════════════════════ -->
+            <div class="dialog-preview-wrap">
+                <div class="dialog-preview-overlay" :style="previewOverlayStyle">
+                    <div class="dialog-preview-dialog" :style="previewDialogStyle">
+                        <i class="mdi mdi-alert-circle-outline dialog-preview-icon" :style="previewIconStyle" />
+                        <div class="dialog-preview-title" :style="previewTextStyle">
+                            {{ (props.labels && props.labels.warningTitle) || 'Сессия истекает' }}
+                        </div>
+                        <div class="dialog-preview-msg" :style="previewTextStyle">
+                            Выход через <strong>30</strong> сек.
+                        </div>
+                        <button class="dialog-preview-btn" :style="previewBtnStyle">
+                            {{ (props.labels && props.labels.stayLoggedIn) || 'Оставаться в системе' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ PRESETS ═══════════════════════════════════════════════ -->
             <div class="section-label">Пресет</div>
             <div class="presets-row">
                 <div
@@ -12,7 +30,6 @@
                     :class="{ 'preset-chip--active': activePreset === p.label }"
                     :title="p.label"
                     @click="applyPreset(p)">
-                    <!-- mini dialog preview inside overlay strip -->
                     <div class="chip-overlay" :style="{ background: p.swatch.overlay }">
                         <div
                             class="chip-dialog"
@@ -36,147 +53,139 @@
 
             <div class="divider" />
 
-            <!-- ══ OVERLAY ══════════════════════════════════════════════ -->
-            <div class="section-label">Подложка</div>
-            <div class="ctrl-row">
-                <div class="ctrl-col">
-                    <div class="ctrl-label">Цвет</div>
-                    <div class="color-row">
-                        <label class="color-swatch-wrap">
-                            <div class="color-swatch" :style="{ background: local.overlayColor }"></div>
-                            <input
-                                type="color"
-                                class="color-hidden"
-                                v-model="local.overlayColor"
-                                @change="save('overlayColor')" />
-                        </label>
-                        <span class="color-val">{{ local.overlayColor }}</span>
-                    </div>
-                </div>
-                <div class="ctrl-col ctrl-col--grow">
-                    <div class="ctrl-label">Непрозрачность &nbsp;<strong>{{ local.overlayOpacity }}%</strong></div>
-                    <input
-                        type="range"
-                        class="slider"
-                        min="0"
-                        max="100"
-                        v-model.number="local.overlayOpacity"
-                        @input="save('overlayOpacity')" />
+            <!-- ══ BUTTON COLOUR ═════════════════════════════════════════ -->
+            <div class="section-label">Цветовые пресеты</div>
+            <div class="color-presets">
+                <button
+                    v-for="cp in colorPresets"
+                    :key="cp.label"
+                    class="color-preset"
+                    :class="{ 'color-preset--active': props.btnBgColor === cp.bg }"
+                    :title="cp.label"
+                    :style="{ background: cp.bg, color: cp.color, border: cp.border || 'none' }"
+                    @click="applyColorPreset(cp)">
+                    {{ cp.label }}
+                </button>
+            </div>
+            <ui-input-cp prop="btnBgColor">Фон кнопки</ui-input-cp>
+            <ui-input-cp prop="btnTextColor">Цвет текста кнопки</ui-input-cp>
+
+            <!-- ══ BUTTON FONT ════════════════════════════════════════════ -->
+            <div class="section-label">Шрифт</div>
+            <div class="font-grid">
+                <button
+                    v-for="f in fontFamilyOptions"
+                    :key="f.value"
+                    class="font-chip"
+                    :class="{ 'font-chip--active': (props.btnFontFamily || '') === f.value }"
+                    :style="{ fontFamily: f.value || 'inherit' }"
+                    @click="setBtnFontFamily(f.value)">
+                    {{ f.label }}
+                </button>
+            </div>
+            <div class="custom-font-row">
+                <input
+                    class="custom-font-input"
+                    placeholder="Свой шрифт, напр. Comfortaa"
+                    :value="customFontInput"
+                    @input="customFontInput = $event.target.value"
+                    @keydown.enter.prevent="applyCustomFont" />
+                <button class="custom-font-btn" :disabled="!customFontInput.trim()" @click="applyCustomFont">
+                    <i class="mdi mdi-check" />
+                </button>
+            </div>
+
+            <!-- ── Регистр ───────────────────────────────────────────── -->
+            <div class="section-label">Регистр</div>
+            <div class="opt-grid opt-grid--4">
+                <div
+                    v-for="t in textTransformOptions"
+                    :key="t.value"
+                    class="opt-card"
+                    :class="{ 'opt-card--active': (props.btnTextTransform || 'none') === t.value }"
+                    @click="setBtnTextTransform(t.value)">
+                    <span class="opt-card__typo-preview" :style="{ textTransform: t.value }">Аа</span>
+                    <div class="opt-card__label">{{ t.label }}</div>
                 </div>
             </div>
 
-            <!-- ══ DIALOG ════════════════════════════════════════════════ -->
-            <div class="section-label">Диалог</div>
-            <div class="ctrl-row">
-                <div class="ctrl-col">
-                    <div class="ctrl-label">Фон</div>
-                    <div class="color-row">
-                        <label class="color-swatch-wrap">
-                            <div class="color-swatch" :style="{ background: local.dialogBgColor || '#ffffff' }"></div>
-                            <input
-                                type="color"
-                                class="color-hidden"
-                                :value="local.dialogBgColor || '#ffffff'"
-                                @change="saveColor('dialogBgColor', $event.target.value)" />
-                        </label>
-                        <span class="color-val">{{ local.dialogBgColor || 'авто' }}</span>
-                        <button v-if="local.dialogBgColor" class="color-clear" title="Сбросить" @click="clearColor('dialogBgColor')">×</button>
-                    </div>
-                </div>
-                <div class="ctrl-col">
-                    <div class="ctrl-label">Текст</div>
-                    <div class="color-row">
-                        <label class="color-swatch-wrap">
-                            <div class="color-swatch" :style="{ background: local.dialogTextColor || '#1a1a1a' }"></div>
-                            <input
-                                type="color"
-                                class="color-hidden"
-                                :value="local.dialogTextColor || '#1a1a1a'"
-                                @change="saveColor('dialogTextColor', $event.target.value)" />
-                        </label>
-                        <span class="color-val">{{ local.dialogTextColor || 'авто' }}</span>
-                        <button v-if="local.dialogTextColor" class="color-clear" title="Сбросить" @click="clearColor('dialogTextColor')">×</button>
-                    </div>
-                </div>
-            </div>
-            <div class="ctrl-row">
-                <div class="ctrl-col ctrl-col--grow">
-                    <div class="ctrl-label">Скругление &nbsp;<strong>{{ local.dialogRadius }}px</strong></div>
-                    <input
-                        type="range"
-                        class="slider"
-                        min="0"
-                        max="40"
-                        v-model.number="local.dialogRadius"
-                        @input="save('dialogRadius')" />
-                </div>
-                <div class="ctrl-col">
-                    <div class="ctrl-label">Иконка</div>
-                    <div class="color-row">
-                        <label class="color-swatch-wrap">
-                            <div class="color-swatch" :style="{ background: local.iconColor || '#f59e0b' }"></div>
-                            <input
-                                type="color"
-                                class="color-hidden"
-                                :value="local.iconColor || '#f59e0b'"
-                                @change="saveColor('iconColor', $event.target.value)" />
-                        </label>
-                        <span class="color-val">{{ local.iconColor || 'авто' }}</span>
-                        <button v-if="local.iconColor" class="color-clear" title="Сбросить" @click="clearColor('iconColor')">×</button>
-                    </div>
-                </div>
+            <!-- ── Межбуквенный интервал ─────────────────────────────── -->
+            <div class="section-label">Межбуквенный интервал</div>
+            <div class="slider-row">
+                <input
+                    type="range"
+                    class="slider"
+                    min="-5"
+                    max="30"
+                    step="1"
+                    :value="letterSpacingSliderVal"
+                    @input="onLetterSpacingSlider" />
+                <span class="slider-val">{{ letterSpacingDisplay }}</span>
             </div>
 
-            <!-- ══ BUTTON ════════════════════════════════════════════════ -->
-            <div class="section-label">Кнопка</div>
-            <div class="ctrl-row">
-                <div class="ctrl-col">
-                    <div class="ctrl-label">Фон</div>
-                    <div class="color-row">
-                        <label class="color-swatch-wrap">
-                            <div class="color-swatch" :style="{ background: local.btnBgColor || '#4f6aff' }"></div>
-                            <input
-                                type="color"
-                                class="color-hidden"
-                                :value="local.btnBgColor || '#4f6aff'"
-                                @change="saveColor('btnBgColor', $event.target.value)" />
-                        </label>
-                        <span class="color-val">{{ local.btnBgColor || 'авто' }}</span>
-                        <button v-if="local.btnBgColor" class="color-clear" title="Сбросить" @click="clearColor('btnBgColor')">×</button>
-                    </div>
-                </div>
-                <div class="ctrl-col">
-                    <div class="ctrl-label">Текст</div>
-                    <div class="color-row">
-                        <label class="color-swatch-wrap">
-                            <div class="color-swatch" :style="{ background: local.btnTextColor || '#ffffff' }"></div>
-                            <input
-                                type="color"
-                                class="color-hidden"
-                                :value="local.btnTextColor || '#ffffff'"
-                                @change="saveColor('btnTextColor', $event.target.value)" />
-                        </label>
-                        <span class="color-val">{{ local.btnTextColor || 'авто' }}</span>
-                        <button v-if="local.btnTextColor" class="color-clear" title="Сбросить" @click="clearColor('btnTextColor')">×</button>
-                    </div>
-                </div>
+            <!-- ══ BUTTON RADIUS ══════════════════════════════════════════ -->
+            <div class="section-label">Скругление кнопки</div>
+            <div class="radius-grid">
+                <button
+                    v-for="r in radiusPresets"
+                    :key="r.label"
+                    class="radius-card"
+                    :class="{ 'radius-card--active': btnRadiusChipActive === r.label }"
+                    @click="applyBtnRadius(r)">
+                    <span class="radius-card__shape" :style="{ borderRadius: r.shape }"></span>
+                    <span class="radius-card__label">{{ r.label }}</span>
+                </button>
             </div>
-            <div class="ctrl-row">
-                <div class="ctrl-col ctrl-col--grow">
-                    <div class="ctrl-label">Скругление &nbsp;<strong>{{ local.btnRadius }}px</strong></div>
-                    <input
-                        type="range"
-                        class="slider"
-                        min="0"
-                        max="40"
-                        v-model.number="local.btnRadius"
-                        @input="save('btnRadius')" />
-                </div>
+            <div class="slider-row">
+                <input
+                    type="range"
+                    class="slider"
+                    min="0"
+                    max="40"
+                    step="1"
+                    :value="props.btnRadius != null ? props.btnRadius : 8"
+                    @input="onBtnRadiusSlider" />
+                <span class="slider-val">{{ props.btnRadius != null ? props.btnRadius : 8 }}px</span>
             </div>
 
             <div class="divider" />
 
-            <ui-button type="ghost" @click="resetAll">Сбросить стили</ui-button>
+            <!-- ══ DIALOG ═════════════════════════════════════════════════ -->
+            <div class="section-label">Диалог</div>
+            <ui-input-cp prop="dialogBgColor">Фон диалога</ui-input-cp>
+            <ui-input-cp prop="dialogTextColor">Цвет текста</ui-input-cp>
+            <ui-input-cp prop="iconColor">Цвет иконки</ui-input-cp>
+            <div class="section-label">Скругление диалога</div>
+            <div class="slider-row">
+                <input
+                    type="range"
+                    class="slider"
+                    min="0"
+                    max="40"
+                    step="1"
+                    :value="props.dialogRadius != null ? props.dialogRadius : 8"
+                    @input="onDialogRadiusSlider" />
+                <span class="slider-val">{{ props.dialogRadius != null ? props.dialogRadius : 8 }}px</span>
+            </div>
+
+            <!-- ══ OVERLAY ════════════════════════════════════════════════ -->
+            <div class="section-label">Подложка</div>
+            <ui-input-cp prop="overlayColor">Цвет подложки</ui-input-cp>
+            <div class="section-label">Непрозрачность</div>
+            <div class="slider-row">
+                <input
+                    type="range"
+                    class="slider"
+                    min="0"
+                    max="100"
+                    step="1"
+                    :value="props.overlayOpacity != null ? props.overlayOpacity : 45"
+                    @input="onOverlayOpacitySlider" />
+                <span class="slider-val">{{ props.overlayOpacity != null ? props.overlayOpacity : 45 }}%</span>
+            </div>
+
+            <div class="divider" />
+            <ui-button type="ghost" @click="resetAll">Сбросить оформление</ui-button>
 
         </ui-container>
     </w-panel>
@@ -184,6 +193,14 @@
 
 <script>
 import { Panel } from 'goodt-wcore';
+
+const DEFAULTS = {
+    overlayColor: '#000000', overlayOpacity: 45,
+    dialogBgColor: '', dialogTextColor: '', dialogRadius: 8,
+    btnBgColor: '', btnTextColor: '', btnRadius: 8, iconColor: '',
+    btnFontFamily: '', btnFontSize: '', btnFontWeight: '', btnTextTransform: 'none', btnLetterSpacing: '',
+    overlayCustomCss: '', dialogCustomCss: '', dialogBtnCustomCss: ''
+};
 
 const PRESETS = [
     {
@@ -222,42 +239,127 @@ const PRESETS = [
     }
 ];
 
+function hexToRgb(hex) {
+    if (!hex || !hex.startsWith('#')) return '0,0,0';
+    return [parseInt(hex.slice(1, 3), 16) || 0, parseInt(hex.slice(3, 5), 16) || 0, parseInt(hex.slice(5, 7), 16) || 0].join(',');
+}
+
 export default {
     extends: Panel,
-    meta: { name: 'Стили', icon: 'palette' },
+    meta: { name: 'Стиль', icon: 'code-braces' },
     data: () => ({
         activePreset: null,
-        debounceTimer: null,
+        customFontInput: '',
         presets: PRESETS,
-        local: {
-            overlayColor:    '#000000',
-            overlayOpacity:  45,
-            dialogBgColor:   '',
-            dialogTextColor: '',
-            dialogRadius:    8,
-            btnBgColor:      '',
-            btnTextColor:    '',
-            btnRadius:       8,
-            iconColor:       ''
-        }
+        colorPresets: [
+            { label: 'Синий',    bg: '#4f6aff', color: '#ffffff' },
+            { label: 'Фиолет.',  bg: '#7c3aed', color: '#ffffff' },
+            { label: 'Голубой',  bg: '#0ea5e9', color: '#ffffff' },
+            { label: 'Зелёный',  bg: '#10b981', color: '#ffffff' },
+            { label: 'Янтарный', bg: '#f59e0b', color: '#ffffff' },
+            { label: 'Красный',  bg: '#ef4444', color: '#ffffff' },
+            { label: 'Розовый',  bg: '#ec4899', color: '#ffffff' },
+            { label: 'Тёмный',   bg: '#1e293b', color: '#ffffff' },
+            { label: 'Светлый',  bg: '#f1f5f9', color: '#334155', border: '1px solid #e2e8f0' },
+            { label: 'Белый',    bg: '#ffffff',  color: '#1e293b', border: '1px solid #e2e8f0' }
+        ],
+        fontFamilyOptions: [
+            { label: 'По умолч.',    value: '' },
+            { label: 'Inter',        value: 'Inter, sans-serif' },
+            { label: 'Roboto',       value: 'Roboto, sans-serif' },
+            { label: 'Montserrat',   value: 'Montserrat, sans-serif' },
+            { label: 'Open Sans',    value: "'Open Sans', sans-serif" },
+            { label: 'Lato',         value: 'Lato, sans-serif' },
+            { label: 'Poppins',      value: 'Poppins, sans-serif' },
+            { label: 'Nunito',       value: 'Nunito, sans-serif' },
+            { label: 'Raleway',      value: 'Raleway, sans-serif' },
+            { label: 'Oswald',       value: 'Oswald, sans-serif' },
+            { label: 'PT Sans',      value: "'PT Sans', sans-serif" },
+            { label: 'Ubuntu',       value: 'Ubuntu, sans-serif' },
+            { label: 'Rubik',        value: 'Rubik, sans-serif' },
+            { label: 'Exo 2',        value: "'Exo 2', sans-serif" }
+        ],
+        textTransformOptions: [
+            { label: 'Обычный',   value: 'none' },
+            { label: 'ЗАГЛАВНЫЕ', value: 'uppercase' },
+            { label: 'Первые',    value: 'capitalize' },
+            { label: 'строчные',  value: 'lowercase' }
+        ],
+        radiusPresets: [
+            { label: 'Острые',  shape: '0',     px: 0 },
+            { label: 'Мягкие',  shape: '4px',   px: 6 },
+            { label: 'Круглые', shape: '10px',  px: 16 },
+            { label: 'Пилюля',  shape: '999px', px: 999 }
+        ]
     }),
+    computed: {
+        /* ── Preview styles ────────────────────────────────────────── */
+        previewOverlayStyle() {
+            const hex = this.props.overlayColor || '#000000';
+            const a = ((this.props.overlayOpacity != null ? this.props.overlayOpacity : 45) / 100).toFixed(2);
+            return { background: `rgba(${hexToRgb(hex)},${a})` };
+        },
+        previewDialogStyle() {
+            const p = this.props;
+            return {
+                background:   p.dialogBgColor   || '#ffffff',
+                color:        p.dialogTextColor  || '#1a1a1a',
+                borderRadius: (p.dialogRadius != null ? p.dialogRadius : 8) + 'px',
+                fontFamily:   p.btnFontFamily    || 'inherit'
+            };
+        },
+        previewBtnStyle() {
+            const p = this.props;
+            return {
+                background:    p.btnBgColor       || '#4f6aff',
+                color:         p.btnTextColor      || '#ffffff',
+                borderRadius:  (p.btnRadius != null ? p.btnRadius : 8) + 'px',
+                fontFamily:    p.btnFontFamily     || 'inherit',
+                fontSize:      p.btnFontSize       || '13px',
+                fontWeight:    p.btnFontWeight     || '500',
+                textTransform: p.btnTextTransform  || 'none',
+                letterSpacing: p.btnLetterSpacing  || '0.02em',
+                pointerEvents: 'none'
+            };
+        },
+        previewIconStyle() {
+            return { color: this.props.iconColor || '#f59e0b' };
+        },
+        previewTextStyle() {
+            return {
+                fontFamily: this.props.btnFontFamily || 'inherit',
+                color: 'inherit'
+            };
+        },
+
+        /* ── Letter spacing ────────────────────────────────────────── */
+        letterSpacingSliderVal() {
+            const raw = this.props.btnLetterSpacing || '';
+            if (!raw) return 0;
+            if (raw.endsWith('em')) return Math.round(parseFloat(raw) * 100);
+            return 0;
+        },
+        letterSpacingDisplay() {
+            const val = this.letterSpacingSliderVal;
+            if (val === 0) return '0 (по умолч.)';
+            return `${val > 0 ? '+' : ''}${(val / 100).toFixed(2)}em`;
+        },
+
+        /* ── Btn radius chip ───────────────────────────────────────── */
+        btnRadiusChipActive() {
+            const px = this.props.btnRadius != null ? this.props.btnRadius : 8;
+            if (px >= 100) return 'Пилюля';
+            if (px === 0)  return 'Острые';
+            if (px <= 8)   return 'Мягкие';
+            if (px <= 20)  return 'Круглые';
+            return null;
+        }
+    },
     mounted() {
-        const p = this.props;
-        this.local.overlayColor    = p.overlayColor    || '#000000';
-        this.local.overlayOpacity  = p.overlayOpacity  != null ? p.overlayOpacity  : 45;
-        this.local.dialogBgColor   = p.dialogBgColor   || '';
-        this.local.dialogTextColor = p.dialogTextColor || '';
-        this.local.dialogRadius    = p.dialogRadius    != null ? p.dialogRadius    : 8;
-        this.local.btnBgColor      = p.btnBgColor      || '';
-        this.local.btnTextColor    = p.btnTextColor    || '';
-        this.local.btnRadius       = p.btnRadius       != null ? p.btnRadius       : 8;
-        this.local.iconColor       = p.iconColor       || '';
         this.activePreset = this.detectActivePreset();
     },
-    beforeUnmount() {
-        clearTimeout(this.debounceTimer);
-    },
     methods: {
+        /* ── Preset detection & application ───────────────────────── */
         detectActivePreset() {
             const p = this.props;
             return PRESETS.find((preset) => {
@@ -272,67 +374,73 @@ export default {
                     v.btnTextColor    === (p.btnTextColor    || '') &&
                     v.btnRadius       === (p.btnRadius       != null ? p.btnRadius       : 8) &&
                     v.iconColor       === (p.iconColor       || '') &&
-                    preset.rawCss.overlay === (p.overlayCustomCss    || '') &&
-                    preset.rawCss.dialog  === (p.dialogCustomCss     || '') &&
-                    preset.rawCss.btn     === (p.dialogBtnCustomCss  || '')
+                    preset.rawCss.overlay === (p.overlayCustomCss   || '') &&
+                    preset.rawCss.dialog  === (p.dialogCustomCss    || '') &&
+                    preset.rawCss.btn     === (p.dialogBtnCustomCss || '')
                 );
             })?.label ?? null;
         },
 
         applyPreset(preset) {
             this.activePreset = preset.label;
-            const v = preset.visual;
-            // Apply visual props
-            Object.entries(v).forEach(([key, val]) => {
-                this.local[key] = val;
-                this.props[key] = val;
-                this.propChanged(key);
+            Object.entries(preset.visual).forEach(([key, val]) => {
+                this.props[key] = val; this.propChanged(key);
             });
-            // Apply raw CSS overrides
             this.props.overlayCustomCss   = preset.rawCss.overlay; this.propChanged('overlayCustomCss');
             this.props.dialogCustomCss    = preset.rawCss.dialog;  this.propChanged('dialogCustomCss');
             this.props.dialogBtnCustomCss = preset.rawCss.btn;     this.propChanged('dialogBtnCustomCss');
         },
 
-        save(key) {
-            clearTimeout(this.debounceTimer);
-            this.debounceTimer = setTimeout(() => {
-                this.props[key] = this.local[key];
-                this.propChanged(key);
-                this.activePreset = this.detectActivePreset();
-            }, 120);
-        },
-
-        saveColor(key, value) {
-            this.local[key] = value;
-            this.props[key] = value;
-            this.propChanged(key);
+        /* ── Color presets ─────────────────────────────────────────── */
+        applyColorPreset(cp) {
+            this.props.btnBgColor   = cp.bg;    this.propChanged('btnBgColor');
+            this.props.btnTextColor = cp.color; this.propChanged('btnTextColor');
             this.activePreset = this.detectActivePreset();
         },
 
-        clearColor(key) {
-            this.local[key] = '';
-            this.props[key] = '';
-            this.propChanged(key);
-            this.activePreset = this.detectActivePreset();
+        /* ── Font ──────────────────────────────────────────────────── */
+        setBtnFontFamily(val) {
+            this.props.btnFontFamily = val; this.propChanged('btnFontFamily');
+            this.customFontInput = '';
+        },
+        applyCustomFont() {
+            const raw = this.customFontInput.trim();
+            if (!raw) return;
+            const val = raw.includes(',') ? raw : `${raw}, sans-serif`;
+            this.props.btnFontFamily = val; this.propChanged('btnFontFamily');
+        },
+        setBtnTextTransform(val) {
+            this.props.btnTextTransform = val; this.propChanged('btnTextTransform');
+        },
+        onLetterSpacingSlider(e) {
+            const hundredths = parseInt(e.target.value, 10);
+            this.props.btnLetterSpacing = hundredths === 0 ? '' : `${(hundredths / 100).toFixed(2)}em`;
+            this.propChanged('btnLetterSpacing');
         },
 
+        /* ── Radius ────────────────────────────────────────────────── */
+        applyBtnRadius(r) {
+            this.props.btnRadius = r.px; this.propChanged('btnRadius');
+        },
+        onBtnRadiusSlider(e) {
+            this.props.btnRadius = parseInt(e.target.value, 10); this.propChanged('btnRadius');
+        },
+        onDialogRadiusSlider(e) {
+            this.props.dialogRadius = parseInt(e.target.value, 10); this.propChanged('dialogRadius');
+        },
+
+        /* ── Overlay opacity ───────────────────────────────────────── */
+        onOverlayOpacitySlider(e) {
+            this.props.overlayOpacity = parseInt(e.target.value, 10); this.propChanged('overlayOpacity');
+        },
+
+        /* ── Reset ─────────────────────────────────────────────────── */
         resetAll() {
-            const defaults = {
-                overlayColor: '#000000', overlayOpacity: 45,
-                dialogBgColor: '', dialogTextColor: '', dialogRadius: 8,
-                btnBgColor: '', btnTextColor: '', btnRadius: 8, iconColor: ''
-            };
-            Object.entries(defaults).forEach(([key, val]) => {
-                this.local[key] = val;
-                this.props[key] = val;
-                this.propChanged(key);
-            });
-            ['overlayCustomCss', 'dialogCustomCss', 'dialogBtnCustomCss'].forEach((key) => {
-                this.props[key] = '';
-                this.propChanged(key);
+            Object.entries(DEFAULTS).forEach(([key, val]) => {
+                this.props[key] = val; this.propChanged(key);
             });
             this.activePreset = null;
+            this.customFontInput = '';
         }
     }
 };
@@ -341,29 +449,63 @@ export default {
 <style scoped>
 /* ── Section label ────────────────────────────────────────────── */
 .section-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.07em;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: #94a3b8;
-    margin-top: 10px;
-    margin-bottom: 6px;
+    margin-top: 4px;
+    margin-bottom: 4px;
 }
 
 /* ── Divider ──────────────────────────────────────────────────── */
-.divider {
-    height: 1px;
-    background: #f1f5f9;
-    margin: 10px 0 4px;
-}
+.divider { height: 1px; background: #f1f5f9; margin: 10px 0 4px; }
 
-/* ── Preset chips row ─────────────────────────────────────────── */
-.presets-row {
+/* ══ LIVE PREVIEW ═════════════════════════════════════════════════ */
+.dialog-preview-wrap {
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    background-image: repeating-conic-gradient(#e9ecef 0% 25%, #f8fafc 0% 50%);
+    background-size: 12px 12px;
+    min-height: 140px;
     display: flex;
+    align-items: stretch;
+}
+.dialog-preview-overlay {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    transition: background 0.2s;
+}
+.dialog-preview-dialog {
+    width: 100%;
+    max-width: 260px;
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     gap: 6px;
-    flex-wrap: wrap;
+    text-align: center;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+    transition: background 0.2s, color 0.2s, border-radius 0.2s;
+}
+.dialog-preview-icon { font-size: 22px; line-height: 1; transition: color 0.2s; }
+.dialog-preview-title { font-size: 12px; font-weight: 700; }
+.dialog-preview-msg { font-size: 11px; opacity: 0.75; }
+.dialog-preview-btn {
+    margin-top: 4px;
+    padding: 6px 16px;
+    border: none;
+    font-size: 11px;
+    cursor: default;
+    transition: background 0.2s, color 0.2s, border-radius 0.2s;
 }
 
+/* ══ PRESETS ══════════════════════════════════════════════════════ */
+.presets-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 2px; }
 .preset-chip {
     flex: 1 1 0;
     min-width: 52px;
@@ -376,130 +518,110 @@ export default {
     background: #fff;
 }
 .preset-chip:hover { border-color: #a5b4fc; }
-.preset-chip--active {
-    border-color: #4f6aff;
-    box-shadow: 0 0 0 2px rgba(79,106,255,0.18);
-}
+.preset-chip--active { border-color: #4f6aff; box-shadow: 0 0 0 2px rgba(79,106,255,0.18); }
 
-/* mini overlay fill */
-.chip-overlay {
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 5px;
-}
-
-/* mini dialog card */
+.chip-overlay { height: 50px; display: flex; align-items: center; justify-content: center; padding: 4px; }
 .chip-dialog {
-    width: 100%;
-    padding: 4px 5px 5px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    border-radius: 4px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    width: 100%; padding: 3px 4px 4px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    border-radius: 3px; box-shadow: 0 2px 5px rgba(0,0,0,0.18);
 }
-.chip-icon { font-size: 9px; line-height: 1; }
-.chip-bar { width: 70%; height: 3px; background: currentColor; opacity: 0.25; border-radius: 2px; }
-.chip-btn { width: 80%; height: 5px; border-radius: 2px; margin-top: 1px; }
-
-/* chip label */
+.chip-icon { font-size: 8px; line-height: 1; }
+.chip-bar { width: 70%; height: 2px; background: currentColor; opacity: 0.2; border-radius: 1px; }
+.chip-btn { width: 80%; height: 4px; border-radius: 2px; margin-top: 1px; }
 .chip-label {
-    padding: 4px 4px 4px;
-    font-size: 10px;
-    font-weight: 600;
-    color: #475569;
-    text-align: center;
-    background: #fafafa;
-    border-top: 1px solid #f1f5f9;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
+    padding: 3px 4px;
+    font-size: 9.5px; font-weight: 600; color: #475569;
+    text-align: center; background: #fafafa; border-top: 1px solid #f1f5f9;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: flex; align-items: center; justify-content: center; gap: 2px;
 }
 .preset-chip--active .chip-label { color: #4f6aff; background: #f5f7ff; }
-.chip-check { font-size: 10px; color: #4f6aff; }
+.chip-check { font-size: 9px; color: #4f6aff; }
 
-/* ── Control rows ─────────────────────────────────────────────── */
-.ctrl-row {
-    display: flex;
-    gap: 10px;
-    align-items: flex-end;
-    margin-bottom: 8px;
-}
-.ctrl-col { display: flex; flex-direction: column; gap: 4px; }
-.ctrl-col--grow { flex: 1; }
-
-.ctrl-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: #64748b;
+/* ══ COLOR PRESETS ════════════════════════════════════════════════ */
+.color-presets { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.color-preset {
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px; font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.12s, box-shadow 0.12s;
     white-space: nowrap;
 }
-.ctrl-label strong { color: #1e293b; font-weight: 700; }
+.color-preset:hover { opacity: 0.85; }
+.color-preset--active { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #4f6aff; }
 
-/* ── Slider ───────────────────────────────────────────────────── */
-.slider {
-    width: 100%;
-    height: 4px;
+/* ══ FONT ═════════════════════════════════════════════════════════ */
+.font-grid { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.font-chip {
+    padding: 4px 10px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 20px;
+    background: #fff; color: #475569;
+    font-size: 12px; font-weight: 500;
     cursor: pointer;
-    accent-color: #4f6aff;
-}
-
-/* ── Color picker ─────────────────────────────────────────────── */
-.color-row {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-.color-swatch-wrap {
-    position: relative;
-    cursor: pointer;
-    display: block;
-    width: 26px;
-    height: 26px;
-    flex-shrink: 0;
-}
-.color-swatch {
-    width: 26px;
-    height: 26px;
-    border-radius: 6px;
-    border: 1.5px solid rgba(0,0,0,0.12);
-}
-.color-hidden {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-    padding: 0;
-    border: none;
-}
-.color-val {
-    font-size: 10px;
-    color: #64748b;
-    font-family: monospace;
+    transition: border-color 0.12s, color 0.12s, background 0.12s;
     white-space: nowrap;
-    overflow: hidden;
-    max-width: 52px;
-    text-overflow: ellipsis;
 }
-.color-clear {
-    background: none;
-    border: none;
-    color: #94a3b8;
-    font-size: 14px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0 2px;
-    transition: color 0.1s;
-    flex-shrink: 0;
+.font-chip:hover { border-color: #a5b4fc; color: #4f6aff; }
+.font-chip--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; font-weight: 600; }
+
+.custom-font-row { display: flex; gap: 6px; margin-bottom: 4px; }
+.custom-font-input {
+    flex: 1; padding: 6px 10px;
+    border: 1.5px solid #e2e8f0; border-radius: 8px;
+    font-size: 12px; font-family: inherit; outline: none;
+    transition: border-color 0.15s;
 }
-.color-clear:hover { color: #ef4444; }
+.custom-font-input:focus { border-color: #4f6aff; }
+.custom-font-btn {
+    padding: 6px 10px;
+    border: none; border-radius: 8px;
+    background: #4f6aff; color: #fff;
+    cursor: pointer; font-size: 14px;
+    transition: background 0.12s;
+}
+.custom-font-btn:hover { background: #3b55e6; }
+.custom-font-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+/* ══ OPT CARDS (text-transform) ══════════════════════════════════ */
+.opt-grid { display: grid; gap: 6px; margin-bottom: 2px; }
+.opt-grid--4 { grid-template-columns: repeat(4, 1fr); }
+.opt-card {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 8px 4px 6px;
+    border: 2px solid #e2e8f0; border-radius: 8px;
+    cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s;
+    text-align: center; color: #64748b; background: #fff;
+    overflow: hidden; min-width: 0;
+}
+.opt-card:hover { border-color: #a5b4fc; color: #334155; }
+.opt-card--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; }
+.opt-card__label { font-size: 10px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; line-height: 1.2; }
+.opt-card__typo-preview { font-size: 16px; font-weight: 600; line-height: 1; }
+
+/* ══ SLIDERS ══════════════════════════════════════════════════════ */
+.slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.slider { flex: 1; height: 4px; cursor: pointer; accent-color: #4f6aff; }
+.slider-val { font-size: 11px; color: #64748b; white-space: nowrap; min-width: 54px; text-align: right; }
+
+/* ══ RADIUS CARDS ═════════════════════════════════════════════════ */
+.radius-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 6px; }
+.radius-card {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 8px 4px 6px;
+    border: 2px solid #e2e8f0; border-radius: 8px;
+    cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    background: #fff; overflow: hidden;
+}
+.radius-card:hover { border-color: #a5b4fc; background: #f5f7ff; }
+.radius-card--active { border-color: #4f6aff; background: #eff2ff; }
+.radius-card__shape {
+    display: block; width: 28px; height: 18px;
+    background: #4f6aff; flex-shrink: 0;
+}
+.radius-card--active .radius-card__shape { background: #4f6aff; }
+.radius-card__label { font-size: 10px; font-weight: 500; color: #64748b; white-space: nowrap; }
+.radius-card--active .radius-card__label { color: #4f6aff; font-weight: 600; }
 </style>
