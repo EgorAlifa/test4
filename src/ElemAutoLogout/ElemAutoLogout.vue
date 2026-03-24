@@ -29,7 +29,7 @@ import { AuthManager } from '@goodt-wcore/managers';
 import { Elem } from '@goodt-wcore/elem';
 import { meta } from './descriptor';
 import { ElemInstanceTypeDescriptor } from './types';
-import { RedirectType, ACTIVITY_EVENTS } from './constants';
+import { ACTIVITY_EVENTS } from './constants';
 
 const LOG_PREFIX = '[ElemAutoLogout]';
 
@@ -73,6 +73,9 @@ export default {
             if (p.letterSpacing) {
                 css += ` .auto-logout__dialog-title, .auto-logout__dialog-message, .auto-logout__dialog-btn { letter-spacing: ${p.letterSpacing}; }`;
             }
+            if (p.textTransform && p.textTransform !== 'none') {
+                css += ` .auto-logout__dialog-title, .auto-logout__dialog-message, .auto-logout__dialog-btn { text-transform: ${p.textTransform}; }`;
+            }
             if (p.dialogMaxWidth != null) {
                 css += ` .auto-logout__dialog { max-width: ${p.dialogMaxWidth}px; }`;
             }
@@ -84,7 +87,6 @@ export default {
             if (p.btnRadius != null) btn += `border-radius: ${p.btnRadius}px;`;
             if (p.btnFontSize)   btn += `font-size: ${p.btnFontSize} !important;`;
             if (p.btnFontWeight) btn += `font-weight: ${p.btnFontWeight} !important;`;
-            if (p.btnTextTransform && p.btnTextTransform !== 'none') btn += `text-transform: ${p.btnTextTransform} !important;`;
             if (p.dialogBtnCustomCss) btn += ` ${p.dialogBtnCustomCss}`;
             if (btn) {
                 css += ` .auto-logout__dialog-btn { ${btn} }`;
@@ -105,9 +107,7 @@ export default {
             isEditorMode: this.isEditorMode,
             timeoutSeconds: this.props.timeoutSeconds,
             warningEnabled: this.props.warningEnabled,
-            warningDuration: this.props.warningDuration,
-            redirectType: this.props.redirectType,
-            customRedirectUrl: this.props.customRedirectUrl
+            warningDuration: this.props.warningDuration
         });
 
         if (this.isEditorMode) {
@@ -252,30 +252,18 @@ export default {
          *
          * Calling adapter.logout() directly would bypass these handlers; for the
          * Keycloak SSO adapter it is literally a no-op (calls super → Promise.resolve).
-         *
-         * Redirect behaviour:
-         *   - DEFAULT: the platform's _logoutHandlers are responsible for the
-         *              redirect — we do not trigger it manually.
-         *   - CUSTOM:  navigate to the configured URL after the handlers resolve.
          */
         async performLogout() {
             console.log(LOG_PREFIX, 'performLogout — start');
             this.clearTimers();
             this.showWarning = false;
 
-            const { redirectType, customRedirectUrl } = this.props;
-            console.log(LOG_PREFIX, 'calling AuthManager.instance.logout()', { redirectType, customRedirectUrl });
-
+            console.log(LOG_PREFIX, 'calling AuthManager.instance.logout()');
             try {
                 await AuthManager.instance.logout();
                 console.log(LOG_PREFIX, 'AuthManager.instance.logout() resolved');
             } catch (err) {
                 console.warn(LOG_PREFIX, 'AuthManager.instance.logout() threw', err);
-            }
-
-            if (redirectType === RedirectType.CUSTOM && customRedirectUrl) {
-                console.log(LOG_PREFIX, `navigating to custom URL: ${customRedirectUrl}`);
-                window.location.href = customRedirectUrl;
             }
         }
     }
