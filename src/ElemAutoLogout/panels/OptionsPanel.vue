@@ -6,8 +6,7 @@
             <div class="info-box">
                 <i class="mdi mdi-information-outline info-box__icon" />
                 <div class="info-box__text">
-                    Редирект после выхода управляется через
-                    <strong>ElemAuthContainer</strong>.
+                    Редирект после выхода управляется через виджет контейнера авторизации.
                 </div>
             </div>
 
@@ -19,11 +18,18 @@
                     <input
                         class="num-input"
                         type="number"
-                        min="30"
-                        step="30"
-                        :value="props.timeoutSeconds"
+                        :min="timeoutUnit === 's' ? 30 : 1"
+                        :step="timeoutUnit === 's' ? 30 : 1"
+                        :value="timeoutDisplayValue"
                         @change="onTimeoutChange" />
-                    <span class="num-unit">сек</span>
+                    <div class="unit-switcher">
+                        <button
+                            v-for="u in units"
+                            :key="u.value"
+                            class="unit-btn"
+                            :class="{ 'unit-btn--active': timeoutUnit === u.value }"
+                            @click="setTimeoutUnit(u.value)">{{ u.label }}</button>
+                    </div>
                 </div>
             </div>
 
@@ -43,11 +49,18 @@
                         <input
                             class="num-input"
                             type="number"
-                            min="5"
-                            step="5"
-                            :value="props.warningDuration"
+                            :min="warningUnit === 's' ? 5 : 1"
+                            :step="warningUnit === 's' ? 5 : 1"
+                            :value="warningDisplayValue"
                             @change="onWarningDurationChange" />
-                        <span class="num-unit">сек</span>
+                        <div class="unit-switcher">
+                            <button
+                                v-for="u in units"
+                                :key="u.value"
+                                class="unit-btn"
+                                :class="{ 'unit-btn--active': warningUnit === u.value }"
+                                @click.stop="setWarningUnit(u.value)">{{ u.label }}</button>
+                        </div>
                     </div>
                 </div>
             </transition>
@@ -61,9 +74,9 @@
                 <div class="timeline__labels">
                     <span>0</span>
                     <span v-if="props.warningEnabled" class="timeline__warn-label">
-                        −{{ props.warningDuration }}с
+                        −{{ formatDuration(props.warningDuration) }}
                     </span>
-                    <span>{{ timelineLabel }}</span>
+                    <span>{{ formatDuration(props.timeoutSeconds) }}</span>
                 </div>
             </div>
 
@@ -73,7 +86,7 @@
                 <div class="texts-row">
                     <i class="mdi mdi-translate texts-row__icon" />
                     <span>{{ getPropLabel('labels') }}</span>
-                    <i class="mdi mdi-chevron-right texts-row__arrow" />
+                    <i class="mdi mdi-pencil texts-row__edit" />
                 </div>
                 <template #panel>
                     <ui-panel :groups="[{ name: getPropLabel('labels'), slot: 'default' }]">
@@ -96,10 +109,29 @@
 <script>
 import { Panel } from '@goodt-wcore/panel';
 
+const UNITS = [
+    { value: 's', label: 'с' },
+    { value: 'm', label: 'м' },
+    { value: 'h', label: 'ч' },
+];
+
 export default {
     extends: Panel,
     meta: { name: 'Настройки виджета', icon: 'timer-off' },
+    data() {
+        return {
+            timeoutUnit: 's',
+            warningUnit: 's',
+            units: UNITS,
+        };
+    },
     computed: {
+        timeoutDisplayValue() {
+            return this.toUnit(this.props.timeoutSeconds || 1800, this.timeoutUnit);
+        },
+        warningDisplayValue() {
+            return this.toUnit(this.props.warningDuration || 30, this.warningUnit);
+        },
         idleRatio() {
             const t = this.props.timeoutSeconds || 1800;
             const w = this.props.warningEnabled
@@ -111,34 +143,57 @@ export default {
             const t = this.props.timeoutSeconds || 1800;
             return Math.min(this.props.warningDuration || 30, t);
         },
-        timelineLabel() {
-            const s = this.props.timeoutSeconds || 1800;
-            if (s < 60) return `${s}с`;
-            const m = Math.floor(s / 60);
-            const rem = s % 60;
-            return rem ? `${m}м ${rem}с` : `${m}м`;
-        }
     },
     methods: {
+        toUnit(seconds, unit) {
+            if (unit === 'm') return Math.round(seconds / 60);
+            if (unit === 'h') return Math.round(seconds / 3600);
+            return seconds;
+        },
+        toSeconds(value, unit) {
+            if (unit === 'm') return value * 60;
+            if (unit === 'h') return value * 3600;
+            return value;
+        },
+        formatDuration(seconds) {
+            if (!seconds) return '0с';
+            if (seconds < 60) return `${seconds}с`;
+            const m = Math.floor(seconds / 60);
+            const rem = seconds % 60;
+            if (seconds < 3600) return rem ? `${m}м ${rem}с` : `${m}м`;
+            const h = Math.floor(seconds / 3600);
+            const remM = Math.floor((seconds % 3600) / 60);
+            return remM ? `${h}ч ${remM}м` : `${h}ч`;
+        },
+        setTimeoutUnit(unit) {
+            this.timeoutUnit = unit;
+        },
+        setWarningUnit(unit) {
+            this.warningUnit = unit;
+        },
         getPropLabel(path) {
             const prop = path.split('.')[0];
             return this.descriptor.props[prop]?.label[path] ?? '';
         },
         onTimeoutChange(e) {
-            const val = Math.max(30, parseInt(e.target.value, 10) || 1800);
-            this.props.timeoutSeconds = val;
+            const raw = parseInt(e.target.value, 10) || 1;
+            const secs = this.toSeconds(raw, this.timeoutUnit);
+            const min = this.timeoutUnit === 's' ? 30 : this.toSeconds(1, this.timeoutUnit);
+            this.props.timeoutSeconds = Math.max(min, secs);
             this.propChanged('timeoutSeconds');
         },
         onWarningDurationChange(e) {
-            const val = Math.max(5, parseInt(e.target.value, 10) || 30);
-            this.props.warningDuration = val;
+            const raw = parseInt(e.target.value, 10) || 1;
+            const secs = this.toSeconds(raw, this.warningUnit);
+            const min = this.warningUnit === 's' ? 5 : this.toSeconds(1, this.warningUnit);
+            this.props.warningDuration = Math.max(min, secs);
             this.propChanged('warningDuration');
         },
         toggleWarning() {
             this.props.warningEnabled = !this.props.warningEnabled;
             this.propChanged('warningEnabled');
-        }
-    }
+        },
+    },
 };
 </script>
 
@@ -196,9 +251,11 @@ export default {
     gap: 4px;
     flex-shrink: 0;
 }
+
+/* ── Number input ─────────────────────────────────────────────────── */
 .num-input {
-    width: 60px;
-    padding: 4px 7px;
+    width: 52px;
+    padding: 4px 6px;
     border: 1.5px solid #e2e8f0;
     border-radius: 6px;
     font-size: 13px;
@@ -210,7 +267,30 @@ export default {
     transition: border-color 0.15s;
 }
 .num-input:focus { border-color: #4f6aff; }
-.num-unit { font-size: 11px; color: #94a3b8; min-width: 22px; }
+
+/* ── Unit switcher ────────────────────────────────────────────────── */
+.unit-switcher {
+    display: flex;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.unit-btn {
+    padding: 4px 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #94a3b8;
+    background: #fff;
+    border: none;
+    border-left: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    line-height: 1;
+}
+.unit-btn:first-child { border-left: none; }
+.unit-btn:hover { background: #f8fafc; color: #475569; }
+.unit-btn--active { background: #4f6aff; color: #fff; }
+.unit-btn--active:hover { background: #4060ee; }
 
 /* ── Toggle pill ──────────────────────────────────────────────────── */
 .toggle-pill {
@@ -243,9 +323,7 @@ export default {
 .collapse-enter, .collapse-leave-to { max-height: 0; opacity: 0; }
 
 /* ── Timeline ─────────────────────────────────────────────────────── */
-.timeline {
-    margin: 6px 0 4px;
-}
+.timeline { margin: 6px 0 4px; }
 .timeline__track {
     display: flex;
     height: 6px;
@@ -253,14 +331,8 @@ export default {
     overflow: hidden;
     background: #e2e8f0;
 }
-.timeline__idle {
-    background: #cbd5e1;
-    transition: flex 0.3s;
-}
-.timeline__warn {
-    background: #fbbf24;
-    transition: flex 0.3s;
-}
+.timeline__idle { background: #cbd5e1; transition: flex 0.3s; }
+.timeline__warn { background: #fbbf24; transition: flex 0.3s; }
 .timeline__labels {
     display: flex;
     justify-content: space-between;
@@ -279,7 +351,8 @@ export default {
     cursor: pointer;
 }
 .texts-row:hover span { color: #1e293b; }
+.texts-row:hover .texts-row__edit { color: #4f6aff; }
 .texts-row span { flex: 1; font-size: 13px; color: #334155; font-weight: 500; }
 .texts-row__icon { font-size: 16px; color: #64748b; flex-shrink: 0; }
-.texts-row__arrow { font-size: 16px; color: #94a3b8; flex-shrink: 0; }
+.texts-row__edit { font-size: 14px; color: #94a3b8; flex-shrink: 0; transition: color 0.15s; }
 </style>
