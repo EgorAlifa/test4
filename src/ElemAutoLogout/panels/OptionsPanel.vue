@@ -4,70 +4,50 @@
 
             <!-- ── Info ─────────────────────────────────────────────────── -->
             <div class="info-box">
-                <i class="mdi mdi-timer-off-outline info-box__icon" />
+                <i class="mdi mdi-information-outline info-box__icon" />
                 <div class="info-box__text">
-                    Завершает сессию при бездействии. Для редиректа на страницу входа добавьте
-                    <strong>ElemAuthContainer</strong> на страницу.
+                    Редирект после выхода управляется через
+                    <strong>ElemAuthContainer</strong>.
                 </div>
             </div>
 
             <!-- ── Таймаут ──────────────────────────────────────────────── -->
             <div class="section-label">Время бездействия</div>
-            <div class="timing-card">
-                <i class="mdi mdi-clock-outline timing-card__icon" />
-                <div class="timing-card__body">
-                    <div class="timing-card__label">До автоматического выхода</div>
-                    <div class="timing-card__sub">Таймер сбрасывается при любой активности</div>
-                </div>
-                <div class="timing-input-group">
+            <div class="field-row">
+                <span class="field-row__label">Таймаут до выхода</span>
+                <div class="field-row__input-group">
                     <input
-                        class="timing-input"
+                        class="num-input"
                         type="number"
                         min="30"
                         step="30"
                         :value="props.timeoutSeconds"
                         @change="onTimeoutChange" />
-                    <span class="timing-unit">сек</span>
+                    <span class="num-unit">сек</span>
                 </div>
             </div>
 
             <!-- ── Предупреждение ───────────────────────────────────────── -->
             <div class="section-label">Предупреждение</div>
-            <div
-                class="toggle-card"
-                :class="{ 'toggle-card--on': props.warningEnabled }"
-                role="switch"
-                :aria-checked="props.warningEnabled"
-                @click="toggleWarning">
-                <div class="toggle-card__body">
-                    <i class="mdi mdi-alert-circle-outline toggle-card__icon"
-                       :class="{ 'toggle-card__icon--on': props.warningEnabled }" />
-                    <div>
-                        <div class="toggle-card__label">Показывать предупреждение</div>
-                        <div class="toggle-card__sub">Окно с обратным отсчётом перед выходом</div>
-                    </div>
-                </div>
+            <div class="field-row field-row--toggle" @click="toggleWarning">
+                <span class="field-row__label">Показывать предупреждение</span>
                 <div class="toggle-pill" :class="{ 'toggle-pill--on': props.warningEnabled }">
                     <div class="toggle-pill__thumb" />
                 </div>
             </div>
 
-            <transition name="slide-down">
-                <div v-if="props.warningEnabled" class="timing-card timing-card--nested">
-                    <i class="mdi mdi-timer-sand timing-card__icon" />
-                    <div class="timing-card__body">
-                        <div class="timing-card__label">Длительность предупреждения</div>
-                        <div class="timing-card__sub">Секунд до выхода после появления окна</div>
-                    </div>
-                    <div class="timing-input-group">
+            <transition name="collapse">
+                <div v-if="props.warningEnabled" class="field-row field-row--nested">
+                    <span class="field-row__label">Длительность</span>
+                    <div class="field-row__input-group">
                         <input
-                            class="timing-input"
+                            class="num-input"
                             type="number"
                             min="5"
                             step="5"
                             :value="props.warningDuration"
                             @change="onWarningDurationChange" />
-                        <span class="timing-unit">сек</span>
+                        <span class="num-unit">сек</span>
                     </div>
                 </div>
             </transition>
@@ -75,20 +55,14 @@
             <!-- ── Timeline ─────────────────────────────────────────────── -->
             <div class="timeline">
                 <div class="timeline__track">
-                    <div class="timeline__seg timeline__seg--idle" :style="{ flex: idleRatio }">
-                        <span class="timeline__seg-label">Бездействие</span>
-                    </div>
-                    <div v-if="props.warningEnabled && warnRatio > 0"
-                         class="timeline__seg timeline__seg--warn"
-                         :style="{ flex: warnRatio }">
-                        <span class="timeline__seg-label">⚠</span>
-                    </div>
-                    <div class="timeline__seg timeline__seg--logout" style="flex: 0 0 6px">
-                        <span class="timeline__seg-label">🚪</span>
-                    </div>
+                    <div class="timeline__idle" :style="{ flex: idleRatio }" />
+                    <div v-if="props.warningEnabled" class="timeline__warn" :style="{ flex: warnRatio }" />
                 </div>
-                <div class="timeline__axis">
+                <div class="timeline__labels">
                     <span>0</span>
+                    <span v-if="props.warningEnabled" class="timeline__warn-label">
+                        −{{ props.warningDuration }}с
+                    </span>
                     <span>{{ timelineLabel }}</span>
                 </div>
             </div>
@@ -96,10 +70,10 @@
             <!-- ── Тексты ───────────────────────────────────────────────── -->
             <div class="section-label">Тексты интерфейса</div>
             <ui-has-panel>
-                <div class="texts-trigger">
-                    <i class="mdi mdi-translate texts-trigger__icon" />
-                    <span class="texts-trigger__label">{{ getPropLabel('labels') }}</span>
-                    <i class="mdi mdi-chevron-right texts-trigger__arrow" />
+                <div class="texts-row">
+                    <i class="mdi mdi-translate texts-row__icon" />
+                    <span>{{ getPropLabel('labels') }}</span>
+                    <i class="mdi mdi-chevron-right texts-row__arrow" />
                 </div>
                 <template #panel>
                     <ui-panel :groups="[{ name: getPropLabel('labels'), slot: 'default' }]">
@@ -131,12 +105,11 @@ export default {
             const w = this.props.warningEnabled
                 ? Math.min(this.props.warningDuration || 30, t)
                 : 0;
-            return (t - w) / t;
+            return Math.max(0, t - w);
         },
         warnRatio() {
             const t = this.props.timeoutSeconds || 1800;
-            const w = Math.min(this.props.warningDuration || 30, t);
-            return w / t;
+            return Math.min(this.props.warningDuration || 30, t);
         },
         timelineLabel() {
             const s = this.props.timeoutSeconds || 1800;
@@ -177,81 +150,57 @@ export default {
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: #94a3b8;
-    margin-top: 6px;
-    margin-bottom: 4px;
+    margin-top: 8px;
+    margin-bottom: 2px;
 }
 
 /* ── Info box ─────────────────────────────────────────────────────── */
 .info-box {
     display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px 13px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 11px;
     background: #f0f9ff;
     border: 1px solid #bae6fd;
-    border-radius: 10px;
-    margin-bottom: 4px;
+    border-radius: 8px;
+    margin-bottom: 2px;
 }
-.info-box__icon {
-    font-size: 20px;
-    color: #0284c7;
-    flex-shrink: 0;
-    margin-top: 1px;
-}
-.info-box__text {
-    font-size: 12px;
-    color: #0c4a6e;
-    line-height: 1.5;
-}
+.info-box__icon { font-size: 16px; color: #0284c7; flex-shrink: 0; }
+.info-box__text { font-size: 12px; color: #0c4a6e; line-height: 1.45; }
 
-/* ── Timing card ──────────────────────────────────────────────────── */
-.timing-card {
+/* ── Field row ────────────────────────────────────────────────────── */
+.field-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 13px;
-    background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
-    margin-bottom: 4px;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f5f9;
 }
-.timing-card--nested {
-    margin-left: 12px;
-    border-style: dashed;
-    border-color: #cbd5e1;
-    background: #f8fafc;
+.field-row--toggle { cursor: pointer; user-select: none; }
+.field-row--toggle:hover .field-row__label { color: #1e293b; }
+.field-row--nested {
+    padding-left: 12px;
+    border-left: 2px solid #e2e8f0;
+    margin-left: 2px;
+    border-bottom: none;
 }
-.timing-card__icon {
-    font-size: 20px;
-    color: #64748b;
-    flex-shrink: 0;
-}
-.timing-card__body {
+.field-row__label {
     flex: 1;
-    min-width: 0;
-}
-.timing-card__label {
     font-size: 13px;
-    font-weight: 600;
-    color: #1e293b;
-    line-height: 1.3;
+    color: #334155;
+    font-weight: 500;
 }
-.timing-card__sub {
-    font-size: 11px;
-    color: #94a3b8;
-    margin-top: 1px;
-}
-.timing-input-group {
+.field-row__input-group {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     flex-shrink: 0;
 }
-.timing-input {
-    width: 64px;
-    padding: 5px 8px;
+.num-input {
+    width: 60px;
+    padding: 4px 7px;
     border: 1.5px solid #e2e8f0;
-    border-radius: 7px;
+    border-radius: 6px;
     font-size: 13px;
     font-weight: 600;
     color: #1e293b;
@@ -260,60 +209,14 @@ export default {
     outline: none;
     transition: border-color 0.15s;
 }
-.timing-input:focus { border-color: #4f6aff; }
-.timing-unit {
-    font-size: 11px;
-    color: #94a3b8;
-    font-weight: 500;
-}
-
-/* ── Toggle card ──────────────────────────────────────────────────── */
-.toggle-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 13px;
-    background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
-    cursor: pointer;
-    user-select: none;
-    margin-bottom: 4px;
-    transition: border-color 0.15s, background 0.15s;
-}
-.toggle-card:hover { border-color: #a5b4fc; background: #f5f7ff; }
-.toggle-card--on { border-color: #4f6aff; background: #eff2ff; }
-.toggle-card__body {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-}
-.toggle-card__icon {
-    font-size: 20px;
-    color: #94a3b8;
-    flex-shrink: 0;
-    transition: color 0.15s;
-}
-.toggle-card__icon--on { color: #f59e0b; }
-.toggle-card__label {
-    font-size: 13px;
-    font-weight: 600;
-    color: #1e293b;
-    line-height: 1.3;
-}
-.toggle-card__sub {
-    font-size: 11px;
-    color: #94a3b8;
-    margin-top: 1px;
-}
+.num-input:focus { border-color: #4f6aff; }
+.num-unit { font-size: 11px; color: #94a3b8; min-width: 22px; }
 
 /* ── Toggle pill ──────────────────────────────────────────────────── */
 .toggle-pill {
     flex-shrink: 0;
-    width: 36px;
-    height: 20px;
+    width: 34px;
+    height: 18px;
     background: #cbd5e1;
     border-radius: 999px;
     position: relative;
@@ -322,80 +225,61 @@ export default {
 .toggle-pill--on { background: #4f6aff; }
 .toggle-pill__thumb {
     position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 14px;
-    height: 14px;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
     background: #fff;
     border-radius: 50%;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     transition: transform 0.2s;
 }
 .toggle-pill--on .toggle-pill__thumb { transform: translateX(16px); }
 
-/* ── Slide-down transition ────────────────────────────────────────── */
-.slide-down-enter-active, .slide-down-leave-active {
-    transition: max-height 0.2s ease, opacity 0.2s ease;
+/* ── Collapse transition ──────────────────────────────────────────── */
+.collapse-enter-active, .collapse-leave-active {
+    transition: max-height 0.18s ease, opacity 0.18s ease;
     overflow: hidden;
-    max-height: 120px;
+    max-height: 60px;
 }
-.slide-down-enter, .slide-down-leave-to { max-height: 0; opacity: 0; }
+.collapse-enter, .collapse-leave-to { max-height: 0; opacity: 0; }
 
 /* ── Timeline ─────────────────────────────────────────────────────── */
 .timeline {
-    margin: 4px 0 8px;
+    margin: 6px 0 4px;
 }
 .timeline__track {
     display: flex;
-    border-radius: 6px;
+    height: 6px;
+    border-radius: 3px;
     overflow: hidden;
-    height: 22px;
+    background: #e2e8f0;
 }
-.timeline__seg {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 0;
-    overflow: hidden;
+.timeline__idle {
+    background: #cbd5e1;
     transition: flex 0.3s;
 }
-.timeline__seg--idle  { background: #e2e8f0; }
-.timeline__seg--warn  { background: #fef3c7; }
-.timeline__seg--logout { background: #fee2e2; }
-.timeline__seg-label {
-    font-size: 10px;
-    font-weight: 600;
-    color: #64748b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding: 0 5px;
+.timeline__warn {
+    background: #fbbf24;
+    transition: flex 0.3s;
 }
-.timeline__seg--warn .timeline__seg-label  { color: #92400e; }
-.timeline__seg--logout .timeline__seg-label { color: #991b1b; }
-.timeline__axis {
+.timeline__labels {
     display: flex;
     justify-content: space-between;
     font-size: 10px;
     color: #94a3b8;
     margin-top: 3px;
-    padding: 0 2px;
 }
+.timeline__warn-label { color: #d97706; font-weight: 600; }
 
-/* ── Texts trigger ────────────────────────────────────────────────── */
-.texts-trigger {
+/* ── Texts row ────────────────────────────────────────────────────── */
+.texts-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 9px 13px;
-    background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
+    padding: 8px 0;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
 }
-.texts-trigger:hover { border-color: #a5b4fc; background: #f5f7ff; }
-.texts-trigger__icon { font-size: 18px; color: #64748b; flex-shrink: 0; }
-.texts-trigger__label { flex: 1; font-size: 13px; font-weight: 600; color: #1e293b; }
-.texts-trigger__arrow { font-size: 18px; color: #94a3b8; flex-shrink: 0; }
+.texts-row:hover span { color: #1e293b; }
+.texts-row span { flex: 1; font-size: 13px; color: #334155; font-weight: 500; }
+.texts-row__icon { font-size: 16px; color: #64748b; flex-shrink: 0; }
+.texts-row__arrow { font-size: 16px; color: #94a3b8; flex-shrink: 0; }
 </style>
