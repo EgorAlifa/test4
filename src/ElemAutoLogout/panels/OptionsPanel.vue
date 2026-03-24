@@ -6,7 +6,7 @@
             <div class="info-box">
                 <i class="mdi mdi-information-outline info-box__icon" />
                 <div class="info-box__text">
-                    Редирект после выхода управляется через виджет контейнера авторизации.
+                    Редирект после выхода управляется через виджет Авторизационный контнейнер.
                 </div>
             </div>
 
