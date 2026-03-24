@@ -72,7 +72,7 @@ export const descriptor = () => ({
         dialogRadius: {
             type: Number,
             default: 8,
-            label: 'Скругление диалога (px)'
+            label: 'Скругление окна предупреждения (px)'
         },
         btnBgColor: {
             type: String,
@@ -94,15 +94,10 @@ export const descriptor = () => ({
             default: '',
             label: 'Цвет иконки'
         },
-        dialogFontFamily: {
+        fontFamily: {
             type: String,
             default: '',
-            label: 'Шрифт диалога'
-        },
-        btnFontFamily: {
-            type: String,
-            default: '',
-            label: 'Шрифт кнопки'
+            label: 'Шрифт окна предупреждения'
         },
         btnFontSize: {
             type: String,
@@ -119,10 +114,15 @@ export const descriptor = () => ({
             default: 'none',
             label: 'Регистр текста кнопки'
         },
-        btnLetterSpacing: {
+        letterSpacing: {
             type: String,
             default: '',
-            label: 'Межбуквенный интервал кнопки'
+            label: 'Межбуквенный интервал'
+        },
+        dialogMaxWidth: {
+            type: Number,
+            default: 380,
+            label: 'Ширина окна предупреждения (px)'
         },
         /* ── Raw CSS overrides (Я дизайнер panel) ───────────────── */
         overlayCustomCss: {

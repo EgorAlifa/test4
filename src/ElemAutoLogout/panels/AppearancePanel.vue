@@ -70,41 +70,16 @@
             <ui-input-cp prop="btnBgColor">Фон кнопки</ui-input-cp>
             <ui-input-cp prop="btnTextColor">Цвет текста кнопки</ui-input-cp>
 
-            <!-- ══ DIALOG FONT ════════════════════════════════════════════ -->
-            <div class="section-label">Шрифт диалога</div>
+            <!-- ══ FONT ═══════════════════════════════════════════════════ -->
+            <div class="section-label">Шрифт</div>
             <div class="font-grid">
                 <button
                     v-for="f in fontFamilyOptions"
                     :key="f.value"
                     class="font-chip"
-                    :class="{ 'font-chip--active': (props.dialogFontFamily || '') === f.value }"
+                    :class="{ 'font-chip--active': (props.fontFamily || '') === f.value }"
                     :style="{ fontFamily: f.value || 'inherit' }"
-                    @click="setDialogFontFamily(f.value)">
-                    {{ f.label }}
-                </button>
-            </div>
-            <div class="custom-font-row">
-                <input
-                    class="custom-font-input"
-                    placeholder="Свой шрифт, напр. Comfortaa"
-                    :value="customDialogFontInput"
-                    @input="customDialogFontInput = $event.target.value"
-                    @keydown.enter.prevent="applyCustomDialogFont" />
-                <button class="custom-font-btn" :disabled="!customDialogFontInput.trim()" @click="applyCustomDialogFont">
-                    <i class="mdi mdi-check" />
-                </button>
-            </div>
-
-            <!-- ══ BUTTON FONT ════════════════════════════════════════════ -->
-            <div class="section-label">Шрифт кнопки</div>
-            <div class="font-grid">
-                <button
-                    v-for="f in fontFamilyOptions"
-                    :key="f.value"
-                    class="font-chip"
-                    :class="{ 'font-chip--active': (props.btnFontFamily || '') === f.value }"
-                    :style="{ fontFamily: f.value || 'inherit' }"
-                    @click="setBtnFontFamily(f.value)">
+                    @click="setFontFamily(f.value)">
                     {{ f.label }}
                 </button>
             </div>
@@ -180,7 +155,7 @@
             <ui-input-cp prop="dialogBgColor">Фон диалога</ui-input-cp>
             <ui-input-cp prop="dialogTextColor">Цвет текста</ui-input-cp>
             <ui-input-cp prop="iconColor">Цвет иконки</ui-input-cp>
-            <div class="section-label">Скругление диалога</div>
+            <div class="section-label">Скругление окна предупреждения</div>
             <div class="slider-row">
                 <input
                     type="range"
@@ -191,6 +166,18 @@
                     :value="props.dialogRadius != null ? props.dialogRadius : 8"
                     @input="onDialogRadiusSlider" />
                 <span class="slider-val">{{ props.dialogRadius != null ? props.dialogRadius : 8 }}px</span>
+            </div>
+            <div class="section-label">Размер окна предупреждения</div>
+            <div class="slider-row">
+                <input
+                    type="range"
+                    class="slider"
+                    min="200"
+                    max="700"
+                    step="10"
+                    :value="props.dialogMaxWidth != null ? props.dialogMaxWidth : 380"
+                    @input="onDialogMaxWidthSlider" />
+                <span class="slider-val">{{ props.dialogMaxWidth != null ? props.dialogMaxWidth : 380 }}px</span>
             </div>
 
             <!-- ══ OVERLAY ════════════════════════════════════════════════ -->
@@ -221,10 +208,10 @@ import { Panel } from 'goodt-wcore';
 
 const DEFAULTS = {
     overlayColor: '#000000', overlayOpacity: 45,
-    dialogBgColor: '', dialogTextColor: '', dialogRadius: 8,
+    dialogBgColor: '', dialogTextColor: '', dialogRadius: 8, dialogMaxWidth: 380,
     btnBgColor: '', btnTextColor: '', btnRadius: 8, iconColor: '',
-    dialogFontFamily: '',
-    btnFontFamily: '', btnFontSize: '', btnFontWeight: '', btnTextTransform: 'none', btnLetterSpacing: '',
+    fontFamily: '',
+    btnFontSize: '', btnFontWeight: '', btnTextTransform: 'none', letterSpacing: '',
     overlayCustomCss: '', dialogCustomCss: '', dialogBtnCustomCss: ''
 };
 
@@ -232,35 +219,25 @@ const PRESETS = [
     {
         label: 'По умолч.',
         swatch: { overlay: 'rgba(0,0,0,0.45)', dialog: '#fff', text: '#1a1a1a', radius: '8px', icon: '#f59e0b', btn: '#4f6aff' },
-        visual: { overlayColor: '#000000', overlayOpacity: 45, dialogBgColor: '', dialogTextColor: '', dialogRadius: 8, btnBgColor: '', btnTextColor: '', btnRadius: 8, iconColor: '', dialogFontFamily: '' },
+        visual: { overlayColor: '#000000', overlayOpacity: 45, dialogBgColor: '', dialogTextColor: '', dialogRadius: 8, btnBgColor: '', btnTextColor: '', btnRadius: 8, iconColor: '', fontFamily: '' },
         rawCss: { overlay: '', dialog: '', btn: '' }
     },
     {
         label: 'Тёмная',
         swatch: { overlay: 'rgba(0,0,0,0.72)', dialog: '#1e293b', text: '#f1f5f9', radius: '12px', icon: '#fbbf24', btn: '#3b82f6' },
-        visual: { overlayColor: '#000000', overlayOpacity: 72, dialogBgColor: '#1e293b', dialogTextColor: '#f1f5f9', dialogRadius: 12, btnBgColor: '#3b82f6', btnTextColor: '#ffffff', btnRadius: 8, iconColor: '#fbbf24', dialogFontFamily: '' },
+        visual: { overlayColor: '#000000', overlayOpacity: 72, dialogBgColor: '#1e293b', dialogTextColor: '#f1f5f9', dialogRadius: 12, btnBgColor: '#3b82f6', btnTextColor: '#ffffff', btnRadius: 8, iconColor: '#fbbf24', fontFamily: '' },
         rawCss: { overlay: '', dialog: '', btn: '' }
-    },
-    {
-        label: 'Стекло',
-        swatch: { overlay: 'linear-gradient(135deg,#0f172a,#1e3a5f)', dialog: 'rgba(15,23,42,0.75)', text: '#f0f4ff', radius: '20px', icon: '#93c5fd', btn: 'rgba(147,197,253,0.25)' },
-        visual: { overlayColor: '#0f172a', overlayOpacity: 65, dialogBgColor: '', dialogTextColor: '#f0f4ff', dialogRadius: 20, btnBgColor: '', btnTextColor: '#f0f4ff', btnRadius: 10, iconColor: '#93c5fd', dialogFontFamily: '' },
-        rawCss: {
-            overlay: 'backdrop-filter: blur(6px);',
-            dialog:  'background: rgba(15,23,42,0.72); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.12);',
-            btn:     'background: rgba(255,255,255,0.15) !important; border: 1.5px solid rgba(255,255,255,0.3) !important;'
-        }
     },
     {
         label: 'Опасность',
         swatch: { overlay: 'rgba(127,29,29,0.55)', dialog: '#fff', text: '#1a1a1a', radius: '12px', borderTop: '3px solid #ef4444', icon: '#ef4444', btn: '#ef4444' },
-        visual: { overlayColor: '#7f1d1d', overlayOpacity: 55, dialogBgColor: '#ffffff', dialogTextColor: '#1a1a1a', dialogRadius: 12, btnBgColor: '#ef4444', btnTextColor: '#ffffff', btnRadius: 8, iconColor: '#ef4444', dialogFontFamily: '' },
+        visual: { overlayColor: '#7f1d1d', overlayOpacity: 55, dialogBgColor: '#ffffff', dialogTextColor: '#1a1a1a', dialogRadius: 12, btnBgColor: '#ef4444', btnTextColor: '#ffffff', btnRadius: 8, iconColor: '#ef4444', fontFamily: '' },
         rawCss: { overlay: '', dialog: 'border-top: 4px solid #ef4444;', btn: '' }
     },
     {
         label: 'Мягкая',
         swatch: { overlay: 'rgba(100,116,139,0.35)', dialog: '#f8fafc', text: '#334155', radius: '20px', icon: '#f59e0b', btn: '#64748b' },
-        visual: { overlayColor: '#64748b', overlayOpacity: 35, dialogBgColor: '#f8fafc', dialogTextColor: '#334155', dialogRadius: 20, btnBgColor: '#64748b', btnTextColor: '#ffffff', btnRadius: 10, iconColor: '#f59e0b', dialogFontFamily: '' },
+        visual: { overlayColor: '#64748b', overlayOpacity: 35, dialogBgColor: '#f8fafc', dialogTextColor: '#334155', dialogRadius: 20, btnBgColor: '#64748b', btnTextColor: '#ffffff', btnRadius: 10, iconColor: '#f59e0b', fontFamily: '' },
         rawCss: { overlay: '', dialog: 'border: 1px solid #e2e8f0;', btn: '' }
     }
 ];
@@ -276,7 +253,6 @@ export default {
     data: () => ({
         activePreset: null,
         customFontInput: '',
-        customDialogFontInput: '',
         presets: PRESETS,
         colorPresets: [
             { label: 'Синий',    bg: '#4f6aff', color: '#ffffff' },
@@ -332,7 +308,8 @@ export default {
                 background:   p.dialogBgColor    || '#ffffff',
                 color:        p.dialogTextColor   || '#1a1a1a',
                 borderRadius: (p.dialogRadius != null ? p.dialogRadius : 8) + 'px',
-                fontFamily:   p.dialogFontFamily  || 'inherit'
+                fontFamily:   p.fontFamily        || 'inherit',
+                maxWidth:     (p.dialogMaxWidth != null ? p.dialogMaxWidth : 380) + 'px'
             };
         },
         previewBtnStyle() {
@@ -341,11 +318,11 @@ export default {
                 background:    p.btnBgColor       || '#4f6aff',
                 color:         p.btnTextColor      || '#ffffff',
                 borderRadius:  (p.btnRadius != null ? p.btnRadius : 8) + 'px',
-                fontFamily:    p.btnFontFamily     || 'inherit',
+                fontFamily:    p.fontFamily        || 'inherit',
                 fontSize:      p.btnFontSize       || '13px',
                 fontWeight:    p.btnFontWeight     || '500',
                 textTransform: p.btnTextTransform  || 'none',
-                letterSpacing: p.btnLetterSpacing  || '0.02em',
+                letterSpacing: p.letterSpacing     || '0.02em',
                 pointerEvents: 'none'
             };
         },
@@ -354,14 +331,15 @@ export default {
         },
         previewTextStyle() {
             return {
-                fontFamily: this.props.dialogFontFamily || 'inherit',
+                fontFamily:    this.props.fontFamily   || 'inherit',
+                letterSpacing: this.props.letterSpacing || 'inherit',
                 color: 'inherit'
             };
         },
 
         /* ── Letter spacing ────────────────────────────────────────── */
         letterSpacingSliderVal() {
-            const raw = this.props.btnLetterSpacing || '';
+            const raw = this.props.letterSpacing || '';
             if (!raw) return 0;
             if (raw.endsWith('em')) return Math.round(parseFloat(raw) * 100);
             return 0;
@@ -401,7 +379,7 @@ export default {
                     v.btnTextColor    === (p.btnTextColor    || '') &&
                     v.btnRadius       === (p.btnRadius       != null ? p.btnRadius       : 8) &&
                     v.iconColor       === (p.iconColor       || '') &&
-                    v.dialogFontFamily === (p.dialogFontFamily || '') &&
+                    v.fontFamily      === (p.fontFamily      || '') &&
                     preset.rawCss.overlay === (p.overlayCustomCss   || '') &&
                     preset.rawCss.dialog  === (p.dialogCustomCss    || '') &&
                     preset.rawCss.btn     === (p.dialogBtnCustomCss || '')
@@ -426,38 +404,29 @@ export default {
             this.activePreset = this.detectActivePreset();
         },
 
-        /* ── Dialog font ───────────────────────────────────────────── */
-        setDialogFontFamily(val) {
-            this.props.dialogFontFamily = val; this.propChanged('dialogFontFamily');
-            this.customDialogFontInput = '';
-            this.activePreset = this.detectActivePreset();
-        },
-        applyCustomDialogFont() {
-            const raw = this.customDialogFontInput.trim();
-            if (!raw) return;
-            const val = raw.includes(',') ? raw : `${raw}, sans-serif`;
-            this.props.dialogFontFamily = val; this.propChanged('dialogFontFamily');
-            this.activePreset = this.detectActivePreset();
-        },
-
-        /* ── Button font ───────────────────────────────────────────── */
-        setBtnFontFamily(val) {
-            this.props.btnFontFamily = val; this.propChanged('btnFontFamily');
+        /* ── Font ──────────────────────────────────────────────────── */
+        setFontFamily(val) {
+            this.props.fontFamily = val; this.propChanged('fontFamily');
             this.customFontInput = '';
+            this.activePreset = this.detectActivePreset();
         },
         applyCustomFont() {
             const raw = this.customFontInput.trim();
             if (!raw) return;
             const val = raw.includes(',') ? raw : `${raw}, sans-serif`;
-            this.props.btnFontFamily = val; this.propChanged('btnFontFamily');
+            this.props.fontFamily = val; this.propChanged('fontFamily');
+            this.activePreset = this.detectActivePreset();
         },
         setBtnTextTransform(val) {
             this.props.btnTextTransform = val; this.propChanged('btnTextTransform');
         },
         onLetterSpacingSlider(e) {
             const hundredths = parseInt(e.target.value, 10);
-            this.props.btnLetterSpacing = hundredths === 0 ? '' : `${(hundredths / 100).toFixed(2)}em`;
-            this.propChanged('btnLetterSpacing');
+            this.props.letterSpacing = hundredths === 0 ? '' : `${(hundredths / 100).toFixed(2)}em`;
+            this.propChanged('letterSpacing');
+        },
+        onDialogMaxWidthSlider(e) {
+            this.props.dialogMaxWidth = parseInt(e.target.value, 10); this.propChanged('dialogMaxWidth');
         },
 
         /* ── Radius ────────────────────────────────────────────────── */
@@ -483,7 +452,6 @@ export default {
             });
             this.activePreset = null;
             this.customFontInput = '';
-            this.customDialogFontInput = '';
         }
     }
 };
