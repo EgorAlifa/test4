@@ -94,6 +94,31 @@ export const descriptor = () => ({
             default: '',
             label: 'Цвет иконки'
         },
+        btnFontFamily: {
+            type: String,
+            default: '',
+            label: 'Шрифт кнопки'
+        },
+        btnFontSize: {
+            type: String,
+            default: '',
+            label: 'Размер шрифта кнопки'
+        },
+        btnFontWeight: {
+            type: String,
+            default: '',
+            label: 'Насыщенность шрифта кнопки'
+        },
+        btnTextTransform: {
+            type: String,
+            default: 'none',
+            label: 'Регистр текста кнопки'
+        },
+        btnLetterSpacing: {
+            type: String,
+            default: '',
+            label: 'Межбуквенный интервал кнопки'
+        },
         /* ── Raw CSS overrides (Я дизайнер panel) ───────────────── */
         overlayCustomCss: {
             type: String,
