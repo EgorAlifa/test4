@@ -67,8 +67,14 @@ export default {
                 css += ` .auto-logout__dialog-title { color: ${p.dialogTextColor}; }`;
                 css += ` .auto-logout__dialog-message { color: ${p.dialogTextColor}; }`;
             }
-            if (p.dialogFontFamily) {
-                css += ` .auto-logout__dialog-title, .auto-logout__dialog-message { font-family: ${p.dialogFontFamily}; }`;
+            if (p.fontFamily) {
+                css += ` .auto-logout__dialog, .auto-logout__dialog-title, .auto-logout__dialog-message, .auto-logout__dialog-btn { font-family: ${p.fontFamily}; }`;
+            }
+            if (p.letterSpacing) {
+                css += ` .auto-logout__dialog-title, .auto-logout__dialog-message, .auto-logout__dialog-btn { letter-spacing: ${p.letterSpacing}; }`;
+            }
+            if (p.dialogMaxWidth != null) {
+                css += ` .auto-logout__dialog { max-width: ${p.dialogMaxWidth}px; }`;
             }
 
             // ── Button ────────────────────────────────────────────────────
@@ -76,11 +82,9 @@ export default {
             if (p.btnBgColor)   btn += `background: ${p.btnBgColor} !important; border-color: ${p.btnBgColor} !important;`;
             if (p.btnTextColor) btn += `color: ${p.btnTextColor} !important;`;
             if (p.btnRadius != null) btn += `border-radius: ${p.btnRadius}px;`;
-            if (p.btnFontFamily) btn += `font-family: ${p.btnFontFamily} !important;`;
             if (p.btnFontSize)   btn += `font-size: ${p.btnFontSize} !important;`;
             if (p.btnFontWeight) btn += `font-weight: ${p.btnFontWeight} !important;`;
             if (p.btnTextTransform && p.btnTextTransform !== 'none') btn += `text-transform: ${p.btnTextTransform} !important;`;
-            if (p.btnLetterSpacing) btn += `letter-spacing: ${p.btnLetterSpacing} !important;`;
             if (p.dialogBtnCustomCss) btn += ` ${p.dialogBtnCustomCss}`;
             if (btn) {
                 css += ` .auto-logout__dialog-btn { ${btn} }`;
