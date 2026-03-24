@@ -1,6 +1,6 @@
 <template>
     <w-elem>
-        <component v-if="customCssContent" :is="'style'" v-html="customCssContent" />
+        <component :is="'style'" v-html="customCssContent" />
         <!-- Displayed only in editor mode as a visual placeholder -->
         <div v-if="isEditorMode" class="auto-logout__placeholder">
             <i class="mdi mdi-timer-off-outline"></i>
@@ -42,12 +42,44 @@ export default {
     }),
     computed: {
         customCssContent() {
-            const { overlayCustomCss, dialogCustomCss, dialogBtnCustomCss } = this.props;
-            let css = '';
-            if (overlayCustomCss) css += `.auto-logout__overlay { ${overlayCustomCss} }`;
-            if (dialogCustomCss)  css += `.auto-logout__dialog { ${dialogCustomCss} }`;
-            if (dialogBtnCustomCss) css += `.auto-logout__dialog-btn { ${dialogBtnCustomCss} }`;
-            return css || null;
+            const p = this.props;
+
+            // ── Overlay ───────────────────────────────────────────────────
+            const hex = (p.overlayColor && p.overlayColor.startsWith('#')) ? p.overlayColor : '#000000';
+            const r = parseInt(hex.slice(1, 3), 16) || 0;
+            const g = parseInt(hex.slice(3, 5), 16) || 0;
+            const b = parseInt(hex.slice(5, 7), 16) || 0;
+            const a = ((p.overlayOpacity != null ? p.overlayOpacity : 45) / 100).toFixed(2);
+            let overlayCss = `background: rgba(${r},${g},${b},${a});`;
+            if (p.overlayCustomCss) overlayCss += ` ${p.overlayCustomCss}`;
+            let css = `.auto-logout__overlay { ${overlayCss} }`;
+
+            // ── Dialog ────────────────────────────────────────────────────
+            let dlg = '';
+            if (p.dialogBgColor)   dlg += `background: ${p.dialogBgColor};`;
+            if (p.dialogTextColor) dlg += `color: ${p.dialogTextColor};`;
+            if (p.dialogRadius != null) dlg += `border-radius: ${p.dialogRadius}px;`;
+            if (p.dialogCustomCss) dlg += ` ${p.dialogCustomCss}`;
+            if (dlg) css += ` .auto-logout__dialog { ${dlg} }`;
+
+            // ── Button ────────────────────────────────────────────────────
+            let btn = '';
+            if (p.btnBgColor)   btn += `background: ${p.btnBgColor} !important; border-color: ${p.btnBgColor} !important;`;
+            if (p.btnTextColor) btn += `color: ${p.btnTextColor} !important;`;
+            if (p.btnRadius != null) btn += `border-radius: ${p.btnRadius}px;`;
+            if (p.dialogBtnCustomCss) btn += ` ${p.dialogBtnCustomCss}`;
+            if (btn) {
+                css += ` .auto-logout__dialog-btn { ${btn} }`;
+                // Also override :hover/:focus so the framework's btn-primary hover doesn't bleed through
+                if (p.btnBgColor) {
+                    css += ` .auto-logout__dialog-btn:hover, .auto-logout__dialog-btn:focus { background: ${p.btnBgColor} !important; border-color: ${p.btnBgColor} !important; filter: brightness(0.88); }`;
+                }
+            }
+
+            // ── Icon ──────────────────────────────────────────────────────
+            if (p.iconColor) css += ` .auto-logout__dialog-icon { color: ${p.iconColor}; }`;
+
+            return css;
         }
     },
     mounted() {
@@ -231,4 +263,4 @@ export default {
     }
 };
 </script>
-<style lang="pcss" scoped src="./style.pcss"></style>
+<style lang="pcss" src="./style.pcss"></style>

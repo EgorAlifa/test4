@@ -25,7 +25,6 @@
                     </ui-panel>
                 </template>
             </ui-has-panel>
-            <ui-button @click="runTest">Протестировать выход</ui-button>
         </ui-container>
     </w-panel>
 </template>
@@ -48,9 +47,6 @@ export default {
         getPropLabel(path) {
             const prop = path.split('.')[0];
             return this.descriptor.props[prop]?.label[path] ?? '';
-        },
-        runTest() {
-            this.elementInstance && this.elementInstance.performLogout();
         }
     }
 };
