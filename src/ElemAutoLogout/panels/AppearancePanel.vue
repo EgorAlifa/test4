@@ -70,8 +70,33 @@
             <ui-input-cp prop="btnBgColor">Фон кнопки</ui-input-cp>
             <ui-input-cp prop="btnTextColor">Цвет текста кнопки</ui-input-cp>
 
+            <!-- ══ DIALOG FONT ════════════════════════════════════════════ -->
+            <div class="section-label">Шрифт диалога</div>
+            <div class="font-grid">
+                <button
+                    v-for="f in fontFamilyOptions"
+                    :key="f.value"
+                    class="font-chip"
+                    :class="{ 'font-chip--active': (props.dialogFontFamily || '') === f.value }"
+                    :style="{ fontFamily: f.value || 'inherit' }"
+                    @click="setDialogFontFamily(f.value)">
+                    {{ f.label }}
+                </button>
+            </div>
+            <div class="custom-font-row">
+                <input
+                    class="custom-font-input"
+                    placeholder="Свой шрифт, напр. Comfortaa"
+                    :value="customDialogFontInput"
+                    @input="customDialogFontInput = $event.target.value"
+                    @keydown.enter.prevent="applyCustomDialogFont" />
+                <button class="custom-font-btn" :disabled="!customDialogFontInput.trim()" @click="applyCustomDialogFont">
+                    <i class="mdi mdi-check" />
+                </button>
+            </div>
+
             <!-- ══ BUTTON FONT ════════════════════════════════════════════ -->
-            <div class="section-label">Шрифт</div>
+            <div class="section-label">Шрифт кнопки</div>
             <div class="font-grid">
                 <button
                     v-for="f in fontFamilyOptions"
@@ -198,6 +223,7 @@ const DEFAULTS = {
     overlayColor: '#000000', overlayOpacity: 45,
     dialogBgColor: '', dialogTextColor: '', dialogRadius: 8,
     btnBgColor: '', btnTextColor: '', btnRadius: 8, iconColor: '',
+    dialogFontFamily: '',
     btnFontFamily: '', btnFontSize: '', btnFontWeight: '', btnTextTransform: 'none', btnLetterSpacing: '',
     overlayCustomCss: '', dialogCustomCss: '', dialogBtnCustomCss: ''
 };
@@ -206,35 +232,35 @@ const PRESETS = [
     {
         label: 'По умолч.',
         swatch: { overlay: 'rgba(0,0,0,0.45)', dialog: '#fff', text: '#1a1a1a', radius: '8px', icon: '#f59e0b', btn: '#4f6aff' },
-        visual: { overlayColor: '#000000', overlayOpacity: 45, dialogBgColor: '', dialogTextColor: '', dialogRadius: 8, btnBgColor: '', btnTextColor: '', btnRadius: 8, iconColor: '' },
+        visual: { overlayColor: '#000000', overlayOpacity: 45, dialogBgColor: '', dialogTextColor: '', dialogRadius: 8, btnBgColor: '', btnTextColor: '', btnRadius: 8, iconColor: '', dialogFontFamily: '' },
         rawCss: { overlay: '', dialog: '', btn: '' }
     },
     {
         label: 'Тёмная',
         swatch: { overlay: 'rgba(0,0,0,0.72)', dialog: '#1e293b', text: '#f1f5f9', radius: '12px', icon: '#fbbf24', btn: '#3b82f6' },
-        visual: { overlayColor: '#000000', overlayOpacity: 72, dialogBgColor: '#1e293b', dialogTextColor: '#f1f5f9', dialogRadius: 12, btnBgColor: '#3b82f6', btnTextColor: '#ffffff', btnRadius: 8, iconColor: '#fbbf24' },
+        visual: { overlayColor: '#000000', overlayOpacity: 72, dialogBgColor: '#1e293b', dialogTextColor: '#f1f5f9', dialogRadius: 12, btnBgColor: '#3b82f6', btnTextColor: '#ffffff', btnRadius: 8, iconColor: '#fbbf24', dialogFontFamily: '' },
         rawCss: { overlay: '', dialog: '', btn: '' }
     },
     {
         label: 'Стекло',
-        swatch: { overlay: 'linear-gradient(135deg,#0f172a,#334155)', dialog: 'rgba(255,255,255,0.18)', text: '#fff', radius: '20px', icon: '#fbbf24', btn: 'rgba(255,255,255,0.3)' },
-        visual: { overlayColor: '#0f172a', overlayOpacity: 55, dialogBgColor: '', dialogTextColor: '#ffffff', dialogRadius: 20, btnBgColor: '', btnTextColor: '#ffffff', btnRadius: 10, iconColor: '#fbbf24' },
+        swatch: { overlay: 'linear-gradient(135deg,#0f172a,#1e3a5f)', dialog: 'rgba(15,23,42,0.75)', text: '#f0f4ff', radius: '20px', icon: '#93c5fd', btn: 'rgba(147,197,253,0.25)' },
+        visual: { overlayColor: '#0f172a', overlayOpacity: 65, dialogBgColor: '', dialogTextColor: '#f0f4ff', dialogRadius: 20, btnBgColor: '', btnTextColor: '#f0f4ff', btnRadius: 10, iconColor: '#93c5fd', dialogFontFamily: '' },
         rawCss: {
             overlay: 'backdrop-filter: blur(6px);',
-            dialog:  'background: rgba(255,255,255,0.15); backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.25);',
-            btn:     'background: rgba(255,255,255,0.2) !important; border: 1.5px solid rgba(255,255,255,0.4) !important;'
+            dialog:  'background: rgba(15,23,42,0.72); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.12);',
+            btn:     'background: rgba(255,255,255,0.15) !important; border: 1.5px solid rgba(255,255,255,0.3) !important;'
         }
     },
     {
         label: 'Опасность',
         swatch: { overlay: 'rgba(127,29,29,0.55)', dialog: '#fff', text: '#1a1a1a', radius: '12px', borderTop: '3px solid #ef4444', icon: '#ef4444', btn: '#ef4444' },
-        visual: { overlayColor: '#7f1d1d', overlayOpacity: 55, dialogBgColor: '#ffffff', dialogTextColor: '#1a1a1a', dialogRadius: 12, btnBgColor: '#ef4444', btnTextColor: '#ffffff', btnRadius: 8, iconColor: '#ef4444' },
+        visual: { overlayColor: '#7f1d1d', overlayOpacity: 55, dialogBgColor: '#ffffff', dialogTextColor: '#1a1a1a', dialogRadius: 12, btnBgColor: '#ef4444', btnTextColor: '#ffffff', btnRadius: 8, iconColor: '#ef4444', dialogFontFamily: '' },
         rawCss: { overlay: '', dialog: 'border-top: 4px solid #ef4444;', btn: '' }
     },
     {
         label: 'Мягкая',
         swatch: { overlay: 'rgba(100,116,139,0.35)', dialog: '#f8fafc', text: '#334155', radius: '20px', icon: '#f59e0b', btn: '#64748b' },
-        visual: { overlayColor: '#64748b', overlayOpacity: 35, dialogBgColor: '#f8fafc', dialogTextColor: '#334155', dialogRadius: 20, btnBgColor: '#64748b', btnTextColor: '#ffffff', btnRadius: 10, iconColor: '#f59e0b' },
+        visual: { overlayColor: '#64748b', overlayOpacity: 35, dialogBgColor: '#f8fafc', dialogTextColor: '#334155', dialogRadius: 20, btnBgColor: '#64748b', btnTextColor: '#ffffff', btnRadius: 10, iconColor: '#f59e0b', dialogFontFamily: '' },
         rawCss: { overlay: '', dialog: 'border: 1px solid #e2e8f0;', btn: '' }
     }
 ];
@@ -250,6 +276,7 @@ export default {
     data: () => ({
         activePreset: null,
         customFontInput: '',
+        customDialogFontInput: '',
         presets: PRESETS,
         colorPresets: [
             { label: 'Синий',    bg: '#4f6aff', color: '#ffffff' },
@@ -302,10 +329,10 @@ export default {
         previewDialogStyle() {
             const p = this.props;
             return {
-                background:   p.dialogBgColor   || '#ffffff',
-                color:        p.dialogTextColor  || '#1a1a1a',
+                background:   p.dialogBgColor    || '#ffffff',
+                color:        p.dialogTextColor   || '#1a1a1a',
                 borderRadius: (p.dialogRadius != null ? p.dialogRadius : 8) + 'px',
-                fontFamily:   p.btnFontFamily    || 'inherit'
+                fontFamily:   p.dialogFontFamily  || 'inherit'
             };
         },
         previewBtnStyle() {
@@ -327,7 +354,7 @@ export default {
         },
         previewTextStyle() {
             return {
-                fontFamily: this.props.btnFontFamily || 'inherit',
+                fontFamily: this.props.dialogFontFamily || 'inherit',
                 color: 'inherit'
             };
         },
@@ -374,6 +401,7 @@ export default {
                     v.btnTextColor    === (p.btnTextColor    || '') &&
                     v.btnRadius       === (p.btnRadius       != null ? p.btnRadius       : 8) &&
                     v.iconColor       === (p.iconColor       || '') &&
+                    v.dialogFontFamily === (p.dialogFontFamily || '') &&
                     preset.rawCss.overlay === (p.overlayCustomCss   || '') &&
                     preset.rawCss.dialog  === (p.dialogCustomCss    || '') &&
                     preset.rawCss.btn     === (p.dialogBtnCustomCss || '')
@@ -398,7 +426,21 @@ export default {
             this.activePreset = this.detectActivePreset();
         },
 
-        /* ── Font ──────────────────────────────────────────────────── */
+        /* ── Dialog font ───────────────────────────────────────────── */
+        setDialogFontFamily(val) {
+            this.props.dialogFontFamily = val; this.propChanged('dialogFontFamily');
+            this.customDialogFontInput = '';
+            this.activePreset = this.detectActivePreset();
+        },
+        applyCustomDialogFont() {
+            const raw = this.customDialogFontInput.trim();
+            if (!raw) return;
+            const val = raw.includes(',') ? raw : `${raw}, sans-serif`;
+            this.props.dialogFontFamily = val; this.propChanged('dialogFontFamily');
+            this.activePreset = this.detectActivePreset();
+        },
+
+        /* ── Button font ───────────────────────────────────────────── */
         setBtnFontFamily(val) {
             this.props.btnFontFamily = val; this.propChanged('btnFontFamily');
             this.customFontInput = '';
@@ -441,6 +483,7 @@ export default {
             });
             this.activePreset = null;
             this.customFontInput = '';
+            this.customDialogFontInput = '';
         }
     }
 };

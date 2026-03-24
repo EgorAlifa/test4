@@ -94,6 +94,11 @@ export const descriptor = () => ({
             default: '',
             label: 'Цвет иконки'
         },
+        dialogFontFamily: {
+            type: String,
+            default: '',
+            label: 'Шрифт диалога'
+        },
         btnFontFamily: {
             type: String,
             default: '',

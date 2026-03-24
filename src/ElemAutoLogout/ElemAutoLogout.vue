@@ -62,6 +62,15 @@ export default {
             if (p.dialogCustomCss) dlg += ` ${p.dialogCustomCss}`;
             if (dlg) css += ` .auto-logout__dialog { ${dlg} }`;
 
+            // Explicitly override child text elements (style.pcss has hardcoded colors that block inheritance)
+            if (p.dialogTextColor) {
+                css += ` .auto-logout__dialog-title { color: ${p.dialogTextColor}; }`;
+                css += ` .auto-logout__dialog-message { color: ${p.dialogTextColor}; }`;
+            }
+            if (p.dialogFontFamily) {
+                css += ` .auto-logout__dialog-title, .auto-logout__dialog-message { font-family: ${p.dialogFontFamily}; }`;
+            }
+
             // ── Button ────────────────────────────────────────────────────
             let btn = '';
             if (p.btnBgColor)   btn += `background: ${p.btnBgColor} !important; border-color: ${p.btnBgColor} !important;`;
