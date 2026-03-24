@@ -6,7 +6,7 @@
             <div class="info-box">
                 <i class="mdi mdi-information-outline info-box__icon" />
                 <div class="info-box__text">
-                    Редирект после выхода управляется через виджет Авторизационный контнейнер.
+                    Редирект после выхода управляется через виджет «Авторизационный контейнер».
                 </div>
             </div>
 
@@ -117,7 +117,7 @@ const UNITS = [
 
 export default {
     extends: Panel,
-    meta: { name: 'Настройки виджета', icon: 'timer-off' },
+    meta: { name: 'Выход при неактивности', icon: 'account-clock' },
     data() {
         return {
             timeoutUnit: 's',
