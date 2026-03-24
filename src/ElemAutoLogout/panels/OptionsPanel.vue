@@ -18,8 +18,8 @@
                     <input
                         class="num-input"
                         type="number"
-                        :min="timeoutUnit === 's' ? 30 : 1"
-                        :step="timeoutUnit === 's' ? 30 : 1"
+                        min="0"
+                        step="any"
                         :value="timeoutDisplayValue"
                         @change="onTimeoutChange" />
                     <div class="unit-switcher">
@@ -49,8 +49,8 @@
                         <input
                             class="num-input"
                             type="number"
-                            :min="warningUnit === 's' ? 5 : 1"
-                            :step="warningUnit === 's' ? 5 : 1"
+                            min="0"
+                            step="any"
                             :value="warningDisplayValue"
                             @change="onWarningDurationChange" />
                         <div class="unit-switcher">
@@ -125,6 +125,10 @@ export default {
             units: UNITS,
         };
     },
+    mounted() {
+        this.timeoutUnit = this.bestUnit(this.props.timeoutSeconds || 1800);
+        this.warningUnit = this.bestUnit(this.props.warningDuration || 30);
+    },
     computed: {
         timeoutDisplayValue() {
             return this.toUnit(this.props.timeoutSeconds || 1800, this.timeoutUnit);
@@ -145,15 +149,20 @@ export default {
         },
     },
     methods: {
+        bestUnit(seconds) {
+            if (seconds >= 3600) return 'h';
+            if (seconds >= 60) return 'm';
+            return 's';
+        },
         toUnit(seconds, unit) {
-            if (unit === 'm') return Math.round(seconds / 60);
-            if (unit === 'h') return Math.round(seconds / 3600);
+            if (unit === 'm') return Math.round((seconds / 60) * 100) / 100;
+            if (unit === 'h') return Math.round((seconds / 3600) * 100) / 100;
             return seconds;
         },
         toSeconds(value, unit) {
-            if (unit === 'm') return value * 60;
-            if (unit === 'h') return value * 3600;
-            return value;
+            if (unit === 'm') return Math.round(value * 60);
+            if (unit === 'h') return Math.round(value * 3600);
+            return Math.round(value);
         },
         formatDuration(seconds) {
             if (!seconds) return '0с';
@@ -166,27 +175,29 @@ export default {
             return remM ? `${h}ч ${remM}м` : `${h}ч`;
         },
         setTimeoutUnit(unit) {
-            this.timeoutUnit = unit;
+            const secs = this.props.timeoutSeconds || 1800;
+            this.timeoutUnit = this.toUnit(secs, unit) < 0.01 ? this.bestUnit(secs) : unit;
         },
         setWarningUnit(unit) {
-            this.warningUnit = unit;
+            const secs = this.props.warningDuration || 30;
+            this.warningUnit = this.toUnit(secs, unit) < 0.01 ? this.bestUnit(secs) : unit;
         },
         getPropLabel(path) {
             const prop = path.split('.')[0];
             return this.descriptor.props[prop]?.label[path] ?? '';
         },
         onTimeoutChange(e) {
-            const raw = parseInt(e.target.value, 10) || 1;
-            const secs = this.toSeconds(raw, this.timeoutUnit);
-            const min = this.timeoutUnit === 's' ? 30 : this.toSeconds(1, this.timeoutUnit);
-            this.props.timeoutSeconds = Math.max(min, secs);
+            const raw = parseFloat(e.target.value) || 0;
+            const secs = Math.max(1, this.toSeconds(raw, this.timeoutUnit));
+            this.timeoutUnit = this.bestUnit(secs);
+            this.props.timeoutSeconds = secs;
             this.propChanged('timeoutSeconds');
         },
         onWarningDurationChange(e) {
-            const raw = parseInt(e.target.value, 10) || 1;
-            const secs = this.toSeconds(raw, this.warningUnit);
-            const min = this.warningUnit === 's' ? 5 : this.toSeconds(1, this.warningUnit);
-            this.props.warningDuration = Math.max(min, secs);
+            const raw = parseFloat(e.target.value) || 0;
+            const secs = Math.max(1, this.toSeconds(raw, this.warningUnit));
+            this.warningUnit = this.bestUnit(secs);
+            this.props.warningDuration = secs;
             this.propChanged('warningDuration');
         },
         toggleWarning() {
