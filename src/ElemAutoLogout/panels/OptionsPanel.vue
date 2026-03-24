@@ -117,7 +117,7 @@ const UNITS = [
 
 export default {
     extends: Panel,
-    meta: { name: 'Выход при неактивности', icon: 'account-clock' },
+    meta: { name: 'Настройки виджета', icon: 'timer-off' },
     data() {
         return {
             timeoutUnit: 's',
