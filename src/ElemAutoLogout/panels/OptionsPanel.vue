@@ -86,7 +86,7 @@
                 <div class="texts-row">
                     <i class="mdi mdi-translate texts-row__icon" />
                     <span>{{ getPropLabel('labels') }}</span>
-                    <i class="mdi mdi-pencil texts-row__edit" />
+                    <i class="mdi mdi-chevron-right texts-row__arrow" />
                 </div>
                 <template #panel>
                     <ui-panel :groups="[{ name: getPropLabel('labels'), slot: 'default' }]">
@@ -110,9 +110,9 @@
 import { Panel } from '@goodt-wcore/panel';
 
 const UNITS = [
-    { value: 's', label: 'с' },
-    { value: 'm', label: 'м' },
-    { value: 'h', label: 'ч' },
+    { value: 's', label: 'сек' },
+    { value: 'm', label: 'мин' },
+    { value: 'h', label: 'час' },
 ];
 
 export default {
@@ -351,8 +351,7 @@ export default {
     cursor: pointer;
 }
 .texts-row:hover span { color: #1e293b; }
-.texts-row:hover .texts-row__edit { color: #4f6aff; }
 .texts-row span { flex: 1; font-size: 13px; color: #334155; font-weight: 500; }
 .texts-row__icon { font-size: 16px; color: #64748b; flex-shrink: 0; }
-.texts-row__edit { font-size: 14px; color: #94a3b8; flex-shrink: 0; transition: color 0.15s; }
+.texts-row__arrow { font-size: 16px; color: #94a3b8; flex-shrink: 0; }
 </style>
