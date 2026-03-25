@@ -1,0 +1,23 @@
+.box {
+  --color: #eee;
+  --animation: none;
+  --background: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--color);
+  background: var(--background);
+  animation: var(--animation);
+  animation-name: radial-pulse;
+}
+
+@keyframes radial-pulse {
+  from {
+    background-size: 50% 50%;
+  }
+  to {
+    background-size: 100% 100%;
+  }
+}

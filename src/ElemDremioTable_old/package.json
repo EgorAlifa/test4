@@ -1,0 +1,8 @@
+{
+    "name": "@goodt-widgets-insight/dremio-table",
+    "version": "1.0.44",
+    "description": "SUP: Widgets. ElemDremioTable",
+    "publishConfig": {
+        "registry": "https://art.goodt.me/repository/npm/"
+    }
+}

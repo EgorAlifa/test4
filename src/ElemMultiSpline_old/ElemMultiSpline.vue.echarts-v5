@@ -1,0 +1,1430 @@
+<template>
+    <w-elem>
+        <w-tooltip class="w-100 h-100" v-bind="customTooltip.options">
+            <template #target>
+                <div class="w-100 h-100" ref="chartAwesome">
+                    <div v-if="props.dremio && error" class="alert alert-error scroll-y h-100">
+                        <div class="close" @click="error = null">
+                            <i class="mdi mdi-close"></i>
+                        </div>
+                        <div class="alert-body text-small" :style="{ 'white-space': 'pre-wrap' }">{{ error }}</div>
+                    </div>
+                </div>
+            </template>
+            <template #tooltip>
+                <div
+                    v-if="props.customTooltip.isSlotShown"
+                    data-slot="tooltip"
+                    @mouseenter="customTooltip.options.isShown = true">
+                    <slot name="tooltip">
+                        <div class="radius-1 pad-l1 bg-muted">
+                            <code class="text-small">Tooltip slot</code>
+                        </div>
+                    </slot>
+                </div>
+            </template>
+        </w-tooltip>
+        <div v-if="isLoading" class="shim">
+            <div class="shim-content d-flex flex-v-center flex-h-center h-100">
+                <div class="preloader pad-l1 color-primary"></div>
+            </div>
+        </div>
+        <div class="breadcrumb" v-if="isBreabcrumbShown">{{ breadcrumbText }}</div>
+    </w-elem>
+</template>
+<style src="./styles/style.pcss" lang="pcss" module></style>
+<script>
+import { Elem, Dremio } from 'goodt-wcore';
+import { Tooltip as WTooltip } from '@goodt-wcore/components';
+import * as echarts from 'echarts-next';
+import { cloneDeep, isEqual as _isEqual, throttle as _throttle, merge as _merge } from 'lodash';
+import {
+    ComparedSeriesTemplate,
+    STACK_TAG,
+    PropNames,
+    ToolboxOptions,
+    RESIZE_THROTTLE_TIMEOUT,
+    REQUEST_ANIMATION_TIMEOUT,
+    BreadcrumbTemplate
+} from './utils/constants';
+import { unit2PxMixin } from './utils/mixins';
+import { utils, propsFixer, Events, setDefaultTooltipStyle } from './utils';
+import { meta } from './descriptor';
+import { mixin as DeviationMixin } from './deviations/DeviationMixin';
+
+const { Query, SDKFactory } = Dremio;
+
+export default {
+    extends: Elem,
+    components: {
+        WTooltip
+    },
+    mixins: [DeviationMixin, unit2PxMixin],
+    meta,
+    data() {
+        return {
+            chartInstance: null,
+            // eslint-disable-next-line no-restricted-syntax
+            resData: [],
+            // eslint-disable-next-line no-restricted-syntax
+            queryHelper: [],
+            scaleValue: 0,
+            widgetState: {
+                loading: false,
+                stateChanged: false
+            },
+            isInitData: true,
+            privateProps: null,
+            chosenDimValue: null,
+            mainDimValues: [],
+            hasTopMode: true,
+            error: null,
+            isGoneNext: true,
+            breadcrumbText: '',
+            customTooltip: {
+                options: {
+                    isShown: false,
+                    appendToBody: false,
+                    data: null,
+                    coordinates: [0, 0]
+                },
+                isFixed: false
+            }
+        };
+    },
+    computed: {
+        metricDimensionList() {
+            if (this.props.dremio == null) {
+                return [];
+            }
+            const list = this.queryHelper.flatMap(({ query, dimensionList }) => [
+                ...Query.queryMetricNames(query),
+                ...Object.keys(dimensionList)
+            ]);
+            return [...new Set(list)];
+        },
+        queryHelperFilter() {
+            const helper = this.queryHelper?.[0] ?? null;
+
+            if (helper == null) {
+                return [];
+            }
+
+            const [state] = helper.states;
+            const stateIndex = state?.index ?? -1;
+
+            if ([0, -1].includes(stateIndex)) {
+                return [];
+            }
+
+            return state?.filters
+                .slice(0, stateIndex)
+                .map((filter) => filter[Object.keys(filter)[0]][Query.FILTER_TYPE.EQ][0]);
+        },
+        isBreabcrumbShown() {
+            const {
+                props: {
+                    breadcrumb: { isShown }
+                },
+                breadcrumbText
+            } = this;
+            return isShown && breadcrumbText !== '';
+        },
+        isLoading() {
+            return this.widgetState.loading;
+        },
+        isStateChanged() {
+            return this.widgetState.stateChanged;
+        },
+        grid() {
+            const { grid, legend } = this.props;
+            const { dataZoom } = this;
+            return grid?.isManualMode
+                ? grid
+                : {
+                      top: legend.show && legend.top !== null ? '36' : '24',
+                      right: '15',
+                      bottom: (legend.show && legend.bottom !== null) || dataZoom?.show ? '25' : '15',
+                      left: '15',
+                      containLabel: true
+                  };
+        },
+        options() {
+            const {
+                legend: {
+                    textStyle: { fontSize: legendFontSize, ...legendTextStyle },
+                    ...legend
+                },
+                mainTitle: {
+                    textStyle: { fontSize: mainTitleFontSize, ...mainTitleTextStyle },
+                    ...mainTitle
+                },
+                backgroundColor,
+                legendManualSize
+            } = this.props;
+            const { dataZoom, tooltip, toolbox, axisPointer, grid } = this;
+            return {
+                group: 'group',
+                series: [],
+                toolbox,
+                grid,
+                title: {
+                    ...mainTitle,
+                    textStyle: {
+                        ...mainTitleTextStyle,
+                        fontSize: this.takeUnit2Px({ size: mainTitleFontSize })
+                    }
+                },
+                legend: {
+                    ...legend,
+                    textStyle: {
+                        ...legendTextStyle,
+                        fontSize: this.takeUnit2Px({ size: legendFontSize })
+                    },
+                    ...(legendManualSize.isManualMode ? legendManualSize : {})
+                },
+                backgroundColor,
+                xAxis: [],
+                yAxis: [],
+                dataZoom,
+                axisPointer,
+                tooltip,
+                animation: true
+            };
+        },
+        toolbox() {
+            const { show, itemSize, iconStyle, prevTitle } = this.props.toolbox;
+            const { enable, btn } = this.props.topOptions;
+            const canGoPrev = (() => {
+                const qhIdx = this.getQueryHelperIdx();
+                return qhIdx >= 0 && this.canGoPrev(qhIdx);
+            })();
+
+            return {
+                show,
+                itemSize,
+                iconStyle: {
+                    color: iconStyle.color,
+                    // eslint-disable-next-line no-magic-numbers
+                    borderWidth: 0.5
+                },
+                feature: {
+                    myPrevBtn: {
+                        show: canGoPrev,
+                        name: 'prev',
+                        title: prevTitle || ToolboxOptions.prevTitle,
+                        icon: 'path://M12.5,8C9.85,8 7.45,9 5.6,10.6L2,7V16H11L7.38,12.38C8.77,11.22 10.54,10.5 12.5,10.5C16.04,10.5 19.05,12.81 20.1,16L22.47,15.22C21.08,11.03 17.15,8 12.5,8Z',
+                        onclick: this.onPrevBtnClick
+                    },
+                    myTopBtn: {
+                        show: enable && btn.show,
+                        name: 'top',
+                        title: btn.title,
+                        icon: `path://${this.hasTopMode ? btn.defaultIconPath : btn.topIconPath}`,
+                        onclick: this.onTopBtnClick
+                    }
+                }
+            };
+        },
+        tooltip() {
+            const { tooltip } = this.props;
+            return {
+                ...tooltip,
+                formatter: utils.tooltipFormatter.bind(tooltip)
+            };
+        },
+        dataZoom() {
+            const { dataZoom, dataZoomInside } = this.props;
+            const { startPercentValue: start, endPercentValue: end, isPercent, show, handleIcon, endValue } = dataZoom;
+            const isHidden = !show;
+            const position = isPercent ? { start, end } : {};
+
+            if (isHidden) {
+                return null;
+            }
+
+            return [
+                {
+                    ...dataZoom,
+                    moveHandleSize: 0,
+                    ...position,
+                    textStyle: {
+                        ...dataZoom.textStyle,
+                        fontSize: this.takeUnit2Px({ size: dataZoom.textStyle.fontSize })
+                    },
+                    handleIcon: `path://${handleIcon}`,
+                    endValue: endValue - 1
+                },
+                {
+                    ...dataZoom,
+                    ...position,
+                    handleIcon: `path://${handleIcon}`,
+                    endValue: endValue - 1,
+                    ...dataZoomInside
+                }
+            ];
+        },
+        axisPointer() {
+            const { axisPointer } = this.props;
+            if (axisPointer?.show) {
+                return {
+                    ...axisPointer,
+                    triggerOn: 'none',
+                    value: this.scaleValue
+                };
+            }
+            return null;
+        }
+    },
+    static: {
+        propNames: PropNames
+    },
+    watchEditor: {
+        'props.deviationMeta': {
+            handler() {
+                this.queryAndDrawData();
+            }
+        }
+    },
+    watch: {
+        $storeState: {
+            handler(state) {
+                if (Object.keys(state).length === 0) {
+                    return;
+                }
+                /*
+                 * skip a tick to allow `created` hook to happen
+                 * cause wrapped depends on `initDremio`
+                 */
+                this.$nextTick(() => {
+                    if (this.isStateChanged) {
+                        this.widgetState.stateChanged = false;
+                        return;
+                    }
+                    this.filterQuery(state);
+                    this.isInitData = false;
+                    this.queryAndDrawData();
+                });
+            },
+            immediate: true
+        }
+    },
+
+    created() {
+        this.initDremio();
+        this.initPropsHandlers();
+        this.addUnit2PxWatcher(this.constructOpts);
+    },
+    mounted() {
+        this.initResize();
+    },
+    beforeDestroy() {
+        window.removeEventListener('resize', this.throttledResize);
+        this.destroyChart();
+    },
+    destroyed() {
+        this.dremioSdk.cancelActiveRequests();
+    },
+
+    methods: {
+        /**
+         *
+         */
+        initResize() {
+            this.throttledResize = _throttle(this.onResize, RESIZE_THROTTLE_TIMEOUT);
+            window.addEventListener('resize', this.throttledResize);
+        },
+        /**
+         *
+         */
+        initDremio() {
+            this.dremioSdk = SDKFactory();
+            this.dremioVars = [];
+
+            const dremioHandler = (newDremio, oldDremio, isInitLoad) => {
+                const { dremio } = this.props;
+                if (dremio.length === 0) {
+                    this.resData = [];
+                    return;
+                }
+
+                if (isInitLoad || _isEqual(newDremio, oldDremio === false)) {
+                    this.queryHelper = [];
+                    dremio.forEach((dataset) => {
+                        this.queryHelper.push(new Query(cloneDeep(dataset)));
+                    });
+                    this.constructVars();
+                    this.queryAndDrawData();
+                }
+            };
+
+            if (this.isInitData) {
+                dremioHandler(null, null, true);
+            }
+
+            if (this.isEditorMode) {
+                this.$watch('props.dremio', dremioHandler);
+            }
+        },
+        /**
+         *
+         */
+        initPropsHandlers() {
+            const propsHandler = (param, oldParam) => {
+                if (param && _isEqual(param, oldParam === false)) {
+                    this.$nextTick().then(this.constructOpts);
+                }
+            };
+
+            if (this.isEditorMode) {
+                this.$watch(
+                    'props',
+                    (props) => {
+                        this.privateProps = propsFixer(props);
+                    },
+                    { deep: true, immediate: true }
+                );
+                this.propNames.forEach((propName) => {
+                    this.$watch(`props.${propName}`, propsHandler, { deep: true });
+                });
+                this.$watch('cssStyle', propsHandler, { deep: true });
+                this.$watch('cssClass', propsHandler, { deep: true });
+
+                return;
+            }
+
+            this.$watch(
+                'props',
+                (props) => {
+                    this.privateProps = propsFixer(props);
+                    this.constructOpts();
+                },
+                { deep: true, immediate: true }
+            );
+        },
+
+        // eslint-disable-next-line vue/no-unused-properties
+        subscribe() {
+            this.$eventListen(Events.LOAD_PREV_DIM, (e, dimension) => {
+                this.isGoneNext = false;
+                const qhIdx = this.getQueryHelperIdx();
+                if (qhIdx < 0) {
+                    return;
+                }
+
+                if (this.props.metricsStyle.some(({ multiMetricMode: { enable } }) => enable)) {
+                    this.queryHelper.forEach((helper) => helper.dimensionStateGoPrev(dimension));
+                    this.queryAndDrawData();
+                    return;
+                }
+                if (this.canGoPrev(qhIdx)) {
+                    this.queryHelper[qhIdx].dimensionStateGoPrev(dimension);
+                    this.queryAndDrawData();
+                }
+            });
+
+            this.$eventListen(Events.LOAD_NEXT_DIM, (e, { dimension, value }) => {
+                this.isGoneNext = true;
+
+                const qhIdx = this.getQueryHelperIdx();
+                if (qhIdx < 0) {
+                    return;
+                }
+                if (
+                    this.props.metricsStyle.some(({ multiMetricMode: { enable } }) => enable) &&
+                    this.canGoNext(qhIdx)
+                ) {
+                    this.queryHelper.forEach((helper) =>
+                        helper.dimensionStateGoNext(dimension, [value], Query.FILTER_TYPE.EQ)
+                    );
+                    this.queryAndDrawData();
+                    return;
+                }
+
+                if (this.canGoNext(qhIdx)) {
+                    this.queryHelper[qhIdx].dimensionStateGoNext(dimension, [value], Query.FILTER_TYPE.EQ);
+                    this.queryAndDrawData();
+                }
+            });
+
+            this.$eventListen(Events.SCALE_VALUE, (e, value) => {
+                this.scaleValue = value;
+                this.constructOpts();
+            });
+        },
+
+        filterQuery(params) {
+            if (this.queryHelper.length === 0) {
+                return;
+            }
+
+            Object.entries(params).forEach(([name, paramValue]) => {
+                if (paramValue == null) {
+                    this.queryHelper.forEach((helper) => {
+                        helper.query = Query.queryRemoveFilter(helper.query, name);
+                    });
+                    return;
+                }
+
+                const value = [paramValue].flat();
+                const type = Query.FILTER_TYPE.IN;
+                const filter = Query.createFilter({ name, type, value });
+                this.queryHelper.forEach((helper) => {
+                    helper.query = Query.queryInsertUpdateFilter(helper.query, filter);
+                });
+            });
+        },
+
+        // eslint-disable-next-line vue/no-unused-properties
+        getQueryHelper() {
+            return this.queryHelper;
+        },
+
+        getMetrics() {
+            return this.queryHelper.reduce((arr, { query }) => {
+                const metrics = query[Query.KEY.METRICS].filter(
+                    (qMetric) => !arr.some((metric) => _isEqual(metric, qMetric))
+                );
+                return [...arr, ...metrics];
+            }, []);
+        },
+
+        getQueryHelperIdx() {
+            const {
+                main: { name: dimName }
+            } = this.props.dimensionOptions;
+            return this.queryHelper.reduce((idx, helper, arrIdx) => {
+                let qhIdx = idx;
+                if (
+                    Object.keys(helper.dimensionList).includes(dimName) &&
+                    (this.canGoNext(arrIdx) || this.canGoPrev(arrIdx))
+                ) {
+                    qhIdx = arrIdx;
+                }
+                return qhIdx;
+            }, -1);
+        },
+
+        onResize() {
+            if (this.chartInstance) {
+                this.chartInstance.resize();
+            }
+        },
+
+        canGoNext(qhIdx) {
+            return !this.queryHelper[qhIdx].dimensionStateIsLast(this.props.dimensionOptions.main.name);
+        },
+
+        canGoPrev(qhIdx) {
+            return !this.queryHelper[qhIdx].dimensionStateIsFirst(this.props.dimensionOptions.main.name);
+        },
+
+        queryAndDrawData() {
+            if (this.queryHelper.length > 0) {
+                this.queryData().then(this.constructOpts);
+            }
+        },
+
+        queryData() {
+            this.dremioSdk.cancelActiveRequests();
+            this.widgetState.loading = true;
+            this.error = null;
+            return Promise.all(this.queryHelper.map((helper) => this.dremioSdk.getData(helper.buildQuery(), 0, 0)))
+                .then((results) => {
+                    this.resData = [...results];
+                    this.buildDeviationData();
+                })
+                .catch(this.handleError)
+                .finally(() => {
+                    this.widgetState.loading = false;
+                });
+        },
+
+        buildSeriesData(dataRows, seriesOptions, axis) {
+            const {
+                props: {
+                    dimensionOptions: {
+                        main: { name: dimName }
+                    }
+                }
+            } = this;
+            const categoryAxis = utils.findCategoryAxis(seriesOptions, axis);
+            const idx = categoryAxis === 'xAxis' ? seriesOptions.xAxisIndex : seriesOptions.yAxisIndex;
+            const curCategoryAxis = axis[categoryAxis][idx];
+            const { data, valueFontSize, axisLabel } = curCategoryAxis;
+            const { seriesData, axisData } = this.aggregateData(seriesOptions, dataRows);
+            axisData.forEach((item) => {
+                const { name: itemName } = item;
+                if (!data.some(({ name }) => name === itemName)) {
+                    const { type, imageMetric, imageHeight, rich } = axisLabel;
+                    if (type !== 'value' && imageMetric !== '') {
+                        const matchingRow = dataRows.find((row) => row[dimName] === itemName);
+                        const image = matchingRow[imageMetric];
+                        const richProp = utils.memoTransliterate(itemName).replace(/\s/g, '_');
+                        rich[richProp] = { backgroundColor: { image }, height: imageHeight };
+                    }
+                    item.textStyle.fontSize = valueFontSize;
+                    item.textStyle.fontWeight =
+                        this.chosenDimValue === itemName && curCategoryAxis.shouldHighlightSelectedLabels
+                            ? 'bold'
+                            : 'normal';
+                    data.push(item);
+                }
+            });
+            let result = this.formSeriesTop(seriesOptions, seriesData, curCategoryAxis);
+
+            if (seriesOptions.isCumulativeTotal) {
+                result = utils.getCumulativeTotalData(result);
+            }
+            if (seriesOptions.isCumulativeDifference) {
+                result = utils.getCumulativeDifference(result);
+            }
+            result = utils.resolveStyleDataItems(seriesOptions, result);
+            return result;
+        },
+
+        aggregateData(seriesOptions, dataRows) {
+            const {
+                props: {
+                    dimensionOptions: {
+                        main: { name: mainDimName },
+                        minor: { name: minorDimName }
+                    },
+                    axis
+                }
+            } = this;
+            const metricKey = utils.takeMetricKey(seriesOptions, this.queryHelper, mainDimName);
+            const categoryAxis = axis.find(({ type }) => type === 'category');
+            const { isShownNullLabels = false } = categoryAxis ?? {};
+
+            return dataRows.reduce(
+                ({ seriesData, axisData }, row) => {
+                    const dimValue = row[mainDimName];
+
+                    if (dimValue == null) {
+                        return { seriesData, axisData };
+                    }
+
+                    const metricValue = row[metricKey];
+                    const { customType, name: seriesName, label } = seriesOptions;
+                    const itemValue = [null, undefined, ''].includes(metricValue) ? null : Number(metricValue);
+                    const { isAddlLabelShown, rich = {} } = label;
+                    const additionalLabelValue = isAddlLabelShown ? row[rich.additional?.metric] ?? null : null;
+
+                    if (customType.includes('stacked') === false) {
+                        utils.addAgrData(
+                            seriesData,
+                            dimValue,
+                            itemValue,
+                            axisData,
+                            additionalLabelValue,
+                            seriesOptions,
+                            isShownNullLabels
+                        );
+                        return { seriesData, axisData };
+                    }
+
+                    const minorDimValue = minorDimName ? row[minorDimName] : null;
+
+                    if (minorDimValue === seriesName) {
+                        utils.addAgrData(
+                            seriesData,
+                            dimValue,
+                            itemValue,
+                            axisData,
+                            additionalLabelValue,
+                            seriesOptions,
+                            isShownNullLabels
+                        );
+                        return { seriesData, axisData };
+                    }
+
+                    return { seriesData, axisData };
+                },
+                // eslint-disable-next-line no-restricted-syntax
+                { seriesData: [], axisData: [] }
+            );
+        },
+
+        formSeriesTop(seriesOptions, data, curAxis) {
+            const { enable, rest, metrics, number, dir } = this.props.topOptions;
+            if (!['bar', 'line'].includes(seriesOptions.customType)) {
+                return data;
+            }
+            if (enable && this.hasTopMode) {
+                if (data.length - 1 <= number) {
+                    return data;
+                }
+
+                if (rest.show && !curAxis.data.some((axisItem) => axisItem.name === rest.title)) {
+                    const { title: name } = rest;
+                    curAxis.data.push({
+                        name,
+                        value: name,
+                        textStyle: {
+                            fontSize: curAxis.valueFontSize,
+                            fontWeight: this.chosenDimValue === name ? 'bold' : 'normal'
+                        }
+                    });
+                }
+
+                if (metrics.includes('all') || metrics.includes(seriesOptions.name)) {
+                    const top = utils.getTop(data, { number, dir });
+                    let restValue = 0;
+                    // eslint-disable-next-line no-restricted-syntax
+                    const result = data.map((item, idx) => {
+                        if (top.some((topItem) => topItem.index === idx)) {
+                            return item;
+                        }
+                        restValue += item.value;
+                        return { ...item, ...{ value: null } };
+                    });
+                    if (rest.show) {
+                        if (rest.reduce.enable) {
+                            const topMaxVal = Math.max(...top.map(({ value }) => value));
+                            const restMaxVal = topMaxVal + (topMaxVal / 100) * rest.reduce.percent;
+                            restValue = restValue > restMaxVal ? restMaxVal : restValue;
+                        }
+                        result.push({
+                            name: rest.title,
+                            value: restValue,
+                            itemStyle: { color: null }
+                        });
+                    }
+                    return result;
+                }
+
+                if (rest.show) {
+                    data.push({ name: rest.title, value: null });
+                    return data;
+                }
+            }
+            return data;
+        },
+
+        triggerStateChangeEvt({ value, seriesName }) {
+            const {
+                main: { name: dimName },
+                minor: { name: minorDimName = '' }
+            } = this.props.dimensionOptions;
+
+            const findRow = (row) =>
+                row[dimName] === value && (row[minorDimName] === seriesName || minorDimName === '');
+            const foundRow =
+                value == null
+                    ? this.metricDimensionList.reduce((acc, key) => ({ ...acc, [key]: null }), {})
+                    : this.resData.flatMap(({ rows }) => rows).find(findRow);
+
+            if (foundRow != null) {
+                this.widgetState.stateChanged = true;
+                this.$storeCommit(foundRow);
+            }
+        },
+
+        onClickHandler({ componentType, targetType, seriesName, name, value }) {
+            const clickHandler = (dimValue) => {
+                const sendDimValue = () => {
+                    this.chosenDimValue = this.chosenDimValue === dimValue ? null : dimValue;
+                    this.triggerStateChangeEvt({ value: this.chosenDimValue, seriesName });
+                    this.constructOpts();
+                };
+                const qhIdx = this.getQueryHelperIdx();
+                if (qhIdx >= 0) {
+                    if (this.canGoNext(qhIdx)) {
+                        const {
+                            main: { name: dimName }
+                        } = this.props.dimensionOptions;
+                        const object = {
+                            dimension: dimName,
+                            value: dimValue
+                        };
+                        this.$eventTrigger(Events.LOAD_NEXT_DIM, object);
+                        this.triggerStateChangeEvt({ value: dimValue, seriesName });
+                        this.nextDim = dimValue;
+                    } else {
+                        sendDimValue();
+                    }
+                } else {
+                    sendDimValue();
+                }
+            };
+            if (targetType === 'axisLabel') {
+                clickHandler(value);
+            }
+            if (componentType === 'series') {
+                clickHandler(name);
+            }
+        },
+
+        onPrevBtnClick() {
+            const {
+                main: { name: dimName }
+            } = this.props.dimensionOptions;
+            this.$eventTrigger(Events.LOAD_PREV_DIM, dimName);
+            this.triggerStateChangeEvt({ value: null });
+            this.chosenDimValue = null;
+        },
+
+        onTopBtnClick() {
+            this.hasTopMode = !this.hasTopMode;
+            this.constructOpts();
+        },
+
+        createStackedSeries(seriesOptions, dataRows, axis) {
+            const { main: mainDim, minor: minorDim } = this.props.dimensionOptions;
+            const minorDimValues = utils.getDimValues(dataRows, minorDim.name);
+            const { customType, stackLines, customColors, color: seriesColor, colorStep } = seriesOptions;
+            const isStackedLine = customType.includes('line');
+            const stack = isStackedLine && stackLines === false ? '' : STACK_TAG;
+
+            return minorDimValues
+                .reduce((acc, dimName, idx) => {
+                    if (minorDimValues.includes(dimName) === false) {
+                        return acc;
+                    }
+
+                    const stackedSeries = cloneDeep(seriesOptions);
+                    const {
+                        fillSymbol,
+                        itemStyle: { color: symbolColor }
+                    } = stackedSeries;
+                    // eslint-disable-next-line no-restricted-syntax
+                    const foundColor = customColors.find(({ name }) => name === dimName);
+                    const color = foundColor?.color ?? utils.createColor(seriesColor, colorStep, idx);
+                    const mergedStyles = _merge(stackedSeries, {
+                        name: dimName,
+                        type: isStackedLine ? 'line' : 'bar',
+                        customType: isStackedLine ? 'stacked line' : 'stacked',
+                        stack,
+                        dimensions: mainDim.name,
+                        itemStyle: {
+                            color: fillSymbol ? symbolColor : color
+                        },
+                        lineStyle: {
+                            color: isStackedLine ? color : null
+                        },
+                        tooltip: {
+                            formatter: utils.tooltipSeriesFormatter.bind(stackedSeries)
+                        },
+                        label: {
+                            formatter: utils.labelFormatter.bind(stackedSeries)
+                        },
+                        animationEasingUpdate: stackedSeries.animationEasing,
+                        animationDurationUpdate: stackedSeries.animationDuration,
+                        animationDelayUpdate: stackedSeries.animationDelay
+                    });
+
+                    const { shadowColor, shadowBlur, shadowOffsetX, shadowOffsetY, ...itemStyle } =
+                        mergedStyles.itemStyle;
+                    return [
+                        ...acc,
+                        {
+                            ...mergedStyles,
+                            ...(seriesOptions.customType === 'stacked line'
+                                ? {
+                                      itemStyle,
+                                      lineStyle: {
+                                          ...mergedStyles.lineStyle,
+                                          shadowBlur,
+                                          shadowOffsetX,
+                                          shadowOffsetY,
+                                          shadowColor: mergedStyles.shouldSyncShadowColor
+                                              ? mergedStyles.itemStyle.color
+                                              : shadowColor
+                                      }
+                                  }
+                                : {
+                                      itemStyle: {
+                                          ...itemStyle,
+                                          shadowBlur,
+                                          shadowOffsetX,
+                                          shadowOffsetY,
+                                          shadowColor: mergedStyles.shouldSyncShadowColor
+                                              ? mergedStyles.itemStyle.color
+                                              : shadowColor
+                                      }
+                                  })
+                        }
+                    ];
+                }, [])
+                .map((series) => ({ ...series, data: this.buildSeriesData(dataRows, series, axis) }));
+        },
+
+        buildClassicSeries(seriesOptions, dataRows, axis, originIdx) {
+            const {
+                main: { name: mainDimName }
+            } = this.props.dimensionOptions;
+            const { deviationMeta } = this.props;
+            const { queryHelper } = this;
+            const metrics = this.getMetrics();
+
+            return seriesOptions.reduce((result, item) => {
+                const notSpecialSeries =
+                    item.customType !== 'plan' && item.customType !== 'fact' && !item.customType.includes('stacked');
+
+                const { states } = queryHelper.find(({ dimensionList }) =>
+                    Object.keys(dimensionList).includes(mainDimName)
+                );
+                const { index: stateIndex } = states.find(({ name }) => name === mainDimName);
+
+                const multiMetricCurDataset = item.multiMetricMode?.metricDatasets?.[stateIndex] || item.originIdx;
+
+                const checkOriginIdx = item.multiMetricMode.enable
+                    ? Number(multiMetricCurDataset) === originIdx
+                    : originIdx === Number(item.originIdx);
+
+                if (item.showDataSet && notSpecialSeries && checkOriginIdx) {
+                    if (
+                        !metrics.some((metricName) => Query.getMetricName(metricName) === item.metricName) &&
+                        !(
+                            deviationMeta.deviations.length > 0 &&
+                            deviationMeta.deviations.some(({ name }) => name === item.metricName)
+                        )
+                    ) {
+                        return result;
+                    }
+                    const { shadowColor, shadowBlur, shadowOffsetX, shadowOffsetY, ...itemStyle } = item.itemStyle;
+
+                    result.push({
+                        ...item,
+                        dimensions: mainDimName,
+                        data: this.buildSeriesData(dataRows, item, axis),
+                        tooltip: { ...item.tooltip, formatter: utils.tooltipSeriesFormatter.bind(item) },
+                        label: { ...item.label, formatter: utils.labelFormatter.bind(item) },
+                        animationEasingUpdate: item.animationEasing,
+                        animationDurationUpdate: item.animationDuration,
+                        animationDelayUpdate: item.animationDelay,
+                        ...(item.customType === 'line'
+                            ? {
+                                  itemStyle,
+                                  lineStyle: {
+                                      ...item.lineStyle,
+                                      shadowBlur,
+                                      shadowOffsetX,
+                                      shadowOffsetY,
+                                      shadowColor: item.shouldSyncShadowColor ? item.color : shadowColor
+                                  }
+                              }
+                            : {
+                                  itemStyle: {
+                                      ...itemStyle,
+                                      shadowBlur,
+                                      shadowOffsetX,
+                                      shadowOffsetY,
+                                      shadowColor: item.shouldSyncShadowColor ? item.color : shadowColor
+                                  }
+                              })
+                    });
+                }
+                return result;
+            }, []);
+        },
+
+        buildComparedSeries(seriesOptions, dataRows, axis, originIndex) {
+            let series = [];
+            const factSeries = seriesOptions.find(
+                ({ customType, metricName, originIdx }) =>
+                    customType === 'fact' && metricName !== '' && Number(originIdx) === originIndex
+            );
+            const planSeries = seriesOptions.find(
+                ({ customType, metricName, originIdx }) =>
+                    customType === 'plan' && metricName !== '' && Number(originIdx) === originIndex
+            );
+
+            if (!(factSeries && planSeries)) {
+                return series;
+            }
+
+            const { main: mainDim } = this.props.dimensionOptions;
+
+            factSeries.dimensions = mainDim.name;
+            factSeries.stack = STACK_TAG;
+            factSeries.itemStyle.shadowColor = factSeries.shouldSyncShadowColor
+                ? factSeries.color
+                : factSeries.itemStyle.shadowColor;
+            const factData = this.buildSeriesData(dataRows, factSeries, axis);
+
+            planSeries.dimensions = mainDim.name;
+            planSeries.stack = STACK_TAG;
+            planSeries.itemStyle.shadowColor = planSeries.shouldSyncShadowColor
+                ? planSeries.color
+                : planSeries.itemStyle.shadowColor;
+            const planData = this.buildSeriesData(dataRows, planSeries, axis);
+
+            const comparedOpts = {
+                originIdx: planSeries.originIdx,
+                barWidth: planSeries.barWidth,
+                barMinWidth: planSeries.barMinWidth,
+                barMaxWidth: planSeries.barMaxWidth,
+                dimensions: mainDim.name,
+                metricSeparator: planSeries.metricSeparator,
+                metricFormat: planSeries.metricFormat,
+                metricPrefix: planSeries.metricPrefix,
+                metricPostfix: planSeries.metricPostfix,
+                smooth: planSeries.smooth,
+                label: planSeries.excessLackLabel,
+                animationEasing: planSeries.animationEasing,
+                animationEasingUpdate: planSeries.animationEasing,
+                animationDuration: planSeries.animationDuration,
+                animationDurationUpdate: planSeries.animationDuration,
+                animationDelay: planSeries.animationDelay,
+                animationDelayUpdate: planSeries.animationDelay
+            };
+            const overOpts = {
+                name: planSeries.nameExcess,
+                color: planSeries.excess.color,
+                itemStyle: {
+                    shadowColor: planSeries.shouldSyncShadowColor
+                        ? planSeries.excess.color
+                        : planSeries.itemStyle.shadowColor
+                }
+            };
+            const underOpts = {
+                name: planSeries.nameLack,
+                color: planSeries.lack.color,
+                itemStyle: {
+                    shadowColor: planSeries.shouldSyncShadowColor
+                        ? planSeries.lack.color
+                        : planSeries.itemStyle.shadowColor
+                }
+            };
+            const overSeries = _merge(cloneDeep(ComparedSeriesTemplate), comparedOpts, overOpts);
+            const underSeries = _merge(cloneDeep(ComparedSeriesTemplate), comparedOpts, underOpts);
+
+            const categoryAxis = utils.findCategoryAxis(planSeries, axis);
+
+            planData.forEach((planValue) => {
+                let factValue = factData.find((item) => item.name === planValue.name);
+                let underValue = planValue.value - factValue.value;
+                const overValue = factValue.value - planValue.value;
+                const emptyBarBdrRds = [0, 0, 0, 0];
+                const roundedBdr = 500;
+                const fillBarBdrRds =
+                    categoryAxis === 'xAxis' ? [roundedBdr, roundedBdr, 0, 0] : [0, roundedBdr, roundedBdr, 0];
+
+                const buildDataItem = (name, value, barBorderRadius = null) => ({
+                    name,
+                    value,
+                    itemStyle: { barBorderRadius }
+                });
+                if (overValue > 0) {
+                    // логика при избытке
+                    // удаляем бар факта
+                    factSeries.data.push(buildDataItem(planValue.name, null));
+                    planSeries.data.push(buildDataItem(planValue.name, planValue.value, emptyBarBdrRds));
+                    underSeries.data.push(buildDataItem(planValue.name, null));
+                    // добавляем over
+                    const overBarBdrRds = overSeries.smooth ? fillBarBdrRds : emptyBarBdrRds;
+                    overSeries.data.push(buildDataItem(planValue.name, overValue, overBarBdrRds));
+                } else {
+                    // логика при недостатке
+                    factValue = Number(factValue.value) !== 0 ? factValue.value : null;
+                    factSeries.data.push(buildDataItem(planValue.name, factValue, emptyBarBdrRds));
+                    // удаляем бар плана
+                    planSeries.data.push(buildDataItem(planValue.name, null));
+                    overSeries.data.push(buildDataItem(planValue.name, null));
+                    underValue = Number(underValue) !== 0 ? underValue : null;
+                    const underBarBdrRds = underSeries.smooth ? fillBarBdrRds : emptyBarBdrRds;
+                    underSeries.data.push(buildDataItem(planValue.name, underValue, underBarBdrRds));
+                }
+            });
+
+            const comparedSeries = [factSeries, planSeries, overSeries, underSeries];
+            comparedSeries.forEach((seriesOpts) => {
+                seriesOpts.tooltip.formatter = utils.tooltipSeriesFormatter.bind(seriesOpts);
+                seriesOpts.label.formatter = utils.labelFormatter.bind(seriesOpts);
+            });
+
+            series = comparedSeries;
+            return series;
+        },
+
+        buildStackedSeries(seriesOptions, dataRows, axis, originIdx) {
+            const { dimensionOptions } = this.props;
+            const { name: minorDimName, sort: sortOrder, format: dimFormat } = dimensionOptions.minor;
+
+            if (minorDimName === '') {
+                return [];
+            }
+
+            const stackedSeries = seriesOptions.reduce((result, item) => {
+                const { showDataSet, metricName, customType, originIdx: idx } = item;
+
+                if (showDataSet && metricName !== '' && customType.includes('stacked') && Number(idx) === originIdx) {
+                    const stackedSeriesOptions = this.createStackedSeries(item, dataRows, axis);
+                    utils.sortArray(stackedSeriesOptions, sortOrder, dimFormat);
+                    return result.concat(stackedSeriesOptions);
+                }
+                return result;
+            }, []);
+
+            return utils.smoothStackedSeries(stackedSeries, axis);
+        },
+
+        getSeries(seriesOptions, axis) {
+            const {
+                resData,
+                queryHelper,
+                queryHelperFilter,
+                props: {
+                    shouldSkipLevelWithOneValue,
+                    shouldSkipLevelWithIdenticalValue,
+                    dimensionOptions: { main: mainDim }
+                }
+            } = this;
+
+            const { multiMetricMode } = seriesOptions[0];
+            const { enable: isMultiMetricMode } = multiMetricMode;
+            const { name: dimName, sort: sortOrder, format: dimFormat } = mainDim;
+
+            const { states } = queryHelper.find(({ dimensionList }) => Object.keys(dimensionList).includes(dimName));
+            const state = states.find(({ name }) => name === dimName);
+
+            const multiMetricSortOrder = multiMetricMode?.metricSorts?.[state.index] || sortOrder;
+
+            let series = [];
+            this.mainDimValues = resData
+                .reduce((arr, { rows }) => {
+                    const dimValues = utils.getDimValues(rows, dimName).filter((value) => !arr.includes(value));
+                    return [...arr, ...dimValues];
+                }, [])
+                .sort(utils.sortDimValues.bind(mainDim));
+
+            const { classicSeries, comparedSeries, stackedSeries } = resData.reduce(
+                (obj, { rows, rowCount }, idx) => {
+                    if (rowCount === 0 && this.canGoPrev(idx)) {
+                        this.$eventTrigger(Events.LOAD_PREV_DIM, dimName);
+                        this.triggerStateChangeEvt({ value: null });
+                        return obj;
+                    }
+                    const shouldSkipLevel =
+                        rows.length === 1 &&
+                        (shouldSkipLevelWithOneValue ||
+                            (shouldSkipLevelWithIdenticalValue &&
+                                queryHelperFilter[queryHelperFilter.length - 1] === rows[0][dimName]));
+
+                    if (shouldSkipLevel && !this.isGoneNext && this.canGoPrev(idx)) {
+                        this.$eventTrigger(Events.LOAD_PREV_DIM, dimName);
+                        return obj;
+                    }
+                    if (shouldSkipLevel && this.isGoneNext && this.canGoNext(idx)) {
+                        const [row] = rows;
+                        const value = row[dimName];
+                        this.$eventTrigger(Events.LOAD_NEXT_DIM, { dimension: dimName, value });
+                        return obj;
+                    }
+                    obj.classicSeries.push(...this.buildClassicSeries(seriesOptions, rows, axis, idx));
+                    obj.comparedSeries.push(...this.buildComparedSeries(seriesOptions, rows, axis, idx));
+                    obj.stackedSeries.push(...this.buildStackedSeries(seriesOptions, rows, axis, idx));
+                    return obj;
+                },
+                { classicSeries: [], comparedSeries: [], stackedSeries: [] }
+            );
+            utils.removeUselessDimVals(classicSeries, axis);
+            series = series.concat(classicSeries, comparedSeries, stackedSeries);
+
+            utils.postprocessSeriesData(series, axis, isMultiMetricMode ? multiMetricSortOrder : sortOrder, dimFormat);
+
+            return series;
+        },
+
+        constructVars() {
+            const { fields, metrics, dimensions } = this.queryHelper.reduce(
+                (obj, { query, dimensionList }) => {
+                    obj.fields = [...obj.fields, ...Query.queryFieldNames(query)];
+                    obj.metrics = [...obj.metrics, ...Query.queryMetricNames(query)];
+                    obj.dimensions = [...obj.dimensions, ...Object.keys(dimensionList)];
+                    return obj;
+                },
+                { fields: [], metrics: [], dimensions: [] }
+            );
+            const dremioParams = [...fields, ...metrics, ...dimensions];
+
+            this.dremioVars = this.dremioVars.reduce((arr, name) => {
+                if (dremioParams.includes(name)) {
+                    arr.push(name);
+                    return arr;
+                }
+                this.$delete(this.descriptor.vars, name);
+                return arr;
+            }, []);
+
+            dremioParams.forEach((name) => {
+                const variable = { description: name };
+                this.$set(this.descriptor.vars, name, variable);
+                this.dremioVars.push(name);
+            });
+        },
+
+        buildSeriesOptions(seriesOptions) {
+            return seriesOptions.map(({ label: { rich, align, fontSize: labelFontSize, ...label }, ...data }) => {
+                const labelOption = {
+                    ...label,
+                    fontSize: this.takeUnit2Px({ size: labelFontSize }),
+                    align: ((position) => {
+                        const string = position.toLowerCase();
+                        const isLeft = string.includes('left');
+                        const isRight = string.includes('right');
+                        const isInside = string.includes('inside');
+                        if (isLeft) {
+                            return isInside ? 'left' : 'right';
+                        }
+                        if (isRight) {
+                            return isInside ? 'right' : 'left';
+                        }
+                        return 'center';
+                    })(label.position)
+                };
+                return {
+                    ...data,
+                    label: {
+                        ...labelOption,
+                        rich: {
+                            ...rich,
+                            ...(rich?.additional != null
+                                ? {
+                                      additional: {
+                                          ...rich.additional,
+                                          fontSize: this.takeUnit2Px({ size: rich.additional.fontSize })
+                                      }
+                                  }
+                                : {}),
+                            ...(rich?.prefix != null
+                                ? {
+                                      prefix: {
+                                          ...rich.prefix,
+                                          fontSize: this.takeUnit2Px({ size: rich.prefix.fontSize })
+                                      }
+                                  }
+                                : {}),
+                            ...(rich?.postfix != null
+                                ? {
+                                      postfix: {
+                                          ...rich.postfix,
+                                          fontSize: this.takeUnit2Px({ size: rich.postfix.fontSize })
+                                      }
+                                  }
+                                : {}),
+                            base: {
+                                ...labelOption,
+                                align
+                            }
+                        }
+                    }
+                };
+            });
+        },
+
+        constructOpts() {
+            const {
+                resData,
+                privateProps: { metricsStyle, axis: axisOptions },
+                props: {
+                    tooltip,
+                    axisPointer,
+                    dimensionOptions: {
+                        main: { name: dimName, format: dimFormat }
+                    },
+                    dataZoom: { isUsedBaseMinMaxValue, show: isScrollBarShow }
+                }
+            } = this;
+            if (!(resData && resData.length > 0 && dimName)) {
+                return;
+            }
+            const categoryAxis = axisOptions.find(({ type }) => type === 'category');
+            const seriesOptions = this.buildSeriesOptions(metricsStyle);
+            const { xAxis, yAxis } = utils.getAxis({
+                axisOptions: axisOptions.map(({ valueFontSize, additionalAxisLabel, ...options }) => ({
+                    ...options,
+                    valueFontSize: this.takeUnit2Px({ size: valueFontSize }),
+                    ...(additionalAxisLabel != null
+                        ? {
+                              additionalAxisLabel: {
+                                  ...additionalAxisLabel,
+                                  fontSize: this.takeUnit2Px({ size: additionalAxisLabel.fontSize })
+                              }
+                          }
+                        : {})
+                })),
+                tooltip,
+                axisPointer,
+                dimFormat,
+                dimName,
+                rows: resData[categoryAxis?.additionalAxisLabel?.datasetIndex ?? 0].rows
+            });
+
+            const series = this.getSeries(seriesOptions, { xAxis, yAxis });
+            if (isUsedBaseMinMaxValue === false && isScrollBarShow) {
+                const { min, max } = utils.calcSeriesMinMax(series);
+                const axis = [yAxis[0], xAxis[0]].find(({ type }) => type === 'value');
+                axis.min = axis.min({ min });
+                axis.max = axis.max({ max });
+            }
+
+            series.forEach((ser) => {
+                // ECharts version 5.3.3 "barBorderRadius is deprecated, use borderRadius instead"
+                if (ser.itemStyle?.barBorderRadius != null) {
+                    const { barBorderRadius } = ser.itemStyle;
+                    ser.itemStyle.borderRadius = barBorderRadius;
+                    delete ser.itemStyle.barBorderRadius;
+                }
+                const { labelLayout = {} } = ser;
+                ['x', 'y'].forEach((coord) => {
+                    if (labelLayout[coord] === 0) {
+                        delete labelLayout[coord];
+                    }
+                });
+                if (labelLayout.use !== true) {
+                    ser.labelLayout = {};
+                }
+                // reset tooltip to default, as Echarts version 4.x
+                if (ser.tooltip != null) {
+                    setDefaultTooltipStyle(ser);
+                }
+            });
+
+            const opts = {
+                ...this.options,
+                series,
+                xAxis,
+                yAxis
+            };
+            if (opts.legend != null) {
+                opts.legend.itemStyle = opts.legend.itemStyle ?? { borderWidth: 0 };
+            }
+            // reset tooltip to default, as Echarts version 4.x
+            if (opts.tooltip != null) {
+                setDefaultTooltipStyle(opts);
+            }
+
+            this.setBreadcrumbText();
+            this.drawChart(opts);
+            this.addEventListeners(series);
+        },
+
+        setBreadcrumbText() {
+            const {
+                breadcrumb: { isShown, delimiter }
+            } = this.props;
+
+            this.breadcrumbText = isShown
+                ? this.queryHelperFilter
+                      .filter((filter, idx, filters) => filter !== filters[idx - 1])
+                      .join(delimiter ?? BreadcrumbTemplate().delimiter)
+                : '';
+        },
+
+        destroyChart() {
+            if (this.chartInstance && this.chartInstance.dispose) {
+                this.chartInstance.dispose();
+                this.chartInstance = null;
+            }
+        },
+
+        drawChart(opts) {
+            // NOTE fix echarts bug: https://github.com/xieziyu/ngx-echarts/issues/102
+            this.destroyChart();
+
+            if (this.chartInstance == null) {
+                const el = this.$refs.chartAwesome;
+                this.chartInstance = echarts.init(el);
+            }
+
+            this.chartInstance.setOption(opts);
+        },
+
+        addEventListeners(series) {
+            const { isEnabled, shouldFollowPointer } = this.props.customTooltip;
+
+            this.chartInstance.on('click', this.onClickHandler);
+
+            if (isEnabled === false) {
+                return;
+            }
+
+            this.chartInstance.on('mouseover', 'series', (params) => this.handleMouseOver(params, series));
+            this.chartInstance.on('mouseout', 'series', this.handleMouseOut);
+
+            if (shouldFollowPointer === false) {
+                return;
+            }
+
+            const handleMouseMoveThrottled = _throttle(this.handleMouseMove, REQUEST_ANIMATION_TIMEOUT);
+            this.chartInstance.on('mousemove', 'series', handleMouseMoveThrottled);
+        },
+
+        handleMouseMove({ event: { event: mouseEvent } }) {
+            const {
+                customTooltip: { options, isFixed }
+            } = this;
+
+            if (isFixed) {
+                return;
+            }
+
+            const { clientX, clientY } = mouseEvent;
+            this.customTooltip.options = { ...options, coordinates: [clientX, clientY] };
+        },
+
+        handleMouseOut({ event: { event: mouseEvent } }) {
+            const {
+                customTooltip: { options, isFixed }
+            } = this;
+
+            if (isFixed) {
+                return;
+            }
+
+            const { shouldRespondToPointerEvents } = this.props.customTooltip;
+
+            if (shouldRespondToPointerEvents === false) {
+                this.customTooltip.options = { ...options, isShown: false };
+                return;
+            }
+
+            const { relatedTarget } = mouseEvent;
+
+            if (relatedTarget == null) {
+                this.customTooltip.options = { ...options, isShown: false };
+            }
+        },
+
+        handleMouseOver({ name: dimensionName, seriesName, value, event: { event: mouseEvent } }, series) {
+            const {
+                resData,
+                customTooltip: { options, isFixed }
+            } = this;
+
+            if (isFixed && options.isShown) {
+                return;
+            }
+
+            const { dimensionOptions } = this.props;
+            const { metricName } = series.find(({ name }) => name === seriesName);
+            const { clientX, clientY } = mouseEvent;
+
+            this.customTooltip.options = {
+                ...options,
+                coordinates: [clientX, clientY],
+                isShown: true,
+                data: utils.buildCustomTooltipData(
+                    resData,
+                    dimensionOptions,
+                    { dimensionName, value },
+                    { seriesName, metricName }
+                )
+            };
+        },
+
+        handleError(error) {
+            if (error.isCancel) {
+                return;
+            }
+            if (this.isEditorMode) {
+                this.error = error;
+            }
+        }
+    },
+    implicitCssModule: true
+};
+</script>
