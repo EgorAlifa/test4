@@ -29,6 +29,7 @@ import { Elem } from '@goodt-wcore/core';
 import { store, ValueObject } from '@goodt-wcore/managers';
 import { widget } from '@goodt-wcore/utils';
 import { Query } from '@goodt-common/dremio';
+import { DremioNormalizeMixin } from '@goodt-widgets-insight/utils';
 import { meta, Vars, Events } from './descriptor';
 import { ElemInstanceTypeDescriptor } from './types';
 import { createViewModel } from './models';
@@ -36,6 +37,7 @@ import { SlotCondition, SlotConditionType, SlotConditionOperatorMeta, Metric, DE
 
 export default {
     extends: Elem,
+    mixins: [DremioNormalizeMixin],
     meta,
     data: () => ({
         // режим, который отключает все фильтрации слотов
