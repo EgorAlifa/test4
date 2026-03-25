@@ -106,6 +106,7 @@ import { Tooltip as UiTooltip, Grid as UiGrid } from 'goodteditor-ui';
 
 import { isEqual, isEmpty } from 'lodash';
 
+import { DremioNormalizeMixin } from '@goodt-widgets-insight/utils';
 import { meta } from './descriptor';
 import { mixin as DeviationMixin } from './deviations/DeviationMixin';
 import {
@@ -129,7 +130,7 @@ export default {
     extends: Elem,
     meta,
     components: { UiTooltip, UiGrid, WTopHeader },
-    mixins: [DremioMixin, DeviationMixin],
+    mixins: [DremioNormalizeMixin, DremioMixin, DeviationMixin],
     provide() {
         return {
             cssStrToObj: this.cssStrToObj,

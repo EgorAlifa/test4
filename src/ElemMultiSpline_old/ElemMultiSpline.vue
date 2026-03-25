@@ -34,6 +34,7 @@
 <script>
 import { Elem, Dremio } from 'goodt-wcore';
 import { useFetchDataEventMixin } from '@goodt-common/mixins';
+import { DremioNormalizeMixin } from '@goodt-widgets-insight/utils';
 import { Tooltip as WTooltip } from '@goodt-wcore/components';
 import { convertCssVarToComputedValue } from '@goodt-common/utils';
 import echarts from 'echarts';
@@ -59,7 +60,7 @@ export default {
     components: {
         WTooltip
     },
-    mixins: [DeviationMixin, unit2PxMixin, useFetchDataEventMixin({ methodName: 'queryAndDrawData' })],
+    mixins: [DremioNormalizeMixin, DeviationMixin, unit2PxMixin, useFetchDataEventMixin({ methodName: 'queryAndDrawData' })],
     meta,
     data() {
         return {
