@@ -178,8 +178,13 @@ export default {
 
             // {2} фильтрация по датасетам для фильтрации
             const addonsDataFlat = addonsData.flat();
-            // нет данных
-            if (addonsData.length === 0) {
+            // Правила вычисляются всегда, даже без аддон-данных: условия могут
+            // опираться на переменные хранилища без участия датасета.
+            // Ранний выход — только когда ни у одного слота нет правил.
+            const hasAnyRules = slotsFilteredAndSorted.some(
+                ({ rules = [] }) => rules.some((group) => group.length > 0)
+            );
+            if (addonsData.length === 0 && !hasAnyRules) {
                 return mainData == null ? [] : slotsFilteredAndSorted;
             }
             return slotsFilteredAndSorted.filter((slot) => {
@@ -189,16 +194,24 @@ export default {
                 for (const conditions of rules) {
                     // соберем массив из проверок всех условий
                     const conditionMatches = conditions.map((conditionStr) => {
+                        const parsed = SlotCondition.fromString(conditionStr);
+                        if (parsed == null) {
+                            return false;
+                        }
                         const {
                             a: leftValue,
                             b: rightValue,
                             op: operation,
                             type,
                             typeForLeftField
-                        } = SlotCondition.fromString(conditionStr);
+                        } = parsed;
                         const rightTargetValue =
                             type === SlotConditionType.INPUT ? rightValue : this.getStoreValue(rightValue);
-                        const { resolve } = SlotConditionOperatorMeta[operation];
+                        const operatorMeta = SlotConditionOperatorMeta[operation];
+                        if (operatorMeta == null) {
+                            return false;
+                        }
+                        const { resolve } = operatorMeta;
                         // сравнивать по сути будем -> obj[metricName] == metricTargetValue
                         if (typeForLeftField == null || typeForLeftField === SlotConditionType.METRIC) {
                             const hasMetricMatch =
