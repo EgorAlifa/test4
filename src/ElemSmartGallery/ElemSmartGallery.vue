@@ -146,8 +146,6 @@ export default {
             const { sourcesData, isDevMode, slotNamesToShow } = this;
             const { slots, metrics } = this.props;
             const [mainData, ...addonsData] = sourcesData;
-            // Реактивная зависимость: пересчёт слотов при изменении хранилища
-            const storeState = this.$storeState;
             // skip
             if (isDevMode) {
                 return slots;
@@ -450,11 +448,12 @@ export default {
             }
         },
         getStoreValue(key) {
-            const state = this.$storeState;
-            if (!(key in state)) {
-                return null;
-            }
-            const value = state[key];
+            // Use the global store (not the filtered $storeState) so that rule
+            // conditions can reference ANY store variable without requiring it
+            // to be declared in descriptor.vars or awaitVariableModeVariables.
+            // Accessing store.state[key] also establishes a Vue reactive
+            // dependency, so slots recomputes automatically when the value changes.
+            const value = store.state[key]?.value;
             return value == null ? null : value;
         }
     },
