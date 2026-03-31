@@ -453,7 +453,12 @@ export default {
             // to be declared in descriptor.vars or awaitVariableModeVariables.
             // Accessing store.state[key] also establishes a Vue reactive
             // dependency, so slots recomputes automatically when the value changes.
-            const value = store.state[key]?.value;
+            const entry = store.state[key];
+            if (entry == null) return null;
+            // store entries may be ValueObject instances ({ value }) or plain values
+            const value = (entry !== null && typeof entry === 'object' && 'value' in entry)
+                ? entry.value
+                : entry;
             return value == null ? null : value;
         }
     },
