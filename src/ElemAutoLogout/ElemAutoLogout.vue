@@ -31,8 +31,6 @@ import { meta } from './descriptor';
 import { ElemInstanceTypeDescriptor } from './types';
 import { ACTIVITY_EVENTS } from './constants';
 
-const LOG_PREFIX = '[ElemAutoLogout]';
-
 /**
  * sessionStorage key used to remember the page URL at the moment auto-logout
  * was triggered. On the next successful login, ElemAutoLogout reads this key
@@ -110,15 +108,7 @@ export default {
         }
     },
     mounted() {
-        console.log(LOG_PREFIX, 'mounted', {
-            isEditorMode: this.isEditorMode,
-            timeoutSeconds: this.props.timeoutSeconds,
-            warningEnabled: this.props.warningEnabled,
-            warningDuration: this.props.warningDuration
-        });
-
         if (this.isEditorMode) {
-            console.log(LOG_PREFIX, 'editor mode — activity tracking disabled');
             return;
         }
 
@@ -127,7 +117,6 @@ export default {
         if (!adapter || !adapter.authenticated) {
             // User is already logged out (e.g. widget lives on the /login page too).
             // Do not start tracking — avoids a logout loop after redirect.
-            console.log(LOG_PREFIX, 'user is not authenticated — skipping activity tracking');
             return;
         }
 
@@ -143,20 +132,18 @@ export default {
                     const saved = new URL(returnUrl);
                     if (saved.origin === window.location.origin
                             && saved.href !== window.location.href) {
-                        console.log(LOG_PREFIX, 'redirecting to return URL after re-login:', returnUrl);
                         window.location.replace(returnUrl);
                         return; // navigation in progress — don't start tracking yet
                     }
                 }
             } catch (e) {
-                console.warn(LOG_PREFIX, 'failed to restore return URL', e);
+                // ignore sessionStorage errors
             }
         }
 
         this.startTracking();
     },
     beforeDestroy() {
-        console.log(LOG_PREFIX, 'beforeDestroy — stopping tracking');
         this.stopTracking();
     },
     methods: {
@@ -166,7 +153,6 @@ export default {
          * Attach activity listeners and start the inactivity timer.
          */
         startTracking() {
-            console.log(LOG_PREFIX, 'startTracking — attaching listeners:', ACTIVITY_EVENTS);
             this._boundHandleActivity = this.handleActivity.bind(this);
             ACTIVITY_EVENTS.forEach((event) => {
                 document.addEventListener(event, this._boundHandleActivity, { passive: true });
@@ -183,7 +169,6 @@ export default {
                     document.removeEventListener(event, this._boundHandleActivity);
                 });
                 this._boundHandleActivity = null;
-                console.log(LOG_PREFIX, 'stopTracking — listeners removed');
             }
             this.clearTimers();
         },
@@ -200,10 +185,9 @@ export default {
 
         /**
          * Reset the inactivity timer from scratch.
-         * @param {boolean} [fromActivity] - true when called from a DOM activity event;
-         *   suppresses the verbose log to avoid console spam on every mousemove/keydown.
+         * @param {boolean} [fromActivity] - true when called from a DOM activity event
          */
-        resetTimer(fromActivity = false) {
+        resetTimer(fromActivity = false) { // eslint-disable-line no-unused-vars
             this.clearTimers();
             this.showWarning = false;
 
@@ -211,23 +195,12 @@ export default {
             const effectiveWarning = warningEnabled ? Math.min(warningDuration, timeoutSeconds) : 0;
             const idleDelay = (timeoutSeconds - effectiveWarning) * 1000;
 
-            if (!fromActivity) {
-                console.log(LOG_PREFIX, 'resetTimer', {
-                    timeoutSeconds,
-                    effectiveWarning,
-                    idleDelayMs: idleDelay,
-                    logoutAt: new Date(Date.now() + timeoutSeconds * 1000).toLocaleTimeString()
-                });
-            }
-
             if (effectiveWarning > 0) {
                 this._idleTimer = setTimeout(() => {
-                    console.log(LOG_PREFIX, 'idle threshold reached — showing warning');
                     this.startWarning(effectiveWarning);
                 }, idleDelay);
             } else {
                 this._idleTimer = setTimeout(() => {
-                    console.log(LOG_PREFIX, 'idle threshold reached — no warning, logging out immediately');
                     this.performLogout();
                 }, timeoutSeconds * 1000);
             }
@@ -238,16 +211,13 @@ export default {
          * @param {number} seconds
          */
         startWarning(seconds) {
-            console.log(LOG_PREFIX, `startWarning — ${seconds}s until logout`);
             this.showWarning = true;
             this.countdown = seconds;
 
             this._countdownInterval = setInterval(() => {
                 this.countdown -= 1;
-                console.log(LOG_PREFIX, `warning countdown: ${this.countdown}s`);
                 if (this.countdown <= 0) {
                     clearInterval(this._countdownInterval);
-                    console.log(LOG_PREFIX, 'countdown reached zero — logging out');
                     this.performLogout();
                 }
             }, 1000);
@@ -267,7 +237,6 @@ export default {
          * "Stay logged in" button handler — dismiss warning and reset timer.
          */
         onStayLoggedIn() {
-            console.log(LOG_PREFIX, 'user chose to stay — resetting timer');
             this.resetTimer();
         },
 
@@ -283,7 +252,6 @@ export default {
          * Keycloak SSO adapter it is literally a no-op (calls super → Promise.resolve).
          */
         async performLogout() {
-            console.log(LOG_PREFIX, 'performLogout — start');
             this.clearTimers();
             this.showWarning = false;
 
@@ -294,18 +262,15 @@ export default {
             if (this.props.preserveReturnUrl) {
                 try {
                     sessionStorage.setItem(RETURN_URL_KEY, window.location.href);
-                    console.log(LOG_PREFIX, 'saved return URL:', window.location.href);
                 } catch (e) {
-                    console.warn(LOG_PREFIX, 'failed to save return URL', e);
+                    // ignore sessionStorage errors
                 }
             }
 
-            console.log(LOG_PREFIX, 'calling AuthManager.instance.logout()');
             try {
                 await AuthManager.instance.logout();
-                console.log(LOG_PREFIX, 'AuthManager.instance.logout() resolved');
             } catch (err) {
-                console.warn(LOG_PREFIX, 'AuthManager.instance.logout() threw', err);
+                // ignore logout errors
             }
         }
     }
