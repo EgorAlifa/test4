@@ -80,6 +80,15 @@
                 </div>
             </div>
 
+            <!-- ── После выхода ─────────────────────────────────────────── -->
+            <div class="section-label">После выхода</div>
+            <div class="field-row field-row--toggle" @click="togglePreserveReturnUrl">
+                <span class="field-row__label">Возвращать на страницу выхода</span>
+                <div class="toggle-pill" :class="{ 'toggle-pill--on': props.preserveReturnUrl }">
+                    <div class="toggle-pill__thumb" />
+                </div>
+            </div>
+
             <!-- ── Тексты ───────────────────────────────────────────────── -->
             <div class="section-label">Тексты интерфейса</div>
             <ui-has-panel>
@@ -203,6 +212,10 @@ export default {
         toggleWarning() {
             this.props.warningEnabled = !this.props.warningEnabled;
             this.propChanged('warningEnabled');
+        },
+        togglePreserveReturnUrl() {
+            this.props.preserveReturnUrl = !this.props.preserveReturnUrl;
+            this.propChanged('preserveReturnUrl');
         },
     },
 };
