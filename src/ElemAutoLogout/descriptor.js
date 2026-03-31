@@ -112,6 +112,12 @@ export const descriptor = () => ({
             default: 380,
             label: 'Ширина окна предупреждения (px)'
         },
+        /* ── Post-logout behaviour ──────────────────────────────── */
+        preserveReturnUrl: {
+            type: Boolean,
+            default: true,
+            label: 'Возвращать на страницу выхода'
+        },
         /* ── Raw CSS overrides (Я дизайнер panel) ───────────────── */
         overlayCustomCss: {
             type: String,

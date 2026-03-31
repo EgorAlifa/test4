@@ -33,6 +33,13 @@ import { ACTIVITY_EVENTS } from './constants';
 
 const LOG_PREFIX = '[ElemAutoLogout]';
 
+/**
+ * sessionStorage key used to remember the page URL at the moment auto-logout
+ * was triggered. On the next successful login, ElemAutoLogout reads this key
+ * and redirects back to the saved URL before starting activity tracking.
+ */
+const RETURN_URL_KEY = '__elemAutoLogout_returnUrl';
+
 export default {
     extends: Elem,
     meta,
@@ -122,6 +129,28 @@ export default {
             // Do not start tracking — avoids a logout loop after redirect.
             console.log(LOG_PREFIX, 'user is not authenticated — skipping activity tracking');
             return;
+        }
+
+        // After re-login: redirect back to the page where auto-logout occurred.
+        // We use sessionStorage so the URL survives the Keycloak redirect round-trip
+        // without relying on the logout redirect_uri (which may be overwritten by
+        // Keycloak's fragment-mode auth code response on the way back in).
+        if (this.props.preserveReturnUrl) {
+            try {
+                const returnUrl = sessionStorage.getItem(RETURN_URL_KEY);
+                if (returnUrl) {
+                    sessionStorage.removeItem(RETURN_URL_KEY);
+                    const saved = new URL(returnUrl);
+                    if (saved.origin === window.location.origin
+                            && saved.href !== window.location.href) {
+                        console.log(LOG_PREFIX, 'redirecting to return URL after re-login:', returnUrl);
+                        window.location.replace(returnUrl);
+                        return; // navigation in progress — don't start tracking yet
+                    }
+                }
+            } catch (e) {
+                console.warn(LOG_PREFIX, 'failed to restore return URL', e);
+            }
         }
 
         this.startTracking();
@@ -257,6 +286,19 @@ export default {
             console.log(LOG_PREFIX, 'performLogout — start');
             this.clearTimers();
             this.showWarning = false;
+
+            // Persist the current URL before Keycloak redirects away.
+            // Hash-based player routes (e.g. #/1) are included in href but would
+            // be overwritten by Keycloak's fragment-mode auth response on re-login,
+            // so sessionStorage is the only reliable way to carry them across.
+            if (this.props.preserveReturnUrl) {
+                try {
+                    sessionStorage.setItem(RETURN_URL_KEY, window.location.href);
+                    console.log(LOG_PREFIX, 'saved return URL:', window.location.href);
+                } catch (e) {
+                    console.warn(LOG_PREFIX, 'failed to save return URL', e);
+                }
+            }
 
             console.log(LOG_PREFIX, 'calling AuthManager.instance.logout()');
             try {
