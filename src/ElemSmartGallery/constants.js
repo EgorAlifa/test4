@@ -52,9 +52,24 @@ export const SlotConditionOperator = {
     NOT_IN: 'not in'
 };
 
+/**
+ * Compare two values using the most appropriate type.
+ * - If both can be parsed as finite numbers → compare numerically.
+ * - Otherwise → compare as strings (case-sensitive).
+ * This allows `=` to work for both `var = 1` (numeric) and `var = "Hello"` (string).
+ */
+function smartEq(a, b) {
+    const na = Number(a);
+    const nb = Number(b);
+    if (isFinite(na) && isFinite(nb) && a !== '' && b !== '') {
+        return na == nb;
+    }
+    return String(a) == String(b);
+}
+
 export const SlotConditionOperatorMeta = {
-    [SlotConditionOperator.EQ]: { label: '=', resolve: (a, b) => Number(a) == Number(b) },
-    [SlotConditionOperator.NEQ]: { label: '!=', resolve: (a, b) => Number(a) != Number(b) },
+    [SlotConditionOperator.EQ]: { label: '=', resolve: (a, b) => smartEq(a, b) },
+    [SlotConditionOperator.NEQ]: { label: '!=', resolve: (a, b) => !smartEq(a, b) },
     [SlotConditionOperator.GT]: { label: '>', resolve: (a, b) => Number(a) > Number(b) },
     [SlotConditionOperator.GTE]: { label: '>=', resolve: (a, b) => Number(a) >= Number(b) },
     [SlotConditionOperator.LT]: { label: '<', resolve: (a, b) => Number(a) < Number(b) },
