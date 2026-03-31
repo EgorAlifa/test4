@@ -24,6 +24,11 @@
             </ui-collapse>
         </ui-draggable>
         <ui-button @click="addGroup">Добавить правило</ui-button>
+        <div class="rules-hint">
+            <i class="mdi mdi-information-outline"></i>
+            В условиях правил можно напрямую обращаться к переменным хранилища — без добавления их в список «Следить».
+            Укажите тип поля <b>«ключ хранилища»</b> и введите имя переменной.
+        </div>
     </ui-container>
 </template>
 <script>
@@ -103,5 +108,18 @@ export default {
 }
 .drag-handle {
     cursor: move;
+}
+.rules-hint {
+    margin-top: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: rgba(var(--color-primary-rgb, 66, 133, 244), 0.08);
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--color-text-secondary, #666);
+    .mdi {
+        margin-right: 4px;
+        color: var(--color-primary, #4285f4);
+    }
 }
 </style>
