@@ -80,10 +80,8 @@
                 </div>
             </div>
 
-            <!-- ── После выхода ─────────────────────────────────────────── -->
-            <div class="section-label">После выхода</div>
             <div class="field-row field-row--toggle" @click="togglePreserveReturnUrl">
-                <span class="field-row__label">Возвращать на страницу выхода</span>
+                <span class="field-row__label">Запомнить страницу и вернуться после входа</span>
                 <div class="toggle-pill" :class="{ 'toggle-pill--on': props.preserveReturnUrl }">
                     <div class="toggle-pill__thumb" />
                 </div>
