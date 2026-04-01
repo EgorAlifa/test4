@@ -42,8 +42,8 @@
                     {{ descriptor.props.isEqualWidthColumns.label }}
                 </ui-switch>
 
-                <!-- Слоты -->
-                <div class="sp-section-label sp-section-label--mt">Слоты</div>
+                <!-- Отображение -->
+                <div class="sp-section-label sp-section-label--mt">Отображение</div>
                 <ui-switch prop="isShowDefaultSlot">
                     <template #hint>
                         Отображает дефолтный слот когда ни одно из условий всех правил не выполняется.
