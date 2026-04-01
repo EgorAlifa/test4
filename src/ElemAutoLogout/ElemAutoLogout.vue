@@ -132,8 +132,12 @@ export default {
                     const saved = new URL(returnUrl);
                     if (saved.origin === window.location.origin
                             && saved.href !== window.location.href) {
+                        // If the saved URL differs only by hash this is an in-page
+                        // navigation — the component stays mounted and startTracking()
+                        // must be called here.  If it triggers a full page reload the
+                        // component will be destroyed anyway, so the extra startTracking()
+                        // call is harmless.
                         window.location.replace(returnUrl);
-                        return; // navigation in progress — don't start tracking yet
                     }
                 }
             } catch (e) {
