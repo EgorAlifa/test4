@@ -74,9 +74,9 @@
                 <div class="timeline__labels">
                     <span>0</span>
                     <span v-if="props.warningEnabled" class="timeline__warn-label">
-                        −{{ formatDuration(props.warningDuration) }}
+                        −{{ formatDuration(effectiveWarningSecs) }}
                     </span>
-                    <span>{{ formatDuration(props.timeoutSeconds) }}</span>
+                    <span>{{ formatDuration(effectiveTimeoutSecs) }}</span>
                 </div>
             </div>
 
@@ -133,26 +133,51 @@ export default {
         };
     },
     mounted() {
-        this.timeoutUnit = this.bestUnit(this.props.timeoutSeconds || 1800);
-        this.warningUnit = this.bestUnit(this.props.warningDuration || 30);
+        // Restore the user's saved display unit if present; otherwise auto-detect
+        // from the raw value (legacy configs store seconds with no unit prop).
+        this.timeoutUnit = this.props.timeoutUnit || this.bestUnit(this.props.timeoutSeconds || 1800);
+        this.warningUnit = this.props.warningUnit || this.bestUnit(this.props.warningDuration || 30);
     },
     computed: {
+        // For new-format configs, timeoutSeconds holds the display value (e.g. 2 for
+        // "2 minutes") and timeoutUnit holds the unit.  For legacy configs (no saved
+        // timeoutUnit) the value is already in seconds, so we convert it for display.
         timeoutDisplayValue() {
-            return this.toUnit(this.props.timeoutSeconds || 1800, this.timeoutUnit);
+            if (!this.props.timeoutUnit) {
+                return this.toUnit(this.props.timeoutSeconds || 1800, this.timeoutUnit);
+            }
+            return this.props.timeoutSeconds;
         },
         warningDisplayValue() {
-            return this.toUnit(this.props.warningDuration || 30, this.warningUnit);
+            if (!this.props.warningUnit) {
+                return this.toUnit(this.props.warningDuration || 30, this.warningUnit);
+            }
+            return this.props.warningDuration;
+        },
+        // Resolved timeout in seconds – used for timeline ratios and formatDuration.
+        effectiveTimeoutSecs() {
+            const val = this.props.timeoutSeconds;
+            const unit = this.props.timeoutUnit;
+            if (!unit) return val || 1800;          // legacy: already seconds
+            return this.toSeconds(val || 30, unit);
+        },
+        // Resolved warning duration in seconds.
+        effectiveWarningSecs() {
+            const val = this.props.warningDuration;
+            const unit = this.props.warningUnit;
+            if (!unit) return val || 30;            // legacy: already seconds
+            return this.toSeconds(val || 30, unit);
         },
         idleRatio() {
-            const t = this.props.timeoutSeconds || 1800;
+            const t = this.effectiveTimeoutSecs;
             const w = this.props.warningEnabled
-                ? Math.min(this.props.warningDuration || 30, t)
+                ? Math.min(this.effectiveWarningSecs, t)
                 : 0;
             return Math.max(0, t - w);
         },
         warnRatio() {
-            const t = this.props.timeoutSeconds || 1800;
-            return Math.min(this.props.warningDuration || 30, t);
+            const t = this.effectiveTimeoutSecs;
+            return Math.min(this.effectiveWarningSecs, t);
         },
     },
     methods: {
@@ -182,12 +207,24 @@ export default {
             return remM ? `${h}ч ${remM}м` : `${h}ч`;
         },
         setTimeoutUnit(unit) {
-            const secs = this.props.timeoutSeconds || 1800;
-            this.timeoutUnit = this.toUnit(secs, unit) < 0.01 ? this.bestUnit(secs) : unit;
+            const secs = this.effectiveTimeoutSecs;
+            const newUnit = this.toUnit(secs, unit) < 0.01 ? this.bestUnit(secs) : unit;
+            const displayValue = this.toUnit(secs, newUnit);
+            this.timeoutUnit = newUnit;
+            this.props.timeoutSeconds = displayValue;
+            this.props.timeoutUnit = newUnit;
+            this.propChanged('timeoutSeconds');
+            this.propChanged('timeoutUnit');
         },
         setWarningUnit(unit) {
-            const secs = this.props.warningDuration || 30;
-            this.warningUnit = this.toUnit(secs, unit) < 0.01 ? this.bestUnit(secs) : unit;
+            const secs = this.effectiveWarningSecs;
+            const newUnit = this.toUnit(secs, unit) < 0.01 ? this.bestUnit(secs) : unit;
+            const displayValue = this.toUnit(secs, newUnit);
+            this.warningUnit = newUnit;
+            this.props.warningDuration = displayValue;
+            this.props.warningUnit = newUnit;
+            this.propChanged('warningDuration');
+            this.propChanged('warningUnit');
         },
         getPropLabel(path) {
             const prop = path.split('.')[0];
@@ -195,17 +232,28 @@ export default {
         },
         onTimeoutChange(e) {
             const raw = parseFloat(e.target.value) || 0;
+            // Convert to seconds, pick the canonical display unit, then store the
+            // display value together with its unit so ElemAutoLogout can convert
+            // correctly without having to assume the stored unit is always seconds.
             const secs = Math.max(1, this.toSeconds(raw, this.timeoutUnit));
-            this.timeoutUnit = this.bestUnit(secs);
-            this.props.timeoutSeconds = secs;
+            const bestUnit = this.bestUnit(secs);
+            const displayValue = this.toUnit(secs, bestUnit);
+            this.timeoutUnit = bestUnit;
+            this.props.timeoutSeconds = displayValue;
+            this.props.timeoutUnit = bestUnit;
             this.propChanged('timeoutSeconds');
+            this.propChanged('timeoutUnit');
         },
         onWarningDurationChange(e) {
             const raw = parseFloat(e.target.value) || 0;
             const secs = Math.max(1, this.toSeconds(raw, this.warningUnit));
-            this.warningUnit = this.bestUnit(secs);
-            this.props.warningDuration = secs;
+            const bestUnit = this.bestUnit(secs);
+            const displayValue = this.toUnit(secs, bestUnit);
+            this.warningUnit = bestUnit;
+            this.props.warningDuration = displayValue;
+            this.props.warningUnit = bestUnit;
             this.propChanged('warningDuration');
+            this.propChanged('warningUnit');
         },
         toggleWarning() {
             this.props.warningEnabled = !this.props.warningEnabled;

@@ -8,7 +8,15 @@ export const descriptor = () => ({
         timeoutSeconds: {
             type: Number,
             default: 1800,
-            label: 'Время бездействия (секунды)'
+            label: 'Время бездействия'
+        },
+        // Stores the display unit selected in the editor panel ('s', 'm', or 'h').
+        // Empty string (default) means the config was saved before this prop existed,
+        // so timeoutSeconds already contains a value in seconds (legacy format).
+        timeoutUnit: {
+            type: String,
+            default: '',
+            label: 'Единица измерения таймаута'
         },
         warningEnabled: {
             type: Boolean,
@@ -18,7 +26,13 @@ export const descriptor = () => ({
         warningDuration: {
             type: Number,
             default: 30,
-            label: 'Время предупреждения (секунды)'
+            label: 'Время предупреждения'
+        },
+        // Same convention as timeoutUnit: empty = legacy (value is seconds).
+        warningUnit: {
+            type: String,
+            default: '',
+            label: 'Единица измерения предупреждения'
         },
         labels: {
             type: Object,
