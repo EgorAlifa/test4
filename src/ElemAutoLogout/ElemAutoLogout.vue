@@ -4,7 +4,7 @@
         <!-- Displayed only in editor mode as a visual placeholder -->
         <div v-if="isEditorMode" class="auto-logout__placeholder">
             <i class="mdi mdi-timer-off-outline"></i>
-            <span>Автовыход: {{ props.timeoutSeconds }}с бездействия</span>
+            <span>Автовыход: {{ props.timeoutSeconds }}{{ timeoutUnitAbbr }} бездействия</span>
         </div>
         <!-- Warning overlay shown before automatic logout -->
         <transition name="auto-logout">
@@ -46,6 +46,12 @@ export default {
         countdown: 0
     }),
     computed: {
+        timeoutUnitAbbr() {
+            const u = this.props.timeoutUnit;
+            if (u === 'm') return 'м';
+            if (u === 'h') return 'ч';
+            return 'с';
+        },
         customCssContent() {
             const p = this.props;
 
@@ -195,17 +201,21 @@ export default {
             this.clearTimers();
             this.showWarning = false;
 
-            const { timeoutSeconds, warningEnabled, warningDuration } = this.props;
+            const { timeoutSeconds, timeoutUnit, warningEnabled, warningDuration, warningUnit } = this.props;
 
-            // timeoutSeconds must be a whole number of seconds (≥ 1).
-            // If a configuration was saved with a display value that was never converted
-            // (e.g. the raw minute value 2 instead of 120 seconds), the idle delay
-            // collapses to 0 ms and the warning dialog fires instantly on every page
-            // load, making auto-logout appear broken.
-            const safeTimeout = Math.max(1, Math.round(Number(timeoutSeconds) || 1));
-            const effectiveWarning = warningEnabled
-                ? Math.min(Math.round(Number(warningDuration) || 0), safeTimeout)
-                : 0;
+            // Convert a stored display value to seconds.
+            // An empty/absent unit means the config pre-dates the timeoutUnit prop:
+            // the value was already stored in seconds (legacy format).
+            const toSecs = (val, unit) => {
+                const v = Math.max(0, Number(val) || 0);
+                if (unit === 'm') return v * 60;
+                if (unit === 'h') return v * 3600;
+                return v; // 's' or '' (legacy)
+            };
+
+            const safeTimeout = Math.max(1, Math.round(toSecs(timeoutSeconds || 1800, timeoutUnit)));
+            const safeWarning = Math.round(toSecs(warningDuration || 30, warningUnit));
+            const effectiveWarning = warningEnabled ? Math.min(safeWarning, safeTimeout) : 0;
             const idleDelay = (safeTimeout - effectiveWarning) * 1000;
 
             if (effectiveWarning > 0) {
