@@ -196,8 +196,17 @@ export default {
             this.showWarning = false;
 
             const { timeoutSeconds, warningEnabled, warningDuration } = this.props;
-            const effectiveWarning = warningEnabled ? Math.min(warningDuration, timeoutSeconds) : 0;
-            const idleDelay = (timeoutSeconds - effectiveWarning) * 1000;
+
+            // timeoutSeconds must be a whole number of seconds (≥ 1).
+            // If a configuration was saved with a display value that was never converted
+            // (e.g. the raw minute value 2 instead of 120 seconds), the idle delay
+            // collapses to 0 ms and the warning dialog fires instantly on every page
+            // load, making auto-logout appear broken.
+            const safeTimeout = Math.max(1, Math.round(Number(timeoutSeconds) || 1));
+            const effectiveWarning = warningEnabled
+                ? Math.min(Math.round(Number(warningDuration) || 0), safeTimeout)
+                : 0;
+            const idleDelay = (safeTimeout - effectiveWarning) * 1000;
 
             if (effectiveWarning > 0) {
                 this._idleTimer = setTimeout(() => {
@@ -206,7 +215,7 @@ export default {
             } else {
                 this._idleTimer = setTimeout(() => {
                     this.performLogout();
-                }, timeoutSeconds * 1000);
+                }, safeTimeout * 1000);
             }
         },
 
