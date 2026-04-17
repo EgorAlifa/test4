@@ -108,7 +108,7 @@
                         @click.stop="startEditingStart">
                         <span class="compact__chip-label">С</span>
                         <input
-                            v-if="editingStart"
+                            v-if="editingStart && !props.calWithTime"
                             ref="inputStart"
                             type="date"
                             class="compact__chip-input"
@@ -118,7 +118,19 @@
                             @keydown.enter="$refs.inputStart && $refs.inputStart.blur()"
                             @keydown.esc="editingStart = false"
                             @click.stop />
-                        <span v-else class="compact__chip-value">{{ compactStart ? formatChipDate(compactStart) : '—' }}</span>
+                        <input
+                            v-else-if="editingStart && props.calWithTime"
+                            ref="inputStart"
+                            type="text"
+                            class="compact__chip-input compact__chip-input--datetime"
+                            :value="compactStartDisplay"
+                            placeholder="ДД.ММ.ГГГГ ЧЧ:мм"
+                            @change="onCompactInputStart($event.target.value); editingStart = false"
+                            @blur="editingStart = false"
+                            @keydown.enter="onCompactInputStart($refs.inputStart.value); editingStart = false"
+                            @keydown.esc="editingStart = false"
+                            @click.stop />
+                        <span v-else class="compact__chip-value">{{ compactStart ? compactStartDisplay : '—' }}</span>
                     </div>
                     <span class="compact__chip-sep">→</span>
                     <div
@@ -127,7 +139,7 @@
                         @click.stop="startEditingEnd">
                         <span class="compact__chip-label">По</span>
                         <input
-                            v-if="editingEnd"
+                            v-if="editingEnd && !props.calWithTime"
                             ref="inputEnd"
                             type="date"
                             class="compact__chip-input"
@@ -137,7 +149,19 @@
                             @keydown.enter="$refs.inputEnd && $refs.inputEnd.blur()"
                             @keydown.esc="editingEnd = false"
                             @click.stop />
-                        <span v-else class="compact__chip-value">{{ compactEnd ? formatChipDate(compactEnd) : '—' }}</span>
+                        <input
+                            v-else-if="editingEnd && props.calWithTime"
+                            ref="inputEnd"
+                            type="text"
+                            class="compact__chip-input compact__chip-input--datetime"
+                            :value="compactEndDisplay"
+                            placeholder="ДД.ММ.ГГГГ ЧЧ:мм"
+                            @change="onCompactInputEnd($event.target.value); editingEnd = false"
+                            @blur="editingEnd = false"
+                            @keydown.enter="onCompactInputEnd($refs.inputEnd.value); editingEnd = false"
+                            @keydown.esc="editingEnd = false"
+                            @click.stop />
+                        <span v-else class="compact__chip-value">{{ compactEnd ? compactEndDisplay : '—' }}</span>
                     </div>
                 </div>
                 <div class="compact__actions">
@@ -447,6 +471,8 @@ export default {
         activePreset: null,
         editingStart: false,
         editingEnd: false,
+        rangeStartTime: '00:00',
+        rangeEndTime: '23:59',
         // ── Multi mode state ─────────────────────────────────────────
         selectedDates: []          // Array of ISO date strings for 'multi' mode
     }),
@@ -784,7 +810,13 @@ export default {
         compactStart() {
             if (this.props.calStartVar) {
                 const v = store.state[this.props.calStartVar]?.value;
-                if (v) return String(v).slice(0, 10);
+                if (v) {
+                    const num = Number(v);
+                    if (this.props.calWithTime && !isNaN(num) && num > 9999999999) {
+                        return isoDate(new Date(num));
+                    }
+                    return String(v).slice(0, 10);
+                }
             }
             if (this.rangeStart) return isoDate(this.rangeStart);
             return this.props.calSelectedStart || '';
@@ -793,10 +825,32 @@ export default {
         compactEnd() {
             if (this.props.calEndVar) {
                 const v = store.state[this.props.calEndVar]?.value;
-                if (v) return String(v).slice(0, 10);
+                if (v) {
+                    const num = Number(v);
+                    if (this.props.calWithTime && !isNaN(num) && num > 9999999999) {
+                        return isoDate(new Date(num));
+                    }
+                    return String(v).slice(0, 10);
+                }
             }
             if (this.rangeEnd) return isoDate(this.rangeEnd);
             return this.props.calSelectedEnd || '';
+        },
+
+        compactStartDisplay() {
+            const iso = this.compactStart;
+            if (!iso) return '—';
+            const [y, m, d] = iso.split('-');
+            if (!this.props.calWithTime) return `${d}.${m}.${y.slice(2)}`;
+            return `${d}.${m}.${y} ${this.rangeStartTime || '00:00'}`;
+        },
+
+        compactEndDisplay() {
+            const iso = this.compactEnd;
+            if (!iso) return '—';
+            const [y, m, d] = iso.split('-');
+            if (!this.props.calWithTime) return `${d}.${m}.${y.slice(2)}`;
+            return `${d}.${m}.${y} ${this.rangeEndTime || '23:59'}`;
         },
 
         compactOffsetCells() {
@@ -914,6 +968,26 @@ export default {
         // Tick timer for "now" line
         this._tickNow();
         this.nowTimer = setInterval(() => this._tickNow(), 60000);
+
+        // Restore time component from stored timestamps when calWithTime is enabled
+        if (this.props.calWithTime) {
+            const extractTime = (v) => {
+                const num = Number(v);
+                if (!isNaN(num) && num > 9999999999) {
+                    const dt = new Date(num);
+                    return `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+                }
+                return null;
+            };
+            if (this.props.calStartVar) {
+                const t = extractTime(store.state[this.props.calStartVar]?.value);
+                if (t) this.rangeStartTime = t;
+            }
+            if (this.props.calEndVar) {
+                const t = extractTime(store.state[this.props.calEndVar]?.value);
+                if (t) this.rangeEndTime = t;
+            }
+        }
     },
 
     beforeDestroy() {
@@ -1055,14 +1129,25 @@ export default {
         _commitDate(iso) {
             this.props.calSelectedDate = iso;
             this.propChanged('calSelectedDate');
-            // Primary: vars panel (Variables editor)
-            this.$storeCommit({ date: iso });
-            // Fallback: legacy manual prop
-            if (this.props.calDateVar) {
-                store.commit(
-                    { [this.props.calDateVar]: new ValueObject(iso, store.state[this.props.calDateVar]?.meta) },
-                    { context: this }
-                );
+            if (this.props.calWithTime) {
+                const ts = this._isoTimeToTs(iso, this.props.calDefaultStartTime || '00:00');
+                this.$storeCommit({ date: ts });
+                if (this.props.calDateVar) {
+                    store.commit(
+                        { [this.props.calDateVar]: new ValueObject(ts, store.state[this.props.calDateVar]?.meta) },
+                        { context: this }
+                    );
+                }
+            } else {
+                // Primary: vars panel (Variables editor)
+                this.$storeCommit({ date: iso });
+                // Fallback: legacy manual prop
+                if (this.props.calDateVar) {
+                    store.commit(
+                        { [this.props.calDateVar]: new ValueObject(iso, store.state[this.props.calDateVar]?.meta) },
+                        { context: this }
+                    );
+                }
             }
         },
 
@@ -1071,27 +1156,46 @@ export default {
             this.props.calSelectedEnd = end;
             this.propChanged('calSelectedStart');
             this.propChanged('calSelectedEnd');
-            // Primary: vars panel (Variables editor)
-            // date = range start; datesList = every date in the range as a JSON array
-            const allDates = expandDateRange(start, end);
-            this.$storeCommit({ date: start, dateStart: start, dateEnd: end, datesList: JSON.stringify(allDates) });
-            // Fallback: legacy manual props
-            if (this.props.calDateVar && start) {
-                store.commit(
-                    { [this.props.calDateVar]: new ValueObject(start, store.state[this.props.calDateVar]?.meta) },
-                    { context: this }
-                );
-            }
-            if (this.props.calStartVar) {
-                store.commit({ [this.props.calStartVar]: new ValueObject(start) }, { context: this });
-            }
-            if (this.props.calEndVar) {
-                store.commit({ [this.props.calEndVar]: new ValueObject(end) }, { context: this });
-            }
-            if (this.props.calRangeVar) {
-                // Expand full range so other widgets get every date, not just [start, end]
+
+            if (this.props.calWithTime) {
+                const startTime = this.rangeStartTime || this.props.calDefaultStartTime || '00:00';
+                const endTime = this.rangeEndTime || this.props.calDefaultEndTime || '23:59';
+                const tsStart = start ? this._isoTimeToTs(start, startTime) : null;
+                const tsEnd = end ? this._isoTimeToTs(end, endTime) : null;
+                this.$storeCommit({ date: tsStart, dateStart: tsStart, dateEnd: tsEnd, datesList: JSON.stringify([tsStart, tsEnd].filter((v) => v != null)) });
+                if (this.props.calDateVar && tsStart != null) {
+                    store.commit({ [this.props.calDateVar]: new ValueObject(tsStart) }, { context: this });
+                }
+                if (this.props.calStartVar && tsStart != null) {
+                    store.commit({ [this.props.calStartVar]: new ValueObject(tsStart) }, { context: this });
+                }
+                if (this.props.calEndVar && tsEnd != null) {
+                    store.commit({ [this.props.calEndVar]: new ValueObject(tsEnd) }, { context: this });
+                }
+                if (this.props.calRangeVar) {
+                    store.commit({ [this.props.calRangeVar]: new ValueObject(JSON.stringify([tsStart, tsEnd].filter((v) => v != null))) }, { context: this });
+                }
+            } else {
+                // Primary: vars panel (Variables editor)
+                // date = range start; datesList = every date in the range as a JSON array
                 const allDates = expandDateRange(start, end);
-                store.commit({ [this.props.calRangeVar]: new ValueObject(JSON.stringify(allDates)) }, { context: this });
+                this.$storeCommit({ date: start, dateStart: start, dateEnd: end, datesList: JSON.stringify(allDates) });
+                // Fallback: legacy manual props
+                if (this.props.calDateVar && start) {
+                    store.commit(
+                        { [this.props.calDateVar]: new ValueObject(start, store.state[this.props.calDateVar]?.meta) },
+                        { context: this }
+                    );
+                }
+                if (this.props.calStartVar) {
+                    store.commit({ [this.props.calStartVar]: new ValueObject(start) }, { context: this });
+                }
+                if (this.props.calEndVar) {
+                    store.commit({ [this.props.calEndVar]: new ValueObject(end) }, { context: this });
+                }
+                if (this.props.calRangeVar) {
+                    store.commit({ [this.props.calRangeVar]: new ValueObject(JSON.stringify(allDates)) }, { context: this });
+                }
             }
         },
 
@@ -1261,7 +1365,13 @@ export default {
             else if (p.key === 'd30')   { s = isoDate(addDays(t, -29)); e = isoDate(t); }
             else if (p.key === 'd90')   { s = isoDate(addDays(t, -89)); e = isoDate(t); }
             else if (p.key === 'year')  { s = `${y}-01-01`; e = `${y}-12-31`; }
-            if (s) this._setCompactRange(s, e || s);
+            if (s) {
+                if (this.props.calWithTime) {
+                    this.rangeStartTime = this.props.calDefaultStartTime || '00:00';
+                    this.rangeEndTime = this.props.calDefaultEndTime || '23:59';
+                }
+                this._setCompactRange(s, e || s);
+            }
         },
 
         _setCompactRange(start, end) {
@@ -1289,12 +1399,20 @@ export default {
                 this.rangeEnd = null;
                 this.compactHoverCell = cell;
                 this.compactClickStep = 1;
+                if (this.props.calWithTime) {
+                    this.rangeStartTime = this.props.calDefaultStartTime || '00:00';
+                    this.rangeEndTime = this.props.calDefaultEndTime || '23:59';
+                }
                 this._commitDate(cell.iso);
             } else {
                 // Second click: extend to a full range and commit
                 const s = this.rangeStart;
                 const e = cell.date;
                 const [start, end] = s <= e ? [s, e] : [e, s];
+                if (this.props.calWithTime) {
+                    this.rangeStartTime = this.props.calDefaultStartTime || '00:00';
+                    this.rangeEndTime = this.props.calDefaultEndTime || '23:59';
+                }
                 this._setCompactRange(isoDate(start), isoDate(end));
             }
         },
@@ -1317,6 +1435,10 @@ export default {
             this.compactClickStep = 0;
             this.compactHoverCell = null;
             this.activePreset = null;
+            if (this.props.calWithTime) {
+                this.rangeStartTime = this.props.calDefaultStartTime || '00:00';
+                this.rangeEndTime = this.props.calDefaultEndTime || '23:59';
+            }
             this._commitRange('', '');
         },
 
@@ -1348,18 +1470,51 @@ export default {
         onCompactInputStart(val) {
             if (!val) return;
             this.activePreset = null;
-            this._setCompactRange(val, this.compactEnd && this.compactEnd >= val ? this.compactEnd : val);
+            if (this.props.calWithTime) {
+                const parsed = this._parseDisplayDateTime(val);
+                if (!parsed) return;
+                this.rangeStartTime = parsed.time;
+                const endIso = this.compactEnd && this.compactEnd >= parsed.iso ? this.compactEnd : parsed.iso;
+                this._setCompactRange(parsed.iso, endIso);
+            } else {
+                this._setCompactRange(val, this.compactEnd && this.compactEnd >= val ? this.compactEnd : val);
+            }
         },
 
         onCompactInputEnd(val) {
             if (!val) return;
             this.activePreset = null;
-            this._setCompactRange(this.compactStart && this.compactStart <= val ? this.compactStart : val, val);
+            if (this.props.calWithTime) {
+                const parsed = this._parseDisplayDateTime(val);
+                if (!parsed) return;
+                this.rangeEndTime = parsed.time;
+                const startIso = this.compactStart && this.compactStart <= parsed.iso ? this.compactStart : parsed.iso;
+                this._setCompactRange(startIso, parsed.iso);
+            } else {
+                this._setCompactRange(this.compactStart && this.compactStart <= val ? this.compactStart : val, val);
+            }
         },
 
         // ── Helpers ──────────────────────────────────────────────────
         formatHour(h) {
             return `${String(h).padStart(2, '0')}:00`;
+        },
+
+        _isoTimeToTs(iso, time) {
+            if (!iso) return null;
+            const [h, min] = (time || '00:00').split(':').map(Number);
+            const [y, mo, d] = iso.split('-').map(Number);
+            return new Date(y, mo - 1, d, h, min, 0, 0).getTime();
+        },
+
+        _parseDisplayDateTime(str) {
+            if (!str) return null;
+            const m = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2})$/);
+            if (!m) return null;
+            return {
+                iso: `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`,
+                time: `${m[4].padStart(2, '0')}:${m[5]}`
+            };
         },
 
         _autoHeatmap() {
