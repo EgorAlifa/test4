@@ -225,6 +225,11 @@ export const descriptor = () => ({
             type: Object,
             default: createSubtotalSettings()
         },
+        showUnlimitedExport: {
+            type: Boolean,
+            default: true,
+            label: 'Показывать кнопку «Выгрузить данные целиком»'
+        },
         xlsxFilename: {
             type: String,
             default: 'Сводная таблица'
