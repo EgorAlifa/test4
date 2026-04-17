@@ -118,10 +118,42 @@
                         @input="set('calRangeVar', $event)">
                         Переменная: диапазон (массив)
                     </ui-input>
-                    <div class="p-hint" style="margin:-4px 0 4px">
+                    <div class="p-hint" style="margin:-4px 0 8px">
                         Если задана — в переменную пишется JSON-массив <strong>всех дат</strong> диапазона:
                         <code>["2024-01-01","2024-01-02","2024-01-03"]</code>.
                     </div>
+
+                    <!-- ── Режим с временем ────────────────────────── -->
+                    <label class="toggle-row">
+                        <span class="toggle-row__label">Передавать timestamp (с временем)</span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calWithTime }" @click="toggleBool('calWithTime')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
+                    <template v-if="props.calWithTime">
+                        <div class="p-hint" style="margin:2px 0 8px">
+                            Переменные получат Unix timestamp (мс). Ввод дат в формате <code>ДД.ММ.ГГГГ ЧЧ:мм</code>.
+                            При выборе из календаря проставляется время по умолчанию.
+                        </div>
+                        <div class="p-row">
+                            <span class="p-row__label">Время начала по умолчанию</span>
+                            <input
+                                type="text"
+                                class="time-input"
+                                :value="props.calDefaultStartTime"
+                                placeholder="00:00"
+                                @change="set('calDefaultStartTime', $event.target.value || '00:00')" />
+                        </div>
+                        <div class="p-row">
+                            <span class="p-row__label">Время конца по умолчанию</span>
+                            <input
+                                type="text"
+                                class="time-input"
+                                :value="props.calDefaultEndTime"
+                                placeholder="23:59"
+                                @change="set('calDefaultEndTime', $event.target.value || '23:59')" />
+                        </div>
+                    </template>
                 </template>
 
                 <!-- Full mode: selection mode picker + vars -->
@@ -764,6 +796,22 @@ export default {
     transition: background 0.12s;
 }
 .preset-action-btn:hover { background: #e2e8f0; }
+
+/* ── Time input ───────────────────────────────────────────────── */
+.time-input {
+    width: 72px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 4px 8px;
+    background: #fff;
+    outline: none;
+    text-align: center;
+    transition: border-color 0.12s;
+}
+.time-input:focus { border-color: #4f6aff; }
 
 /* ── Var select ───────────────────────────────────────────────── */
 .p-var-select {
