@@ -1,0 +1,326 @@
+@b settings-popup-title {
+    font-weight: 500;
+    font-size: 24px;
+    line-height: 32px;
+}
+
+@b settings-popup-caption {
+    composes: color-grey-dark font-normal from global;
+}
+@b calculated-container {
+    composes: pos-abs left-0 top-0 right-0 bottom-0 from global;
+    @e shadow {
+        composes: pos-abs left-0 top-0 right-0 bottom-0 bg-white from global;
+        content: '';
+        display: block;
+        opacity: 0.3;
+    }
+    @e body {
+        composes: pos-rel from global;
+    }
+}
+@b calculated-col {
+    composes: bg-white pos-rel d-flex flex-col from global;
+    @e input {
+        composes: input mar-bot-3 w-100 min-w-0 from global;
+        flex: 0 1 auto;
+    }
+    @e items {
+        flex: 1 0 auto;
+        overflow: auto;
+        contain: strict;
+    }
+    @e textarea {
+        composes: flex flex-col from global;
+        margin-top: auto;
+        flex: 0 1 auto;
+    }
+}
+@b calculated-textarea {
+    composes: textarea w-100 min-w-0 from global;
+    resize: none;
+    font-size: 0.875rem;
+    flex: 1 0 6rem;
+}
+@b calculated-tools {
+    composes: d-flex flex-wrap pad-v-4 flex-v-stretch from global;
+    margin: 0 -2px;
+    @e item {
+        composes: pad-h-1 from global;
+        flex: 0 0 auto;
+    }
+}
+@b add-metric-btn {
+    composes: btn btn-inline pad-v-3 pad-h-4 mar-right-auto from global;
+    font-size: 0.875rem;
+    box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.08);
+    border-radius: 0.25rem;
+    color: rgba(78, 78, 85, 1);
+
+    @e icon {
+        composes: icon d-inline-block mar-right-3 from global;
+        font-size: 1.5rem;
+        width: 24px;
+        line-height: 1;
+        color: rgba(160, 160, 167, 1);
+    }
+}
+@b calc-button {
+    composes: d-flex flex-center pad-h-1 from global;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    min-width: 24px;
+    height: 24px;
+    background: #cfcfca;
+    @m small {
+        font-size: 9px;
+    }
+}
+@b settings-popup-body {
+    composes: pos-rel py-5 px-6 from global;
+    @e title {
+        font-size: 1rem;
+        line-height: 1.5rem;
+        color: #000000;
+        opacity: 0.8;
+        font-weight: bold;
+    }
+
+    @e select {
+        composes: w-100 from global;
+    }
+    @e input {
+        composes: w-100 input from global;
+        font-size: 0.875rem;
+    }
+    @m bordered {
+        border-bottom: 1px solid var(--color-border);
+    }
+    @m blur {
+        filter: blur(2px);
+    }
+}
+@b settings-popup-condition {
+    padding: 0 0 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    display: grid;
+    gap: 0.75rem 2rem;
+    position: relative;
+    grid-template-columns: 24px 1fr 72px 88px 40px 40px 120px 40px;
+    grid-column-gap: 10px;
+    grid-row-gap: 1em;
+    margin: 0 0 1.5rem;
+    @e label {
+        font-size: 0.875rem;
+        grid-column-start: 2;
+        grid-column-end: 9;
+    }
+    @e drag {
+        composes: flex items-center justify-center w-100 h-100 from global;
+        font-size: 1.5rem;
+        color: var(--color-grey-light);
+        cursor: pointer;
+    }
+    @e color-picker {
+        composes: pos-rel btn btn-icon from global;
+        font-size: 1.5rem;
+        border: 1px solid var(--color-grey-light);
+
+        .icon {
+            position: absolute;
+            background: #fff;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            border-radius: var(--border-radius);
+        }
+    }
+    @e remove {
+        composes: btn btn-icon btn-primary from global;
+        font-size: 1.5rem;
+    }
+    @e preview {
+        composes: flex items-center from global;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--color-grey-light);
+        padding: 0 var(--spacer3);
+    }
+    @e input {
+        composes: input from global;
+    }
+    @e switch {
+        grid-column-start: 2;
+    }
+}
+@b settings-popup-control {
+    @e label {
+        composes: flex items-center justify-start from global;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: #000000;
+        opacity: 0.8;
+    }
+    @e switch {
+        composes: switch switch-small ml-auto from global;
+        margin-left: auto;
+    }
+    @e radio {
+        composes: radio from global;
+        margin-right: 10px;
+    }
+}
+
+@b drag-container {
+    composes: pos-rel h-100 from global;
+    composes: flex flex-col items-stretch justify-start from global;
+    min-height: 200px;
+    background: var(--color-grey-lighter);
+    overflow: hidden auto;
+
+    @e actions {
+        position: sticky;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1;
+
+        display: grid;
+        gap: 8px;
+        background-color: #fff;
+        padding: 8px;
+    }
+
+    @e search-wrapper {
+        display: grid;
+        grid-template-columns: max-content 1fr max-content;
+        gap: 4px;
+        align-items: center;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        min-height: 32px;
+    }
+
+    @e search {
+        composes: w-100 h-100 from global;
+        border: 0;
+        padding: 4px;
+        outline: none;
+    }
+
+    @e buttons {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        @m button {
+            composes: btn btn-secondary btn-small from global;
+            &:hover {
+                background-color: var(--color-primary-hover);
+                color: var(--color-white);
+            }
+        }
+    }
+
+    @m main {
+        height: 100%;
+    }
+    @e caption {
+        composes: flex items-center justify-center mt-auto font-normal text-center opacity-30 text-xs from global;
+        composes: w-full pos-abs left-0 right-0 bottom-0 from global;
+        height: 2.5rem;
+        flex: 0 0 2.5rem;
+    }
+    @e elem {
+        height: 2.5rem;
+        flex: 0 0 2.5rem;
+    }
+    @e drag-list-wrapper {
+        composes: flex flex-col overflow-auto from global;
+        flex: 1 0 0;
+    }
+    @e drag-list {
+        position: relative;
+        flex: 1 1 auto;
+    }
+}
+
+@b drag-item {
+    composes: flex text-sm items-center text-truncate justify-between px-4 from global;
+    background: var(--color-white);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    min-height: 2.5rem;
+    max-width: 100%;
+
+    @e label {
+        composes: text-truncate from global;
+        margin-right: auto;
+        display: grid;
+        grid-template-columns: max-content 1fr;
+    }
+    @e icon {
+        composes: text-2xl from global;
+        color: rgba(0, 0, 0, 0.3);
+    }
+    @e checkbox {
+        composes: checkbox mr-2 from global;
+    }
+    @e title {
+        composes: text-truncate d-block v-mid from global;
+    }
+    @e input {
+        composes: v-mid border-0 h-100 from global;
+        &:focus {
+            outline: none;
+        }
+    }
+    @m title {
+        composes: uppercase font-bold from global;
+        color: #146ff8;
+        background: rgba(0, 132, 255, 0.16);
+        border-bottom: none;
+    }
+    @m border-top {
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+}
+
+@b settings-popup-grid {
+    composes: grid grid-cols-1 gap-y-4 gap-x-6 from global;
+    min-height: 100%;
+    @e main {
+        composes: row-start-1 row-end-3 col-start-1 from global;
+    }
+    @m 2-cols {
+        composes: grid-cols-2 from global;
+    }
+    @m 3-cols {
+        composes: gap-y-10 from global;
+        grid-template-columns: 1.5fr repeat(2, minmax(0, 1fr));
+    }
+    @e from1to2 {
+        composes: col-start-1 col-end-3 from global;
+    }
+}
+
+@b settings-popup-radio-icons {
+    composes: flex items-center justify-start from global;
+    @e item {
+        & + & {
+            margin-left: 8px;
+        }
+    }
+}
+@b settings-popup-radio-icon {
+    composes: flex cursor-pointer items-center justify-center from global;
+    font-size: 1.5rem;
+    background: rgba(0, 132, 255, 0.16);
+    width: 40px;
+    height: 40px;
+    color: #000000;
+    @m active {
+        background: #146ff8;
+        color: #ffffff;
+    }
+}
