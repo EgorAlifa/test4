@@ -225,6 +225,11 @@ export const descriptor = () => ({
             type: Object,
             default: createSubtotalSettings()
         },
+        showSliceExport: {
+            type: Boolean,
+            default: true,
+            label: 'Показывать кнопку «Выгрузить срез данных»'
+        },
         showUnlimitedExport: {
             type: Boolean,
             default: true,

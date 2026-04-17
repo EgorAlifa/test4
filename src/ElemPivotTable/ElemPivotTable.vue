@@ -251,7 +251,7 @@
 
         <ui-popover :show.sync="isShownExportPopover" target="#export-btn">
             <div class="options-popover">
-                <div class="options-popover-option" @click="onExportBtnClick(toXlsx)">
+                <div v-if="props.showSliceExport !== false" class="options-popover-option" @click="onExportBtnClick(toXlsx)">
                     <i class="options-popover-option__icon mdi-download" />
                     <span class="options-popover-option__label">Выгрузить срез данных</span>
                 </div>
