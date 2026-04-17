@@ -251,11 +251,11 @@
 
         <ui-popover :show.sync="isShownExportPopover" target="#export-btn">
             <div class="options-popover">
-                <div class="options-popover-option" @click="onExportBtnClick(toXlsx)">
+                <div v-if="props.showSliceExport !== false" class="options-popover-option" @click="onExportBtnClick(toXlsx)">
                     <i class="options-popover-option__icon mdi-download" />
                     <span class="options-popover-option__label">Выгрузить срез данных</span>
                 </div>
-                <div class="options-popover-option" @click="onExportBtnClick(toUnlimitedXlsx)">
+                <div v-if="props.showUnlimitedExport !== false" class="options-popover-option" @click="onExportBtnClick(toUnlimitedXlsx)">
                     <i class="options-popover-option__icon mdi-download-multiple" />
                     <span class="options-popover-option__label">Выгрузить данные целиком</span>
                 </div>

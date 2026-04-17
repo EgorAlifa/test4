@@ -207,6 +207,12 @@
                             <ui-switch prop="xlsxAddDate" :options="SubtotalRowsPositionOptions">
                                 Дата скачивания
                             </ui-switch>
+                            <ui-switch prop="showSliceExport" :options="SubtotalRowsPositionOptions">
+                                Кнопка «Выгрузить срез данных»
+                            </ui-switch>
+                            <ui-switch prop="showUnlimitedExport" :options="SubtotalRowsPositionOptions">
+                                Кнопка «Выгрузить данные целиком»
+                            </ui-switch>
                         </ui-container>
                     </ui-panel>
                 </template>
