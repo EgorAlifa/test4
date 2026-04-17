@@ -309,12 +309,28 @@ export const descriptor = () => ({
         calDesignerCss: {
             type: String,
             default: '{}'
+        },
+        /* ── Time support ────────────────────────────────────────────── */
+        calWithTime: {
+            type: Boolean,
+            default: false,
+            label: 'Режим с временем (формат ДД.ММ.ГГГГ ЧЧ:мм, передаёт timestamp)'
+        },
+        calDefaultStartTime: {
+            type: String,
+            default: '00:00',
+            label: 'Время начала диапазона по умолчанию'
+        },
+        calDefaultEndTime: {
+            type: String,
+            default: '23:59',
+            label: 'Время конца диапазона по умолчанию'
         }
     },
     vars: {
-        date: { description: 'Выбранная дата (ISO)' },
-        dateStart: { description: 'Начало диапазона (ISO)' },
-        dateEnd: { description: 'Конец диапазона (ISO)' },
+        date: { description: 'Выбранная дата (ISO или timestamp мс при calWithTime)' },
+        dateStart: { description: 'Начало диапазона (ISO или timestamp мс при calWithTime)' },
+        dateEnd: { description: 'Конец диапазона (ISO или timestamp мс при calWithTime)' },
         datesList: { description: 'Массив выбранных дат (JSON, режим "multi")' }
     },
     cssVars: {}
