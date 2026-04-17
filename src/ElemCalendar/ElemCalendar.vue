@@ -210,7 +210,6 @@
                                     :key="ev.id"
                                     class="elem-cal__event"
                                     :style="eventStyle(ev)"
-                                    :title="ev.title"
                                     @click.stop="onEventClick(ev)">
                                     <span class="elem-cal__event-dot" :style="{ background: ev.color || props.calAccentColor }" />
                                     <span class="elem-cal__event-label">{{ ev.title }}</span>
@@ -259,7 +258,6 @@
                                 :key="ev.id"
                                 class="elem-cal__week-event"
                                 :style="weekEventStyle(ev)"
-                                :title="ev.title"
                                 @click.stop="onEventClick(ev)">
                                 <span class="elem-cal__week-event-title">{{ ev.title }}</span>
                                 <span class="elem-cal__week-event-time">{{ ev.startTime }}</span>
@@ -297,7 +295,6 @@
                                 :key="ev.id"
                                 class="elem-cal__week-event"
                                 :style="weekEventStyle(ev)"
-                                :title="ev.title"
                                 @click.stop="onEventClick(ev)">
                                 <span class="elem-cal__week-event-title">{{ ev.title }}</span>
                                 <span class="elem-cal__week-event-time">{{ ev.startTime }}</span>
@@ -1162,7 +1159,7 @@ export default {
                 const endTime = this.rangeEndTime || this.props.calDefaultEndTime || '23:59';
                 const tsStart = start ? this._isoTimeToTs(start, startTime) : null;
                 const tsEnd = end ? this._isoTimeToTs(end, endTime) : null;
-                this.$storeCommit({ date: tsStart, dateStart: tsStart, dateEnd: tsEnd, datesList: JSON.stringify([tsStart, tsEnd].filter((v) => v != null)) });
+                this.$storeCommit({ date: tsStart, dateStart: tsStart, dateEnd: tsEnd, datesList: (tsStart != null || tsEnd != null) ? [tsStart, tsEnd].filter((v) => v != null) : null });
                 if (this.props.calDateVar && tsStart != null) {
                     store.commit({ [this.props.calDateVar]: new ValueObject(tsStart) }, { context: this });
                 }
@@ -1173,13 +1170,13 @@ export default {
                     store.commit({ [this.props.calEndVar]: new ValueObject(tsEnd) }, { context: this });
                 }
                 if (this.props.calRangeVar) {
-                    store.commit({ [this.props.calRangeVar]: new ValueObject(JSON.stringify([tsStart, tsEnd].filter((v) => v != null))) }, { context: this });
+                    store.commit({ [this.props.calRangeVar]: new ValueObject((tsStart != null || tsEnd != null) ? [tsStart, tsEnd].filter((v) => v != null) : null) }, { context: this });
                 }
             } else {
                 // Primary: vars panel (Variables editor)
                 // date = range start; datesList = every date in the range as a JSON array
-                const allDates = expandDateRange(start, end);
-                this.$storeCommit({ date: start, dateStart: start, dateEnd: end, datesList: JSON.stringify(allDates) });
+                const allDates = start && end ? expandDateRange(start, end) : null;
+                this.$storeCommit({ date: start || null, dateStart: start || null, dateEnd: end || null, datesList: allDates });
                 // Fallback: legacy manual props
                 if (this.props.calDateVar && start) {
                     store.commit(
@@ -1188,13 +1185,13 @@ export default {
                     );
                 }
                 if (this.props.calStartVar) {
-                    store.commit({ [this.props.calStartVar]: new ValueObject(start) }, { context: this });
+                    store.commit({ [this.props.calStartVar]: new ValueObject(start || null) }, { context: this });
                 }
                 if (this.props.calEndVar) {
-                    store.commit({ [this.props.calEndVar]: new ValueObject(end) }, { context: this });
+                    store.commit({ [this.props.calEndVar]: new ValueObject(end || null) }, { context: this });
                 }
                 if (this.props.calRangeVar) {
-                    store.commit({ [this.props.calRangeVar]: new ValueObject(JSON.stringify(allDates)) }, { context: this });
+                    store.commit({ [this.props.calRangeVar]: new ValueObject(allDates) }, { context: this });
                 }
             }
         },
@@ -2436,7 +2433,7 @@ export default {
 .compact__grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
+    gap: 2px 0;
 }
 .compact__wd {
     height: 20px;
