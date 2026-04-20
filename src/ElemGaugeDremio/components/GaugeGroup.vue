@@ -18,8 +18,6 @@
     </g>
 </template>
 <script>
-import gsap from 'gsap';
-
 const Geom = {
     polarToCartesian: (cx, cy, r, angleDeg) => {
         // eslint-disable-next-line no-param-reassign
@@ -38,7 +36,6 @@ const Geom = {
     }
 };
 const clamp = (n, min, max) => (Number(n) < min ? min : n > max ? max : n);
-const abs = (n) => (n > 0 ? n : -n);
 const num = (n) => (Number.isNaN(Number(n)) ? 0 : Number(n));
 
 export default {
@@ -70,7 +67,7 @@ export default {
         dropShadow: { type: String, default: '' }
     },
     data() {
-        return { valueArc: '', twobj: { val: 0 } };
+        return { valueArc: '' };
     },
     computed: {
         limitArc() {
@@ -101,21 +98,10 @@ export default {
     },
     watch: {
         value: {
-            handler(v, vo) {
-                const { limit, duration, ease } = this;
-                v = clamp(num(v), 0, limit);
-                vo = clamp(num(vo), 0, limit);
-                this.tween = gsap.to(this.twobj, {
-                    val: v,
-                    duration: duration * (abs(v - vo) / limit),
-                    ease,
-                    overwrite: true,
-                    onUpdate: ({ val }) => {
-                        const percent = val / limit;
-                        this.valueArc = this.calcArc(percent * 360);
-                    },
-                    onUpdateParams: [this.twobj]
-                });
+            handler(v) {
+                const { limit } = this;
+                const percent = clamp(num(v), 0, limit) / num(limit);
+                this.valueArc = this.calcArc(percent * 360);
             },
             immediate: true
         },
@@ -129,12 +115,6 @@ export default {
             const percent = clamp(num(value), 0, limit) / num(limit);
             this.valueArc = this.calcArc(percent * 360);
         }
-    },
-    created() {
-        this.tween = null;
-    },
-    destroyed() {
-        this.tween && this.tween.kill();
     },
     methods: {
         calcArc(angleDeg) {
