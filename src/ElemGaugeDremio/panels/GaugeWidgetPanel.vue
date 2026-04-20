@@ -142,6 +142,10 @@
             </template>
         </ui-has-panel>
 
+        <ui-switch class="p" v-model="props.showTooltip" @change="propChanged('showTooltip')">
+            Всплывающее окно с показателем
+        </ui-switch>
+
         <ui-switch class="p" v-model="props.fitHeight" @change="propChanged('fitHeight')">
             Вписывать по высоте
         </ui-switch>

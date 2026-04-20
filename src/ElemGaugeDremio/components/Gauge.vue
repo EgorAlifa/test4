@@ -20,7 +20,7 @@
 
             <ui-portal :to="portalTarget">
                 <div
-                    v-if="tooltipMetric"
+                    v-if="showTooltip && tooltipMetric"
                     class="tooltip pos-fixed pos-top-left events-none mar-3"
                     :style="tooltipStyle">
                     <div>
@@ -94,6 +94,10 @@ export default {
         iconClass: {
             type: String,
             default: ''
+        },
+        showTooltip: {
+            type: Boolean,
+            default: true
         }
     },
     data() {

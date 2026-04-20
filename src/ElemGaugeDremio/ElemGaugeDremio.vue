@@ -11,6 +11,7 @@
                     :metrics-set="metricsSet"
                     :icon-show="props.iconShow"
                     :icon-class="props.iconClass"
+                    :show-tooltip="props.showTooltip"
                     :style="gaugeStyle" />
                 <w-legend v-if="props.showLegend" :metrics-set="metricsSet" ref="legend" />
                 <w-percent

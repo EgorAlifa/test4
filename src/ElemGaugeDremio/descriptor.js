@@ -100,6 +100,10 @@ const descriptor = () => ({
             type: Array,
             default: () => []
         },
+        showTooltip: {
+            type: Boolean,
+            default: true
+        },
         fitHeight: {
             type: Boolean,
             default: false
