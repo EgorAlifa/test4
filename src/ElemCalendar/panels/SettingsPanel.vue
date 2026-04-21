@@ -276,6 +276,18 @@
                     </div>
                 </label>
 
+                <!-- Preset columns -->
+                <div v-if="props.calCompactShowPresets !== false" class="p-row">
+                    <span class="p-row__label">Колонок в ряду</span>
+                    <input
+                        type="number"
+                        class="time-input"
+                        min="0"
+                        max="6"
+                        :value="props.calPresetsColumns != null ? props.calPresetsColumns : 3"
+                        @change="set('calPresetsColumns', Math.max(0, parseInt($event.target.value) || 0))" />
+                </div>
+
                 <!-- Preset management list (static-events style) -->
                 <div v-if="props.calCompactShowPresets !== false" class="preset-section">
                     <div v-if="localPresets.length === 0" class="preset-empty">Нет пресетов</div>

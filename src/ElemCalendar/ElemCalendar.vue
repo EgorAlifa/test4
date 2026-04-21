@@ -43,7 +43,10 @@
           <div class="compact__inner">
 
             <!-- Preset chips -->
-            <div v-if="props.calCompactShowPresets !== false" class="compact__presets">
+            <div
+                v-if="props.calCompactShowPresets !== false"
+                class="compact__presets"
+                :style="presetsGridStyle">
                 <button
                     v-for="p in compactPresetsList"
                     :key="p.key"
@@ -713,7 +716,9 @@ export default {
                 weekday: '.elem-cal__weekday', cell: '.elem-cal__cell',
                 dayNum: '.elem-cal__day-num', todayCell: '.elem-cal__cell--today',
                 selectedCell: '.elem-cal__cell--selected', event: '.elem-cal__event',
-                weekEvent: '.elem-cal__week-event', agendaEvent: '.elem-cal__agenda-event'
+                weekEvent: '.elem-cal__week-event', agendaEvent: '.elem-cal__agenda-event',
+                compactPreset: '.compact__preset',
+                compactPresetActive: '.compact__preset--active'
             };
             const parts = [];
             if (this.props.calCustomCss) parts.push(`.elem-cal { ${this.props.calCustomCss} }`);
@@ -908,6 +913,12 @@ export default {
                 { key: 'd90',        label: '90 дней' },
                 { key: 'year',       label: 'Этот год' }
             ];
+        },
+
+        presetsGridStyle() {
+            const cols = Number(this.props.calPresetsColumns);
+            if (!cols || cols < 1) return {};
+            return { display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)` };
         },
 
         compactSelectionHint() {

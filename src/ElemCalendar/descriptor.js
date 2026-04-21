@@ -18,6 +18,11 @@ export const descriptor = () => ({
             default: true,
             label: 'Компактный режим: показывать кнопки-пресеты'
         },
+        calPresetsColumns: {
+            type: Number,
+            default: 3,
+            label: 'Компактный режим: кол-во колонок пресетов (0 = авто)'
+        },
         calPresetsJson: {
             type: String,
             default: null,
