@@ -78,6 +78,11 @@ export const descriptor = () => ({
             type: String,
             default: ''
         },
+        isCopyStoreExcludeVars: {
+            type: String,
+            default: '',
+            label: 'Исключить переменные из ссылки (через запятую)'
+        },
         isSaveUrlForStore: {
             type: Boolean,
             default: false

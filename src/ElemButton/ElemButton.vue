@@ -352,7 +352,9 @@ export default {
             executeMethods.forEach((handler) => handler.call(this));
         },
         copySerializedStoreUrlToClipboard() {
-            const url = buildSerializedStoreUrl(window.location.href, store.state);
+            const excludeKeys = (this.props.isCopyStoreExcludeVars || '')
+                .split(',').map((s) => s.trim()).filter(Boolean);
+            const url = buildSerializedStoreUrl(window.location.href, store.state, excludeKeys);
             navigator.clipboard.writeText(url).then(() => this.showPopup('Ссылка скопирована'));
         },
         copyTextToClipboard() {
