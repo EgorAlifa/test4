@@ -87,6 +87,11 @@ export const descriptor = () => ({
             type: Boolean,
             default: false
         },
+        hasClassName: {
+            type: String,
+            default: '',
+            label: 'CSS-класс для :has() (навешивается при нажатии)'
+        },
         routeQueryParamNames: {
             type: Array,
             default: () => []

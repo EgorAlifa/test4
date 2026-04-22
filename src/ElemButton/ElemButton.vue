@@ -99,6 +99,7 @@ export default {
         isPopupVisible: false,
         popupText: '',
         isLoading: false,
+        hasClassActive: false,
         ...ComponentInstanceTypeDescriptor,
         canvasQuickColors: ['#4f6aff', '#7c3aed', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#0f172a', '#ffffff'],
         canvasSizes: [
@@ -136,7 +137,7 @@ export default {
             return val === null || val === undefined || val === '';
         },
         buttonDynamicClass() {
-            const { btnHoverEffect, btnIsGlass, btnShowText, btnIconLeft, btnIconRight } = this.props;
+            const { btnHoverEffect, btnIsGlass, btnShowText, btnIconLeft, btnIconRight, hasClassName } = this.props;
             return {
                 [`elem-btn--hover-${btnHoverEffect}`]: btnHoverEffect && btnHoverEffect !== 'default',
                 'elem-btn--loading': this.isLoading,
@@ -144,7 +145,8 @@ export default {
                 'elem-btn--glass': btnIsGlass,
                 'elem-btn--disabled': this.isDisabled,
                 'elem-btn--icon-only': btnShowText === false && !this.isLoading && (btnIconLeft || btnIconRight),
-                'elem-btn--editing': this.isEditorMode
+                'elem-btn--editing': this.isEditorMode,
+                [hasClassName]: !!(hasClassName && this.hasClassActive)
             };
         },
         buttonStyle() {
@@ -331,7 +333,9 @@ export default {
             setTimeout(() => { this.isLoading = false; }, btnLoadingDuration || 1500);
         },
         onClick() {
-            const { isCopyStore, shouldCopyText } = this.props;
+            const { isCopyStore, shouldCopyText, hasClassName } = this.props;
+
+            if (hasClassName) this.hasClassActive = !this.hasClassActive;
 
             this.applyToggle();
             this.startLoading();
