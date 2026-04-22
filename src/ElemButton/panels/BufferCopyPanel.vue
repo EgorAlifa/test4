@@ -45,9 +45,7 @@
                     </button>
                 </div>
                 <template v-if="excludeEnabled">
-                    <div class="copy-hint copy-hint--warn">
-                        Переменные из этого списка <em>не попадут</em> в ссылку — получатель сохранит свои значения.
-                    </div>
+                    <div class="copy-hint copy-hint--warn">Переменные из этого списка <em>не попадут</em> в ссылку — получатель сохранит свои значения.</div>
                     <ui-textarea
                         prop="isCopyStoreExcludeVars"
                         placeholder="employee_id, dept_id, …"
