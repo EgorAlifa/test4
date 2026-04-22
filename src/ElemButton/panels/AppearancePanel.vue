@@ -58,13 +58,19 @@
             <!-- ── :has() класс ───────────────────────────────────────── -->
             <div class="section-label" style="margin-top:8px">:has() — класс на кнопке</div>
             <ui-input prop="hasClassName" placeholder="btn-filter-open" />
+            <div class="has-examples">
+                <button
+                    v-for="ex in hasExamples"
+                    :key="ex"
+                    class="has-example-chip"
+                    :class="{ 'has-example-chip--active': props.hasClassName === ex }"
+                    @click="pickHasClass(ex)">
+                    .{{ ex }}
+                </button>
+            </div>
             <div v-if="props.hasClassName" class="has-hint">
                 <i class="mdi mdi-code-braces" />
-                <div>
-                    При каждом клике класс <code>{{ props.hasClassName }}</code> навешивается / снимается.
-                    В CSS темы:
-                    <code class="has-hint__code">.wrapper:has(.{{ props.hasClassName }}) { … }</code>
-                </div>
+                <div>При каждом клике класс <code>{{ props.hasClassName }}</code> навешивается / снимается. В CSS темы: <code class="has-hint__code">.wrapper:has(.{{ props.hasClassName }}) { … }</code></div>
             </div>
 
             <!-- ── Сброс всего CSS ────────────────────────────────────── -->
@@ -85,6 +91,7 @@ export default {
         cssElOpen:   { btn: false, hover: false },
         debounceTimer: null,
         activePreset: null,
+        hasExamples: ['btn-sidebar-open', 'btn-panel-active'],
         cssElements: [
             {
                 key: 'btn',
@@ -136,6 +143,10 @@ export default {
         if (this.debounceTimer) clearTimeout(this.debounceTimer);
     },
     methods: {
+        pickHasClass(name) {
+            this.props.hasClassName = this.props.hasClassName === name ? '' : name;
+            this.propChanged('hasClassName');
+        },
         onStyleChange(key) {
             clearTimeout(this.debounceTimer);
             this.debounceTimer = setTimeout(() => {
@@ -396,6 +407,27 @@ export default {
     transition: border-color 0.12s, color 0.12s, background 0.12s;
 }
 .css-reset-el-btn:hover { border-color: #fca5a5; color: #dc2626; background: #fef2f2; }
+
+/* ── :has() examples ─────────────────────────────────────────── */
+.has-examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 4px 0 6px;
+}
+.has-example-chip {
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1.5px solid #e2e8f0;
+    background: #f8fafc;
+    font-size: 11px;
+    font-family: monospace;
+    color: #475569;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+.has-example-chip:hover { border-color: #4f6aff; color: #4f6aff; }
+.has-example-chip--active { border-color: #4f6aff; background: #eff2ff; color: #3730a3; }
 
 /* ── :has() hint ─────────────────────────────────────────────── */
 .has-hint {
