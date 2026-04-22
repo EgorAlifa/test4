@@ -205,6 +205,7 @@ export default {
 .copy-hint__ex-qs  { color: #6366f1; }
 
 .copy-hint--warn {
+    display: block;
     background: #fffbeb;
     border-color: #fde68a;
     color: #78350f;
