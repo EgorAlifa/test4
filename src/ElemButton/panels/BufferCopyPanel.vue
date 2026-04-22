@@ -35,19 +35,26 @@
 
             <!-- Исключения переменных -->
             <template v-if="copyMode === 'url'">
-                <div class="copy-label" style="margin-top:12px">
-                    <i class="mdi mdi-eye-off-outline" style="font-size:13px;margin-right:4px;color:#94a3b8" />
-                    Исключить из ссылки:
+                <div class="excl-row">
+                    <span class="copy-label" style="margin:0">Исключить переменные из ссылки</span>
+                    <button
+                        class="excl-toggle"
+                        :class="{ 'excl-toggle--on': excludeEnabled }"
+                        @click="excludeEnabled = !excludeEnabled">
+                        <span class="excl-toggle__thumb" />
+                    </button>
                 </div>
-                <div class="copy-hint copy-hint--warn" style="margin-bottom:6px">
-                    Переменные из этого списка <em>не попадут</em> в ссылку — получатель сохранит свои значения.
-                </div>
-                <ui-textarea
-                    prop="isCopyStoreExcludeVars"
-                    placeholder="employee_id, dept_id, …"
-                    :rows="2">
-                    Переменные (через запятую)
-                </ui-textarea>
+                <template v-if="excludeEnabled">
+                    <div class="copy-hint copy-hint--warn">
+                        Переменные из этого списка <em>не попадут</em> в ссылку — получатель сохранит свои значения.
+                    </div>
+                    <ui-textarea
+                        prop="isCopyStoreExcludeVars"
+                        placeholder="employee_id, dept_id, …"
+                        :rows="2">
+                        Переменные (через запятую)
+                    </ui-textarea>
+                </template>
             </template>
 
             <!-- Поле: свой текст -->
@@ -73,8 +80,18 @@ export default {
             { value: '',     label: 'Ничего',    icon: 'mdi-minus-circle-outline' },
             { value: 'url',  label: 'Поделиться', icon: 'mdi-share-variant' },
             { value: 'text', label: 'Свой текст', icon: 'mdi-text-box-outline' }
-        ]
+        ],
+        excludeEnabled: false
     }),
+    watch: {
+        'props.isCopyStoreExcludeVars': {
+            immediate: true,
+            handler(val) { this.excludeEnabled = !!(val && val.trim()); }
+        },
+        excludeEnabled(val) {
+            if (!val) { this.props.isCopyStoreExcludeVars = ''; this.propChanged('isCopyStoreExcludeVars'); }
+        }
+    },
     computed: {
         copyMode: {
             get() {
@@ -195,4 +212,37 @@ export default {
     color: #78350f;
 }
 .copy-hint--warn em { font-style: normal; font-weight: 600; }
+
+/* ── Exclude toggle row ─────────────────────────────────────── */
+.excl-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 10px 0 6px;
+}
+.excl-toggle {
+    position: relative;
+    width: 32px;
+    height: 18px;
+    border-radius: 9px;
+    border: none;
+    background: #cbd5e1;
+    cursor: pointer;
+    transition: background 0.18s;
+    flex-shrink: 0;
+    padding: 0;
+}
+.excl-toggle--on { background: #4f6aff; }
+.excl-toggle__thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.18s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+}
+.excl-toggle--on .excl-toggle__thumb { transform: translateX(14px); }
 </style>

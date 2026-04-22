@@ -55,6 +55,18 @@
                 </div>
             </div>
 
+            <!-- ── :has() класс ───────────────────────────────────────── -->
+            <div class="section-label" style="margin-top:8px">:has() — класс на кнопке</div>
+            <ui-input prop="hasClassName" placeholder="btn-filter-open" />
+            <div v-if="props.hasClassName" class="has-hint">
+                <i class="mdi mdi-code-braces" />
+                <div>
+                    При каждом клике класс <code>{{ props.hasClassName }}</code> навешивается / снимается.
+                    В CSS темы:
+                    <code class="has-hint__code">.wrapper:has(.{{ props.hasClassName }}) { … }</code>
+                </div>
+            </div>
+
             <!-- ── Сброс всего CSS ────────────────────────────────────── -->
             <ui-button type="ghost" @click="resetAllCss">Сбросить весь CSS</ui-button>
 
@@ -384,4 +396,21 @@ export default {
     transition: border-color 0.12s, color 0.12s, background 0.12s;
 }
 .css-reset-el-btn:hover { border-color: #fca5a5; color: #dc2626; background: #fef2f2; }
+
+/* ── :has() hint ─────────────────────────────────────────────── */
+.has-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 9px 11px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    font-size: 11px;
+    color: #166534;
+    line-height: 1.5;
+}
+.has-hint .mdi { font-size: 14px; color: #16a34a; flex-shrink: 0; margin-top: 2px; }
+.has-hint code { font-family: monospace; background: #dcfce7; border-radius: 3px; padding: 1px 4px; }
+.has-hint__code { display: block; margin-top: 4px; padding: 3px 6px; background: #dcfce7; border-radius: 4px; }
 </style>
