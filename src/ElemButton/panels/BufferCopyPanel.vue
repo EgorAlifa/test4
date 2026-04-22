@@ -33,6 +33,23 @@
                 </div>
             </div>
 
+            <!-- Исключения переменных -->
+            <template v-if="copyMode === 'url'">
+                <div class="copy-label" style="margin-top:12px">
+                    <i class="mdi mdi-eye-off-outline" style="font-size:13px;margin-right:4px;color:#94a3b8" />
+                    Исключить из ссылки:
+                </div>
+                <div class="copy-hint copy-hint--warn" style="margin-bottom:6px">
+                    Переменные из этого списка <em>не попадут</em> в ссылку — получатель сохранит свои значения.
+                </div>
+                <ui-textarea
+                    prop="isCopyStoreExcludeVars"
+                    placeholder="employee_id, dept_id, …"
+                    :rows="2">
+                    Переменные (через запятую)
+                </ui-textarea>
+            </template>
+
             <!-- Поле: свой текст -->
             <ui-textarea
                 v-if="copyMode === 'text'"
@@ -171,4 +188,11 @@ export default {
 .copy-hint__ex-ico { font-size: 13px; color: #3b82f6; flex-shrink: 0; }
 .copy-hint__ex-url { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .copy-hint__ex-qs  { color: #6366f1; }
+
+.copy-hint--warn {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #78350f;
+}
+.copy-hint--warn em { font-style: normal; font-weight: 600; }
 </style>

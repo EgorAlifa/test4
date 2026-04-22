@@ -78,9 +78,19 @@ export const descriptor = () => ({
             type: String,
             default: ''
         },
+        isCopyStoreExcludeVars: {
+            type: String,
+            default: '',
+            label: 'Исключить переменные из ссылки (через запятую)'
+        },
         isSaveUrlForStore: {
             type: Boolean,
             default: false
+        },
+        hasClassName: {
+            type: String,
+            default: '',
+            label: 'CSS-класс для :has() (навешивается при нажатии)'
         },
         routeQueryParamNames: {
             type: Array,

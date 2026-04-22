@@ -314,6 +314,14 @@
                     <ui-switch prop="isSaveUrlForStore">
                         Режим ElemHouseApi
                     </ui-switch>
+                    <ui-input prop="hasClassName" placeholder="btn-filter-open">
+                        CSS-класс для :has()
+                    </ui-input>
+                    <div v-if="props.hasClassName" class="has-hint">
+                        <i class="mdi mdi-code-braces has-hint__ico" />
+                        <span>При каждом нажатии класс <code>{{ props.hasClassName }}</code> навешивается / снимается с кнопки. Используй в CSS темы:</span>
+                        <code class="has-hint__code">.wrapper:has(.{{ props.hasClassName }}) { … }</code>
+                    </div>
                 </ui-container>
             </ui-collapse>
 
@@ -1040,4 +1048,21 @@ export default {
     text-overflow: ellipsis;
 }
 .route-dd__item--on .route-dd__item-slug { background: #dbeafe; color: #3b82f6; }
+
+/* ── :has() hint ───────────────────────────────────────────────── */
+.has-hint {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    font-size: 11px;
+    color: #166534;
+    line-height: 1.5;
+}
+.has-hint__ico { font-size: 14px; color: #16a34a; flex-shrink: 0; }
+.has-hint code { font-family: monospace; background: #dcfce7; border-radius: 3px; padding: 1px 4px; }
+.has-hint__code { display: block; font-family: monospace; font-size: 11px; background: #dcfce7; border-radius: 4px; padding: 4px 7px; color: #15803d; }
 </style>
