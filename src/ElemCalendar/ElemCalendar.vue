@@ -1401,6 +1401,18 @@ export default {
         // Two-click range selection on the mini calendar
         onCompactDayClick(cell) {
             this.activePreset = null;
+            const isSingle = this.props.calSelectionMode === SELECTION_MODES.SINGLE;
+
+            if (isSingle) {
+                // Single mode: one click commits the date and finishes
+                this.rangeStart = cell.date;
+                this.rangeEnd = null;
+                this.compactClickStep = 0;
+                this.compactHoverCell = null;
+                this._commitDate(cell.iso);
+                return;
+            }
+
             if (this.compactClickStep === 0) {
                 // First click: select a single date; only commit `date` — no range yet
                 this.rangeStart = cell.date;

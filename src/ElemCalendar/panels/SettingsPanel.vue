@@ -94,34 +94,55 @@
             <div class="p-section">
                 <div class="p-section__label">Хранилище (выход)</div>
 
-                <!-- Compact mode: always range, just configure vars -->
+                <!-- Compact mode: single or range -->
                 <template v-if="props.calMode === 'compact'">
-                    <div class="p-hint" style="margin-bottom:8px">
-                        Фильтр дат всегда работает как диапазон between.
-                        Записывает выбранные даты в переменные хранилища.
+                    <div class="p-row" style="margin-bottom:8px">
+                        <span class="p-row__label">Выбор</span>
+                        <div class="seg-ctrl">
+                            <button
+                                class="seg-ctrl__btn"
+                                :class="{ 'seg-ctrl__btn--active': props.calSelectionMode !== 'single' }"
+                                @click="set('calSelectionMode', 'range')">
+                                Диапазон
+                            </button>
+                            <button
+                                class="seg-ctrl__btn"
+                                :class="{ 'seg-ctrl__btn--active': props.calSelectionMode === 'single' }"
+                                @click="set('calSelectionMode', 'single')">
+                                Одиночный
+                            </button>
+                        </div>
                     </div>
                     <ui-input
-                        :value="props.calStartVar"
+                        :value="props.calDateVar"
                         :list="`store-list-${_uid}`"
-                        @input="set('calStartVar', $event)">
-                        Переменная: дата начала
+                        @input="set('calDateVar', $event)">
+                        Переменная: выбранная дата
                     </ui-input>
-                    <ui-input
-                        :value="props.calEndVar"
-                        :list="`store-list-${_uid}`"
-                        @input="set('calEndVar', $event)">
-                        Переменная: дата конца
-                    </ui-input>
-                    <ui-input
-                        :value="props.calRangeVar"
-                        :list="`store-list-${_uid}`"
-                        @input="set('calRangeVar', $event)">
-                        Переменная: диапазон (массив)
-                    </ui-input>
-                    <div class="p-hint" style="margin:-4px 0 8px">
-                        Если задана — в переменную пишется JSON-массив <strong>всех дат</strong> диапазона:
-                        <code>["2024-01-01","2024-01-02","2024-01-03"]</code>.
-                    </div>
+                    <template v-if="props.calSelectionMode !== 'single'">
+                        <ui-input
+                            :value="props.calStartVar"
+                            :list="`store-list-${_uid}`"
+                            @input="set('calStartVar', $event)">
+                            Переменная: дата начала
+                        </ui-input>
+                        <ui-input
+                            :value="props.calEndVar"
+                            :list="`store-list-${_uid}`"
+                            @input="set('calEndVar', $event)">
+                            Переменная: дата конца
+                        </ui-input>
+                        <ui-input
+                            :value="props.calRangeVar"
+                            :list="`store-list-${_uid}`"
+                            @input="set('calRangeVar', $event)">
+                            Переменная: диапазон (массив)
+                        </ui-input>
+                        <div class="p-hint" style="margin:-4px 0 8px">
+                            Если задана — в переменную пишется JSON-массив <strong>всех дат</strong> диапазона:
+                            <code>["2024-01-01","2024-01-02","2024-01-03"]</code>.
+                        </div>
+                    </template>
 
                     <!-- ── Режим с временем ────────────────────────── -->
                     <label class="toggle-row">

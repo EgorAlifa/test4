@@ -84,7 +84,7 @@ export const descriptor = () => ({
         // ── Selection ─────────────────────────────────────────────────
         calSelectionMode: {
             type: String,
-            default: 'single',
+            default: 'range',
             label: 'Режим выбора (none/single/range)'
         },
         calSelectedDate: {
