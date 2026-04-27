@@ -11,7 +11,7 @@
 <script>
 import { Elem } from '@goodt-wcore/core';
 import { store, unwrapStoreValue } from '@goodt-wcore/managers';
-import { ElemDatasetBaseMixinTypes, QueryModelExtended } from '@goodt-common/data';
+import { ElemDatasetBaseMixinTypes } from '@goodt-common/data';
 import { downloadBlobAsFile } from '@goodt-common/utils';
 import { buildReportFilename } from './utils';
 import { ApiMixins, ApiMixinsTypeDescriptor } from './api';
@@ -82,57 +82,11 @@ export default {
                         fieldMappings: {}
                     };
                 }
-                // clone the original query to avoid filter accumulation
-                // ie (a,b) -> (b) should remove (a) filter
-                const query = new QueryModelExtended(request.query.raw);
-                const { read: varsRead } = this.$storeMeta.vars;
-
-                const { storeFilters, storeVariables } = varsRead.reduce(
-                    (acc, value) => {
-                        const storeValue = this.$storeState[value];
-                        if (storeValue == null) {
-                            return acc;
-                        }
-
-                        const isDatasetVariable = query.variableNames.includes(value);
-                        const currentStoreType = isDatasetVariable ? 'storeVariables' : 'storeFilters';
-                        acc[currentStoreType][value] = storeValue;
-                        return acc;
-                    },
-                    { storeFilters: {}, storeVariables: {} }
-                );
-
+                // Use the live reactive query so export always matches what the visualization shows.
+                // Previously request.query.raw was used, which retained stale platform/cookie
+                // filters baked in at page-load time — causing export to diverge from visualization.
+                const { query } = request;
                 const dimensionsMetrics = [...query.metrics, ...query.dimensions];
-                const fieldsMetricsDimensions = [...query.fields, ...dimensionsMetrics];
-                // add filters
-                const isFilter = (value) => {
-                    try {
-                        return 'name' in value && 'operator' in value && 'value' in value;
-                    } catch (error) {
-                        return false;
-                    }
-                };
-                Object.entries(storeFilters)
-                    .filter(([key]) => fieldsMetricsDimensions.includes(key))
-                    .forEach(([key, values]) => {
-                        query.filterAdd(
-                            isFilter(values)
-                                ? values
-                                : {
-                                      name: key,
-                                      value: values,
-                                      operator: this.QueryFilterOperator.IN
-                                  }
-                        );
-                    });
-                // add variables
-                Object.entries(storeVariables).forEach(([key, values]) => {
-                    query.variableAdd({
-                        name: key,
-                        value: values
-                    });
-                });
-
                 const { $fields, ...restQuery } = query.prepared;
                 return {
                     name,
