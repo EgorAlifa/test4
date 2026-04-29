@@ -3196,7 +3196,7 @@ export default {
                 .filter(({ dataAlias, isShown }) => isShown && (filters?.[dataAlias] ?? true));
             this.playerColumns = columns
                 .map(createCellSettings)
-                .filter(({ dataAlias }) => filters?.[dataAlias] ?? true);
+                .filter(({ dataAlias, isShown }) => isShown && (filters?.[dataAlias] ?? true));
             this.playerValues = values.map(createCellSettings).filter(({ isShown }) => isShown);
             this.playerSettings = {
                 isUsedCollapse,
