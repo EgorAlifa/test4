@@ -4481,11 +4481,25 @@ export default {
                 conditions: playerConditions
             });
 
+            const propsFieldsMap = {
+                rows: Object.fromEntries((this.props.rows ?? []).map((col) => [col.dataAlias, col])),
+                columns: Object.fromEntries((this.props.columns ?? []).map((col) => [col.dataAlias, col])),
+                values: Object.fromEntries((this.props.values ?? []).map((col) => [col.dataAlias, col])),
+                filters: {},
+                calculatedValues: {}
+            };
             [this.playerRows, this.playerColumns, this.playerFilters, this.playerValues, this.playerCalculatedValues] =
                 Object.entries({ rows, columns, filters, values, calculatedValues }).map(([name, fields]) =>
                     fields.reduce((acc, field) => {
                         const foundField = previousState[name].find(({ dataAlias }) => dataAlias === field.dataAlias);
-                        return [...acc, foundField == null ? createCellSettings(field) : merge({}, foundField, field)];
+                        if (foundField != null) {
+                            return [...acc, merge({}, foundField, field)];
+                        }
+                        const propsField = propsFieldsMap[name]?.[field.dataAlias] ?? null;
+                        return [
+                            ...acc,
+                            createCellSettings(propsField != null ? { ...propsField, ...field } : field)
+                        ];
                     }, [])
                 );
             this.playerConditions = conditions.reduce((acc, condition) => {

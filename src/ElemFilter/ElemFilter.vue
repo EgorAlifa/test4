@@ -871,7 +871,7 @@ export default {
                 this.loadData();
             }
             if (isMenuVisible) {
-                this.createFilterData();
+                this.createFilterData(this.subState);
             }
         }
     },
