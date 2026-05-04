@@ -2379,7 +2379,7 @@ export default {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    width: 224px;
+    width: 280px;
     flex-shrink: 0;
 }
 
@@ -2400,6 +2400,9 @@ export default {
     cursor: pointer;
     transition: border-color 0.12s, background 0.12s, color 0.12s;
     white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .compact__preset:hover { border-color: var(--cal-accent); color: var(--cal-accent); }
 .compact__preset--active {
