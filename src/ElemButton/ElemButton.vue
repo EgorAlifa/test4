@@ -314,12 +314,10 @@ export default {
 
             const { path, query } = Url.create(urlModel.hash.replace('#', ''));
             urlModel.hash = '';
-            if (Managers.RouteManager?.instance?.route?.path !== path) {
-                navigate(
-                    { url: urlModel.href, route: { path, query: { ...query, ...queryParams } } },
-                    { isNewWindow: isTargetBlank }
-                );
-            }
+            navigate(
+                { url: urlModel.href, route: { path, query: { ...query, ...queryParams } } },
+                { isNewWindow: isTargetBlank }
+            );
         },
         saveUrlInStorage() {
             if (this.props.isSaveUrlForStore) {
