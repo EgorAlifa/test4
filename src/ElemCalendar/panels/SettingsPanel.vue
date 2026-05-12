@@ -344,11 +344,26 @@
                     Дублирует пресет «Сегодня». Если он активен, кнопку можно скрыть.
                 </div>
                 <label class="toggle-row">
+                    <span class="toggle-row__label">Мини-календарь</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowCalendar !== false }" @click="toggleBool('calCompactShowCalendar')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <label class="toggle-row">
                     <span class="toggle-row__label">Нижняя панель (ввод дат)</span>
                     <div class="toggle" :class="{ 'toggle--on': props.calCompactShowBottom !== false }" @click="toggleBool('calCompactShowBottom')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
+                <div v-if="props.calCompactShowBottom !== false" class="p-row">
+                    <span class="p-row__label">Отступ между чипами</span>
+                    <input
+                        type="text"
+                        class="time-input"
+                        placeholder="4px"
+                        :value="props.calCompactChipsGap || ''"
+                        @change="set('calCompactChipsGap', $event.target.value.trim())" />
+                </div>
             </div>
 
             <!-- ── Отображение (полный режим) ──────────────────────── -->

@@ -33,6 +33,16 @@ export const descriptor = () => ({
             default: true,
             label: 'Компактный режим: показывать кнопку «Сегодня» в шапке'
         },
+        calCompactShowCalendar: {
+            type: Boolean,
+            default: true,
+            label: 'Компактный режим: показывать мини-календарь (шапка месяца + сетка дней)'
+        },
+        calCompactChipsGap: {
+            type: String,
+            default: '',
+            label: 'Компактный режим: отступ между чипами С/По (CSS-значение, например 8px)'
+        },
         // ── View & behaviour ──────────────────────────────────────────
         calView: {
             type: String,
