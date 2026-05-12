@@ -40,7 +40,7 @@
 
         <!-- ── Compact mode (dashboard date-range picker) ───────────── -->
         <div v-if="compactMode" class="elem-cal__compact">
-          <div class="compact__inner">
+          <div class="compact__inner" :style="compactInnerStyle">
 
             <!-- Preset chips -->
             <div
@@ -57,54 +57,56 @@
                 </button>
             </div>
 
-            <!-- Month header -->
-            <div class="compact__head">
-                <button class="compact__nav" @click="prevPeriod">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                        <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
-                <span class="compact__month-label">{{ currentTitle }}</span>
-                <button v-if="props.calCompactShowToday !== false" class="compact__today-chip" @click="applyPreset({ key: 'today' })">{{ locale.today }}</button>
-                <button class="compact__nav" @click="nextPeriod">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                        <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Selection hint -->
-            <div v-if="compactSelectionHint" class="compact__hint">{{ compactSelectionHint }}</div>
-
-            <!-- Calendar grid -->
-            <div class="compact__grid" :class="{ 'compact__grid--no-weekends': !props.calShowWeekends }">
-                <div
-                    v-for="(wd, i) in weekdayHeaders"
-                    :key="`cwd-${i}`"
-                    class="compact__wd"
-                    :class="{ 'compact__wd--weekend': isWeekendCol(i) }">
-                    {{ wd.charAt(0) }}
+            <!-- Month header + selection hint + calendar grid -->
+            <template v-if="props.calCompactShowCalendar !== false">
+                <div class="compact__head">
+                    <button class="compact__nav" @click="prevPeriod">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                            <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <span class="compact__month-label">{{ currentTitle }}</span>
+                    <button v-if="props.calCompactShowToday !== false" class="compact__today-chip" @click="applyPreset({ key: 'today' })">{{ locale.today }}</button>
+                    <button class="compact__nav" @click="nextPeriod">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                            <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                 </div>
-                <div
-                    v-for="(c, i) in compactOffsetCells"
-                    :key="`ce-${i}`"
-                    class="compact__day compact__day--empty"
-                    :class="{ 'compact__day--weekend': c.isWeekend }" />
-                <div
-                    v-for="cell in compactCells"
-                    :key="cell.iso"
-                    class="compact__day"
-                    :class="compactCellClass(cell)"
-                    @click="onCompactDayClick(cell)"
-                    @mouseenter="onCompactDayHover(cell)"
-                    @mouseleave="onCompactDayLeave">
-                    {{ cell.d }}
+
+                <!-- Selection hint -->
+                <div v-if="compactSelectionHint" class="compact__hint">{{ compactSelectionHint }}</div>
+
+                <!-- Calendar grid -->
+                <div class="compact__grid" :class="{ 'compact__grid--no-weekends': !props.calShowWeekends }">
+                    <div
+                        v-for="(wd, i) in weekdayHeaders"
+                        :key="`cwd-${i}`"
+                        class="compact__wd"
+                        :class="{ 'compact__wd--weekend': isWeekendCol(i) }">
+                        {{ wd.charAt(0) }}
+                    </div>
+                    <div
+                        v-for="(c, i) in compactOffsetCells"
+                        :key="`ce-${i}`"
+                        class="compact__day compact__day--empty"
+                        :class="{ 'compact__day--weekend': c.isWeekend }" />
+                    <div
+                        v-for="cell in compactCells"
+                        :key="cell.iso"
+                        class="compact__day"
+                        :class="compactCellClass(cell)"
+                        @click="onCompactDayClick(cell)"
+                        @mouseenter="onCompactDayHover(cell)"
+                        @mouseleave="onCompactDayLeave">
+                        {{ cell.d }}
+                    </div>
                 </div>
-            </div>
+            </template>
 
             <!-- Tap-to-edit date chips + action buttons -->
             <div v-if="props.calCompactShowBottom !== false" class="compact__bottom">
-                <div class="compact__chips">
+                <div class="compact__chips" :style="props.calCompactChipsGap ? { gap: props.calCompactChipsGap } : undefined">
                     <div
                         class="compact__chip"
                         :class="{ 'compact__chip--active': editingStart }"
@@ -913,6 +915,11 @@ export default {
                 { key: 'd90',        label: '90 дней' },
                 { key: 'year',       label: 'Этот год' }
             ];
+        },
+
+        compactInnerStyle() {
+            if (this.props.calCompactShowCalendar === false) return { width: 'auto' };
+            return {};
         },
 
         presetsGridStyle() {
