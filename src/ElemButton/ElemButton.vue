@@ -293,15 +293,14 @@ export default {
 
             if (urlModel.isRelative && urlModel.hash === '') {
                 const { path, query } = urlModel;
-                if (Managers.RouteManager?.instance?.route?.path === path) return;
-                // Preserve the full base URL by changing only the hash portion.
-                // navigate() may resolve paths relative to router base (/#/…) which
-                // strips the real page base (e.g. /insight-dev/editor/player/3417/).
                 if (isTargetBlank) {
                     const base = window.location.href.split('#')[0];
                     window.open(`${base}#${path}`, '_blank');
                 } else {
-                    window.location.hash = path;
+                    navigate(
+                        { url: urlModel.href, route: { path, query: { ...query, ...queryParams } } },
+                        { isNewWindow: false }
+                    );
                 }
                 return;
             }
