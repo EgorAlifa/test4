@@ -145,7 +145,7 @@
             </div>
 
             <!-- ── Расширенные действия ───────────────────────────────────── -->
-            <ui-collapse>
+            <ui-collapse :open.sync="openAdv">
                 <template #header>
                     Расширенные действия
                     <span v-if="hasAdvancedActions" class="badge">{{ advancedActionsCount }}</span>
@@ -342,6 +342,7 @@ export default {
         openLink: false,
         openEvent: false,
         openToggle: false,
+        openAdv: false,
         /** per-row mode: true = manual input, false = store select */
         filterManualModes: {},
         availableRoutes: [],
@@ -442,7 +443,7 @@ export default {
                     color: 'purple',
                     active: this.hasAdvancedActions,
                     status: this.hasAdvancedActions ? this.ruPlural(this.advancedActionsCount, 'правило', 'правила', 'правил') : 'Нет',
-                    toggle: () => {}
+                    toggle: () => { this.openAdv = !this.openAdv; }
                 }
             ];
         },
@@ -477,6 +478,7 @@ export default {
         this.openLink = !!this.props.url;
         this.openEvent = this.eventName.length > 0;
         this.openToggle = this.props.btnIsToggle;
+        this.openAdv = this.hasAdvancedActions;
         this.loadRoutes();
         // Close dropdown when clicking outside the panel
         this._closeDd = (e) => {
