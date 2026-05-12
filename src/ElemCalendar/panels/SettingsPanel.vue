@@ -357,12 +357,23 @@
                 </label>
                 <div v-if="props.calCompactShowBottom !== false" class="p-row">
                     <span class="p-row__label">Отступ между чипами</span>
-                    <input
-                        type="text"
-                        class="time-input"
-                        placeholder="4px"
-                        :value="props.calCompactChipsGap || ''"
-                        @change="set('calCompactChipsGap', $event.target.value.trim())" />
+                    <div class="num-unit-ctrl">
+                        <input
+                            type="number"
+                            class="time-input num-unit-ctrl__num"
+                            min="0"
+                            step="0.5"
+                            :value="chipsGapNum"
+                            @change="setChipsGapNum($event.target.value)" />
+                        <div class="seg-ctrl">
+                            <button
+                                v-for="u in ['px', 'rem', 'em']"
+                                :key="u"
+                                class="seg-ctrl__btn"
+                                :class="{ 'seg-ctrl__btn--active': chipsGapUnit === u }"
+                                @click="setChipsGapUnit(u)">{{ u }}</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -473,6 +484,14 @@ export default {
         availableToAdd() {
             const activeKeys = new Set(this.localPresets.map(p => p.key));
             return this.allPresets.filter(p => !activeKeys.has(p.key));
+        },
+        chipsGapNum() {
+            const m = (this.props.calCompactChipsGap || '').match(/^([\d.]+)/);
+            return m ? parseFloat(m[1]) : 4;
+        },
+        chipsGapUnit() {
+            const m = (this.props.calCompactChipsGap || '').match(/(px|rem|em)$/);
+            return m ? m[1] : 'px';
         }
     },
 
@@ -547,6 +566,16 @@ export default {
         resetPresetsToDefault() {
             this.localPresets = [...this.allPresets];
             this._savePresets();
+        },
+
+        setChipsGapNum(val) {
+            const num = parseFloat(val);
+            if (isNaN(num) || num < 0) return;
+            this.set('calCompactChipsGap', `${num}${this.chipsGapUnit}`);
+        },
+
+        setChipsGapUnit(unit) {
+            this.set('calCompactChipsGap', `${this.chipsGapNum}${unit}`);
         }
     }
 };
@@ -844,6 +873,16 @@ export default {
     transition: background 0.12s;
 }
 .preset-action-btn:hover { background: #e2e8f0; }
+
+/* ── Number + unit control ────────────────────────────────────── */
+.num-unit-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.num-unit-ctrl__num {
+    width: 52px;
+}
 
 /* ── Time input ───────────────────────────────────────────────── */
 .time-input {

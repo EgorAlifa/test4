@@ -25,7 +25,7 @@ export const descriptor = () => ({
         },
         calPresetsJson: {
             type: String,
-            default: null,
+            default: '[{"key":"today","label":"Сегодня"},{"key":"yesterday","label":"Вчера"},{"key":"week","label":"Эта неделя"},{"key":"last_week","label":"Пр. неделя"},{"key":"month","label":"Этот месяц"},{"key":"last_month","label":"Пр. месяц"}]',
             label: 'Компактный режим: пресеты дат (JSON-массив [{key,label}])'
         },
         calCompactShowToday: {
@@ -40,8 +40,8 @@ export const descriptor = () => ({
         },
         calCompactChipsGap: {
             type: String,
-            default: '',
-            label: 'Компактный режим: отступ между чипами С/По (CSS-значение, например 8px)'
+            default: '4px',
+            label: 'Компактный режим: отступ между чипами С/По (CSS-значение, например 0.5rem)'
         },
         // ── View & behaviour ──────────────────────────────────────────
         calView: {
