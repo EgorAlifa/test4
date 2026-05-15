@@ -1,0 +1,522 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1064px" height="616px" viewBox="0 0 1064 616" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>ru_matrix_long</title>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="ru_matrix" fill-rule="nonzero">
+            <g id="RU-MUR" transform="translate(224.000000, 0.000000)"><desc>Мурманская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Мурм" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Мурм</tspan>
+                </text>
+            </g>
+            <g id="RU-KR" transform="translate(168.000000, 56.000000)"><desc>Республика Карелия</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Карел" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Карел</tspan>
+                </text>
+            </g>
+            <g id="RU-NEN" transform="translate(504.000000, 56.000000)"><desc>Ненецкий автономный округ</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="НЕН" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">НЕН</tspan>
+                </text>
+            </g>
+            <g id="RU-LEN" transform="translate(112.000000, 112.000000)"><desc>Ленинградская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Ленин Об" fill="#000000" font-family="Helvetica" font-size="12" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="16">Ленин</tspan>
+                    <tspan x="28" y="28">Об</tspan>
+                </text>
+            </g>
+            <g id="RU-NGR" transform="translate(168.000000, 112.000000)"><desc>Новгородская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Новгор" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Новгор</tspan>
+                </text>
+            </g>
+            <g id="RU-VLG" transform="translate(224.000000, 112.000000)"><desc>Вологодская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Волог" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Волог</tspan>
+                </text>
+            </g>
+            <g id="RU-ARK" transform="translate(448.000000, 112.000000)"><desc>Архангельская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Архан" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Архан</tspan>
+                </text>
+            </g>
+            <g id="RU-KO" transform="translate(504.000000, 112.000000)"><desc>Республика Коми</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Коми" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Коми</tspan>
+                </text>
+            </g>
+            <g id="RU-YAN" transform="translate(560.000000, 112.000000)"><desc>Ямало-Ненецкий автономный округ</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="ЯМН" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">ЯМН</tspan>
+                </text>
+            </g>
+            <g id="RU-PSK" transform="translate(112.000000, 168.000000)"><desc>Псковская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Псков" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Псков</tspan>
+                </text>
+            </g>
+            <g id="RU-TVE" transform="translate(168.000000, 168.000000)"><desc>Тверская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Тверс" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Тверс</tspan>
+                </text>
+            </g>
+            <g id="RU-YAR" transform="translate(224.000000, 168.000000)"><desc>Ярославская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Яросл" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Яросл</tspan>
+                </text>
+            </g>
+            <g id="RU-IVA" transform="translate(280.000000, 168.000000)"><desc>Ивановская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Иванов" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Иванов</tspan>
+                </text>
+            </g>
+            <g id="RU-KOS" transform="translate(336.000000, 168.000000)"><desc>Костромская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="КОС" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">КОС</tspan>
+                </text>
+            </g>
+            <g id="RU-ME" transform="translate(392.000000, 168.000000)"><desc>Республика Марий Эл</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Марий" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Марий</tspan>
+                </text>
+            </g>
+            <g id="RU-KIR" transform="translate(448.000000, 168.000000)"><desc>Кировская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Киров" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Киров</tspan>
+                </text>
+            </g>
+            <g id="RU-PER" transform="translate(504.000000, 168.000000)"><desc>Пермский край</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Перм" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Перм</tspan>
+                </text>
+            </g>
+            <g id="RU-KHM" transform="translate(560.000000, 168.000000)"><desc>Ханты-Мансийский автономный округ</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="ХМА" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">ХМА</tspan>
+                </text>
+            </g>
+            <g id="RU-TYU" transform="translate(616.000000, 168.000000)"><desc>Тюменская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Тюмен" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Тюмен</tspan>
+                </text>
+            </g>
+            <g id="RU-TOM" transform="translate(672.000000, 168.000000)"><desc>Томская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Томск" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Томск</tspan>
+                </text>
+            </g>
+            <g id="RU-KEM" transform="translate(728.000000, 168.000000)"><desc>Кемеровская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Кемер" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Кемер</tspan>
+                </text>
+            </g>
+            <g id="RU-KYA" transform="translate(728.000000, 112.000000)"><desc>Красноярский край</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Красн" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Красн</tspan>
+                </text>
+            </g>
+            <g id="RU-IRK" transform="translate(784.000000, 168.000000)"><desc>Иркутская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Иркут" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Иркут</tspan>
+                </text>
+            </g>
+            <g id="RU-KAM" transform="translate(952.000000, 168.000000)"><desc>Камчатский край</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Камчат" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Камчат</tspan>
+                </text>
+            </g>
+            <g id="RU-SA" transform="translate(840.000000, 168.000000)"><desc>Республика Саха (Якутия)</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="ЯКУ" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">ЯКУ</tspan>
+                </text>
+            </g>
+            <g id="RU-MAG" transform="translate(896.000000, 168.000000)"><desc>Магаданская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Магад" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Магад</tspan>
+                </text>
+            </g>
+            <g id="RU-KGD" transform="translate(0.000000, 168.000000)"><desc>Калининградская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Калин" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Калин</tspan>
+                </text>
+            </g>
+            <g id="RU-SMO" transform="translate(112.000000, 224.000000)"><desc>Смоленская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Смол" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Смол</tspan>
+                </text>
+            </g>
+            <g id="RU-TA" transform="translate(448.000000, 224.000000)"><desc>Республика Татарстан</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="ТАТ" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">ТАТ</tspan>
+                </text>
+            </g>
+            <g id="RU-VLA" transform="translate(280.000000, 224.000000)"><desc>Владимирская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Влад" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Влад</tspan>
+                </text>
+            </g>
+            <g id="RU-KGN" transform="translate(616.000000, 224.000000)"><desc>Курганская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Курган" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Курган</tspan>
+                </text>
+            </g>
+            <g id="RU-KLU" transform="translate(168.000000, 224.000000)"><desc>Курганская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Калуж" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Калуж</tspan>
+                </text>
+            </g>
+            <g id="RU-MOS" transform="translate(224.000000, 224.000000)"><desc>Московская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Москов Об" fill="#000000" font-family="Helvetica" font-size="12" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="16">Москов</tspan>
+                    <tspan x="28" y="28">Об</tspan>
+                </text>
+            </g>
+            <g id="RU-UD" transform="translate(504.000000, 224.000000)"><desc>Удмуртская Республика</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Удмур" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Удмур</tspan>
+                </text>
+            </g>
+            <g id="RU-NIZ" transform="translate(336.000000, 224.000000)"><desc>Нижегородская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Нижег" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Нижег</tspan>
+                </text>
+            </g>
+            <g id="RU-NVS" transform="translate(672.000000, 224.000000)"><desc>Новосибирская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Новос" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Новос</tspan>
+                </text>
+            </g>
+            <g id="RU-SVE" transform="translate(560.000000, 224.000000)"><desc>Свердловская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Сверд" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Сверд</tspan>
+                </text>
+            </g>
+            <g id="RU-CU" transform="translate(392.000000, 224.000000)"><desc>Чувашская Республика</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Чуваш" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Чуваш</tspan>
+                </text>
+            </g>
+            <g id="RU-KK" transform="translate(728.000000, 224.000000)"><desc>Республика Хакасия</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Хакас" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Хакас</tspan>
+                </text>
+            </g>
+            <g id="RU-BU" transform="translate(784.000000, 224.000000)"><desc>Республика Бурятия</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Бурят" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Бурят</tspan>
+                </text>
+            </g>
+            <g id="RU-AMU" transform="translate(840.000000, 224.000000)"><desc>Амурская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Амур" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Амур</tspan>
+                </text>
+            </g>
+            <g id="RU-YEV" transform="translate(840.000000, 280.000000)"><desc>Еврейская автономная область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Еврей" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Еврей</tspan>
+                </text>
+            </g>
+            <g id="RU-KHA" transform="translate(896.000000, 280.000000)"><desc>Хабаровский край</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Хабар" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Хабар</tspan>
+                </text>
+            </g>
+            <g id="RU-SAK" transform="translate(1008.000000, 280.000000)"><desc>Сахалинская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Сахал" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Сахал</tspan>
+                </text>
+            </g>
+            <g id="RU-PRI" transform="translate(896.000000, 336.000000)"><desc>Приморский край</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Прим" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Прим</tspan>
+                </text>
+            </g>
+            <g id="RU-CHU" transform="translate(896.000000, 112.000000)"><desc>Чукотский автономный округ</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Чукот" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Чукот</tspan>
+                </text>
+            </g>
+            <g id="RU-BRY" transform="translate(112.000000, 280.000000)"><desc>Брянская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Брянс" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Брянс</tspan>
+                </text>
+            </g>
+            <g id="RU-ORL" transform="translate(168.000000, 280.000000)"><desc>Орловская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Орлов" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Орлов</tspan>
+                </text>
+            </g>
+            <g id="RU-TUL" transform="translate(224.000000, 280.000000)"><desc>Тульская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Тульс" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Тульс</tspan>
+                </text>
+            </g>
+            <g id="RU-RYA" transform="translate(280.000000, 280.000000)"><desc>Рязанская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Рязан" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Рязан</tspan>
+                </text>
+            </g>
+            <g id="RU-MO" transform="translate(336.000000, 280.000000)"><desc>Республика Мордовия</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Морд" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Морд</tspan>
+                </text>
+            </g>
+            <g id="RU-ULY" transform="translate(392.000000, 280.000000)"><desc>Ульяновская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Ульян" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Ульян</tspan>
+                </text>
+            </g>
+            <g id="RU-SAM" transform="translate(448.000000, 280.000000)"><desc>Самарская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Самар" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Самар</tspan>
+                </text>
+            </g>
+            <g id="RU-BA" transform="translate(504.000000, 280.000000)"><desc>Республика Башкортостан</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Башк" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Башк</tspan>
+                </text>
+            </g>
+            <g id="RU-CHE" transform="translate(560.000000, 280.000000)"><desc>Челябинская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Челяб" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Челяб</tspan>
+                </text>
+            </g>
+            <g id="RU-OMS" transform="translate(616.000000, 280.000000)"><desc>Омская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Омск" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Омск</tspan>
+                </text>
+            </g>
+            <g id="RU-ALT" transform="translate(672.000000, 280.000000)"><desc>Алтайский край</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Алтай" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Алтай</tspan>
+                </text>
+            </g>
+            <g id="RU-TY" transform="translate(728.000000, 280.000000)"><desc>Республика Тыва</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Тыва" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Тыва</tspan>
+                </text>
+            </g>
+            <g id="RU-ZAB" transform="translate(784.000000, 280.000000)"><desc>Забайкальский край</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Забайк" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Забайк</tspan>
+                </text>
+            </g>
+            <g id="RU-KRS" transform="translate(168.000000, 336.000000)"><desc>Курская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Курск" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Курск</tspan>
+                </text>
+            </g>
+            <g id="RU-LIP" transform="translate(224.000000, 336.000000)"><desc>Липецкая область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Липец" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Липец</tspan>
+                </text>
+            </g>
+            <g id="RU-TAM" transform="translate(280.000000, 336.000000)"><desc>Тамбовская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Тамбов" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Тамбов</tspan>
+                </text>
+            </g>
+            <g id="RU-PNZ" transform="translate(336.000000, 336.000000)"><desc>Пензенская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Пензен" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Пензен</tspan>
+                </text>
+            </g>
+            <g id="RU-SAR" transform="translate(392.000000, 336.000000)"><desc>Саратовская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Сарат" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Сарат</tspan>
+                </text>
+            </g>
+            <g id="RU-ORE" transform="translate(448.000000, 336.000000)"><desc>Оренбургская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Оренб" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Оренб</tspan>
+                </text>
+            </g>
+            <g id="RU-AL" transform="translate(672.000000, 336.000000)"><desc>Республика Алтай</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Респуб Ал" fill="#000000" font-family="Helvetica" font-size="12" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="16">Респуб</tspan>
+                    <tspan x="28" y="28">Ал</tspan>
+                </text>
+            </g>
+            <g id="RU-BEL" transform="translate(224.000000, 392.000000)"><desc>Белгородская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Белгор" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Белгор</tspan>
+                </text>
+            </g>
+            <g id="RU-VOR" transform="translate(280.000000, 392.000000)"><desc>Воронежская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Ворон" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Ворон</tspan>
+                </text>
+            </g>
+            <g id="RU-VGG" transform="translate(336.000000, 392.000000)"><desc>Волгоградская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="ВГГ" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">ВГГ</tspan>
+                </text>
+            </g>
+            <g id="RU-CR" transform="translate(112.000000, 448.000000)"><desc>Республика Крым</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Крым" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Крым</tspan>
+                </text>
+            </g>
+            <g id="RU-AD" transform="translate(168.000000, 448.000000)"><desc>Республика Адыгея</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Адыг" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Адыг</tspan>
+                </text>
+            </g>
+            <g id="RU-KDA" transform="translate(224.000000, 448.000000)"><desc>Краснодарский край</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Красн" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Красн</tspan>
+                </text>
+            </g>
+            <g id="RU-ROS" transform="translate(280.000000, 448.000000)"><desc>Ростовская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Ростов" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Ростов</tspan>
+                </text>
+            </g>
+            <g id="RU-KL" transform="translate(336.000000, 448.000000)"><desc>Республика Калмыкия</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Калм" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Калм</tspan>
+                </text>
+            </g>
+            <g id="RU-AST" transform="translate(392.000000, 448.000000)"><desc>Астраханская область</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Астрах" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Астрах</tspan>
+                </text>
+            </g>
+            <g id="RU-SEV" transform="translate(112.000000, 504.000000)"><desc>Севастополь</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Севаст" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Севаст</tspan>
+                </text>
+            </g>
+            <g id="RU-KC" transform="translate(224.000000, 504.000000)"><desc>Карачаево-Черкесская Республика</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Карач" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Карач</tspan>
+                </text>
+            </g>
+            <g id="RU-STA" transform="translate(280.000000, 504.000000)"><desc>Ставропольский край</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Ставр" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Ставр</tspan>
+                </text>
+            </g>
+            <g id="RU-CE" transform="translate(336.000000, 504.000000)"><desc>Чеченская Республика</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Чечен" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Чечен</tspan>
+                </text>
+            </g>
+            <g id="RU-DA" transform="translate(392.000000, 504.000000)"><desc>Республика Дагестан</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Дагест" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Дагест</tspan>
+                </text>
+            </g>
+            <g id="RU-KB" transform="translate(224.000000, 560.000000)"><desc>Кабардино-Балкарская Республика</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Кабард" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Кабард</tspan>
+                </text>
+            </g>
+            <g id="RU-SE" transform="translate(280.000000, 560.000000)"><desc>Республика Северная Осетия</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Северн Ос" fill="#000000" font-family="Helvetica" font-size="12" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="16">Северн</tspan>
+                    <tspan x="28" y="28">Ос</tspan>
+                </text>
+            </g>
+            <g id="RU-IN" transform="translate(336.000000, 560.000000)"><desc>Республика Ингушетия</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Ингуш" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Ингуш</tspan>
+                </text>
+            </g>
+            <g id="RU-MOW" transform="translate(0.000000, 56.000000)"><desc>Москва</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Москва" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Москва</tspan>
+                </text>
+            </g>
+            <g id="RU-SPE"><desc>Санкт-Петербург</desc>
+                <rect id="Rectangle" fill="#000000" x="0" y="0" width="56" height="56"></rect>
+                <text id="Санкт" fill="#000000" font-family="Helvetica" font-size="14" font-weight="normal" text-anchor="middle">
+                    <tspan x="28" y="18">Санкт</tspan>
+                </text>
+            </g>
+        </g>
+    </g>
+</svg>
