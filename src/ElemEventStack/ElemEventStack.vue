@@ -1,12 +1,30 @@
 <template>
     <div :class="cssClass" :style="[cssStyle, activeStateCssStyle]">
-        <slot :name="slotDefault" v-if="hasState(slotDefault)">
-            <div v-if="isEditorMode" class="stack-slot-placeholder">
-                <i class="mdi mdi-view-carousel-outline stack-slot-placeholder__icon" />
-                <div class="stack-slot-placeholder__name">{{ slotDefault }}</div>
-                <div class="stack-slot-placeholder__hint">Перетащите виджеты сюда</div>
+        <!--
+            Editor: render ALL slots simultaneously so the editor tree always
+            sees every child in its correct named slot. Inactive slots are
+            shown with dimmed opacity. Without this the platform's "navigate
+            up" action loses slot-membership info and re-parents all children
+            to the container above.
+        -->
+        <template v-if="isEditorMode">
+            <div
+                v-for="state in props.states"
+                :key="state.name"
+                class="stack-slot-wrap"
+                :class="{ 'stack-slot-wrap--inactive': slotDefault !== state.name }">
+                <div class="stack-slot-badge">{{ state.name }}</div>
+                <slot :name="state.name">
+                    <div class="stack-slot-placeholder">
+                        <i class="mdi mdi-view-carousel-outline stack-slot-placeholder__icon" />
+                        <div class="stack-slot-placeholder__name">{{ state.name }}</div>
+                        <div class="stack-slot-placeholder__hint">Перетащите виджеты сюда</div>
+                    </div>
+                </slot>
             </div>
-        </slot>
+        </template>
+        <!-- Runtime: only the active slot -->
+        <slot v-else-if="hasState(slotDefault)" :name="slotDefault" />
     </div>
 </template>
 <script>
@@ -109,6 +127,34 @@ export default {
 </script>
 
 <style scoped>
+/* ── Editor-mode slot wrappers ──────────────────────────────── */
+.stack-slot-wrap {
+    position: relative;
+    margin-bottom: 6px;
+    border: 1.5px dashed #c7d2fe;
+    border-radius: 8px;
+    padding: 22px 6px 6px;
+    transition: opacity 0.2s;
+}
+.stack-slot-wrap:last-child { margin-bottom: 0; }
+.stack-slot-wrap--inactive {
+    opacity: 0.35;
+    pointer-events: none;
+}
+.stack-slot-badge {
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #6366f1;
+    background: #e0e7ff;
+    border-radius: 4px;
+    padding: 1px 6px;
+    pointer-events: none;
+}
+
+/* ── Slot placeholder (empty slot) ─────────────────────────── */
 .stack-slot-placeholder {
     display: flex;
     flex-direction: column;
