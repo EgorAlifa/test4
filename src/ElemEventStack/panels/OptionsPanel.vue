@@ -56,7 +56,7 @@
             <div v-for="state in props.states" :key="`css-${state.name}`" class="css-row">
                 <div
                     class="css-row__hd"
-                    @click="cssOpen[state.name] = !cssOpen[state.name]">
+                    @click="toggleCssRow(state.name)">
                     <span class="css-row__name">{{ state.name }}</span>
                     <i class="mdi" :class="cssOpen[state.name] ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
                 </div>
@@ -138,6 +138,9 @@ export default {
                 this.props.states.length > 1 &&
                 !this.elementInstance.$slots[state.name]
             );
+        },
+        toggleCssRow(name) {
+            this.$set(this.cssOpen, name, !this.cssOpen[name]);
         },
         setStateCss(name, value) {
             const current = this.stateStyles;
