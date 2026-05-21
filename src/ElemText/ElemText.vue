@@ -99,87 +99,89 @@ export default {
         dynamicStyles() {
             const styles = {};
 
-            // Typography — DIRECT styles (not CSS variables) for reliable inheritance
-            // Use getBoundPropValue for variable binding priority
-            const color = this.getBoundPropValue('color');
-            if (color != null) {
+            // Typography — read via getStyleValue so Insight's Style panel
+            // (writes to cssStyle) and our designer (writes to individual props)
+            // both work without depending on the async sync mechanism.
+            const color = this.getStyleValue('color');
+            if (color) {
                 styles.color = color;
             }
 
-            const fontFamily = this.getBoundPropValue('fontFamily');
-            if (fontFamily != null) {
+            const fontFamily = this.getStyleValue('fontFamily');
+            if (fontFamily) {
                 styles.fontFamily = fontFamily;
             }
 
-            const fontSize = this.getBoundPropValue('fontSize');
-            if (fontSize != null) {
+            const fontSize = this.getStyleValue('fontSize');
+            if (fontSize != null && fontSize !== '') {
                 styles.fontSize = this.formatSizeValue(fontSize);
             }
-            const fontWeight = this.getBoundPropValue('fontWeight');
-            if (fontWeight != null) {
+
+            const fontWeight = this.getStyleValue('fontWeight');
+            if (fontWeight != null && fontWeight !== '') {
                 styles.fontWeight = fontWeight;
             }
 
-            const lineHeight = this.getBoundPropValue('lineHeight');
-            if (lineHeight != null) {
+            const lineHeight = this.getStyleValue('lineHeight');
+            if (lineHeight != null && lineHeight !== '') {
                 styles.lineHeight = this.formatSizeValue(lineHeight);
             }
 
-            const letterSpacing = this.getBoundPropValue('letterSpacing');
-            if (letterSpacing != null) {
+            const letterSpacing = this.getStyleValue('letterSpacing');
+            if (letterSpacing != null && letterSpacing !== '') {
                 styles.letterSpacing = this.formatSizeValue(letterSpacing);
             }
 
-            const textTransform = this.getBoundPropValue('textTransform');
-            if (textTransform != null) {
+            const textTransform = this.getStyleValue('textTransform');
+            if (textTransform) {
                 styles.textTransform = textTransform;
             }
 
-            const textDecoration = this.getBoundPropValue('textDecoration');
-            if (textDecoration != null && textDecoration !== 'none') {
+            const textDecoration = this.getStyleValue('textDecoration');
+            if (textDecoration && textDecoration !== 'none') {
                 styles.textDecoration = textDecoration;
             }
 
             // Background
-            const backgroundColor = this.getBoundPropValue('backgroundColor');
-            if (backgroundColor != null) {
+            const backgroundColor = this.getStyleValue('backgroundColor');
+            if (backgroundColor) {
                 styles.backgroundColor = backgroundColor;
             }
 
             // Spacing
-            const padding = this.getBoundPropValue('padding');
-            if (padding != null) {
+            const padding = this.getStyleValue('padding');
+            if (padding) {
                 styles.padding = padding;
             }
 
-            const margin = this.getBoundPropValue('margin');
-            if (margin != null) {
+            const margin = this.getStyleValue('margin');
+            if (margin) {
                 styles.margin = margin;
             }
 
             // Border
-            const borderColor = this.getBoundPropValue('borderColor');
-            if (borderColor != null) {
+            const borderColor = this.getStyleValue('borderColor');
+            if (borderColor) {
                 styles.borderColor = borderColor;
             }
 
-            const borderWidth = this.getBoundPropValue('borderWidth');
-            if (borderWidth != null) {
+            const borderWidth = this.getStyleValue('borderWidth');
+            if (borderWidth != null && borderWidth !== '') {
                 styles.borderWidth = this.formatSizeValue(borderWidth);
             }
 
-            const borderRadius = this.getBoundPropValue('borderRadius');
-            if (borderRadius != null) {
+            const borderRadius = this.getStyleValue('borderRadius');
+            if (borderRadius != null && borderRadius !== '') {
                 styles.borderRadius = this.formatSizeValue(borderRadius);
             }
 
             // Effects
-            const boxShadow = this.getBoundPropValue('boxShadow');
+            const boxShadow = this.getStyleValue('boxShadow');
             if (boxShadow && boxShadow !== 'none') {
                 styles.boxShadow = boxShadow;
             }
 
-            const opacity = this.getBoundPropValue('opacity');
+            const opacity = this.getStyleValue('opacity');
             if (opacity != null && opacity !== '') {
                 styles.opacity = opacity;
             }
@@ -397,6 +399,18 @@ export default {
 
     methods: {
         resolveIconClass,
+
+        /**
+         * Read a style prop with fallback to cssStyle.
+         * Priority: bound prop value > individual prop > platform cssStyle
+         * This ensures Insight's Style panel (which writes to cssStyle) works
+         * even when the cssStyle→props sync hasn't fired yet.
+         */
+        getStyleValue(propName) {
+            const propVal = this.getBoundPropValue(propName);
+            if (propVal != null && propVal !== '') return propVal;
+            return this.props.cssStyle?.[propName] ?? null;
+        },
 
         // ═══════════════════════════════════════════════════════════════════
         // CSS STYLE SYNCHRONIZATION METHODS
