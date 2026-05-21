@@ -63,12 +63,6 @@ import { resolveIconClass } from '@goodt-common/utils';
 import { meta } from './descriptor';
 import { varBindingsMixin } from './mixins/varBindingsMixin';
 import TiptapEditor from './components/TiptapEditor.vue';
-import {
-    formatPropForCss,
-    buildCssStyleFromProps,
-    computePropUpdatesFromCssStyle,
-    getCssKeyForProp
-} from './utils/cssStyleSync';
 
 export default {
     name: 'ElemText',
@@ -335,66 +329,6 @@ export default {
             }
         },
 
-        // ═══════════════════════════════════════════════════════════════════
-        // CSS STYLE SYNCHRONIZATION WATCHERS
-        // Two-way sync between individual props and platform's cssStyle
-        // ═══════════════════════════════════════════════════════════════════
-
-        // Typography props → cssStyle
-        'props.color': { handler(val) { this.syncPropToCssStyle('color', val); }, deep: true },
-        'props.fontSize': { handler(val) { this.syncPropToCssStyle('fontSize', val); }, deep: true },
-        'props.fontWeight': { handler(val) { this.syncPropToCssStyle('fontWeight', val); }, deep: true },
-        'props.fontFamily': { handler(val) { this.syncPropToCssStyle('fontFamily', val); }, deep: true },
-        'props.textAlign': { handler(val) { this.syncPropToCssStyle('textAlign', val); }, deep: true },
-        'props.lineHeight': { handler(val) { this.syncPropToCssStyle('lineHeight', val); }, deep: true },
-        'props.letterSpacing': { handler(val) { this.syncPropToCssStyle('letterSpacing', val); }, deep: true },
-        'props.textTransform': { handler(val) { this.syncPropToCssStyle('textTransform', val); }, deep: true },
-        'props.textDecoration': { handler(val) { this.syncPropToCssStyle('textDecoration', val); }, deep: true },
-
-        // Background props → cssStyle
-        'props.backgroundColor': { handler(val) { this.syncPropToCssStyle('backgroundColor', val); }, deep: true },
-
-        // Spacing props → cssStyle
-        'props.padding': { handler(val) { this.syncPropToCssStyle('padding', val); }, deep: true },
-        'props.margin': { handler(val) { this.syncPropToCssStyle('margin', val); }, deep: true },
-
-        // Border props → cssStyle
-        'props.borderColor': { handler(val) { this.syncPropToCssStyle('borderColor', val); }, deep: true },
-        'props.borderWidth': { handler(val) { this.syncPropToCssStyle('borderWidth', val); }, deep: true },
-        'props.borderStyle': { handler(val) { this.syncPropToCssStyle('borderStyle', val); }, deep: true },
-        'props.borderRadius': { handler(val) { this.syncPropToCssStyle('borderRadius', val); }, deep: true },
-
-        // Effects props → cssStyle
-        'props.opacity': { handler(val) { this.syncPropToCssStyle('opacity', val); }, deep: true },
-        'props.boxShadow': { handler(val) { this.syncPropToCssStyle('boxShadow', val); }, deep: true },
-        'props.textShadow': { handler(val) { this.syncPropToCssStyle('textShadow', val); }, deep: true },
-
-        // textAutoResize → cssStyle (Figma parity)
-        'props.textAutoResize': {
-            handler(newVal) {
-                this.syncTextAutoResizeToCssStyle(newVal);
-            }
-        },
-
-        // cssStyle → individual props (reverse sync)
-        'props.cssStyle': {
-            handler(newCssStyle) {
-                this.syncCssStyleToProps(newCssStyle);
-            },
-            deep: true
-        }
-    },
-
-    /**
-     * Initialize sync flags and perform initial cssStyle synchronization
-     */
-    created() {
-        // Flags to prevent infinite sync loops
-        this._syncingToCssStyle = false;
-        this._syncingFromCssStyle = false;
-
-        // Initial sync: merge our props into cssStyle (cssStyle has priority)
-        this.initialSyncToCssStyle();
     },
 
     methods: {
@@ -410,106 +344,6 @@ export default {
             const propVal = this.getBoundPropValue(propName);
             if (propVal != null && propVal !== '') return propVal;
             return this.props.cssStyle?.[propName] ?? null;
-        },
-
-        // ═══════════════════════════════════════════════════════════════════
-        // CSS STYLE SYNCHRONIZATION METHODS
-        // ═══════════════════════════════════════════════════════════════════
-
-        /**
-         * Initial sync: merge our props into cssStyle
-         * Called once in created() hook
-         * Priority: cssStyle values take precedence over props
-         */
-        initialSyncToCssStyle() {
-            // Build cssStyle from our current props
-            const propsStyle = buildCssStyleFromProps(this.props);
-            const currentCssStyle = this.props.cssStyle || {};
-
-            // Merge: cssStyle has priority (it may have user edits from platform panel)
-            const merged = { ...propsStyle, ...currentCssStyle };
-
-            // Only update if there's a difference
-            if (JSON.stringify(merged) !== JSON.stringify(currentCssStyle)) {
-                this._syncingToCssStyle = true;
-                this.$set(this.props, 'cssStyle', merged);
-                this.propChanged('cssStyle');
-                this.$nextTick(() => {
-                    this._syncingToCssStyle = false;
-                });
-            }
-
-            // Also sync cssStyle → props for any values that were in cssStyle but not in props
-            if (Object.keys(currentCssStyle).length > 0) {
-                this._syncingFromCssStyle = true;
-                const updates = computePropUpdatesFromCssStyle(currentCssStyle, this.props);
-                for (const [propName, value] of Object.entries(updates)) {
-                    this.$set(this.props, propName, value);
-                    this.propChanged(propName);
-                }
-                this.$nextTick(() => {
-                    this._syncingFromCssStyle = false;
-                });
-            }
-        },
-
-        /**
-         * Sync a single prop change to cssStyle
-         * Called by watchers when individual props change
-         */
-        syncPropToCssStyle(propName, value) {
-            // Prevent infinite loop
-            if (this._syncingFromCssStyle) { return; }
-
-            const cssKey = getCssKeyForProp(propName);
-            if (cssKey == null) { return; }
-
-            const formatted = formatPropForCss(propName, value);
-            const currentCssStyle = this.props.cssStyle || {};
-
-            // Check if update is needed
-            if (formatted == null && !(cssKey in currentCssStyle)) { return; }
-            if (currentCssStyle[cssKey] === formatted) { return; }
-
-            this._syncingToCssStyle = true;
-
-            const newCssStyle = { ...currentCssStyle };
-            if (formatted != null) {
-                newCssStyle[cssKey] = formatted;
-            } else {
-                delete newCssStyle[cssKey];
-            }
-
-            this.$set(this.props, 'cssStyle', newCssStyle);
-            this.propChanged('cssStyle');
-
-            this.$nextTick(() => {
-                this._syncingToCssStyle = false;
-            });
-        },
-
-        /**
-         * Sync cssStyle changes back to individual props
-         * Called when platform's "Style" panel modifies cssStyle
-         */
-        syncCssStyleToProps(cssStyle) {
-            // Prevent infinite loop
-            if (this._syncingToCssStyle) { return; }
-            if (cssStyle == null) { return; }
-
-            const updates = computePropUpdatesFromCssStyle(cssStyle, this.props);
-            if (Object.keys(updates).length === 0) { return; }
-
-            this._syncingFromCssStyle = true;
-
-            for (const [propName, value] of Object.entries(updates)) {
-                this.$set(this.props, propName, value);
-                this.propChanged(propName);
-            }
-
-            this.$nextTick(() => {
-                this._syncingFromCssStyle = false;
-            });
         },
 
         formatSizeValue(val) {
@@ -553,24 +387,6 @@ export default {
         onChange(html) {
             this.props.html = html;
             this.propChanged('html');
-        },
-
-        /**
-         * Sync textAutoResize prop to cssStyle
-         * When WIDTH_AND_HEIGHT: add white-space: nowrap to prevent wrapping
-         * When NONE or HEIGHT: remove white-space from cssStyle
-         */
-        syncTextAutoResizeToCssStyle(textAutoResize) {
-            const cssStyle = { ...(this.props.cssStyle || {}) };
-
-            if (textAutoResize === 'WIDTH_AND_HEIGHT') {
-                cssStyle['white-space'] = 'nowrap';
-            } else {
-                delete cssStyle['white-space'];
-            }
-
-            this.$set(this.props, 'cssStyle', cssStyle);
-            this.propChanged('cssStyle');
         },
 
         // ═══════════════════════════════════════════════════════════════════
