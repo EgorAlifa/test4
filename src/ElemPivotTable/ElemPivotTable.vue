@@ -1257,7 +1257,8 @@ export default {
             filterAlias = null,
             limit = null,
             tableMaps = this.tableMaps,
-            startIndex = null
+            startIndex = null,
+            columnSortOptions: columnSortOverride = null
         } = {}) {
             if (this.fetchRowsUseCancel) {
                 this.cancelRequests(RequestType.ROWS);
@@ -1295,7 +1296,19 @@ export default {
                 limit
             }));
             this.appendDimensionExplicitSort(request, settings);
-            this.appendPlayerValuesSort(request);
+            if (columnSortOverride?.isUsed) {
+                const { level, sortDesc: colSortDesc } = columnSortOverride;
+                const valueField = this.playerValues[level];
+                const sortName = valueField?.sortAlias || valueField?.dataAlias;
+                if (sortName) {
+                    request.query.sortAdd({
+                        name: sortName,
+                        direction: colSortDesc ? this.QuerySortDirection.DESC : this.QuerySortDirection.ASC
+                    });
+                }
+            } else {
+                this.appendPlayerValuesSort(request);
+            }
             this.appendDimensionDefaultSort(request, settings);
             try {
                 const result = await request.send();
@@ -2314,12 +2327,13 @@ export default {
                     return;
                 }
 
+                const effectiveColumnSort = this.resolveEffectiveColumnSortOptions();
                 const {
                     rowCount,
                     rows: columnTotalData,
                     result,
                     map: { rowsPaths = [], rowsHeap: RowsTotalHeap }
-                } = await this.fetchRows();
+                } = await this.fetchRows({ columnSortOptions: effectiveColumnSort });
                 const names = rowsPaths.map(([name]) => name);
                 const paginationDataPromise =
                     names.length > 0 ? this.fetchPaginationData(rowsPaths.map(([name]) => name)) : Promise.resolve([]);
@@ -3645,9 +3659,10 @@ export default {
             }
 
             const rowPath =
-                [CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW].includes(cell.type) && Array.isArray(cell.path)
+                this.resolveRowPathByRowIndex(rowIndex)
+                ?? ([CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW].includes(cell.type) && Array.isArray(cell.path)
                     ? cell.path
-                    : this.resolveRowPathByRowIndex(rowIndex);
+                    : []);
             const columnPath =
                 [CellsTypes.COLUMN, CellsTypes.TITLE].includes(cell.type) && Array.isArray(cell.path)
                     ? cell.path
@@ -4554,7 +4569,8 @@ export default {
                 this.columnSortOptions.isTotal = false;
                 this.flatSortField = this.playerValues[valuesPopoverLevel];
             }
-            if (isFlat && isSort) {
+            if (isSort && (isFlat || this.isPagType)) {
+                this.page = 1;
                 await this.loadSlicedData();
             }
             await this.buildData();
