@@ -18,18 +18,20 @@ export const resolveCsv = ({ csvDelimiter, csvRows, csvHeaders }) => {
 };
 
 /**
- * @param {file} string
+ * @param {string} file
  * @param {import('@goodt-common/utils').FileDownloadOptions} options
  * @param {Window} [target=window]
  */
 export const downloadEncodedCsvAsFile = (file, options, target = window) => {
-    const csvContent = `data:csv;charset=utf-8,%EF%BB%BF${encodeURI(file)}`;
     const { document } = target;
     const { filename } = options;
+    const blob = new Blob(['﻿' + file], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('download', filename);
-    link.setAttribute('href', csvContent);
+    link.setAttribute('href', url);
     document.body.appendChild(link);
     link.click();
     link.remove();
+    URL.revokeObjectURL(url);
 };
