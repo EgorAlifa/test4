@@ -234,6 +234,10 @@ export const descriptor = () => ({
             type: String,
             default: '#4f6aff'
         },
+        calHighlightToday: {
+            type: Boolean,
+            default: true
+        },
         calTodayBg: {
             type: String,
             default: '#eef0ff'
