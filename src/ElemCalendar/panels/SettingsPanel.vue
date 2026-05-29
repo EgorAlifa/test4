@@ -394,6 +394,12 @@
                     </div>
                 </label>
                 <label class="toggle-row">
+                    <span class="toggle-row__label">Выделять «Сегодня»</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calHighlightToday !== false }" @click="toggleBool('calHighlightToday')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <label class="toggle-row">
                     <span class="toggle-row__label">Кнопка «Сегодня»</span>
                     <div class="toggle" :class="{ 'toggle--on': props.calShowTodayBtn }" @click="toggleBool('calShowTodayBtn')">
                         <div class="toggle__thumb" />

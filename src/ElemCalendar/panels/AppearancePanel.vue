@@ -52,12 +52,8 @@
                     <ui-input-cp prop="calBg">Фон виджета</ui-input-cp>
                     <ui-input-cp prop="calCellBg">Фон ячейки</ui-input-cp>
                     <ui-input-cp prop="calAccentColor">Акцент</ui-input-cp>
-                    <div class="p-row" style="margin-bottom:4px">
-                        <span class="p-label">Выделять «Сегодня»</span>
-                        <div class="toggle" :class="{ 'toggle--on': props.calHighlightToday !== false }" @click="toggleBool('calHighlightToday')" />
-                    </div>
-                    <ui-input-cp v-if="props.calHighlightToday !== false" prop="calTodayBg">Фон «Сегодня»</ui-input-cp>
-                    <ui-input-cp v-if="props.calHighlightToday !== false" prop="calTodayColor">Число «Сегодня»</ui-input-cp>
+                    <ui-input-cp prop="calTodayBg">Фон «Сегодня»</ui-input-cp>
+                    <ui-input-cp prop="calTodayColor">Число «Сегодня»</ui-input-cp>
                     <ui-input-cp prop="calSelectedBg">Фон выделения</ui-input-cp>
                     <ui-input-cp prop="calSelectedColor">Текст выделения</ui-input-cp>
                     <ui-input-cp prop="calWeekendColor">Выходные</ui-input-cp>
@@ -572,11 +568,4 @@ export default {
 .shadow-chip:hover { border-color: #a5b4fc; color: #4f6aff; }
 .shadow-chip--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; }
 
-/* ── Toggle row ───────────────────────────────────────────────── */
-.p-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.p-label { font-size: 12px; font-weight: 500; color: #334155; flex: 1; }
-.toggle { width: 36px; height: 20px; border-radius: 10px; background: #e2e8f0; position: relative; flex-shrink: 0; transition: background 0.18s; cursor: pointer; }
-.toggle--on { background: #4f6aff; }
-.toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.18); transition: transform 0.18s; }
-.toggle--on::after { transform: translateX(16px); }
 </style>
