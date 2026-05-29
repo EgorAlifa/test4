@@ -238,10 +238,10 @@
                         v-for="day in weekDays"
                         :key="day.key"
                         class="elem-cal__week-col-hd"
-                        :class="{ 'elem-cal__week-col-hd--today': day.isToday, 'elem-cal__week-col-hd--weekend': day.isWeekend }"
+                        :class="{ 'elem-cal__week-col-hd--today': day.isToday && todayHighlight, 'elem-cal__week-col-hd--weekend': day.isWeekend }"
                         @click="drillDown(day)">
                         <div class="elem-cal__week-dow">{{ locale.weekdaysShort[day.dow] }}</div>
-                        <div class="elem-cal__week-num" :class="{ 'elem-cal__week-num--today': day.isToday }">{{ day.d }}</div>
+                        <div class="elem-cal__week-num" :class="{ 'elem-cal__week-num--today': day.isToday && todayHighlight }">{{ day.d }}</div>
                     </div>
                 </div>
                 <div class="elem-cal__week-body">
@@ -255,7 +255,7 @@
                             v-for="day in weekDays"
                             :key="day.key"
                             class="elem-cal__week-col"
-                            :class="{ 'elem-cal__week-col--today': day.isToday }"
+                            :class="{ 'elem-cal__week-col--today': day.isToday && todayHighlight }"
                             @click="onWeekColClick(day, $event)">
                             <div v-for="h in 24" :key="h" class="elem-cal__hour-slot" />
                             <div
@@ -281,9 +281,9 @@
                     <div class="elem-cal__time-gutter" />
                     <div
                         class="elem-cal__week-col-hd elem-cal__week-col-hd--single"
-                        :class="{ 'elem-cal__week-col-hd--today': dayViewDay && dayViewDay.isToday }">
+                        :class="{ 'elem-cal__week-col-hd--today': dayViewDay && dayViewDay.isToday && todayHighlight }">
                         <div class="elem-cal__week-dow">{{ dayViewDay ? locale.weekdays[dayViewDay.dow] : '' }}</div>
-                        <div class="elem-cal__week-num" :class="{ 'elem-cal__week-num--today': dayViewDay && dayViewDay.isToday }">
+                        <div class="elem-cal__week-num" :class="{ 'elem-cal__week-num--today': dayViewDay && dayViewDay.isToday && todayHighlight }">
                             {{ dayViewDay ? dayViewDay.d : '' }}
                         </div>
                     </div>
@@ -293,7 +293,7 @@
                         <div v-for="h in 24" :key="h" class="elem-cal__hour-label">{{ formatHour(h - 1) }}</div>
                     </div>
                     <div class="elem-cal__week-cols">
-                        <div class="elem-cal__week-col elem-cal__week-col--full" :class="{ 'elem-cal__week-col--today': dayViewDay && dayViewDay.isToday }">
+                        <div class="elem-cal__week-col elem-cal__week-col--full" :class="{ 'elem-cal__week-col--today': dayViewDay && dayViewDay.isToday && todayHighlight }">
                             <div v-for="h in 24" :key="h" class="elem-cal__hour-slot" />
                             <div
                                 v-for="ev in dayViewEvents"
@@ -317,7 +317,7 @@
                 {{ locale.noEvents }}
             </div>
             <div v-for="group in agendaGroups" :key="group.key" class="elem-cal__agenda-group">
-                <div class="elem-cal__agenda-date" :class="{ 'elem-cal__agenda-date--today': group.isToday }">
+                <div class="elem-cal__agenda-date" :class="{ 'elem-cal__agenda-date--today': group.isToday && todayHighlight }">
                     <span class="elem-cal__agenda-day-num">{{ group.d }}</span>
                     <span class="elem-cal__agenda-day-name">{{ group.dayName }}</span>
                 </div>
@@ -480,6 +480,10 @@ export default {
     }),
 
     computed: {
+        todayHighlight() {
+            return this.props.calHighlightToday !== false;
+        },
+
         locale() {
             return LOCALE_DATA[this.props.calLocale] || LOCALE_DATA.ru;
         },
@@ -1245,7 +1249,7 @@ export default {
 
             return {
                 'elem-cal__cell--other-month': !day.inMonth,
-                'elem-cal__cell--today': day.isToday,
+                'elem-cal__cell--today': day.isToday && this.todayHighlight,
                 'elem-cal__cell--weekend': day.isWeekend,
                 'elem-cal__cell--selected': isSelected || isRangeStart || isRangeEnd,
                 'elem-cal__cell--range-start': isRangeStart,
@@ -1307,7 +1311,7 @@ export default {
         },
 
         heatmapCellStyle(day) {
-            if (day.isToday) return {};
+            if (day.isToday && this.todayHighlight) return {};
             const bg = this._heatmapBg(day.iso);
             return bg ? { background: bg } : {};
         },
@@ -1341,7 +1345,7 @@ export default {
         yearDayClass(cell) {
             const mode = this.props.calSelectionMode || SELECTION_MODES.SINGLE;
             return {
-                'elem-cal__year-day--today': cell.isToday,
+                'elem-cal__year-day--today': cell.isToday && this.todayHighlight,
                 'elem-cal__year-day--weekend': cell.isWeekend,
                 'elem-cal__year-day--has-events': cell.events.length > 0,
                 'elem-cal__year-day--multi-selected': mode === SELECTION_MODES.MULTI && this.selectedDates.includes(cell.iso)
@@ -1349,7 +1353,7 @@ export default {
         },
 
         yearDayStyle(cell) {
-            if (cell.isToday) return {};
+            if (cell.isToday && this.todayHighlight) return {};
             const bg = this._heatmapBg(cell.iso);
             return bg ? { background: bg } : {};
         },
@@ -1357,7 +1361,7 @@ export default {
         // ── Compact mode methods ─────────────────────────────────────
         compactCellClass(cell) {
             return {
-                'compact__day--today':       cell.isToday,
+                'compact__day--today':       cell.isToday && this.todayHighlight,
                 'compact__day--weekend':     cell.isWeekend,
                 'compact__day--range-start': cell.isStart,
                 'compact__day--range-end':   cell.isEnd,
