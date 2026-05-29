@@ -3659,9 +3659,10 @@ export default {
             }
 
             const rowPath =
-                [CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW].includes(cell.type) && Array.isArray(cell.path)
+                this.resolveRowPathByRowIndex(rowIndex)
+                ?? ([CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW].includes(cell.type) && Array.isArray(cell.path)
                     ? cell.path
-                    : this.resolveRowPathByRowIndex(rowIndex);
+                    : []);
             const columnPath =
                 [CellsTypes.COLUMN, CellsTypes.TITLE].includes(cell.type) && Array.isArray(cell.path)
                     ? cell.path
