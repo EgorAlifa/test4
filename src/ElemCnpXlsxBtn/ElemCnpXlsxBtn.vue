@@ -47,8 +47,8 @@ export default {
                 cancel();
             }
         },
-        then() {
-            this.downloadData();
+        async then() {
+            await this.downloadData();
             this.isBeingPrepared = false;
         }
     },
@@ -271,8 +271,6 @@ export default {
                 downloadXLSX: { bookName }
             } = this.props;
 
-            this.isBeingPrepared = true;
-
             const fileName = bookName || DEFAULT_BOOK_NAME;
 
             const csvFormat = resolveCsv({
@@ -283,15 +281,18 @@ export default {
 
             return downloadEncodedCsvAsFile(csvFormat, { filename: `${fileName}.${bookType}` });
         },
-        downloadData() {
+        async downloadData() {
             const { isCsvOtherDelimiter, bookType } = this.props;
 
-            if (isCsvOtherDelimiter && bookType === BookType.CSV) {
-                this.downloadCsv();
-                return;
+            try {
+                if (isCsvOtherDelimiter && bookType === BookType.CSV) {
+                    this.downloadCsv();
+                } else {
+                    await this.downloadXlsx();
+                }
+            } catch (e) {
+                console.error('[ElemCnpXlsxBtn] export failed', e);
             }
-
-            this.downloadXlsx();
         },
         onClickDownloadBtn() {
             this.isButtonClicked = true;
