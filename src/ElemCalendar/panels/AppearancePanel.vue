@@ -332,6 +332,11 @@ export default {
             return val.startsWith('#') && val.length <= 9 ? val : '#4f6aff';
         },
 
+        toggleBool(key) {
+            this.props[key] = !this.props[key];
+            this.propChanged(key);
+        },
+
         parseRadius(val) { return parseInt(val, 10) || 0; },
 
         applyCustomFont() {
