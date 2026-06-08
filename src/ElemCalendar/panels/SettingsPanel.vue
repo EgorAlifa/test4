@@ -673,17 +673,17 @@ export default {
 .mode-card__desc { font-size: 10px; color: #94a3b8; line-height: 1.4; }
 
 /* ── Sections ─────────────────────────────────────────────────── */
-.p-section--inline-row {
-    padding-bottom: 4px;
-    margin-bottom: 4px;
-}
-
 .p-section {
-    margin-bottom: 8px;
-    padding-bottom: 8px;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
     border-bottom: 1px solid #f1f5f9;
 }
 .p-section:last-child { border-bottom: none; margin-bottom: 0; }
+
+.p-section--inline-row {
+    padding-bottom: 2px;
+    margin-bottom: 2px;
+}
 
 .p-section__label {
     font-size: 10px;
@@ -691,7 +691,7 @@ export default {
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #94a3b8;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 /* ── Row ──────────────────────────────────────────────────────── */
@@ -700,7 +700,7 @@ export default {
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 .p-row--col { flex-direction: column; align-items: flex-start; }
 .p-row__label { font-size: 12px; font-weight: 500; color: #334155; }
