@@ -78,104 +78,120 @@
 
             <!-- ── Статические события ──────────────────────────────── -->
             <div class="p-section">
-                <div class="p-section__label">Статические события</div>
-                <div class="p-hint" style="margin-bottom:10px">
-                    События, заданные вручную. Отображаются поверх данных из источника.
-                    Цвет задаётся здесь — не зависит от источника.
-                </div>
-
-                <div v-if="localEvents.length === 0" class="ev-empty">Нет событий</div>
-
-                <div class="ev-list">
-                    <div v-for="(ev, idx) in localEvents" :key="idx" class="ev-card">
-                        <div class="ev-card__head">
-                            <button class="ev-card__color-btn" @click="openEvColor(idx)">
-                                <span class="ev-card__color-dot" :style="{ background: ev.color || '#4f6aff' }"></span>
-                                <input
-                                    :ref="`evclr_${idx}`"
-                                    type="color"
-                                    class="ev-card__color-input"
-                                    :value="ev.color || '#4f6aff'"
-                                    @input="updateEvent(idx, 'color', $event.target.value)" />
-                            </button>
-                            <input
-                                class="ev-card__title-input"
-                                type="text"
-                                placeholder="Название события"
-                                :value="ev.title"
-                                @input="updateEvent(idx, 'title', $event.target.value)" />
-                            <button class="ev-card__del" @click="removeEvent(idx)">✕</button>
-                        </div>
-                        <div class="ev-card__row">
-                            <div class="ev-card__field">
-                                <div class="ev-card__field-label">Дата начала</div>
-                                <input type="date" class="ev-card__input" :value="ev.date"
-                                    @input="updateEvent(idx, 'date', $event.target.value)" />
-                            </div>
-                            <div class="ev-card__field">
-                                <div class="ev-card__field-label">Дата конца</div>
-                                <input type="date" class="ev-card__input" :value="ev.endDate"
-                                    @input="updateEvent(idx, 'endDate', $event.target.value)" />
-                            </div>
-                        </div>
-                        <div class="ev-card__row">
-                            <div class="ev-card__field">
-                                <div class="ev-card__field-label">Начало</div>
-                                <input type="time" class="ev-card__input" :value="ev.startTime"
-                                    @input="updateEvent(idx, 'startTime', $event.target.value)" />
-                            </div>
-                            <div class="ev-card__field">
-                                <div class="ev-card__field-label">Конец</div>
-                                <input type="time" class="ev-card__input" :value="ev.endTime"
-                                    @input="updateEvent(idx, 'endTime', $event.target.value)" />
-                            </div>
-                        </div>
-                        <textarea class="ev-card__desc-input" rows="2" placeholder="Описание (необязательно)"
-                            :value="ev.desc"
-                            @input="updateEvent(idx, 'desc', $event.target.value)"></textarea>
+                <label class="toggle-section-row" @click="showStaticEvents = !showStaticEvents">
+                    <span class="p-section__label" style="margin-bottom:0">Статические события</span>
+                    <div class="toggle" :class="{ 'toggle--on': showStaticEvents }">
+                        <div class="toggle__thumb" />
                     </div>
-                </div>
+                </label>
 
-                <button class="ev-add-btn" @click="addEvent">+ Добавить событие</button>
+                <template v-if="showStaticEvents">
+                    <div class="p-hint" style="margin-bottom:10px">
+                        События, заданные вручную. Отображаются поверх данных из источника.
+                        Цвет задаётся здесь — не зависит от источника.
+                    </div>
 
-                <div class="ev-actions">
-                    <button class="ev-action-btn ev-action-btn--demo" @click="loadDemoEvents">Демо-события</button>
-                    <button class="ev-action-btn ev-action-btn--clear" @click="clearAllEvents">Очистить</button>
-                </div>
+                    <div v-if="localEvents.length === 0" class="ev-empty">Нет событий</div>
+
+                    <div class="ev-list">
+                        <div v-for="(ev, idx) in localEvents" :key="idx" class="ev-card">
+                            <div class="ev-card__head">
+                                <button class="ev-card__color-btn" @click="openEvColor(idx)">
+                                    <span class="ev-card__color-dot" :style="{ background: ev.color || '#4f6aff' }"></span>
+                                    <input
+                                        :ref="`evclr_${idx}`"
+                                        type="color"
+                                        class="ev-card__color-input"
+                                        :value="ev.color || '#4f6aff'"
+                                        @input="updateEvent(idx, 'color', $event.target.value)" />
+                                </button>
+                                <input
+                                    class="ev-card__title-input"
+                                    type="text"
+                                    placeholder="Название события"
+                                    :value="ev.title"
+                                    @input="updateEvent(idx, 'title', $event.target.value)" />
+                                <button class="ev-card__del" @click="removeEvent(idx)">✕</button>
+                            </div>
+                            <div class="ev-card__row">
+                                <div class="ev-card__field">
+                                    <div class="ev-card__field-label">Дата начала</div>
+                                    <input type="date" class="ev-card__input" :value="ev.date"
+                                        @input="updateEvent(idx, 'date', $event.target.value)" />
+                                </div>
+                                <div class="ev-card__field">
+                                    <div class="ev-card__field-label">Дата конца</div>
+                                    <input type="date" class="ev-card__input" :value="ev.endDate"
+                                        @input="updateEvent(idx, 'endDate', $event.target.value)" />
+                                </div>
+                            </div>
+                            <div class="ev-card__row">
+                                <div class="ev-card__field">
+                                    <div class="ev-card__field-label">Начало</div>
+                                    <input type="time" class="ev-card__input" :value="ev.startTime"
+                                        @input="updateEvent(idx, 'startTime', $event.target.value)" />
+                                </div>
+                                <div class="ev-card__field">
+                                    <div class="ev-card__field-label">Конец</div>
+                                    <input type="time" class="ev-card__input" :value="ev.endTime"
+                                        @input="updateEvent(idx, 'endTime', $event.target.value)" />
+                                </div>
+                            </div>
+                            <textarea class="ev-card__desc-input" rows="2" placeholder="Описание (необязательно)"
+                                :value="ev.desc"
+                                @input="updateEvent(idx, 'desc', $event.target.value)"></textarea>
+                        </div>
+                    </div>
+
+                    <button class="ev-add-btn" @click="addEvent">+ Добавить событие</button>
+
+                    <div class="ev-actions">
+                        <button class="ev-action-btn ev-action-btn--demo" @click="loadDemoEvents">Демо-события</button>
+                        <button class="ev-action-btn ev-action-btn--clear" @click="clearAllEvents">Очистить</button>
+                    </div>
+                </template>
             </div>
 
             <!-- ── Статическая метрика ──────────────────────────────── -->
             <div class="p-section">
-                <div class="p-section__label">Статическая метрика</div>
-                <div class="p-hint" style="margin-bottom:10px">
-                    Тепловая карта по вручную заданным значениям.
-                    Задайте дату и числовое значение для каждой точки.
-                </div>
-
-                <div v-if="localMetric.length === 0" class="ev-empty">Нет точек</div>
-
-                <div class="metric-list">
-                    <div v-for="(pt, idx) in localMetric" :key="idx" class="metric-card">
-                        <div class="ev-card__field" style="flex:1">
-                            <div class="ev-card__field-label">Дата</div>
-                            <input type="date" class="ev-card__input" :value="pt.date"
-                                @input="updateMetricPoint(idx, 'date', $event.target.value)" />
-                        </div>
-                        <div class="ev-card__field" style="flex:1">
-                            <div class="ev-card__field-label">Значение</div>
-                            <input type="number" class="ev-card__input" :value="pt.value"
-                                @input="updateMetricPoint(idx, 'value', $event.target.value)" />
-                        </div>
-                        <button class="ev-card__del" style="align-self:flex-end;margin-bottom:2px" @click="removeMetricPoint(idx)">✕</button>
+                <label class="toggle-section-row" @click="showStaticMetric = !showStaticMetric">
+                    <span class="p-section__label" style="margin-bottom:0">Статическая метрика</span>
+                    <div class="toggle" :class="{ 'toggle--on': showStaticMetric }">
+                        <div class="toggle__thumb" />
                     </div>
-                </div>
+                </label>
 
-                <button class="ev-add-btn" @click="addMetricPoint">+ Добавить точку</button>
+                <template v-if="showStaticMetric">
+                    <div class="p-hint" style="margin-bottom:10px">
+                        Тепловая карта по вручную заданным значениям.
+                        Задайте дату и числовое значение для каждой точки.
+                    </div>
 
-                <div class="ev-actions">
-                    <button class="ev-action-btn ev-action-btn--demo" @click="loadDemoMetric">Демо-данные</button>
-                    <button class="ev-action-btn ev-action-btn--clear" @click="clearMetric">Очистить</button>
-                </div>
+                    <div v-if="localMetric.length === 0" class="ev-empty">Нет точек</div>
+
+                    <div class="metric-list">
+                        <div v-for="(pt, idx) in localMetric" :key="idx" class="metric-card">
+                            <div class="ev-card__field" style="flex:1">
+                                <div class="ev-card__field-label">Дата</div>
+                                <input type="date" class="ev-card__input" :value="pt.date"
+                                    @input="updateMetricPoint(idx, 'date', $event.target.value)" />
+                            </div>
+                            <div class="ev-card__field" style="flex:1">
+                                <div class="ev-card__field-label">Значение</div>
+                                <input type="number" class="ev-card__input" :value="pt.value"
+                                    @input="updateMetricPoint(idx, 'value', $event.target.value)" />
+                            </div>
+                            <button class="ev-card__del" style="align-self:flex-end;margin-bottom:2px" @click="removeMetricPoint(idx)">✕</button>
+                        </div>
+                    </div>
+
+                    <button class="ev-add-btn" @click="addMetricPoint">+ Добавить точку</button>
+
+                    <div class="ev-actions">
+                        <button class="ev-action-btn ev-action-btn--demo" @click="loadDemoMetric">Демо-данные</button>
+                        <button class="ev-action-btn ev-action-btn--clear" @click="clearMetric">Очистить</button>
+                    </div>
+                </template>
             </div>
 
         </ui-container>
@@ -195,7 +211,9 @@ export default {
     data: () => ({
         ...PanelDatasetMixinTypes,
         localEvents: [],
-        localMetric: []
+        localMetric: [],
+        showStaticEvents: false,
+        showStaticMetric: false
     }),
 
     computed: {
@@ -216,7 +234,10 @@ export default {
             handler(val) {
                 try {
                     const parsed = val ? JSON.parse(val) : [];
-                    if (Array.isArray(parsed)) this.localEvents = parsed;
+                    if (Array.isArray(parsed)) {
+                        this.localEvents = parsed;
+                        if (parsed.length > 0) this.showStaticEvents = true;
+                    }
                 } catch (e) { /* keep current */ }
             }
         },
@@ -225,9 +246,12 @@ export default {
             handler(val) {
                 try {
                     const parsed = val ? JSON.parse(val) : [];
-                    if (Array.isArray(parsed)) this.localMetric = parsed;
-                    else if (parsed && typeof parsed === 'object') {
+                    if (Array.isArray(parsed)) {
+                        this.localMetric = parsed;
+                        if (parsed.length > 0) this.showStaticMetric = true;
+                    } else if (parsed && typeof parsed === 'object') {
                         this.localMetric = Object.entries(parsed).map(([date, value]) => ({ date, value: String(value) }));
+                        this.showStaticMetric = true;
                     }
                 } catch (e) { /* keep current */ }
             }
@@ -360,6 +384,38 @@ export default {
     border-radius: 3px;
     font-size: 10px;
 }
+
+/* ── Toggle section header ────────────────────────────────────── */
+.toggle-section-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    margin-bottom: 0;
+    user-select: none;
+}
+.toggle {
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: #e2e8f0;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.18s;
+}
+.toggle--on { background: #4f6aff; }
+.toggle__thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    transition: transform 0.18s;
+}
+.toggle--on .toggle__thumb { transform: translateX(16px); }
 
 /* ── How-it-works block ─────────────────────────────────────── */
 .flow-block {
