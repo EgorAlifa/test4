@@ -311,7 +311,14 @@
                 </label>
 
                 <template v-if="props.calCompactShowPresets !== false">
-                    <div class="p-row">
+                    <label class="toggle-row" style="margin-bottom:8px">
+                        <span class="toggle-row__label">Кнопка «Сегодня» в шапке</span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calCompactShowToday !== false }" @click="toggleBool('calCompactShowToday')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
+
+                    <div class="p-row" style="margin-bottom:10px">
                         <span class="p-row__label">Колонок в ряду</span>
                         <input
                             type="number"
@@ -322,10 +329,11 @@
                             @change="set('calPresetsColumns', Math.max(0, parseInt($event.target.value) || 0))" />
                     </div>
 
-                    <div class="p-section__label" style="margin-top:10px;margin-bottom:4px">Список пресетов</div>
-                    <div v-if="localPresets.length === 0" class="preset-empty">Нет пресетов</div>
+                    <div class="p-section__label" style="margin-bottom:4px">Список пресетов</div>
+                    <div v-if="localPresets.length === 0" class="preset-empty">Пресеты не добавлены</div>
                     <div class="preset-cards">
                         <div v-for="(p, idx) in localPresets" :key="`${p.key}-${idx}`" class="preset-card">
+                            <span class="preset-badge" :class="presetBadgeClass(p)">{{ presetTypeShort(p) }}</span>
                             <input
                                 class="preset-card__input"
                                 type="text"
@@ -334,22 +342,58 @@
                             <button class="preset-card__del" @click="removePreset(idx)">✕</button>
                         </div>
                     </div>
-                    <div class="preset-add-row">
-                        <select v-model="presetToAdd" class="preset-add-select">
-                            <option value="">— добавить пресет —</option>
-                            <option v-for="p in availableToAdd" :key="p.key" :value="p.key">{{ p.label }}</option>
-                        </select>
-                        <button v-if="presetToAdd" class="preset-add-btn" @click="addPreset">+</button>
-                    </div>
-                    <div class="preset-actions">
+
+                    <!-- inline add form -->
+                    <div v-if="!addingPreset" class="preset-add-trigger">
+                        <button class="preset-add-trigger-btn" @click="startAddPreset">+ Добавить пресет</button>
                         <button class="preset-action-btn" @click="resetPresetsToDefault">По умолчанию</button>
                     </div>
-                    <label class="toggle-row" style="margin-top:8px">
-                        <span class="toggle-row__label">Кнопка «Сегодня» в шапке</span>
-                        <div class="toggle" :class="{ 'toggle--on': props.calCompactShowToday !== false }" @click="toggleBool('calCompactShowToday')">
-                            <div class="toggle__thumb" />
+                    <div v-else class="preset-add-form">
+                        <input
+                            class="preset-add-form__input"
+                            type="text"
+                            v-model="newPreset.label"
+                            placeholder="Название кнопки" />
+                        <div class="p-row" style="margin-top:6px">
+                            <span class="p-row__label">Тип</span>
+                            <div class="seg-ctrl">
+                                <button
+                                    v-for="t in presetTypes"
+                                    :key="t.value"
+                                    class="seg-ctrl__btn"
+                                    :class="{ 'seg-ctrl__btn--active': newPreset.type === t.value }"
+                                    @click="newPreset.type = t.value">{{ t.label }}</button>
+                            </div>
                         </div>
-                    </label>
+                        <template v-if="newPreset.type === 'builtin'">
+                            <div class="p-hint" style="margin-bottom:4px">Готовые пресеты рассчитываются относительно текущей даты.</div>
+                            <select v-model="newPreset.builtinKey" class="preset-add-select">
+                                <option v-for="b in builtinOptions" :key="b.key" :value="b.key">{{ b.label }}</option>
+                            </select>
+                        </template>
+                        <template v-if="newPreset.type === 'fixed'">
+                            <div class="p-hint" style="margin-bottom:4px">Фиксированный диапазон — даты не меняются.</div>
+                            <div class="p-row">
+                                <span class="p-row__label">Начало</span>
+                                <input type="date" class="date-input" v-model="newPreset.start" />
+                            </div>
+                            <div class="p-row">
+                                <span class="p-row__label">Конец</span>
+                                <input type="date" class="date-input" v-model="newPreset.end" />
+                            </div>
+                        </template>
+                        <template v-if="newPreset.type === 'relative'">
+                            <div class="p-hint" style="margin-bottom:4px">Диапазон «последние N дней» от сегодня.</div>
+                            <div class="p-row">
+                                <span class="p-row__label">Количество дней</span>
+                                <input type="number" class="time-input" min="1" max="3650" v-model.number="newPreset.daysBack" />
+                            </div>
+                        </template>
+                        <div class="preset-add-form__actions">
+                            <button class="preset-action-btn preset-action-btn--primary" @click="confirmAddPreset">Добавить</button>
+                            <button class="preset-action-btn" @click="cancelAddPreset">Отмена</button>
+                        </div>
+                    </div>
                 </template>
             </div>
 
@@ -449,29 +493,35 @@ export default {
             { value: 'range', label: 'Диапазон' },
             { value: 'multi', label: 'Несколько' }
         ],
-        allPresets: [
-            { key: 'today',      label: 'Сегодня' },
-            { key: 'yesterday',  label: 'Вчера' },
-            { key: 'week',       label: 'Эта неделя' },
-            { key: 'last_week',  label: 'Пр. неделя' },
-            { key: 'month',      label: 'Этот месяц' },
-            { key: 'last_month', label: 'Пр. месяц' },
-            { key: 'd7',         label: '7 дней' },
-            { key: 'd30',        label: '30 дней' },
-            { key: 'd90',        label: '90 дней' },
-            { key: 'year',       label: 'Этот год' }
-        ],
         localPresets: [],
-        presetToAdd: ''
+        addingPreset: false,
+        newPreset: { label: '', type: 'builtin', builtinKey: 'today', start: '', end: '', daysBack: 7 }
     }),
 
     computed: {
         storeVarNames() {
             try { return Object.keys(store.state || {}).filter(Boolean).sort(); } catch (e) { return []; }
         },
-        availableToAdd() {
-            const activeKeys = new Set(this.localPresets.map(p => p.key));
-            return this.allPresets.filter(p => !activeKeys.has(p.key));
+        builtinOptions() {
+            return [
+                { key: 'today',      label: 'Сегодня' },
+                { key: 'yesterday',  label: 'Вчера' },
+                { key: 'week',       label: 'Эта неделя' },
+                { key: 'last_week',  label: 'Прошлая неделя' },
+                { key: 'month',      label: 'Этот месяц' },
+                { key: 'last_month', label: 'Прошлый месяц' },
+                { key: 'd7',         label: '7 дней' },
+                { key: 'd30',        label: '30 дней' },
+                { key: 'd90',        label: '90 дней' },
+                { key: 'year',       label: 'Этот год' }
+            ];
+        },
+        presetTypes() {
+            return [
+                { value: 'builtin',  label: 'Готовый' },
+                { value: 'fixed',    label: 'Даты' },
+                { value: 'relative', label: 'N дней' }
+            ];
         },
         chipsGapNum() {
             const m = (this.props.calCompactChipsGap || '').match(/^([\d.]+)/);
@@ -491,7 +541,7 @@ export default {
                     const parsed = val ? JSON.parse(val) : null;
                     if (Array.isArray(parsed)) { this.localPresets = parsed; return; }
                 } catch (e) { /* fall through */ }
-                this.localPresets = [...this.allPresets];
+                this.localPresets = this.builtinOptions.map(b => ({ key: b.key, label: b.label }));
             }
         }
     },
@@ -543,16 +593,51 @@ export default {
             this._savePresets();
         },
 
-        addPreset() {
-            const def = this.allPresets.find(p => p.key === this.presetToAdd);
-            if (!def) return;
-            this.localPresets = [...this.localPresets, { key: def.key, label: def.label }];
-            this.presetToAdd = '';
+        startAddPreset() {
+            this.newPreset = { label: '', type: 'builtin', builtinKey: 'today', start: '', end: '', daysBack: 7 };
+            this.addingPreset = true;
+        },
+
+        confirmAddPreset() {
+            const type = this.newPreset.type;
+            let preset;
+            if (type === 'builtin') {
+                const def = this.builtinOptions.find(b => b.key === this.newPreset.builtinKey);
+                const label = this.newPreset.label.trim() || (def ? def.label : this.newPreset.builtinKey);
+                preset = { key: this.newPreset.builtinKey, label };
+            } else if (type === 'fixed') {
+                const start = this.newPreset.start;
+                if (!start) return;
+                const label = this.newPreset.label.trim() || `${start} — ${this.newPreset.end || start}`;
+                preset = { key: `fixed_${Date.now()}`, label, start, end: this.newPreset.end || start };
+            } else {
+                const days = Math.max(1, this.newPreset.daysBack || 7);
+                const label = this.newPreset.label.trim() || `Последние ${days} дней`;
+                preset = { key: `rel_${Date.now()}`, label, daysBack: days };
+            }
+            this.localPresets = [...this.localPresets, preset];
             this._savePresets();
+            this.addingPreset = false;
+        },
+
+        cancelAddPreset() {
+            this.addingPreset = false;
+        },
+
+        presetBadgeClass(p) {
+            if (p.start != null) return 'preset-badge--fixed';
+            if (p.daysBack != null) return 'preset-badge--relative';
+            return 'preset-badge--builtin';
+        },
+
+        presetTypeShort(p) {
+            if (p.start != null) return 'дата';
+            if (p.daysBack != null) return `-${p.daysBack}д`;
+            return 'авто';
         },
 
         resetPresetsToDefault() {
-            this.localPresets = [...this.allPresets];
+            this.localPresets = this.builtinOptions.map(b => ({ key: b.key, label: b.label }));
             this._savePresets();
         },
 
@@ -769,11 +854,7 @@ export default {
     margin-bottom: 6px;
 }
 
-/* ── Preset management (static-events style) ──────────────────── */
-.preset-section {
-    margin-top: 6px;
-    margin-bottom: 8px;
-}
+/* ── Preset management ────────────────────────────────────────── */
 .preset-empty {
     font-size: 11px;
     color: #94a3b8;
@@ -795,6 +876,18 @@ export default {
     border-radius: 6px;
     padding: 4px 6px;
 }
+.preset-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1.5;
+}
+.preset-badge--builtin  { background: #eef1ff; color: #4f6aff; }
+.preset-badge--fixed    { background: #f0fdf4; color: #16a34a; }
+.preset-badge--relative { background: #fff7ed; color: #ea580c; }
 .preset-card__input {
     flex: 1;
     font-size: 11px;
@@ -818,54 +911,95 @@ export default {
     transition: color 0.12s;
 }
 .preset-card__del:hover { color: #ef4444; }
-.preset-add-row {
+
+.preset-add-trigger {
     display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-bottom: 4px;
+    gap: 6px;
+    margin-top: 2px;
 }
-.preset-add-select {
+.preset-add-trigger-btn {
     flex: 1;
     font-size: 11px;
-    border: 1px solid #e2e8f0;
-    border-radius: 5px;
-    padding: 3px 6px;
+    font-weight: 600;
+    border: 1.5px dashed #cbd5e1;
+    border-radius: 6px;
+    background: transparent;
+    color: #4f6aff;
+    padding: 5px 0;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s;
+}
+.preset-add-trigger-btn:hover { border-color: #4f6aff; background: #f5f7ff; }
+
+.preset-add-form {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px;
+    margin-top: 4px;
+}
+.preset-add-form__input {
+    width: 100%;
+    font-size: 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 5px 8px;
     background: #fff;
     color: #334155;
     outline: none;
-    min-width: 0;
+    box-sizing: border-box;
+    transition: border-color 0.12s;
+}
+.preset-add-form__input:focus { border-color: #4f6aff; }
+.preset-add-form__input::placeholder { color: #94a3b8; }
+.preset-add-form__actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+.preset-add-select {
+    width: 100%;
+    font-size: 11px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 5px 8px;
+    background: #fff;
+    color: #334155;
+    outline: none;
+    box-sizing: border-box;
     cursor: pointer;
 }
-.preset-add-btn {
-    border: 1px solid #4f6aff;
-    border-radius: 5px;
-    background: #4f6aff;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 700;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    cursor: pointer;
-    flex-shrink: 0;
-    line-height: 1;
-    transition: opacity 0.12s;
+.date-input {
+    font-size: 11px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 4px 8px;
+    background: #fff;
+    color: #334155;
+    outline: none;
+    transition: border-color 0.12s;
 }
-.preset-add-btn:hover { opacity: 0.85; }
-.preset-actions { display: flex; gap: 6px; }
+.date-input:focus { border-color: #4f6aff; }
+
 .preset-action-btn {
     flex: 1;
     font-size: 11px;
     font-weight: 600;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
-    background: #f8fafc;
+    background: #fff;
     color: #64748b;
     padding: 5px 0;
     cursor: pointer;
     transition: background 0.12s;
 }
-.preset-action-btn:hover { background: #e2e8f0; }
+.preset-action-btn:hover { background: #f1f5f9; }
+.preset-action-btn--primary {
+    background: #4f6aff;
+    border-color: #4f6aff;
+    color: #fff;
+}
+.preset-action-btn--primary:hover { background: #3b55e6; }
 
 /* ── Number + unit control ────────────────────────────────────── */
 .num-unit-ctrl {

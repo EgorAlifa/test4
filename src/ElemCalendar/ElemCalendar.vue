@@ -1430,7 +1430,13 @@ export default {
             const t = this.today;
             const y = t.getFullYear(), m = t.getMonth(), d = t.getDate();
             let s, e;
-            if (p.key === 'today')      { s = isoDate(t); e = s; }
+            if (p.start != null) {
+                s = p.start;
+                e = p.end || p.start;
+            } else if (p.daysBack != null) {
+                s = isoDate(addDays(t, -(p.daysBack - 1)));
+                e = isoDate(t);
+            } else if (p.key === 'today')      { s = isoDate(t); e = s; }
             else if (p.key === 'yesterday') { const y2 = addDays(t, -1); s = isoDate(y2); e = s; }
             else if (p.key === 'week')  { const w = startOfWeek(t, this.firstDay); s = isoDate(w); e = isoDate(addDays(w, 6)); }
             else if (p.key === 'last_week') { const w = startOfWeek(addDays(t, -7), this.firstDay); s = isoDate(w); e = isoDate(addDays(w, 6)); }
