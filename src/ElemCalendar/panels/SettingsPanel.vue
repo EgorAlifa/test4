@@ -355,6 +355,12 @@
                         <div class="toggle__thumb" />
                     </div>
                 </label>
+                <label class="toggle-row">
+                    <span class="toggle-row__label">Тултип при наведении</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowTooltip }" @click="toggleBool('calCompactShowTooltip')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
                 <div v-if="props.calCompactShowBottom !== false" class="p-row">
                     <span class="p-row__label">Отступ между чипами</span>
                     <div class="num-unit-ctrl">
@@ -426,6 +432,32 @@
                 <div v-if="props.calHeatmapEnabled" class="p-hint" style="margin:0 0 6px">
                     Привяжите столбец метрики в панели <strong>Данные</strong> (поле «Столбец метрики»),
                     затем укажите переменную хранилища или статичный JSON с данными метрики.
+                </div>
+                <label class="toggle-row">
+                    <span class="toggle-row__label">Кнопка «Сброс» выделения</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calShowResetBtn !== false }" @click="toggleBool('calShowResetBtn')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <label class="toggle-row">
+                    <span class="toggle-row__label">Тултип при наведении</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calShowTooltip !== false }" @click="toggleBool('calShowTooltip')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+            </div>
+
+            <!-- ── Событие обновления ──────────────────────────────────── -->
+            <div class="p-section">
+                <div class="p-section__label">Обновление данных</div>
+                <ui-input
+                    :value="props.events && props.events.refresh"
+                    :list="`store-list-${_uid}`"
+                    @input="setRefreshEvent($event)">
+                    Событие для обновления данных
+                </ui-input>
+                <div class="p-hint" style="margin:2px 0 8px">
+                    Имя события от другого виджета. При получении этого события виджет перезагрузит данные из источника.
                 </div>
             </div>
 
@@ -582,6 +614,13 @@ export default {
 
         setChipsGapUnit(unit) {
             this.set('calCompactChipsGap', `${this.chipsGapNum}${unit}`);
+        },
+
+        setRefreshEvent(val) {
+            const ev = this.props.events ? { ...this.props.events } : {};
+            ev.refresh = val;
+            this.props.events = ev;
+            this.propChanged('events');
         }
     }
 };

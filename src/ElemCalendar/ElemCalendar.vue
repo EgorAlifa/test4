@@ -36,6 +36,12 @@
                     {{ locale.views[v] }}
                 </button>
             </div>
+            <button
+                v-if="props.calShowResetBtn !== false && props.calSelectionMode !== 'none'"
+                class="elem-cal__reset-btn"
+                @click="onFullReset">
+                Сброс
+            </button>
         </div>
 
         <!-- ── Compact mode (dashboard date-range picker) ───────────── -->
@@ -97,7 +103,7 @@
                         class="compact__day"
                         :class="compactCellClass(cell)"
                         @click="onCompactDayClick(cell)"
-                        @mouseenter="onCompactDayHover(cell)"
+                        @mouseenter="onCompactDayHover(cell, $event)"
                         @mouseleave="onCompactDayLeave">
                         {{ cell.d }}
                     </div>
@@ -355,7 +361,7 @@
                             :class="yearDayClass(cell)"
                             :style="yearDayStyle(cell)"
                             @click="goToDay(cell)"
-                            @mouseenter="showTooltip(cell, $event)"
+                            @mouseenter="props.calShowTooltip !== false && showTooltip(cell, $event)"
                             @mouseleave="hideTooltip">{{ cell.d }}</div>
                         <div v-else :key="`ye-${month.m}-${ci}`" class="elem-cal__year-day elem-cal__year-day--empty" />
                     </template>
@@ -364,7 +370,7 @@
         </div>
 
         <!-- ── Tooltip ───────────────────────────────────────────────── -->
-        <div v-if="tooltipDay" class="elem-cal__tooltip" :style="tooltipStyle">
+        <div v-if="tooltipDay && props.calShowTooltip !== false" class="elem-cal__tooltip" :style="tooltipStyle">
             <div class="elem-cal__tooltip-date">{{ tooltipDateLabel }}</div>
             <div v-if="tooltipMetricVal !== null" class="elem-cal__tooltip-metric">
                 <span class="elem-cal__tooltip-metric-icon">◉</span> {{ tooltipMetricVal }}
@@ -454,6 +460,14 @@ export default {
             this.buildDimensionValues();
         }
     },
+    subscribe: [
+        {
+            event: 'refresh',
+            handler() {
+                this.loadData();
+            }
+        }
+    ],
 
     data: () => ({
         ...ElemDatasetMixinTypes,
@@ -938,6 +952,25 @@ export default {
     },
 
     watch: {
+        isEditorMode(val, oldVal) {
+            if (oldVal === true && val === false) {
+                this.rangeStart = null;
+                this.rangeEnd = null;
+                this.hoveredDate = null;
+                this.selectedDates = [];
+                this.compactClickStep = 0;
+                this.compactHoverCell = null;
+                this.activePreset = null;
+                this.props.calSelectedDate = '';
+                this.props.calSelectedStart = '';
+                this.props.calSelectedEnd = '';
+                this.props.calSelectedDates = '';
+                this.propChanged('calSelectedDate');
+                this.propChanged('calSelectedStart');
+                this.propChanged('calSelectedEnd');
+                this.propChanged('calSelectedDates');
+            }
+        },
         'props.calView'(v) {
             if (v && Object.values(VIEWS).includes(v)) this.currentView = v;
         },
@@ -1103,6 +1136,11 @@ export default {
             if (mode === SELECTION_MODES.NONE) return;
 
             if (mode === SELECTION_MODES.SINGLE) {
+                const selDate = this.selectedDate;
+                if (selDate && isSameDay(day.date, selDate)) {
+                    this._commitDate('');
+                    return;
+                }
                 this._commitDate(day.iso);
             } else if (mode === SELECTION_MODES.RANGE) {
                 if (!this.rangeStart || (this.rangeStart && this.rangeEnd)) {
@@ -1134,7 +1172,7 @@ export default {
             if (this.props.calSelectionMode === SELECTION_MODES.RANGE && this.rangeStart && !this.rangeEnd) {
                 this.hoveredDate = day.date;
             }
-            if (event) this.showTooltip(day, event);
+            if (event && this.props.calShowTooltip !== false) this.showTooltip(day, event);
         },
 
         onWeekColClick(day) {
@@ -1143,6 +1181,21 @@ export default {
 
         onEventClick(ev) {
             this.$eventTrigger && this.$eventTrigger('calendarEventClick', ev);
+        },
+
+        onFullReset() {
+            const mode = this.props.calSelectionMode || SELECTION_MODES.SINGLE;
+            if (mode === SELECTION_MODES.MULTI) {
+                this.selectedDates = [];
+                this._commitMultiple([]);
+            } else if (mode === SELECTION_MODES.RANGE) {
+                this.rangeStart = null;
+                this.rangeEnd = null;
+                this.hoveredDate = null;
+                this._commitRange('', '');
+            } else {
+                this._commitDate('');
+            }
         },
 
         _commitDate(iso) {
@@ -1448,9 +1501,12 @@ export default {
             }
         },
 
-        onCompactDayHover(cell) {
+        onCompactDayHover(cell, event) {
             if (this.compactClickStep === 1) {
                 this.compactHoverCell = cell;
+            }
+            if (this.props.calCompactShowTooltip && event) {
+                this.showTooltip({ ...cell, events: this._eventsForDay(cell.date) }, event);
             }
         },
 
@@ -1458,6 +1514,7 @@ export default {
             if (this.compactClickStep === 1) {
                 this.compactHoverCell = null;
             }
+            if (this.props.calCompactShowTooltip) this.hideTooltip();
         },
 
         onCompactReset() {
@@ -1697,6 +1754,21 @@ export default {
     font-weight: 700;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
+
+.elem-cal__reset-btn {
+    padding: 5px 12px;
+    border: 1.5px solid rgba(255, 255, 255, 0.35);
+    border-radius: 20px;
+    background: transparent;
+    color: inherit;
+    font-size: 0.92em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.elem-cal__reset-btn:hover { background: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.6); }
 
 /* ── Month view ──────────────────────────────────────────────────── */
 .elem-cal__month {
