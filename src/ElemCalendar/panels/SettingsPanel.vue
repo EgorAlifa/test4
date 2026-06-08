@@ -57,37 +57,28 @@
 
             <!-- ── Вид (только полный режим) ─────────────────────────── -->
             <div v-if="props.calMode !== 'compact'" class="p-section">
-                <div class="p-section__label">Вид и поведение</div>
-
-                <div class="p-row p-row--col">
-                    <span class="p-row__label">Вид по умолчанию</span>
-                    <div class="seg-ctrl seg-ctrl--wrap">
-                        <button
-                            v-for="v in viewOptions"
-                            :key="v.value"
-                            class="seg-ctrl__btn"
-                            :class="{ 'seg-ctrl__btn--active': props.calView === v.value }"
-                            @click="setView(v.value)">
+                <div class="p-section__label">Виды</div>
+                <div class="p-hint" style="margin-bottom:6px">Включите нужные виды и отметьте один как открываемый по умолчанию.</div>
+                <div class="view-list">
+                    <div v-for="v in allViews" :key="v.value" class="view-row">
+                        <div
+                            class="view-row__toggle"
+                            :class="{ 'view-row__toggle--on': isViewAvailable(v.value) }"
+                            @click="toggleView(v.value, !isViewAvailable(v.value))">
+                            <div class="view-row__toggle-thumb" />
+                        </div>
+                        <span
+                            class="view-row__label"
+                            :class="{ 'view-row__label--off': !isViewAvailable(v.value) }">
                             {{ v.label }}
+                        </span>
+                        <button
+                            class="view-row__default"
+                            :class="{ 'view-row__default--active': props.calView === v.value }"
+                            :disabled="!isViewAvailable(v.value)"
+                            @click="setView(v.value)">
+                            {{ props.calView === v.value ? 'по умолч.' : 'сделать' }}
                         </button>
-                    </div>
-                </div>
-
-                <div class="p-row p-row--col">
-                    <span class="p-row__label">Доступные виды</span>
-                    <div class="check-group">
-                        <label
-                            v-for="v in allViews"
-                            :key="v.value"
-                            class="check-item">
-                            <input
-                                type="checkbox"
-                                class="check-item__input"
-                                :checked="isViewAvailable(v.value)"
-                                @change="toggleView(v.value, $event.target.checked)" />
-                            <span class="check-item__box" />
-                            <span class="check-item__label">{{ v.label }}</span>
-                        </label>
                     </div>
                 </div>
             </div>
@@ -484,13 +475,6 @@ export default {
             { value: 'agenda', label: 'Список' },
             { value: 'year', label: 'Год' }
         ],
-        viewOptions: [
-            { value: 'month', label: 'Месяц' },
-            { value: 'week', label: 'Неделя' },
-            { value: 'day', label: 'День' },
-            { value: 'agenda', label: 'Список' },
-            { value: 'year', label: 'Год' }
-        ],
         localeOptions: [
             { value: 'ru', label: 'RU' },
             { value: 'en', label: 'EN' }
@@ -751,42 +735,60 @@ export default {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* ── Checkbox group ───────────────────────────────────────────── */
-.check-group { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 4px; }
-.check-item {
+/* ── View list ────────────────────────────────────────────────── */
+.view-list { display: flex; flex-direction: column; gap: 2px; }
+.view-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    user-select: none;
+    gap: 8px;
+    padding: 4px 0;
 }
-.check-item__input { display: none; }
-.check-item__box {
-    width: 16px;
+.view-row__toggle {
+    width: 28px;
     height: 16px;
-    border: 1.5px solid #cbd5e1;
-    border-radius: 4px;
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-radius: 8px;
+    background: #e2e8f0;
+    position: relative;
     flex-shrink: 0;
-    transition: border-color 0.12s, background 0.12s;
+    cursor: pointer;
+    transition: background 0.18s;
 }
-.check-item__input:checked + .check-item__box {
-    background: #4f6aff;
-    border-color: #4f6aff;
+.view-row__toggle--on { background: #4f6aff; }
+.view-row__toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    transition: transform 0.18s;
 }
-.check-item__input:checked + .check-item__box::after {
-    content: '';
-    width: 9px;
-    height: 6px;
-    border-left: 2px solid #fff;
-    border-bottom: 2px solid #fff;
-    transform: rotate(-45deg) translateY(-1px);
-    display: block;
+.view-row__toggle--on .view-row__toggle-thumb { transform: translateX(12px); }
+.view-row__label {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 500;
+    color: #334155;
+    transition: color 0.12s;
 }
-.check-item__label { font-size: 12px; color: #334155; font-weight: 500; }
+.view-row__label--off { color: #cbd5e1; }
+.view-row__default {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 5px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, color 0.12s;
+    white-space: nowrap;
+}
+.view-row__default:not(:disabled):hover { border-color: #a5b4fc; color: #4f6aff; background: #f5f7ff; }
+.view-row__default--active { border-color: #4f6aff; background: #eef1ff; color: #4f6aff; }
+.view-row__default:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ── Toggle ───────────────────────────────────────────────────── */
 .toggle-row {

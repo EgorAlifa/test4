@@ -29,6 +29,62 @@
                 </button>
             </div>
 
+            <!-- ── Тултип ──────────────────────────────────────────────── -->
+            <div class="p-section">
+                <div class="p-section__label">Тултип</div>
+
+                <!-- Live preview -->
+                <div class="tooltip-preview-wrap">
+                    <div
+                        class="tooltip-preview"
+                        :style="{
+                            background: props.calTooltipBg || '#1e293b',
+                            color: props.calTooltipColor || '#f1f5f9',
+                            borderRadius: props.calTooltipRadius || '10px'
+                        }">
+                        <div class="tooltip-preview__date">Понедельник, 9 июня 2025</div>
+                        <div class="tooltip-preview__events">
+                            <div class="tooltip-preview__ev">
+                                <span class="tooltip-preview__dot" :style="{ background: props.calAccentColor || '#4f6aff' }" />
+                                <span class="tooltip-preview__title">Встреча с командой</span>
+                            </div>
+                            <div class="tooltip-preview__ev">
+                                <span class="tooltip-preview__dot" :style="{ background: '#10b981' }" />
+                                <span class="tooltip-preview__title">Дедлайн проекта</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tooltip-controls">
+                    <div class="tooltip-color-row">
+                        <ui-input-cp prop="calTooltipBg">Фон</ui-input-cp>
+                        <ui-input-cp prop="calTooltipColor">Текст</ui-input-cp>
+                    </div>
+                    <div class="p-field-label" style="margin-top:8px">Скругление</div>
+                    <div class="slider-row">
+                        <input type="range" class="slider" min="0" max="24"
+                            :value="parseRadius(props.calTooltipRadius)"
+                            @input="set('calTooltipRadius', $event.target.value + 'px')" />
+                        <span class="slider-val">{{ props.calTooltipRadius || '10px' }}</span>
+                    </div>
+                    <div class="tooltip-toggles">
+                        <label class="toggle-row">
+                            <span class="toggle-row__label">Полный</span>
+                            <div class="toggle" :class="{ 'toggle--on': props.calShowTooltip !== false }" @click="toggleBool('calShowTooltip')">
+                                <div class="toggle__thumb" />
+                            </div>
+                        </label>
+                        <label class="toggle-row">
+                            <span class="toggle-row__label">Компактный</span>
+                            <div class="toggle" :class="{ 'toggle--on': props.calCompactShowTooltip }" @click="toggleBool('calCompactShowTooltip')">
+                                <div class="toggle__thumb" />
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
             <!-- ── Цвета ───────────────────────────────────────────── -->
             <div class="p-section">
                 <div class="p-section__label">Цвета</div>
@@ -187,59 +243,6 @@
                 </div>
             </div>
 
-            <!-- ── Тултип ──────────────────────────────────────────────── -->
-            <div class="p-section">
-                <div class="p-section__label">Тултип</div>
-
-                <!-- Live preview -->
-                <div class="tooltip-preview-wrap">
-                    <div
-                        class="tooltip-preview"
-                        :style="{
-                            background: props.calTooltipBg || '#1e293b',
-                            color: props.calTooltipColor || '#f1f5f9',
-                            borderRadius: props.calTooltipRadius || '10px'
-                        }">
-                        <div class="tooltip-preview__date">Понедельник, 9 июня 2025</div>
-                        <div class="tooltip-preview__events">
-                            <div class="tooltip-preview__ev">
-                                <span class="tooltip-preview__dot" :style="{ background: props.calAccentColor || '#4f6aff' }" />
-                                <span class="tooltip-preview__title">Встреча с командой</span>
-                            </div>
-                            <div class="tooltip-preview__ev">
-                                <span class="tooltip-preview__dot" :style="{ background: '#10b981' }" />
-                                <span class="tooltip-preview__title">Дедлайн проекта</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <ui-input-cp prop="calTooltipBg">Фон тултипа</ui-input-cp>
-                <ui-input-cp prop="calTooltipColor">Цвет текста</ui-input-cp>
-
-                <div class="p-field-label" style="margin-top:10px">Скругление тултипа</div>
-                <div class="slider-row">
-                    <input type="range" class="slider" min="0" max="24"
-                        :value="parseRadius(props.calTooltipRadius)"
-                        @input="set('calTooltipRadius', $event.target.value + 'px')" />
-                    <span class="slider-val">{{ props.calTooltipRadius || '10px' }}</span>
-                </div>
-
-                <div class="p-field-label" style="margin-top:12px">Показывать тултип</div>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Полный календарь</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calShowTooltip !== false }" @click="toggleBool('calShowTooltip')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Компактный календарь</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowTooltip }" @click="toggleBool('calCompactShowTooltip')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
-            </div>
-
         </ui-container>
     </w-panel>
 </template>
@@ -250,7 +253,7 @@ import { PRESETS, buildDemoEvents } from '../constants';
 
 export default {
     extends: Panel,
-    meta: { name: 'Оформление', icon: 'palette' },
+    meta: { name: 'Оформление', icon: 'brush' },
 
     data: () => ({
         presets: PRESETS,
@@ -625,6 +628,12 @@ export default {
 .shadow-chip { padding: 4px 10px; border-radius: 20px; border: 1.5px solid #e2e8f0; background: #fff; color: #64748b; font-size: 11px; font-weight: 600; cursor: pointer; transition: border-color 0.12s, color 0.12s, background 0.12s; }
 .shadow-chip:hover { border-color: #a5b4fc; color: #4f6aff; }
 .shadow-chip--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; }
+
+/* ── Tooltip controls ─────────────────────────────────────────── */
+.tooltip-controls { display: flex; flex-direction: column; }
+.tooltip-color-row { display: flex; gap: 0; flex-direction: column; }
+.tooltip-toggles { display: flex; gap: 0 16px; flex-wrap: wrap; margin-top: 6px; }
+.tooltip-toggles .toggle-row { flex: 1; min-width: 120px; }
 
 /* ── Tooltip preview ──────────────────────────────────────────── */
 .tooltip-preview-wrap {

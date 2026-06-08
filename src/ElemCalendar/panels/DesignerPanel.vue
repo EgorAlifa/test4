@@ -196,7 +196,7 @@ const BLOCKS = [
 
 export default {
     extends: Panel,
-    meta: { name: 'Я дизайнер', icon: 'code-tags' },
+    meta: { name: 'Я дизайнер', icon: 'palette' },
 
     data: () => ({
         blocks: BLOCKS,
