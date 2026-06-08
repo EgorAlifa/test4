@@ -1157,6 +1157,7 @@ export default {
                     } else {
                         this.rangeEnd = day.date;
                     }
+                    this.hoveredDate = null;
                     this._commitRange(isoDate(this.rangeStart), isoDate(this.rangeEnd));
                 }
             } else if (mode === SELECTION_MODES.MULTI) {

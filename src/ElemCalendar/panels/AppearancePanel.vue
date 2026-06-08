@@ -68,20 +68,19 @@
                             @input="set('calTooltipRadius', $event.target.value + 'px')" />
                         <span class="slider-val">{{ props.calTooltipRadius || '10px' }}</span>
                     </div>
-                    <div class="tooltip-toggles">
-                        <label class="toggle-row">
-                            <span class="toggle-row__label">Полный</span>
-                            <div class="toggle" :class="{ 'toggle--on': props.calShowTooltip !== false }" @click="toggleBool('calShowTooltip')">
-                                <div class="toggle__thumb" />
-                            </div>
-                        </label>
-                        <label class="toggle-row">
-                            <span class="toggle-row__label">Компактный</span>
-                            <div class="toggle" :class="{ 'toggle--on': props.calCompactShowTooltip }" @click="toggleBool('calCompactShowTooltip')">
-                                <div class="toggle__thumb" />
-                            </div>
-                        </label>
-                    </div>
+                    <div class="p-field-label" style="margin-top:8px">Показывать тултип</div>
+                    <label class="toggle-row">
+                        <span class="toggle-row__label">В полном календаре</span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calShowTooltip !== false }" @click="toggleBool('calShowTooltip')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
+                    <label class="toggle-row">
+                        <span class="toggle-row__label">В компактном виджете</span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calCompactShowTooltip }" @click="toggleBool('calCompactShowTooltip')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
                 </div>
             </div>
 
@@ -631,9 +630,6 @@ export default {
 
 /* ── Tooltip controls ─────────────────────────────────────────── */
 .tooltip-controls { display: flex; flex-direction: column; }
-.tooltip-color-row { display: flex; gap: 0; flex-direction: column; }
-.tooltip-toggles { display: flex; gap: 0 16px; flex-wrap: wrap; margin-top: 6px; }
-.tooltip-toggles .toggle-row { flex: 1; min-width: 120px; }
 
 /* ── Tooltip preview ──────────────────────────────────────────── */
 .tooltip-preview-wrap {
