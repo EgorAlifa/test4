@@ -25,7 +25,37 @@
                 </div>
             </div>
 
-            <!-- ── Вид ───────────────────────────────────────────────── -->
+            <!-- ── Общие параметры (язык + первый день) ─────────────── -->
+            <div class="p-section p-section--inline-row">
+                <div class="p-row">
+                    <span class="p-row__label">Язык</span>
+                    <div class="seg-ctrl">
+                        <button
+                            v-for="l in localeOptions"
+                            :key="l.value"
+                            class="seg-ctrl__btn"
+                            :class="{ 'seg-ctrl__btn--active': props.calLocale === l.value }"
+                            @click="setLocale(l.value)">
+                            {{ l.label }}
+                        </button>
+                    </div>
+                </div>
+                <div class="p-row">
+                    <span class="p-row__label">Первый день недели</span>
+                    <div class="seg-ctrl">
+                        <button
+                            class="seg-ctrl__btn"
+                            :class="{ 'seg-ctrl__btn--active': props.calFirstDay === 1 }"
+                            @click="set('calFirstDay', 1)">Пн</button>
+                        <button
+                            class="seg-ctrl__btn"
+                            :class="{ 'seg-ctrl__btn--active': props.calFirstDay === 0 }"
+                            @click="set('calFirstDay', 0)">Вс</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Вид (только полный режим) ─────────────────────────── -->
             <div v-if="props.calMode !== 'compact'" class="p-section">
                 <div class="p-section__label">Вид и поведение</div>
 
@@ -60,39 +90,11 @@
                         </label>
                     </div>
                 </div>
-
-                <div class="p-row">
-                    <span class="p-row__label">Язык</span>
-                    <div class="seg-ctrl">
-                        <button
-                            v-for="l in localeOptions"
-                            :key="l.value"
-                            class="seg-ctrl__btn"
-                            :class="{ 'seg-ctrl__btn--active': props.calLocale === l.value }"
-                            @click="setLocale(l.value)">
-                            {{ l.label }}
-                        </button>
-                    </div>
-                </div>
-
-                <div class="p-row">
-                    <span class="p-row__label">Первый день недели</span>
-                    <div class="seg-ctrl">
-                        <button
-                            class="seg-ctrl__btn"
-                            :class="{ 'seg-ctrl__btn--active': props.calFirstDay === 1 }"
-                            @click="set('calFirstDay', 1)">Пн</button>
-                        <button
-                            class="seg-ctrl__btn"
-                            :class="{ 'seg-ctrl__btn--active': props.calFirstDay === 0 }"
-                            @click="set('calFirstDay', 0)">Вс</button>
-                    </div>
-                </div>
             </div>
 
-            <!-- ── Выбор дат / Выход в хранилище ──────────────────────── -->
+            <!-- ── Переменные хранилища ───────────────────────────────── -->
             <div class="p-section">
-                <div class="p-section__label">Хранилище (выход)</div>
+                <div class="p-section__label">Переменные хранилища</div>
 
                 <!-- Compact mode: single or range -->
                 <template v-if="props.calMode === 'compact'">
@@ -247,39 +249,6 @@
                 </datalist>
             </div>
 
-            <!-- ── Настройки компактного режима ───────────────────── -->
-            <div v-if="props.calMode === 'compact'" class="p-section">
-                <div class="p-section__label">Параметры календаря</div>
-
-                <div class="p-row">
-                    <span class="p-row__label">Язык</span>
-                    <div class="seg-ctrl">
-                        <button
-                            v-for="l in localeOptions"
-                            :key="l.value"
-                            class="seg-ctrl__btn"
-                            :class="{ 'seg-ctrl__btn--active': props.calLocale === l.value }"
-                            @click="setLocale(l.value)">
-                            {{ l.label }}
-                        </button>
-                    </div>
-                </div>
-
-                <div class="p-row">
-                    <span class="p-row__label">Первый день недели</span>
-                    <div class="seg-ctrl">
-                        <button
-                            class="seg-ctrl__btn"
-                            :class="{ 'seg-ctrl__btn--active': props.calFirstDay === 1 }"
-                            @click="set('calFirstDay', 1)">Пн</button>
-                        <button
-                            class="seg-ctrl__btn"
-                            :class="{ 'seg-ctrl__btn--active': props.calFirstDay === 0 }"
-                            @click="set('calFirstDay', 0)">Вс</button>
-                    </div>
-                </div>
-            </div>
-
             <!-- ── Отображение (компактный режим) ──────────────────── -->
             <div v-if="props.calMode === 'compact'" class="p-section">
                 <div class="p-section__label">Элементы интерфейса</div>
@@ -297,26 +266,63 @@
                     </div>
                 </label>
                 <label class="toggle-row">
-                    <span class="toggle-row__label">Пресеты дат</span>
+                    <span class="toggle-row__label">Мини-календарь</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowCalendar !== false }" @click="toggleBool('calCompactShowCalendar')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <label class="toggle-row">
+                    <span class="toggle-row__label">Нижняя панель (ввод дат)</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowBottom !== false }" @click="toggleBool('calCompactShowBottom')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <div v-if="props.calCompactShowBottom !== false" class="p-row" style="margin-top:4px">
+                    <span class="p-row__label">Отступ между чипами</span>
+                    <div class="num-unit-ctrl">
+                        <input
+                            type="number"
+                            class="time-input num-unit-ctrl__num"
+                            min="0"
+                            step="0.5"
+                            :value="chipsGapNum"
+                            @change="setChipsGapNum($event.target.value)" />
+                        <div class="seg-ctrl">
+                            <button
+                                v-for="u in ['px', 'rem', 'em']"
+                                :key="u"
+                                class="seg-ctrl__btn"
+                                :class="{ 'seg-ctrl__btn--active': chipsGapUnit === u }"
+                                @click="setChipsGapUnit(u)">{{ u }}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Пресеты компактного режима ─────────────────────────── -->
+            <div v-if="props.calMode === 'compact'" class="p-section">
+                <div class="p-section__label">Кнопки-пресеты дат</div>
+
+                <label class="toggle-row" style="margin-bottom:8px">
+                    <span class="toggle-row__label">Показывать пресеты</span>
                     <div class="toggle" :class="{ 'toggle--on': props.calCompactShowPresets !== false }" @click="toggleBool('calCompactShowPresets')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
 
-                <!-- Preset columns -->
-                <div v-if="props.calCompactShowPresets !== false" class="p-row">
-                    <span class="p-row__label">Колонок в ряду</span>
-                    <input
-                        type="number"
-                        class="time-input"
-                        min="0"
-                        max="6"
-                        :value="props.calPresetsColumns != null ? props.calPresetsColumns : 3"
-                        @change="set('calPresetsColumns', Math.max(0, parseInt($event.target.value) || 0))" />
-                </div>
+                <template v-if="props.calCompactShowPresets !== false">
+                    <div class="p-row">
+                        <span class="p-row__label">Колонок в ряду</span>
+                        <input
+                            type="number"
+                            class="time-input"
+                            min="0"
+                            max="6"
+                            :value="props.calPresetsColumns != null ? props.calPresetsColumns : 3"
+                            @change="set('calPresetsColumns', Math.max(0, parseInt($event.target.value) || 0))" />
+                    </div>
 
-                <!-- Preset management list (static-events style) -->
-                <div v-if="props.calCompactShowPresets !== false" class="preset-section">
+                    <div class="p-section__label" style="margin-top:10px;margin-bottom:4px">Список пресетов</div>
                     <div v-if="localPresets.length === 0" class="preset-empty">Нет пресетов</div>
                     <div class="preset-cards">
                         <div v-for="(p, idx) in localPresets" :key="`${p.key}-${idx}`" class="preset-card">
@@ -338,49 +344,13 @@
                     <div class="preset-actions">
                         <button class="preset-action-btn" @click="resetPresetsToDefault">По умолчанию</button>
                     </div>
-                </div>
-
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Кнопка «Сегодня»</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowToday !== false }" @click="toggleBool('calCompactShowToday')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
-                <div class="p-hint" style="margin:0 0 6px">
-                    Дублирует пресет «Сегодня». Если он активен, кнопку можно скрыть.
-                </div>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Мини-календарь</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowCalendar !== false }" @click="toggleBool('calCompactShowCalendar')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Нижняя панель (ввод дат)</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowBottom !== false }" @click="toggleBool('calCompactShowBottom')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
-                <div v-if="props.calCompactShowBottom !== false" class="p-row">
-                    <span class="p-row__label">Отступ между чипами</span>
-                    <div class="num-unit-ctrl">
-                        <input
-                            type="number"
-                            class="time-input num-unit-ctrl__num"
-                            min="0"
-                            step="0.5"
-                            :value="chipsGapNum"
-                            @change="setChipsGapNum($event.target.value)" />
-                        <div class="seg-ctrl">
-                            <button
-                                v-for="u in ['px', 'rem', 'em']"
-                                :key="u"
-                                class="seg-ctrl__btn"
-                                :class="{ 'seg-ctrl__btn--active': chipsGapUnit === u }"
-                                @click="setChipsGapUnit(u)">{{ u }}</button>
+                    <label class="toggle-row" style="margin-top:8px">
+                        <span class="toggle-row__label">Кнопка «Сегодня» в шапке</span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calCompactShowToday !== false }" @click="toggleBool('calCompactShowToday')">
+                            <div class="toggle__thumb" />
                         </div>
-                    </div>
-                </div>
+                    </label>
+                </template>
             </div>
 
             <!-- ── Отображение (полный режим) ──────────────────────── -->
@@ -625,6 +595,11 @@ export default {
 .mode-card__desc { font-size: 10px; color: #94a3b8; line-height: 1.4; }
 
 /* ── Sections ─────────────────────────────────────────────────── */
+.p-section--inline-row {
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
 .p-section {
     margin-bottom: 16px;
     padding-bottom: 14px;
