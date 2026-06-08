@@ -25,7 +25,7 @@ export const descriptor = () => ({
         },
         calPresetsJson: {
             type: String,
-            default: '[{"key":"today","label":"Сегодня"},{"key":"yesterday","label":"Вчера"},{"key":"week","label":"Эта неделя"},{"key":"last_week","label":"Пр. неделя"},{"key":"month","label":"Этот месяц"},{"key":"last_month","label":"Пр. месяц"}]',
+            default: '[{"key":"yesterday","label":"Вчера"},{"key":"week","label":"Эта неделя"},{"key":"last_week","label":"Пр. неделя"},{"key":"month","label":"Этот месяц"},{"key":"last_month","label":"Пр. месяц"}]',
             label: 'Компактный режим: пресеты дат (JSON-массив [{key,label}])'
         },
         calCompactShowToday: {
