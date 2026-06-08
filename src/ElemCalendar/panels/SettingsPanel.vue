@@ -57,8 +57,7 @@
 
             <!-- ── Вид (только полный режим) ─────────────────────────── -->
             <div v-if="props.calMode !== 'compact'" class="p-section">
-                <div class="p-section__label">Виды</div>
-                <div class="p-hint" style="margin-bottom:6px">Включите нужные виды и отметьте один как открываемый по умолчанию.</div>
+                <div class="p-section__label">Виды календаря</div>
                 <div class="view-list">
                     <div v-for="v in allViews" :key="v.value" class="view-row">
                         <div
@@ -73,14 +72,16 @@
                             {{ v.label }}
                         </span>
                         <button
-                            class="view-row__default"
-                            :class="{ 'view-row__default--active': props.calView === v.value }"
+                            class="view-row__star"
+                            :class="{ 'view-row__star--active': props.calView === v.value }"
                             :disabled="!isViewAvailable(v.value)"
+                            title="Открывается по умолчанию"
                             @click="setView(v.value)">
-                            {{ props.calView === v.value ? 'по умолч.' : 'сделать' }}
+                            <i :class="props.calView === v.value ? 'mdi mdi-star' : 'mdi mdi-star-outline'" />
                         </button>
                     </div>
                 </div>
+                <div class="p-hint" style="margin-top:4px">Звёздочка — вид при открытии виджета</div>
             </div>
 
             <!-- ── Переменные хранилища ───────────────────────────────── -->
@@ -774,21 +775,20 @@ export default {
     transition: color 0.12s;
 }
 .view-row__label--off { color: #cbd5e1; }
-.view-row__default {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 5px;
-    border: 1px solid #e2e8f0;
-    background: #f8fafc;
-    color: #94a3b8;
+.view-row__star {
+    border: none;
+    background: transparent;
+    font-size: 16px;
+    line-height: 1;
+    color: #cbd5e1;
     cursor: pointer;
-    transition: border-color 0.12s, background 0.12s, color 0.12s;
-    white-space: nowrap;
+    padding: 0 2px;
+    flex-shrink: 0;
+    transition: color 0.12s, transform 0.1s;
 }
-.view-row__default:not(:disabled):hover { border-color: #a5b4fc; color: #4f6aff; background: #f5f7ff; }
-.view-row__default--active { border-color: #4f6aff; background: #eef1ff; color: #4f6aff; }
-.view-row__default:disabled { opacity: 0.35; cursor: not-allowed; }
+.view-row__star:not(:disabled):hover { color: #f59e0b; transform: scale(1.2); }
+.view-row__star--active { color: #f59e0b; }
+.view-row__star:disabled { opacity: 0.2; cursor: not-allowed; }
 
 /* ── Toggle ───────────────────────────────────────────────────── */
 .toggle-row {
