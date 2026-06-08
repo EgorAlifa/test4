@@ -535,7 +535,10 @@ export default {
                 '--cal-font-size':        p.calFontSize || '13px',
                 '--cal-font-weight':      p.calFontWeight || '400',
                 '--cal-letter-spacing':   p.calLetterSpacing || '0',
-                '--cal-text-transform':   p.calTextTransform || 'none'
+                '--cal-text-transform':   p.calTextTransform || 'none',
+                '--cal-tooltip-bg':       p.calTooltipBg || '#1e293b',
+                '--cal-tooltip-color':    p.calTooltipColor || '#f1f5f9',
+                '--cal-tooltip-radius':   p.calTooltipRadius || '10px'
             };
         },
 
@@ -2384,9 +2387,9 @@ export default {
     min-width: 165px;
     max-width: 245px;
     padding: 10px 12px;
-    background: #1e293b;
-    color: #f1f5f9;
-    border-radius: 10px;
+    background: var(--cal-tooltip-bg);
+    color: var(--cal-tooltip-color);
+    border-radius: var(--cal-tooltip-radius);
     box-shadow: 0 8px 32px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.14);
     font-size: 12px;
     line-height: 1.4;
@@ -2394,7 +2397,8 @@ export default {
 
 .elem-cal__tooltip-date {
     font-weight: 700;
-    color: #fff;
+    color: inherit;
+    opacity: 0.95;
     margin-bottom: 7px;
     font-size: 0.92em;
 }
@@ -2409,7 +2413,6 @@ export default {
     margin-bottom: 7px;
     font-size: 0.92em;
     font-weight: 700;
-    color: #e0e7ff;
 }
 .elem-cal__tooltip-metric-icon { color: var(--cal-accent); font-size: 0.85em; }
 
@@ -2422,9 +2425,9 @@ export default {
     font-size: 0.92em;
 }
 .elem-cal__tooltip-ev-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.elem-cal__tooltip-ev-title { color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
-.elem-cal__tooltip-more { font-size: 0.85em; color: #64748b; margin-top: 2px; }
-.elem-cal__tooltip-empty { font-size: 0.85em; color: #64748b; font-style: italic; }
+.elem-cal__tooltip-ev-title { opacity: 0.72; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+.elem-cal__tooltip-more { font-size: 0.85em; opacity: 0.5; margin-top: 2px; }
+.elem-cal__tooltip-empty { font-size: 0.85em; opacity: 0.5; font-style: italic; }
 
 /* ── No-weekends modifier ────────────────────────────────────────── */
 .elem-cal--no-weekends .elem-cal__cell--weekend {
