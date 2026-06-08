@@ -344,6 +344,29 @@ export const descriptor = () => ({
             type: String,
             default: '23:59',
             label: 'Время конца диапазона по умолчанию'
+        },
+        // ── Refresh event ─────────────────────────────────────────────
+        events: {
+            type: Object,
+            default: () => ({ refresh: '' }),
+            label: 'События (обновление данных)'
+        },
+        // ── Reset button (full calendar) ──────────────────────────────
+        calShowResetBtn: {
+            type: Boolean,
+            default: true,
+            label: 'Полный режим: показывать кнопку «Сброс»'
+        },
+        // ── Tooltip visibility ────────────────────────────────────────
+        calShowTooltip: {
+            type: Boolean,
+            default: true,
+            label: 'Полный режим: тултип при наведении на день'
+        },
+        calCompactShowTooltip: {
+            type: Boolean,
+            default: false,
+            label: 'Компактный режим: тултип при наведении на день'
         }
     },
     vars: {
