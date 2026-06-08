@@ -464,6 +464,14 @@ import { Panel, Managers } from 'goodt-wcore';
 
 const { store } = Managers.StoreManager;
 
+const DEFAULT_PRESETS = [
+    { key: 'yesterday',  label: 'Вчера' },
+    { key: 'week',       label: 'Эта неделя' },
+    { key: 'last_week',  label: 'Пр. неделя' },
+    { key: 'month',      label: 'Этот месяц' },
+    { key: 'last_month', label: 'Пр. месяц' }
+];
+
 export default {
     extends: Panel,
     meta: { name: 'Настройки', icon: 'cog' },
@@ -541,7 +549,7 @@ export default {
                     const parsed = val ? JSON.parse(val) : null;
                     if (Array.isArray(parsed)) { this.localPresets = parsed; return; }
                 } catch (e) { /* fall through */ }
-                this.localPresets = this.builtinOptions.map(b => ({ key: b.key, label: b.label }));
+                this.localPresets = DEFAULT_PRESETS.map(p => ({ ...p }));
             }
         }
     },
@@ -637,7 +645,7 @@ export default {
         },
 
         resetPresetsToDefault() {
-            this.localPresets = this.builtinOptions.map(b => ({ key: b.key, label: b.label }));
+            this.localPresets = DEFAULT_PRESETS.map(p => ({ ...p }));
             this._savePresets();
         },
 
