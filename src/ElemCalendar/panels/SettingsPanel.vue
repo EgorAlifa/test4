@@ -291,6 +291,12 @@
                     </div>
                 </label>
                 <label class="toggle-row">
+                    <span class="toggle-row__label">Выделять «Сегодня»</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calHighlightToday !== false }" @click="toggleBool('calHighlightToday')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <label class="toggle-row">
                     <span class="toggle-row__label">Пресеты дат</span>
                     <div class="toggle" :class="{ 'toggle--on': props.calCompactShowPresets !== false }" @click="toggleBool('calCompactShowPresets')">
                         <div class="toggle__thumb" />
@@ -352,12 +358,6 @@
                 <label class="toggle-row">
                     <span class="toggle-row__label">Нижняя панель (ввод дат)</span>
                     <div class="toggle" :class="{ 'toggle--on': props.calCompactShowBottom !== false }" @click="toggleBool('calCompactShowBottom')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Тултип при наведении</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowTooltip }" @click="toggleBool('calCompactShowTooltip')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
@@ -439,26 +439,6 @@
                         <div class="toggle__thumb" />
                     </div>
                 </label>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Тултип при наведении</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calShowTooltip !== false }" @click="toggleBool('calShowTooltip')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
-            </div>
-
-            <!-- ── Событие обновления ──────────────────────────────────── -->
-            <div class="p-section">
-                <div class="p-section__label">Обновление данных</div>
-                <ui-input
-                    :value="props.events && props.events.refresh"
-                    :list="`store-list-${_uid}`"
-                    @input="setRefreshEvent($event)">
-                    Событие для обновления данных
-                </ui-input>
-                <div class="p-hint" style="margin:2px 0 8px">
-                    Имя события от другого виджета. При получении этого события виджет перезагрузит данные из источника.
-                </div>
             </div>
 
         </ui-container>
@@ -614,13 +594,6 @@ export default {
 
         setChipsGapUnit(unit) {
             this.set('calCompactChipsGap', `${this.chipsGapNum}${unit}`);
-        },
-
-        setRefreshEvent(val) {
-            const ev = this.props.events ? { ...this.props.events } : {};
-            ev.refresh = val;
-            this.props.events = ev;
-            this.propChanged('events');
         }
     }
 };

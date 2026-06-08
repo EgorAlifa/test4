@@ -187,6 +187,59 @@
                 </div>
             </div>
 
+            <!-- ── Тултип ──────────────────────────────────────────────── -->
+            <div class="p-section">
+                <div class="p-section__label">Тултип</div>
+
+                <!-- Live preview -->
+                <div class="tooltip-preview-wrap">
+                    <div
+                        class="tooltip-preview"
+                        :style="{
+                            background: props.calTooltipBg || '#1e293b',
+                            color: props.calTooltipColor || '#f1f5f9',
+                            borderRadius: props.calTooltipRadius || '10px'
+                        }">
+                        <div class="tooltip-preview__date">Понедельник, 9 июня 2025</div>
+                        <div class="tooltip-preview__events">
+                            <div class="tooltip-preview__ev">
+                                <span class="tooltip-preview__dot" :style="{ background: props.calAccentColor || '#4f6aff' }" />
+                                <span class="tooltip-preview__title">Встреча с командой</span>
+                            </div>
+                            <div class="tooltip-preview__ev">
+                                <span class="tooltip-preview__dot" :style="{ background: '#10b981' }" />
+                                <span class="tooltip-preview__title">Дедлайн проекта</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <ui-input-cp prop="calTooltipBg">Фон тултипа</ui-input-cp>
+                <ui-input-cp prop="calTooltipColor">Цвет текста</ui-input-cp>
+
+                <div class="p-field-label" style="margin-top:10px">Скругление тултипа</div>
+                <div class="slider-row">
+                    <input type="range" class="slider" min="0" max="24"
+                        :value="parseRadius(props.calTooltipRadius)"
+                        @input="set('calTooltipRadius', $event.target.value + 'px')" />
+                    <span class="slider-val">{{ props.calTooltipRadius || '10px' }}</span>
+                </div>
+
+                <div class="p-field-label" style="margin-top:12px">Показывать тултип</div>
+                <label class="toggle-row">
+                    <span class="toggle-row__label">Полный календарь</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calShowTooltip !== false }" @click="toggleBool('calShowTooltip')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <label class="toggle-row">
+                    <span class="toggle-row__label">Компактный календарь</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowTooltip }" @click="toggleBool('calCompactShowTooltip')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+            </div>
+
         </ui-container>
     </w-panel>
 </template>
@@ -567,5 +620,60 @@ export default {
 .shadow-chip { padding: 4px 10px; border-radius: 20px; border: 1.5px solid #e2e8f0; background: #fff; color: #64748b; font-size: 11px; font-weight: 600; cursor: pointer; transition: border-color 0.12s, color 0.12s, background 0.12s; }
 .shadow-chip:hover { border-color: #a5b4fc; color: #4f6aff; }
 .shadow-chip--active { border-color: #4f6aff; background: #eff2ff; color: #4f6aff; }
+
+/* ── Tooltip preview ──────────────────────────────────────────── */
+.tooltip-preview-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 14px 0 12px;
+    margin-bottom: 8px;
+    background-image: repeating-conic-gradient(#e9ecef 0% 25%, #f8fafc 0% 50%);
+    background-size: 10px 10px;
+    border-radius: 10px;
+}
+.tooltip-preview {
+    min-width: 160px;
+    max-width: 200px;
+    padding: 10px 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.14);
+    font-size: 11px;
+    line-height: 1.45;
+    transition: background 0.2s, color 0.2s, border-radius 0.2s;
+    pointer-events: none;
+}
+.tooltip-preview__date {
+    font-weight: 700;
+    opacity: 0.95;
+    margin-bottom: 7px;
+    font-size: 0.9em;
+}
+.tooltip-preview__events { display: flex; flex-direction: column; gap: 5px; }
+.tooltip-preview__ev { display: flex; align-items: center; gap: 6px; font-size: 0.9em; }
+.tooltip-preview__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.tooltip-preview__title { opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Tooltip toggle rows ──────────────────────────────────────── */
+.toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 0;
+    cursor: pointer;
+    gap: 8px;
+}
+.toggle-row__label { font-size: 12px; color: #334155; font-weight: 500; flex: 1; }
+.toggle {
+    width: 36px; height: 20px; border-radius: 10px;
+    background: #e2e8f0; position: relative; flex-shrink: 0;
+    transition: background 0.18s; cursor: pointer;
+}
+.toggle--on { background: #4f6aff; }
+.toggle__thumb {
+    position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    transition: transform 0.18s;
+}
+.toggle--on .toggle__thumb { transform: translateX(16px); }
 
 </style>

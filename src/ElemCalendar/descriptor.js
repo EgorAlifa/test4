@@ -345,6 +345,22 @@ export const descriptor = () => ({
             default: '23:59',
             label: 'Время конца диапазона по умолчанию'
         },
+        // ── Tooltip appearance ────────────────────────────────────────
+        calTooltipBg: {
+            type: String,
+            default: '#1e293b',
+            label: 'Тултип: фон'
+        },
+        calTooltipColor: {
+            type: String,
+            default: '#f1f5f9',
+            label: 'Тултип: цвет текста'
+        },
+        calTooltipRadius: {
+            type: String,
+            default: '10px',
+            label: 'Тултип: скругление'
+        },
         // ── Refresh event ─────────────────────────────────────────────
         events: {
             type: Object,
