@@ -309,9 +309,9 @@
                 </label>
 
                 <template v-if="props.calCompactShowPresets !== false">
-                    <label class="toggle-row" style="margin-bottom:8px">
+                    <label class="toggle-row" :class="{ 'toggle-row--disabled': props.calCompactDualMonth }" style="margin-bottom:8px">
                         <span class="toggle-row__label">Кнопка «Сегодня» в шапке</span>
-                        <div class="toggle" :class="{ 'toggle--on': props.calCompactShowToday !== false }" @click="toggleBool('calCompactShowToday')">
+                        <div class="toggle" :class="{ 'toggle--on': props.calCompactShowToday !== false && !props.calCompactDualMonth }" @click="!props.calCompactDualMonth && toggleBool('calCompactShowToday')">
                             <div class="toggle__thumb" />
                         </div>
                     </label>
@@ -806,6 +806,7 @@ export default {
     gap: 8px;
 }
 .toggle-row__label { font-size: 12px; color: #334155; font-weight: 500; flex: 1; }
+.toggle-row--disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
 
 .toggle {
     width: 36px;
