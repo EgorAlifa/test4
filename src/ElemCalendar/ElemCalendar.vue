@@ -67,69 +67,87 @@
             <template v-if="props.calCompactShowCalendar !== false">
                 <!-- DUAL-MONTH MODE -->
                 <template v-if="props.calCompactDualMonth">
-                    <div class="compact__head compact__head--dual">
-                        <button class="compact__nav" @click="prevPeriod">
-                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                                <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </button>
-                        <span class="compact__month-label">{{ currentTitle }}</span>
-                        <button v-if="props.calCompactShowToday !== false" class="compact__today-chip" @click="applyPreset({ key: 'today' })">{{ locale.today }}</button>
-                        <span class="compact__month-label">{{ compactTitle2 }}</span>
-                        <button class="compact__nav" @click="nextPeriod">
-                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                                <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </button>
+                    <div v-if="props.calCompactShowToday !== false" class="compact__dual-today">
+                        <button class="compact__today-chip" @click="applyPreset({ key: 'today' })">{{ locale.today }}</button>
                     </div>
                     <div v-if="compactSelectionHint" class="compact__hint">{{ compactSelectionHint }}</div>
                     <div class="compact__dual-grids">
-                        <div class="compact__grid" :class="{ 'compact__grid--no-weekends': !props.calShowWeekends }">
-                            <div
-                                v-for="(wd, i) in weekdayHeaders"
-                                :key="`cwd1-${i}`"
-                                class="compact__wd"
-                                :class="{ 'compact__wd--weekend': isWeekendCol(i) }">
-                                {{ wd.charAt(0) }}
+                        <div class="compact__dual-col">
+                            <div class="compact__head">
+                                <button class="compact__nav" @click="prevPeriod">
+                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                        <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                                <span class="compact__month-label">{{ currentTitle }}</span>
+                                <button class="compact__nav" @click="nextPeriod">
+                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                        <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
                             </div>
-                            <div
-                                v-for="(c, i) in compactOffsetCells"
-                                :key="`ce1-${i}`"
-                                class="compact__day compact__day--empty"
-                                :class="{ 'compact__day--weekend': c.isWeekend }" />
-                            <div
-                                v-for="cell in compactCells"
-                                :key="cell.iso"
-                                class="compact__day"
-                                :class="compactCellClass(cell)"
-                                @click="onCompactDayClick(cell)"
-                                @mouseenter="onCompactDayHover(cell, $event)"
-                                @mouseleave="onCompactDayLeave">
-                                {{ cell.d }}
+                            <div class="compact__grid" :class="{ 'compact__grid--no-weekends': !props.calShowWeekends }">
+                                <div
+                                    v-for="(wd, i) in weekdayHeaders"
+                                    :key="`cwd1-${i}`"
+                                    class="compact__wd"
+                                    :class="{ 'compact__wd--weekend': isWeekendCol(i) }">
+                                    {{ wd.charAt(0) }}
+                                </div>
+                                <div
+                                    v-for="(c, i) in compactOffsetCells"
+                                    :key="`ce1-${i}`"
+                                    class="compact__day compact__day--empty"
+                                    :class="{ 'compact__day--weekend': c.isWeekend }" />
+                                <div
+                                    v-for="cell in compactCells"
+                                    :key="cell.iso"
+                                    class="compact__day"
+                                    :class="compactCellClass(cell)"
+                                    @click="onCompactDayClick(cell)"
+                                    @mouseenter="onCompactDayHover(cell, $event)"
+                                    @mouseleave="onCompactDayLeave">
+                                    {{ cell.d }}
+                                </div>
                             </div>
                         </div>
-                        <div class="compact__grid" :class="{ 'compact__grid--no-weekends': !props.calShowWeekends }">
-                            <div
-                                v-for="(wd, i) in weekdayHeaders"
-                                :key="`cwd2-${i}`"
-                                class="compact__wd"
-                                :class="{ 'compact__wd--weekend': isWeekendCol(i) }">
-                                {{ wd.charAt(0) }}
+                        <div class="compact__dual-col">
+                            <div class="compact__head">
+                                <button class="compact__nav" @click="prevPeriod2">
+                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                        <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                                <span class="compact__month-label">{{ compactTitle2 }}</span>
+                                <button class="compact__nav" @click="nextPeriod2">
+                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                        <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
                             </div>
-                            <div
-                                v-for="(c, i) in compactOffsetCells2"
-                                :key="`ce2-${i}`"
-                                class="compact__day compact__day--empty"
-                                :class="{ 'compact__day--weekend': c.isWeekend }" />
-                            <div
-                                v-for="cell in compactCells2"
-                                :key="cell.iso"
-                                class="compact__day"
-                                :class="compactCellClass(cell)"
-                                @click="onCompactDayClick(cell)"
-                                @mouseenter="onCompactDayHover(cell, $event)"
-                                @mouseleave="onCompactDayLeave">
-                                {{ cell.d }}
+                            <div class="compact__grid" :class="{ 'compact__grid--no-weekends': !props.calShowWeekends }">
+                                <div
+                                    v-for="(wd, i) in weekdayHeaders"
+                                    :key="`cwd2-${i}`"
+                                    class="compact__wd"
+                                    :class="{ 'compact__wd--weekend': isWeekendCol(i) }">
+                                    {{ wd.charAt(0) }}
+                                </div>
+                                <div
+                                    v-for="(c, i) in compactOffsetCells2"
+                                    :key="`ce2-${i}`"
+                                    class="compact__day compact__day--empty"
+                                    :class="{ 'compact__day--weekend': c.isWeekend }" />
+                                <div
+                                    v-for="cell in compactCells2"
+                                    :key="cell.iso"
+                                    class="compact__day"
+                                    :class="compactCellClass(cell)"
+                                    @click="onCompactDayClick(cell)"
+                                    @mouseenter="onCompactDayHover(cell, $event)"
+                                    @mouseleave="onCompactDayLeave">
+                                    {{ cell.d }}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -542,6 +560,7 @@ export default {
         ...ElemDatasetMixinTypes,
         currentView: 'month',
         navDate: new Date(),
+        navDate2: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
         today: new Date(),
         rangeStart: null,
         rangeEnd: null,
@@ -986,10 +1005,6 @@ export default {
             return cells;
         },
 
-        navDate2() {
-            return new Date(this.navDate.getFullYear(), this.navDate.getMonth() + 1, 1);
-        },
-
         compactTitle2() {
             const nav = this.navDate2;
             return `${this.locale.months[nav.getMonth()]} ${nav.getFullYear()}`;
@@ -1233,6 +1248,18 @@ export default {
             else if (this.currentView === 'agenda') d.setMonth(d.getMonth() + 1);
             else if (this.currentView === 'year') d.setFullYear(d.getFullYear() + 1);
             this.navDate = d;
+        },
+
+        prevPeriod2() {
+            const d = new Date(this.navDate2);
+            d.setMonth(d.getMonth() - 1);
+            this.navDate2 = d;
+        },
+
+        nextPeriod2() {
+            const d = new Date(this.navDate2);
+            d.setMonth(d.getMonth() + 1);
+            this.navDate2 = d;
         },
 
         goToday() {
@@ -2664,12 +2691,22 @@ export default {
     transition: background 0.12s, border-color 0.12s;
 }
 .compact__today-chip:hover { background: var(--cal-range-bg); border-color: var(--cal-accent); }
-.compact__head--dual .compact__month-label { text-align: center; flex: 1; }
+.compact__dual-today {
+    display: flex;
+    justify-content: center;
+    padding: 2px 0 4px;
+}
 .compact__dual-grids {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 8px;
 }
+.compact__dual-col {
+    min-width: 0;
+    overflow: hidden;
+}
+.compact__dual-col .compact__head { padding: 2px 0 4px; }
+.compact__dual-col .compact__day { font-size: 0.72em; }
 
 /* Calendar grid */
 .compact__grid {
