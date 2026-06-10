@@ -264,6 +264,12 @@
                     </div>
                 </label>
                 <label class="toggle-row">
+                    <span class="toggle-row__label">Два месяца рядом</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calCompactDualMonth }" @click="toggleBool('calCompactDualMonth')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <label class="toggle-row">
                     <span class="toggle-row__label">Нижняя панель (ввод дат)</span>
                     <div class="toggle" :class="{ 'toggle--on': props.calCompactShowBottom !== false }" @click="toggleBool('calCompactShowBottom')">
                         <div class="toggle__thumb" />

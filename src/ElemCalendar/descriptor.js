@@ -383,6 +383,11 @@ export const descriptor = () => ({
             type: Boolean,
             default: false,
             label: 'Компактный режим: тултип при наведении на день'
+        },
+        calCompactDualMonth: {
+            type: Boolean,
+            default: false,
+            label: 'Компактный режим: показывать два месяца рядом'
         }
     },
     vars: {
