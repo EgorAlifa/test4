@@ -67,9 +67,6 @@
             <template v-if="props.calCompactShowCalendar !== false">
                 <!-- DUAL-MONTH MODE -->
                 <template v-if="props.calCompactDualMonth">
-                    <div v-if="props.calCompactShowToday !== false" class="compact__dual-today">
-                        <button class="compact__today-chip" @click="applyPreset({ key: 'today' })">{{ locale.today }}</button>
-                    </div>
                     <div v-if="compactSelectionHint" class="compact__hint">{{ compactSelectionHint }}</div>
                     <div class="compact__dual-grids">
                         <div class="compact__dual-col">
@@ -2691,11 +2688,6 @@ export default {
     transition: background 0.12s, border-color 0.12s;
 }
 .compact__today-chip:hover { background: var(--cal-range-bg); border-color: var(--cal-accent); }
-.compact__dual-today {
-    display: flex;
-    justify-content: center;
-    padding: 2px 0 4px;
-}
 .compact__dual-grids {
     display: grid;
     grid-template-columns: 1fr 1fr;
