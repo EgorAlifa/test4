@@ -174,13 +174,12 @@
                 <div class="p-hint" style="margin-top:4px">Звёздочка — вид при открытии виджета</div>
             </div>
 
-            <!-- ── Переменные хранилища ───────────────────────────────── -->
+            <!-- ── Режим выбора дат ──────────────────────────────────── -->
             <div class="p-section">
-                <div class="p-section__label">Переменные хранилища</div>
+                <div class="p-section__label">Режим выбора дат</div>
 
-                <!-- Compact mode: single or range -->
                 <template v-if="props.calMode === 'compact'">
-                    <div class="p-row" style="margin-bottom:8px">
+                    <div class="p-row">
                         <span class="p-row__label">Выбор</span>
                         <div class="seg-ctrl">
                             <button
@@ -197,51 +196,15 @@
                             </button>
                         </div>
                     </div>
-                    <ui-input
-                        :value="props.calDateVar"
-                        :list="`store-list-${_uid}`"
-                        @input="set('calDateVar', $event)">
-                        Переменная: выбранная дата
-                    </ui-input>
-                    <template v-if="props.calSelectionMode !== 'single'">
-                        <ui-input
-                            :value="props.calStartVar"
-                            :list="`store-list-${_uid}`"
-                            @input="set('calStartVar', $event)">
-                            Переменная: дата начала
-                        </ui-input>
-                        <ui-input
-                            :value="props.calEndVar"
-                            :list="`store-list-${_uid}`"
-                            @input="set('calEndVar', $event)">
-                            Переменная: дата конца
-                        </ui-input>
-                        <ui-input
-                            :value="props.calRangeVar"
-                            :list="`store-list-${_uid}`"
-                            @input="set('calRangeVar', $event)">
-                            Переменная: диапазон (массив)
-                        </ui-input>
-                        <div class="p-hint" style="margin:-4px 0 8px">
-                            Если задана — в переменную пишется JSON-массив <strong>всех дат</strong> диапазона:
-                            <code>["2024-01-01","2024-01-02","2024-01-03"]</code>.
-                        </div>
-                    </template>
-
-                    <!-- ── Режим с временем ────────────────────────── -->
-                    <label class="toggle-row">
+                    <label class="toggle-row" style="margin-top:4px">
                         <span class="toggle-row__label">Передавать timestamp (с временем)</span>
                         <div class="toggle" :class="{ 'toggle--on': props.calWithTime }" @click="toggleBool('calWithTime')">
                             <div class="toggle__thumb" />
                         </div>
                     </label>
                     <template v-if="props.calWithTime">
-                        <div class="p-hint" style="margin:2px 0 8px">
-                            Переменные получат Unix timestamp (мс). Ввод дат в формате <code>ДД.ММ.ГГГГ ЧЧ:мм</code>.
-                            При выборе из календаря проставляется время по умолчанию.
-                        </div>
-                        <div class="p-row">
-                            <span class="p-row__label">Время начала по умолчанию</span>
+                        <div class="p-row" style="margin-top:4px">
+                            <span class="p-row__label">Время начала</span>
                             <input
                                 type="text"
                                 class="time-input"
@@ -250,7 +213,7 @@
                                 @change="set('calDefaultStartTime', $event.target.value || '00:00')" />
                         </div>
                         <div class="p-row">
-                            <span class="p-row__label">Время конца по умолчанию</span>
+                            <span class="p-row__label">Время конца</span>
                             <input
                                 type="text"
                                 class="time-input"
@@ -261,12 +224,7 @@
                     </template>
                 </template>
 
-                <!-- Full mode: selection mode picker + vars -->
                 <template v-else>
-                    <div class="p-hint" style="margin-bottom:8px">
-                        Клик по дате записывает значение в переменную хранилища.
-                        Другие виджеты используют её как фильтр.
-                    </div>
                     <div class="p-row">
                         <span class="p-row__label">Режим</span>
                         <div class="seg-ctrl">
@@ -280,55 +238,7 @@
                             </button>
                         </div>
                     </div>
-
-                    <template v-if="props.calSelectionMode !== 'none'">
-
-                        <!-- single / range: single-date var -->
-                        <ui-input
-                            v-if="props.calSelectionMode !== 'multi'"
-                            :value="props.calDateVar"
-                            :list="`store-list-${_uid}`"
-                            @input="set('calDateVar', $event)">
-                            Переменная: выбранная дата
-                        </ui-input>
-
-                        <!-- range: start + end vars -->
-                        <template v-if="props.calSelectionMode === 'range'">
-                            <ui-input
-                                :value="props.calStartVar"
-                                :list="`store-list-${_uid}`"
-                                @input="set('calStartVar', $event)">
-                                Переменная: начало диапазона
-                            </ui-input>
-                            <ui-input
-                                :value="props.calEndVar"
-                                :list="`store-list-${_uid}`"
-                                @input="set('calEndVar', $event)">
-                                Переменная: конец диапазона
-                            </ui-input>
-                        </template>
-
-                        <!-- multi: single var receives the full array -->
-                        <template v-if="props.calSelectionMode === 'multi'">
-                            <div class="p-hint" style="margin-bottom:8px">
-                                Кликните по нескольким датам — каждый клик добавляет или убирает дату.
-                                Весь массив пишется в одну переменную хранилища в формате
-                                <code>["2024-01-05","2024-01-12"]</code>.
-                            </div>
-                            <ui-input
-                                :value="props.calDatesVar"
-                                :list="`store-list-${_uid}`"
-                                @input="set('calDatesVar', $event)">
-                                Переменная: список дат (массив)
-                            </ui-input>
-                        </template>
-
-                    </template>
                 </template>
-
-                <datalist :id="`store-list-${_uid}`">
-                    <option v-for="v in storeVarNames" :key="v" :value="v" />
-                </datalist>
             </div>
 
             <!-- ── Отображение (компактный режим) ──────────────────── -->

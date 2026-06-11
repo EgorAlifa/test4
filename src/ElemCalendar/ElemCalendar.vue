@@ -801,8 +801,7 @@ export default {
 
         // ── Selection parsed ─────────────────────────────────────────
         selectedDate() {
-            const v = this.props.calDateVar ? store.state[this.props.calDateVar]?.value : null;
-            return parseIso(v || this.props.calSelectedDate);
+            return parseIso(this.props.calSelectedDate);
         },
 
         maxEventsPerCell() {
@@ -918,31 +917,11 @@ export default {
         },
 
         compactStart() {
-            if (this.props.calStartVar) {
-                const v = store.state[this.props.calStartVar]?.value;
-                if (v) {
-                    const num = Number(v);
-                    if (this.props.calWithTime && !isNaN(num) && num > 9999999999) {
-                        return isoDate(new Date(num));
-                    }
-                    return String(v).slice(0, 10);
-                }
-            }
             if (this.rangeStart) return isoDate(this.rangeStart);
             return this.props.calSelectedStart || '';
         },
 
         compactEnd() {
-            if (this.props.calEndVar) {
-                const v = store.state[this.props.calEndVar]?.value;
-                if (v) {
-                    const num = Number(v);
-                    if (this.props.calWithTime && !isNaN(num) && num > 9999999999) {
-                        return isoDate(new Date(num));
-                    }
-                    return String(v).slice(0, 10);
-                }
-            }
             if (this.rangeEnd) return isoDate(this.rangeEnd);
             return this.props.calSelectedEnd || '';
         },
@@ -1130,18 +1109,6 @@ export default {
         if (this.props.calSelectedStart) this.rangeStart = parseIso(this.props.calSelectedStart);
         if (this.props.calSelectedEnd) this.rangeEnd = parseIso(this.props.calSelectedEnd);
 
-        // Init multi-selection: prefer store var, fall back to prop
-        if (this.props.calDatesVar) {
-            try {
-                const sv = store.state[this.props.calDatesVar]?.value;
-                if (sv) {
-                    const parsed = typeof sv === 'string' ? JSON.parse(sv) : (Array.isArray(sv) ? sv : []);
-                    if (Array.isArray(parsed) && parsed.length) {
-                        this.selectedDates = parsed.map(String).filter(Boolean);
-                    }
-                }
-            } catch (e) { /* noop */ }
-        }
         if (!this.selectedDates.length && this.props.calSelectedDates) {
             try {
                 const parsed = JSON.parse(this.props.calSelectedDates);
@@ -1155,22 +1122,6 @@ export default {
 
         // Restore time component from stored timestamps when calWithTime is enabled
         if (this.props.calWithTime) {
-            const extractTime = (v) => {
-                const num = Number(v);
-                if (!isNaN(num) && num > 9999999999) {
-                    const dt = new Date(num);
-                    return `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
-                }
-                return null;
-            };
-            if (this.props.calStartVar) {
-                const t = extractTime(store.state[this.props.calStartVar]?.value);
-                if (t) this.rangeStartTime = t;
-            }
-            if (this.props.calEndVar) {
-                const t = extractTime(store.state[this.props.calEndVar]?.value);
-                if (t) this.rangeEndTime = t;
-            }
         }
     },
 
@@ -1349,22 +1300,8 @@ export default {
             if (this.props.calWithTime) {
                 const ts = this._isoTimeToTs(iso, this.props.calDefaultStartTime || '00:00');
                 this.$storeCommit({ date: ts });
-                if (this.props.calDateVar) {
-                    store.commit(
-                        { [this.props.calDateVar]: new ValueObject(ts, store.state[this.props.calDateVar]?.meta) },
-                        { context: this }
-                    );
-                }
             } else {
-                // Primary: vars panel (Variables editor)
                 this.$storeCommit({ date: iso });
-                // Fallback: legacy manual prop
-                if (this.props.calDateVar) {
-                    store.commit(
-                        { [this.props.calDateVar]: new ValueObject(iso, store.state[this.props.calDateVar]?.meta) },
-                        { context: this }
-                    );
-                }
             }
         },
 
@@ -1380,39 +1317,9 @@ export default {
                 const tsStart = start ? this._isoTimeToTs(start, startTime) : null;
                 const tsEnd = end ? this._isoTimeToTs(end, endTime) : null;
                 this.$storeCommit({ date: tsStart, dateStart: tsStart, dateEnd: tsEnd, datesList: (tsStart != null || tsEnd != null) ? [tsStart, tsEnd].filter((v) => v != null) : null });
-                if (this.props.calDateVar && tsStart != null) {
-                    store.commit({ [this.props.calDateVar]: new ValueObject(tsStart) }, { context: this });
-                }
-                if (this.props.calStartVar && tsStart != null) {
-                    store.commit({ [this.props.calStartVar]: new ValueObject(tsStart) }, { context: this });
-                }
-                if (this.props.calEndVar && tsEnd != null) {
-                    store.commit({ [this.props.calEndVar]: new ValueObject(tsEnd) }, { context: this });
-                }
-                if (this.props.calRangeVar) {
-                    store.commit({ [this.props.calRangeVar]: new ValueObject((tsStart != null || tsEnd != null) ? [tsStart, tsEnd].filter((v) => v != null) : null) }, { context: this });
-                }
             } else {
-                // Primary: vars panel (Variables editor)
-                // date = range start; datesList = every date in the range as a JSON array
                 const allDates = start && end ? expandDateRange(start, end) : null;
                 this.$storeCommit({ date: start || null, dateStart: start || null, dateEnd: end || null, datesList: allDates });
-                // Fallback: legacy manual props
-                if (this.props.calDateVar && start) {
-                    store.commit(
-                        { [this.props.calDateVar]: new ValueObject(start, store.state[this.props.calDateVar]?.meta) },
-                        { context: this }
-                    );
-                }
-                if (this.props.calStartVar) {
-                    store.commit({ [this.props.calStartVar]: new ValueObject(start || null) }, { context: this });
-                }
-                if (this.props.calEndVar) {
-                    store.commit({ [this.props.calEndVar]: new ValueObject(end || null) }, { context: this });
-                }
-                if (this.props.calRangeVar) {
-                    store.commit({ [this.props.calRangeVar]: new ValueObject(allDates) }, { context: this });
-                }
             }
         },
 
@@ -1422,13 +1329,6 @@ export default {
             this.propChanged('calSelectedDates');
             // Primary: vars panel variable (JSON string, consistent with store conventions)
             this.$storeCommit({ datesList: json });
-            // Fallback: manual store var
-            if (this.props.calDatesVar) {
-                store.commit(
-                    { [this.props.calDatesVar]: new ValueObject(json, store.state[this.props.calDatesVar]?.meta) },
-                    { context: this }
-                );
-            }
         },
 
         // ── Cell classes ─────────────────────────────────────────────

@@ -112,32 +112,6 @@ export const descriptor = () => ({
             default: '',
             label: 'Конец диапазона (ISO)'
         },
-        // ── Store bindings ────────────────────────────────────────────
-        calDateVar: {
-            type: String,
-            default: '',
-            label: 'Переменная хранилища: выбранная дата'
-        },
-        calStartVar: {
-            type: String,
-            default: '',
-            label: 'Переменная хранилища: начало диапазона'
-        },
-        calEndVar: {
-            type: String,
-            default: '',
-            label: 'Переменная хранилища: конец диапазона'
-        },
-        calRangeVar: {
-            type: String,
-            default: '',
-            label: 'Переменная хранилища: диапазон (JSON-массив [start, end])'
-        },
-        calDatesVar: {
-            type: String,
-            default: '',
-            label: 'Переменная хранилища: список дат (JSON-массив ["YYYY-MM-DD", ...])'
-        },
         calSelectedDates: {
             type: String,
             default: '',
