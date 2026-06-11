@@ -25,6 +25,37 @@
                 </div>
             </div>
 
+            <!-- ── Режим компактного виджета ────────────────────────── -->
+            <div v-if="props.calMode === 'compact'" class="p-section">
+                <div class="p-section__label">Режим компактного виджета</div>
+                <div class="compact-modes">
+                    <div
+                        class="compact-mode"
+                        :class="{ 'compact-mode--active': compactSubMode === 'standard' }"
+                        @click="setCompactMode('standard')">
+                        Выбор периода
+                    </div>
+                    <div
+                        class="compact-mode"
+                        :class="{ 'compact-mode--active': compactSubMode === 'extended' }"
+                        @click="setCompactMode('extended')">
+                        Выбор периода<br><span class="compact-mode__sub">расширенный</span>
+                    </div>
+                    <div
+                        class="compact-mode"
+                        :class="{ 'compact-mode--active': compactSubMode === 'simplified' }"
+                        @click="setCompactMode('simplified')">
+                        Выбор периода<br><span class="compact-mode__sub">упрощённый</span>
+                    </div>
+                    <div
+                        class="compact-mode"
+                        :class="{ 'compact-mode--active': compactSubMode === 'input' }"
+                        @click="setCompactMode('input')">
+                        Ввод дат
+                    </div>
+                </div>
+            </div>
+
             <!-- ── Общие параметры (язык + первый день) ─────────────── -->
             <div class="p-section p-section--inline-row">
                 <div class="p-row">
@@ -501,6 +532,13 @@ export default {
         storeVarNames() {
             try { return Object.keys(store.state || {}).filter(Boolean).sort(); } catch (e) { return []; }
         },
+        compactSubMode() {
+            const p = this.props;
+            if (!p.calCompactShowCalendar && !p.calCompactShowPresets) return 'input';
+            if (!p.calCompactShowCalendar && p.calCompactShowPresets !== false) return 'simplified';
+            if (p.calCompactDualMonth) return 'extended';
+            return 'standard';
+        },
         builtinOptions() {
             return [
                 { key: 'today',      label: 'Сегодня' },
@@ -558,6 +596,17 @@ export default {
 
         setView(v) {
             this.set('calView', v);
+        },
+
+        setCompactMode(mode) {
+            const base = { calCompactShowBottom: true, calCompactDualMonth: false, calCompactShowCalendar: true, calCompactShowPresets: true };
+            const map = {
+                standard:   { ...base },
+                extended:   { ...base, calCompactDualMonth: true },
+                simplified: { ...base, calCompactShowCalendar: false },
+                input:      { ...base, calCompactShowCalendar: false, calCompactShowPresets: false }
+            };
+            Object.entries(map[mode]).forEach(([k, v]) => this.set(k, v));
         },
 
         setLocale(l) {
@@ -677,6 +726,30 @@ export default {
 .mode-card__icon { font-size: 20px; line-height: 1; margin-bottom: 4px; }
 .mode-card__title { font-size: 11px; font-weight: 700; color: #334155; margin-bottom: 2px; }
 .mode-card__desc { font-size: 10px; color: #94a3b8; line-height: 1.4; }
+
+/* ── Compact sub-modes ────────────────────────────────────────── */
+.compact-modes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+.compact-mode {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 7px 8px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    background: #f8fafc;
+    line-height: 1.35;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.compact-mode:hover { border-color: #a5b4fc; background: #f5f7ff; }
+.compact-mode--active { border-color: #4f6aff; background: #eef1ff; color: #3d55e8; }
+.compact-mode__sub { font-size: 10px; font-weight: 500; color: inherit; opacity: 0.75; }
+.compact-mode--active .compact-mode__sub { opacity: 1; }
 
 /* ── Sections ─────────────────────────────────────────────────── */
 .p-section {
