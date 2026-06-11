@@ -1026,10 +1026,14 @@ export default {
         },
 
         compactPresetsList() {
+            const SINGLE_DAY_KEYS = ['today', 'yesterday'];
+            const simplified = !this.props.calCompactShowCalendar && this.props.calCompactShowPresets !== false;
             if (this.props.calPresetsJson) {
                 try {
                     const parsed = JSON.parse(this.props.calPresetsJson);
-                    if (Array.isArray(parsed)) return parsed;
+                    if (Array.isArray(parsed)) {
+                        return simplified ? parsed.filter(p => !SINGLE_DAY_KEYS.includes(p.key)) : parsed;
+                    }
                 } catch (e) { /* fall through */ }
             }
             return [
