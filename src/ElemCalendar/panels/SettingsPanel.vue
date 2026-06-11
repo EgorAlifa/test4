@@ -29,67 +29,86 @@
             <div v-if="props.calMode === 'compact'" class="p-section">
                 <div class="p-section__label">Режим компактного виджета</div>
                 <div class="compact-modes">
-                    <div
-                        class="compact-mode"
-                        :class="{ 'compact-mode--active': compactSubMode === 'standard' }"
-                        @click="setCompactMode('standard')">
-                        <svg class="compact-mode__svg" viewBox="0 0 40 28" fill="none">
-                            <rect x="0" y="0" width="11" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
-                            <rect x="13" y="0" width="11" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
-                            <rect x="26" y="0" width="14" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
-                            <rect x="0" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="6" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="12" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="18" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="24" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="30" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="36" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/>
-                            <rect x="0" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="6" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="12" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="18" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="24" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="30" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="36" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/>
-                            <rect x="0" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="6" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="12" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="18" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="24" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="30" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="36" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/>
-                            <rect x="0" y="23" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
-                            <rect x="22" y="23" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
+                    <!-- Выбор периода: пресеты + один месяц + чипы -->
+                    <div class="compact-mode" :class="{ 'compact-mode--active': compactSubMode === 'standard' }" @click="setCompactMode('standard')">
+                        <svg class="compact-mode__svg" viewBox="0 0 60 38" fill="none">
+                            <!-- preset pills row -->
+                            <rect x="0" y="0" width="17" height="6" rx="3" fill="currentColor" opacity="0.45"/>
+                            <rect x="20" y="0" width="17" height="6" rx="3" fill="currentColor" opacity="0.45"/>
+                            <rect x="40" y="0" width="20" height="6" rx="3" fill="currentColor" opacity="0.45"/>
+                            <!-- calendar: 5 cols × 3 rows -->
+                            <rect x="0"  y="9"  width="10" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="12" y="9"  width="10" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="24" y="9"  width="10" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="36" y="9"  width="10" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="48" y="9"  width="12" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="0"  y="18" width="10" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="12" y="18" width="10" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="24" y="18" width="10" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="36" y="18" width="10" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="48" y="18" width="12" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <!-- date chips -->
+                            <rect x="0"  y="29" width="28" height="8" rx="3" fill="currentColor" opacity="0.45"/>
+                            <rect x="32" y="29" width="28" height="8" rx="3" fill="currentColor" opacity="0.45"/>
                         </svg>
                         <span class="compact-mode__label">Выбор периода</span>
                     </div>
-                    <div
-                        class="compact-mode"
-                        :class="{ 'compact-mode--active': compactSubMode === 'extended' }"
-                        @click="setCompactMode('extended')">
-                        <svg class="compact-mode__svg" viewBox="0 0 40 28" fill="none">
-                            <rect x="0" y="0" width="11" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
-                            <rect x="13" y="0" width="11" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
-                            <rect x="26" y="0" width="14" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
-                            <rect x="0" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="4" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="8" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="12" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="16" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/>
-                            <rect x="0" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="4" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="8" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="12" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="16" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/>
-                            <rect x="0" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="4" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="8" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="12" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="16" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/>
-                            <line x1="20.5" y1="5" x2="20.5" y2="20" stroke="currentColor" opacity="0.2" stroke-width="1"/>
-                            <rect x="21" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="25" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="29" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="33" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="37" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/>
-                            <rect x="21" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="25" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="29" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="33" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="37" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/>
-                            <rect x="21" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="25" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="29" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="33" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="37" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/>
-                            <rect x="0" y="23" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
-                            <rect x="22" y="23" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
+                    <!-- Выбор периода расширенный: пресеты + два месяца + чипы -->
+                    <div class="compact-mode" :class="{ 'compact-mode--active': compactSubMode === 'extended' }" @click="setCompactMode('extended')">
+                        <svg class="compact-mode__svg" viewBox="0 0 60 38" fill="none">
+                            <!-- preset pills -->
+                            <rect x="0" y="0" width="17" height="6" rx="3" fill="currentColor" opacity="0.45"/>
+                            <rect x="20" y="0" width="17" height="6" rx="3" fill="currentColor" opacity="0.45"/>
+                            <rect x="40" y="0" width="20" height="6" rx="3" fill="currentColor" opacity="0.45"/>
+                            <!-- left calendar 3×3 -->
+                            <rect x="0"  y="9"  width="8" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="10" y="9"  width="8" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="20" y="9"  width="8" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="0"  y="18" width="8" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="10" y="18" width="8" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="20" y="18" width="8" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <!-- divider -->
+                            <line x1="30" y1="8" x2="30" y2="26" stroke="currentColor" opacity="0.2" stroke-width="1.5"/>
+                            <!-- right calendar 3×3 -->
+                            <rect x="32" y="9"  width="8" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="42" y="9"  width="8" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="52" y="9"  width="8" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="32" y="18" width="8" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="42" y="18" width="8" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <rect x="52" y="18" width="8" height="7" rx="2" fill="currentColor" opacity="0.28"/>
+                            <!-- date chips -->
+                            <rect x="0"  y="29" width="28" height="8" rx="3" fill="currentColor" opacity="0.45"/>
+                            <rect x="32" y="29" width="28" height="8" rx="3" fill="currentColor" opacity="0.45"/>
                         </svg>
                         <span class="compact-mode__label">Выбор периода <span class="compact-mode__sub">расширенный</span></span>
                     </div>
-                    <div
-                        class="compact-mode"
-                        :class="{ 'compact-mode--active': compactSubMode === 'simplified' }"
-                        @click="setCompactMode('simplified')">
-                        <svg class="compact-mode__svg" viewBox="0 0 40 28" fill="none">
-                            <rect x="0" y="0" width="11" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
-                            <rect x="13" y="0" width="11" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
-                            <rect x="26" y="0" width="14" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
-                            <rect x="0" y="5" width="18" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
-                            <rect x="21" y="5" width="19" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
-                            <rect x="0" y="20" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
-                            <rect x="22" y="20" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
+                    <!-- Выбор периода упрощённый: пресеты + чипы, без календаря -->
+                    <div class="compact-mode" :class="{ 'compact-mode--active': compactSubMode === 'simplified' }" @click="setCompactMode('simplified')">
+                        <svg class="compact-mode__svg" viewBox="0 0 60 38" fill="none">
+                            <!-- preset pills row 1 -->
+                            <rect x="0" y="0" width="17" height="6" rx="3" fill="currentColor" opacity="0.45"/>
+                            <rect x="20" y="0" width="17" height="6" rx="3" fill="currentColor" opacity="0.45"/>
+                            <rect x="40" y="0" width="20" height="6" rx="3" fill="currentColor" opacity="0.45"/>
+                            <!-- preset pills row 2 -->
+                            <rect x="0"  y="9" width="28" height="6" rx="3" fill="currentColor" opacity="0.45"/>
+                            <rect x="32" y="9" width="28" height="6" rx="3" fill="currentColor" opacity="0.45"/>
+                            <!-- date chips (no calendar in between) -->
+                            <rect x="0"  y="29" width="28" height="8" rx="3" fill="currentColor" opacity="0.45"/>
+                            <rect x="32" y="29" width="28" height="8" rx="3" fill="currentColor" opacity="0.45"/>
                         </svg>
                         <span class="compact-mode__label">Выбор периода <span class="compact-mode__sub">упрощённый</span></span>
                     </div>
-                    <div
-                        class="compact-mode"
-                        :class="{ 'compact-mode--active': compactSubMode === 'input' }"
-                        @click="setCompactMode('input')">
-                        <svg class="compact-mode__svg" viewBox="0 0 40 28" fill="none">
-                            <rect x="0" y="7" width="18" height="5" rx="2" fill="currentColor" opacity="0.35"/>
-                            <line x1="19.5" y1="9.5" x2="21" y2="9.5" stroke="currentColor" opacity="0.3" stroke-width="1.5"/>
-                            <rect x="22" y="7" width="18" height="5" rx="2" fill="currentColor" opacity="0.35"/>
-                            <rect x="0" y="17" width="18" height="5" rx="2" fill="currentColor" opacity="0.2"/>
-                            <rect x="22" y="17" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
+                    <!-- Ввод дат: только поля -->
+                    <div class="compact-mode" :class="{ 'compact-mode--active': compactSubMode === 'input' }" @click="setCompactMode('input')">
+                        <svg class="compact-mode__svg" viewBox="0 0 60 38" fill="none">
+                            <!-- date input fields -->
+                            <rect x="0"  y="8" width="28" height="9" rx="3" fill="currentColor" opacity="0.3"/>
+                            <rect x="32" y="8" width="28" height="9" rx="3" fill="currentColor" opacity="0.3"/>
+                            <!-- arrow -->
+                            <path d="M29.5 12.5 L31.5 12.5" stroke="currentColor" opacity="0.35" stroke-width="1.5" stroke-linecap="round"/>
+                            <!-- buttons: reset + apply -->
+                            <rect x="0"  y="23" width="28" height="9" rx="3" fill="currentColor" opacity="0.18"/>
+                            <rect x="32" y="23" width="28" height="9" rx="3" fill="currentColor" opacity="0.5"/>
                         </svg>
                         <span class="compact-mode__label">Ввод дат</span>
                     </div>
@@ -155,13 +174,12 @@
                 <div class="p-hint" style="margin-top:4px">Звёздочка — вид при открытии виджета</div>
             </div>
 
-            <!-- ── Переменные хранилища ───────────────────────────────── -->
+            <!-- ── Режим выбора дат ──────────────────────────────────── -->
             <div class="p-section">
-                <div class="p-section__label">Переменные хранилища</div>
+                <div class="p-section__label">Режим выбора дат</div>
 
-                <!-- Compact mode: single or range -->
                 <template v-if="props.calMode === 'compact'">
-                    <div class="p-row" style="margin-bottom:8px">
+                    <div class="p-row">
                         <span class="p-row__label">Выбор</span>
                         <div class="seg-ctrl">
                             <button
@@ -178,51 +196,15 @@
                             </button>
                         </div>
                     </div>
-                    <ui-input
-                        :value="props.calDateVar"
-                        :list="`store-list-${_uid}`"
-                        @input="set('calDateVar', $event)">
-                        Переменная: выбранная дата
-                    </ui-input>
-                    <template v-if="props.calSelectionMode !== 'single'">
-                        <ui-input
-                            :value="props.calStartVar"
-                            :list="`store-list-${_uid}`"
-                            @input="set('calStartVar', $event)">
-                            Переменная: дата начала
-                        </ui-input>
-                        <ui-input
-                            :value="props.calEndVar"
-                            :list="`store-list-${_uid}`"
-                            @input="set('calEndVar', $event)">
-                            Переменная: дата конца
-                        </ui-input>
-                        <ui-input
-                            :value="props.calRangeVar"
-                            :list="`store-list-${_uid}`"
-                            @input="set('calRangeVar', $event)">
-                            Переменная: диапазон (массив)
-                        </ui-input>
-                        <div class="p-hint" style="margin:-4px 0 8px">
-                            Если задана — в переменную пишется JSON-массив <strong>всех дат</strong> диапазона:
-                            <code>["2024-01-01","2024-01-02","2024-01-03"]</code>.
-                        </div>
-                    </template>
-
-                    <!-- ── Режим с временем ────────────────────────── -->
-                    <label class="toggle-row">
+                    <label class="toggle-row" style="margin-top:4px">
                         <span class="toggle-row__label">Передавать timestamp (с временем)</span>
                         <div class="toggle" :class="{ 'toggle--on': props.calWithTime }" @click="toggleBool('calWithTime')">
                             <div class="toggle__thumb" />
                         </div>
                     </label>
                     <template v-if="props.calWithTime">
-                        <div class="p-hint" style="margin:2px 0 8px">
-                            Переменные получат Unix timestamp (мс). Ввод дат в формате <code>ДД.ММ.ГГГГ ЧЧ:мм</code>.
-                            При выборе из календаря проставляется время по умолчанию.
-                        </div>
-                        <div class="p-row">
-                            <span class="p-row__label">Время начала по умолчанию</span>
+                        <div class="p-row" style="margin-top:4px">
+                            <span class="p-row__label">Время начала</span>
                             <input
                                 type="text"
                                 class="time-input"
@@ -231,7 +213,7 @@
                                 @change="set('calDefaultStartTime', $event.target.value || '00:00')" />
                         </div>
                         <div class="p-row">
-                            <span class="p-row__label">Время конца по умолчанию</span>
+                            <span class="p-row__label">Время конца</span>
                             <input
                                 type="text"
                                 class="time-input"
@@ -242,12 +224,7 @@
                     </template>
                 </template>
 
-                <!-- Full mode: selection mode picker + vars -->
                 <template v-else>
-                    <div class="p-hint" style="margin-bottom:8px">
-                        Клик по дате записывает значение в переменную хранилища.
-                        Другие виджеты используют её как фильтр.
-                    </div>
                     <div class="p-row">
                         <span class="p-row__label">Режим</span>
                         <div class="seg-ctrl">
@@ -261,55 +238,7 @@
                             </button>
                         </div>
                     </div>
-
-                    <template v-if="props.calSelectionMode !== 'none'">
-
-                        <!-- single / range: single-date var -->
-                        <ui-input
-                            v-if="props.calSelectionMode !== 'multi'"
-                            :value="props.calDateVar"
-                            :list="`store-list-${_uid}`"
-                            @input="set('calDateVar', $event)">
-                            Переменная: выбранная дата
-                        </ui-input>
-
-                        <!-- range: start + end vars -->
-                        <template v-if="props.calSelectionMode === 'range'">
-                            <ui-input
-                                :value="props.calStartVar"
-                                :list="`store-list-${_uid}`"
-                                @input="set('calStartVar', $event)">
-                                Переменная: начало диапазона
-                            </ui-input>
-                            <ui-input
-                                :value="props.calEndVar"
-                                :list="`store-list-${_uid}`"
-                                @input="set('calEndVar', $event)">
-                                Переменная: конец диапазона
-                            </ui-input>
-                        </template>
-
-                        <!-- multi: single var receives the full array -->
-                        <template v-if="props.calSelectionMode === 'multi'">
-                            <div class="p-hint" style="margin-bottom:8px">
-                                Кликните по нескольким датам — каждый клик добавляет или убирает дату.
-                                Весь массив пишется в одну переменную хранилища в формате
-                                <code>["2024-01-05","2024-01-12"]</code>.
-                            </div>
-                            <ui-input
-                                :value="props.calDatesVar"
-                                :list="`store-list-${_uid}`"
-                                @input="set('calDatesVar', $event)">
-                                Переменная: список дат (массив)
-                            </ui-input>
-                        </template>
-
-                    </template>
                 </template>
-
-                <datalist :id="`store-list-${_uid}`">
-                    <option v-for="v in storeVarNames" :key="v" :value="v" />
-                </datalist>
             </div>
 
             <!-- ── Отображение (компактный режим) ──────────────────── -->
@@ -788,7 +717,7 @@ export default {
 }
 .compact-mode:hover { border-color: #a5b4fc; background: #f5f7ff; color: #64748b; }
 .compact-mode--active { border-color: #4f6aff; background: #eef1ff; color: #4f6aff; }
-.compact-mode__svg { width: 40px; height: 28px; flex-shrink: 0; }
+.compact-mode__svg { width: 100%; height: auto; display: block; }
 .compact-mode__label { font-size: 10px; font-weight: 600; color: #334155; text-align: center; line-height: 1.35; }
 .compact-mode--active .compact-mode__label { color: #3d55e8; }
 .compact-mode__sub { font-weight: 500; opacity: 0.75; }
