@@ -33,25 +33,65 @@
                         class="compact-mode"
                         :class="{ 'compact-mode--active': compactSubMode === 'standard' }"
                         @click="setCompactMode('standard')">
-                        Выбор периода
+                        <svg class="compact-mode__svg" viewBox="0 0 40 28" fill="none">
+                            <rect x="0" y="0" width="11" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
+                            <rect x="13" y="0" width="11" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
+                            <rect x="26" y="0" width="14" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
+                            <rect x="0" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="6" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="12" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="18" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="24" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="30" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="36" y="6" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/>
+                            <rect x="0" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="6" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="12" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="18" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="24" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="30" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="36" y="11" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/>
+                            <rect x="0" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="6" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="12" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="18" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="24" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="30" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="36" y="16" width="4" height="3" rx="1" fill="currentColor" opacity="0.25"/>
+                            <rect x="0" y="23" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
+                            <rect x="22" y="23" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
+                        </svg>
+                        <span class="compact-mode__label">Выбор периода</span>
                     </div>
                     <div
                         class="compact-mode"
                         :class="{ 'compact-mode--active': compactSubMode === 'extended' }"
                         @click="setCompactMode('extended')">
-                        Выбор периода<br><span class="compact-mode__sub">расширенный</span>
+                        <svg class="compact-mode__svg" viewBox="0 0 40 28" fill="none">
+                            <rect x="0" y="0" width="11" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
+                            <rect x="13" y="0" width="11" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
+                            <rect x="26" y="0" width="14" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
+                            <rect x="0" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="4" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="8" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="12" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="16" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/>
+                            <rect x="0" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="4" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="8" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="12" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="16" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/>
+                            <rect x="0" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="4" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="8" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="12" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="16" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/>
+                            <line x1="20.5" y1="5" x2="20.5" y2="20" stroke="currentColor" opacity="0.2" stroke-width="1"/>
+                            <rect x="21" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="25" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="29" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="33" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="37" y="6" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/>
+                            <rect x="21" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="25" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="29" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="33" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="37" y="11" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/>
+                            <rect x="21" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="25" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="29" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="33" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/><rect x="37" y="16" width="3" height="3" rx="1" fill="currentColor" opacity="0.25"/>
+                            <rect x="0" y="23" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
+                            <rect x="22" y="23" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
+                        </svg>
+                        <span class="compact-mode__label">Выбор периода <span class="compact-mode__sub">расширенный</span></span>
                     </div>
                     <div
                         class="compact-mode"
                         :class="{ 'compact-mode--active': compactSubMode === 'simplified' }"
                         @click="setCompactMode('simplified')">
-                        Выбор периода<br><span class="compact-mode__sub">упрощённый</span>
+                        <svg class="compact-mode__svg" viewBox="0 0 40 28" fill="none">
+                            <rect x="0" y="0" width="11" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
+                            <rect x="13" y="0" width="11" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
+                            <rect x="26" y="0" width="14" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
+                            <rect x="0" y="5" width="18" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
+                            <rect x="21" y="5" width="19" height="3" rx="1.5" fill="currentColor" opacity="0.5"/>
+                            <rect x="0" y="20" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
+                            <rect x="22" y="20" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
+                        </svg>
+                        <span class="compact-mode__label">Выбор периода <span class="compact-mode__sub">упрощённый</span></span>
                     </div>
                     <div
                         class="compact-mode"
                         :class="{ 'compact-mode--active': compactSubMode === 'input' }"
                         @click="setCompactMode('input')">
-                        Ввод дат
+                        <svg class="compact-mode__svg" viewBox="0 0 40 28" fill="none">
+                            <rect x="0" y="7" width="18" height="5" rx="2" fill="currentColor" opacity="0.35"/>
+                            <line x1="19.5" y1="9.5" x2="21" y2="9.5" stroke="currentColor" opacity="0.3" stroke-width="1.5"/>
+                            <rect x="22" y="7" width="18" height="5" rx="2" fill="currentColor" opacity="0.35"/>
+                            <rect x="0" y="17" width="18" height="5" rx="2" fill="currentColor" opacity="0.2"/>
+                            <rect x="22" y="17" width="18" height="5" rx="2" fill="currentColor" opacity="0.5"/>
+                        </svg>
+                        <span class="compact-mode__label">Ввод дат</span>
                     </div>
                 </div>
             </div>
@@ -736,20 +776,22 @@ export default {
 .compact-mode {
     border: 1.5px solid #e2e8f0;
     border-radius: 8px;
-    padding: 7px 8px;
-    text-align: center;
-    font-size: 11px;
-    font-weight: 600;
-    color: #475569;
+    padding: 8px 8px 7px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
     cursor: pointer;
     background: #f8fafc;
-    line-height: 1.35;
+    color: #94a3b8;
     transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
-.compact-mode:hover { border-color: #a5b4fc; background: #f5f7ff; }
-.compact-mode--active { border-color: #4f6aff; background: #eef1ff; color: #3d55e8; }
-.compact-mode__sub { font-size: 10px; font-weight: 500; color: inherit; opacity: 0.75; }
-.compact-mode--active .compact-mode__sub { opacity: 1; }
+.compact-mode:hover { border-color: #a5b4fc; background: #f5f7ff; color: #64748b; }
+.compact-mode--active { border-color: #4f6aff; background: #eef1ff; color: #4f6aff; }
+.compact-mode__svg { width: 40px; height: 28px; flex-shrink: 0; }
+.compact-mode__label { font-size: 10px; font-weight: 600; color: #334155; text-align: center; line-height: 1.35; }
+.compact-mode--active .compact-mode__label { color: #3d55e8; }
+.compact-mode__sub { font-weight: 500; opacity: 0.75; }
 
 /* ── Sections ─────────────────────────────────────────────────── */
 .p-section {
