@@ -63,6 +63,11 @@
                 </button>
             </div>
 
+            <!-- Сегодня: только когда календарь скрыт (упрощённый режим) -->
+            <div v-if="props.calCompactShowCalendar === false && props.calCompactShowToday !== false && !props.calCompactDualMonth" class="compact__today-row">
+                <button class="compact__today-chip" @click="applyPreset({ key: 'today' })">{{ locale.today }}</button>
+            </div>
+
             <!-- Month header + selection hint + calendar grid -->
             <template v-if="props.calCompactShowCalendar !== false">
                 <!-- DUAL-MONTH MODE -->
@@ -2592,6 +2597,7 @@ export default {
     transition: background 0.12s, border-color 0.12s;
 }
 .compact__today-chip:hover { background: var(--cal-range-bg); border-color: var(--cal-accent); }
+.compact__today-row { display: flex; justify-content: center; padding: 2px 0 4px; }
 .compact__dual-grids {
     display: grid;
     grid-template-columns: 1fr 1fr;
