@@ -159,8 +159,13 @@
                         <label class="settings-popup-control__label">
                             <div class="settings-popup-control__name">Уровень {{ n }}</div>
                             <input
+                                type="checkbox"
+                                :checked="!!copyProps.levelRowColors[n - 1]"
+                                @change="toggleLevelColor(n - 1, $event.target.checked)" />
+                            <input
+                                v-if="copyProps.levelRowColors[n - 1]"
                                 type="color"
-                                :value="copyProps.levelRowColors[n - 1] || '#ffffff'"
+                                :value="copyProps.levelRowColors[n - 1]"
                                 @input="setLevelColor(n - 1, $event.target.value)" />
                         </label>
                     </div>
@@ -340,6 +345,12 @@ export default {
             const colors = [...(this.copyProps.levelRowColors || [])];
             while (colors.length <= index) colors.push('');
             colors[index] = color;
+            this.copyProps.levelRowColors = colors;
+        },
+        toggleLevelColor(index, enabled) {
+            const colors = [...(this.copyProps.levelRowColors || [])];
+            while (colors.length <= index) colors.push('');
+            colors[index] = enabled ? '#ffffff' : '';
             this.copyProps.levelRowColors = colors;
         },
         onSave() {

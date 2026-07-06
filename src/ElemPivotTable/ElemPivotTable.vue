@@ -3471,11 +3471,16 @@ export default {
             if (!levelRowColors || levelRowColors.length === 0) return {};
             const dataRowIndex = rowIndex - tableHeadRows.length;
             if (dataRowIndex < 0 || dataRowIndex >= tableRows.length) return {};
-            const rowCell = tableRows[dataRowIndex]?.cells?.find(
+            const cells = tableRows[dataRowIndex]?.cells ?? [];
+            const rowCells = cells.filter(
                 (c) => c.type === CellsTypes.ROW || c.type === CellsTypes.SUBTOTAL_ROW
             );
-            if (rowCell == null) return {};
-            const color = levelRowColors[rowCell.level];
+            if (rowCells.length === 0) return {};
+            // Use the deepest (max) level among all dimension cells in this row.
+            // With isDuplicateDimensions=true, every row contains parent cells (level 0, 1, …)
+            // so .find() would always return the top-level cell. Max level gives the true row depth.
+            const maxLevel = rowCells.reduce((max, c) => Math.max(max, c.level ?? 0), 0);
+            const color = levelRowColors[maxLevel];
             return color != null && color !== '' ? { '--w-background-color': color } : {};
         },
 
