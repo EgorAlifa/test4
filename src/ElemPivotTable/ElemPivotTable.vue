@@ -73,6 +73,23 @@
                             <i class="toolbox-button__icon toolbox-button__icon--fullscreen" />
                         </div>
                     </div>
+                    <div v-if="playerSettings.isUsedCollapse && playerRows.length > 1" class="toolbox__item">
+                        <template v-for="n in playerRows.length - 1">
+                            <div
+                                :key="n"
+                                class="toolbox-button"
+                                :title="`Уровень ${n}`"
+                                @click="setViewLevel(n)">
+                                <span>{{ n }}</span>
+                            </div>
+                        </template>
+                        <div
+                            class="toolbox-button"
+                            title="Все уровни"
+                            @click="setViewLevel(playerRows.length)">
+                            <span>Все</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="pivot-table-container__table resized-table" data-popover-table>
                     <ui-recycle-scroller
@@ -934,7 +951,10 @@ export default {
             };
         },
         settingsPopupBinds() {
-            return this.playerSettings;
+            return {
+                ...this.playerSettings,
+                rowsCount: this.playerRows.length
+            };
         },
         formatPopupBinds() {
             const { playerValues: valuesSettings } = this;
@@ -3437,12 +3457,26 @@ export default {
             } = this;
             const { type } = cell;
             const style = this.getCellCssStyle(cell);
+            const levelColorStyle = this.getLevelRowColorStyle(rowIndex);
             const condStyle = this.genCellCssVarsStyle(this.getCellCssStyleByCondition(cell, rowIndex, index));
             const resizeColStyle = this.buildResizedCellStyleByIndexes(index);
             const fixedFirstColumnStyle = this.buildFixedFirstColumnStyle(index);
             return useZebra && rowIndex != null && isOdd(rowIndex) && type !== CellsTypes.ROW_INDEX
-                ? { ...style, ...zebraCssVars, ...condStyle, ...resizeColStyle, ...fixedFirstColumnStyle }
-                : { ...style, ...condStyle, ...resizeColStyle, ...fixedFirstColumnStyle };
+                ? { ...style, ...levelColorStyle, ...zebraCssVars, ...condStyle, ...resizeColStyle, ...fixedFirstColumnStyle }
+                : { ...style, ...levelColorStyle, ...condStyle, ...resizeColStyle, ...fixedFirstColumnStyle };
+        },
+
+        getLevelRowColorStyle(rowIndex) {
+            const { playerSettings: { levelRowColors }, tableHeadRows, tableRows } = this;
+            if (!levelRowColors || levelRowColors.length === 0) return {};
+            const dataRowIndex = rowIndex - tableHeadRows.length;
+            if (dataRowIndex < 0 || dataRowIndex >= tableRows.length) return {};
+            const rowCell = tableRows[dataRowIndex]?.cells?.find(
+                (c) => c.type === CellsTypes.ROW || c.type === CellsTypes.SUBTOTAL_ROW
+            );
+            if (rowCell == null) return {};
+            const color = levelRowColors[rowCell.level];
+            return color != null && color !== '' ? { '--w-background-color': color } : {};
         },
 
         getCellCssStyle({ type, level, rowIndex }) {
@@ -3558,6 +3592,7 @@ export default {
                 tableDrawType,
                 metricsPosition,
                 isPagination,
+                levelRowColors,
                 playerConditions
             } = this.props;
             this.playerCalculatedValues = [];
@@ -3584,7 +3619,8 @@ export default {
                 subtotal,
                 tableDrawType,
                 metricsPosition,
-                isPagination
+                isPagination,
+                levelRowColors
             };
             this.updateValuesFilters();
             this.updateConditions(playerConditions);
@@ -4267,7 +4303,8 @@ export default {
             subtotal,
             tableDrawType,
             metricsPosition,
-            isPagination
+            isPagination,
+            levelRowColors
         }) {
             const previousTableDrawType = this.playerSettings?.tableDrawType;
             const previousIsPagination = this.playerSettings?.isPagination;
@@ -4284,7 +4321,8 @@ export default {
                 subtotal,
                 tableDrawType,
                 metricsPosition,
-                isPagination
+                isPagination,
+                levelRowColors
             };
             this.commitTableSettingsToStore();
             if (this.playerSettings.isPagination) {
@@ -4596,6 +4634,15 @@ export default {
                 };
             }
             this.loaderEnd();
+        },
+
+        setViewLevel(n) {
+            const { tableMaps: { collapsedRowsPaths = [] } = {} } = this;
+            this.collapsedRows =
+                n >= this.playerRows.length
+                    ? []
+                    : collapsedRowsPaths.filter(({ length }) => length === n);
+            this.generateTableRows();
         },
 
         async toggleCollapse(cell, needDraw = true) {

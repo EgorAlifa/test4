@@ -101,6 +101,11 @@ export const descriptor = () => ({
             default: false,
             label: 'Развернуть все'
         },
+        levelRowColors: {
+            type: Array,
+            default: () => [],
+            label: 'Цвета строк по уровням вложенности'
+        },
         isUsedIndexes: {
             type: Boolean,
             default: true,
