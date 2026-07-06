@@ -62,7 +62,8 @@
                                             <input
                                                 class="drag-item__checkbox"
                                                 type="checkbox"
-                                                v-model="dimensionsOptions[dataAlias]" />
+                                                v-model="dimensionsOptions[dataAlias]"
+                                                :disabled="complexDimChildAliases.has(dataAlias)" />
                                             <span
                                                 class="drag-item__title badge text-xsmall"
                                                 :style="{ backgroundColor: badgeBackgroundColor }">
@@ -168,30 +169,90 @@
                             </ui-draggable>
                         </div>
 
-                        <div class="drag-container">
-                            <div class="drag-container__elem drag-item drag-item--title">Строки</div>
+                        <div class="drag-container drag-container--rows">
+                            <div class="drag-container__elem drag-item drag-item--title">
+                                Строки
+                                <span
+                                    class="drag-item__icon mdi mdi-set-merge"
+                                    style="margin-left: auto; cursor: pointer;"
+                                    :style="{ opacity: simpleSelectedRows.length >= 2 ? 1 : 0.3 }"
+                                    title="Создать сложное измерение"
+                                    @click="showComplexDimDialog"></span>
+                            </div>
                             <div class="drag-container__caption">Перетащите сюда</div>
                             <ui-draggable
                                 class="drag-container__drag-list"
                                 :list="selectedData.rows"
                                 v-bind="fieldsDraggableOptions">
-                                <div
-                                    v-for="({ title, dataAlias, badgeBackgroundColor }, i) in selectedData.rows"
-                                    :key="i"
-                                    class="drag-item"
-                                    :data-alias="dataAlias">
+                                <template v-for="(row, i) in selectedData.rows">
                                     <div
-                                        class="drag-item__label badge text-xsmall"
-                                        :title="title"
-                                        :style="{ backgroundColor: badgeBackgroundColor }">
-                                        <ui-changeable-title :title="title" v-model="selectedData.rows[i].title" />
+                                        v-if="row.isComplex"
+                                        :key="'complex_' + row.dataAlias"
+                                        class="drag-item drag-item--complex-dim"
+                                        :data-alias="row.dataAlias">
+                                        <div class="drag-item__label" :title="row.title">
+                                            <i class="mdi mdi-set-merge" style="color: var(--color-primary); margin-right: 4px; font-size: 0.875rem;"></i>
+                                            <span class="drag-item__title" style="font-weight: 600;">{{ row.title }}</span>
+                                        </div>
+                                        <span
+                                            v-for="child in row.children"
+                                            :key="child.dataAlias"
+                                            class="badge text-xsmall"
+                                            style="margin: 0 2px; flex-shrink: 0;">
+                                            {{ child.title || child.dataAlias }}
+                                        </span>
+                                        <span class="drag-item__icon mdi mdi-close" @click="removeComplexDim(i)"></span>
+                                        <span class="drag-item__icon mdi mdi-drag drag-handle"></span>
                                     </div>
-                                    <span
-                                        class="drag-item__icon mdi mdi-close"
-                                        @click="removeSelectedItem('rows', dataAlias)"></span>
-                                    <span class="drag-item__icon mdi mdi-drag drag-handle"></span>
-                                </div>
+                                    <div
+                                        v-else
+                                        :key="'row_' + row.dataAlias"
+                                        class="drag-item"
+                                        :data-alias="row.dataAlias">
+                                        <div
+                                            class="drag-item__label badge text-xsmall"
+                                            :title="row.title"
+                                            :style="{ backgroundColor: row.badgeBackgroundColor }">
+                                            <ui-changeable-title :title="row.title" v-model="selectedData.rows[i].title" />
+                                        </div>
+                                        <span
+                                            class="drag-item__icon mdi mdi-close"
+                                            @click="removeSelectedItem('rows', row.dataAlias)"></span>
+                                        <span class="drag-item__icon mdi mdi-drag drag-handle"></span>
+                                    </div>
+                                </template>
                             </ui-draggable>
+                            <div v-if="complexDimDialog.isActive" class="complex-dim-dialog">
+                                <div class="complex-dim-dialog__header">Сложное измерение</div>
+                                <input
+                                    type="text"
+                                    class="input complex-dim-dialog__name"
+                                    placeholder="Название"
+                                    v-model="complexDimDialog.name" />
+                                <div class="complex-dim-dialog__hint">Выберите минимум 2 измерения:</div>
+                                <label
+                                    v-for="row in simpleSelectedRows"
+                                    :key="row.dataAlias"
+                                    class="complex-dim-dialog__item">
+                                    <input
+                                        type="checkbox"
+                                        class="checkbox"
+                                        :value="row.dataAlias"
+                                        v-model="complexDimDialog.selectedAliases" />
+                                    <span>{{ row.title || row.dataAlias }}</span>
+                                </label>
+                                <div class="complex-dim-dialog__actions">
+                                    <button
+                                        class="btn btn-primary btn-small"
+                                        :disabled="!canConfirmComplexDim"
+                                        @click="confirmComplexDim">
+                                        Создать
+                                    </button>
+                                    <button class="btn btn-outline btn-small" @click="cancelComplexDim">
+                                        Отмена
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="drag-container">
@@ -446,6 +507,13 @@ export default {
         },
         calculatedMetric: createCalculatedMetricsSettings(),
 
+        complexDimDialog: {
+            isActive: false,
+            name: '',
+            selectedAliases: []
+        },
+        _complexDimCounter: 0,
+
         initialState: null
     }),
     computed: {
@@ -516,6 +584,22 @@ export default {
         },
         isButtonSaveDisabled() {
             return !this.hasChanges;
+        },
+        complexDimChildAliases() {
+            return new Set(
+                this.selectedData.rows
+                    .filter((r) => r.isComplex)
+                    .flatMap((r) => r.children.map((c) => c.dataAlias))
+            );
+        },
+        simpleSelectedRows() {
+            return this.selectedData.rows.filter((r) => !r.isComplex);
+        },
+        canConfirmComplexDim() {
+            return (
+                this.complexDimDialog.name.trim().length > 0 &&
+                this.complexDimDialog.selectedAliases.length >= 2
+            );
         }
     },
     watch: {
@@ -527,11 +611,16 @@ export default {
             handler() {
                 const { selectedData, dimensionsOptions, rows: baseRows, columns: baseColumns } = this;
                 const { filters, rows, columns } = selectedData;
-                const dimensionFields = [...filters, ...rows, ...columns];
+                const complexChildAliases = new Set(
+                    rows.filter((r) => r.isComplex).flatMap((r) => r.children.map((c) => c.dataAlias))
+                );
+                const plainRows = rows.filter((r) => !r.isComplex);
+                const dimensionFields = [...filters, ...plainRows, ...columns];
                 Object.keys(dimensionsOptions).forEach((aliasKey) => {
                     if (
                         dimensionsOptions[aliasKey] === false ||
                         dimensionsOptions[aliasKey] == null ||
+                        complexChildAliases.has(aliasKey) ||
                         dimensionFields.some(({ dataAlias }) => dataAlias === aliasKey)
                     ) {
                         return;
@@ -551,8 +640,8 @@ export default {
                     .filter(({ dataAlias }) => dimensionsOptions[dataAlias])
                     .map(this.composeDimensionsMetricsColorMapper);
                 selectedData.rows = rows
-                    .filter(({ dataAlias }) => dimensionsOptions[dataAlias])
-                    .map(this.composeDimensionsMetricsColorMapper);
+                    .filter(({ dataAlias, isComplex }) => isComplex || dimensionsOptions[dataAlias])
+                    .map((row) => (row.isComplex ? row : this.composeDimensionsMetricsColorMapper(row)));
                 selectedData.columns = columns
                     .filter(({ dataAlias }) => dimensionsOptions[dataAlias])
                     .map(this.composeDimensionsMetricsColorMapper);
@@ -840,7 +929,7 @@ export default {
             this.selectedData = {
                 filters: filters.map(createCellSettings),
                 columns: columns.map(createCellSettings),
-                rows: rows.map(createCellSettings),
+                rows: rows.map((row) => (row.isComplex ? { ...row } : createCellSettings(row))),
                 values: values.map(createCellSettings)
             };
             this.calculatedMetric = createCalculatedMetricsSettings();
@@ -867,7 +956,9 @@ export default {
                 dimensions
             } = this;
             const dimensionFields = [...rows, ...columns];
-            const selectedFields = [...selectedRows, ...selectedColumns, ...selectedFilters];
+            // Flatten complex dims to their children so their aliases are marked as "selected"
+            const flatSelectedRows = selectedRows.flatMap((r) => (r.isComplex ? r.children : [r]));
+            const selectedFields = [...flatSelectedRows, ...selectedColumns, ...selectedFilters];
             this.dimensionsOptions = this.createOptions(dimensions, selectedFields);
             this.draggableDimensions = this.createDraggableOptions(dimensions, dimensionFields);
             this.searchedDraggableDimensions = this.draggableDimensions;
@@ -898,9 +989,16 @@ export default {
                 dimensionsOptions,
                 selectedData: { columns, rows, filters }
             } = this;
-            const dimensionFields = [...columns, ...rows, ...filters];
+            const plainRows = rows.filter((r) => !r.isComplex);
+            const complexChildAliases = new Set(
+                rows.filter((r) => r.isComplex).flatMap((r) => r.children.map((c) => c.dataAlias))
+            );
+            const dimensionFields = [...columns, ...plainRows, ...filters];
             Object.keys(dimensionsOptions).forEach((aliasKey) => {
-                const isContainsKey = dimensionFields.some(({ dataAlias }) => dataAlias === aliasKey);
+                // Children locked inside complex dims count as "contained"
+                const isContainsKey =
+                    dimensionFields.some(({ dataAlias }) => dataAlias === aliasKey) ||
+                    complexChildAliases.has(aliasKey);
                 const isExistAlias = dimensionsOptions[aliasKey] === true && dimensionsOptions[aliasKey] != null;
                 if ((isContainsKey && isExistAlias) || (!isContainsKey && !isExistAlias)) {
                     return;
@@ -1002,6 +1100,56 @@ export default {
                 })
             );
             this.$set(calculatedValuesOptions, `${id}`, true);
+        },
+
+        showComplexDimDialog() {
+            if (this.simpleSelectedRows.length < 2) return;
+            this.complexDimDialog.isActive = true;
+            this.complexDimDialog.name = '';
+            this.complexDimDialog.selectedAliases = [];
+        },
+        cancelComplexDim() {
+            this.complexDimDialog.isActive = false;
+        },
+        confirmComplexDim() {
+            const { name, selectedAliases } = this.complexDimDialog;
+            if (!name.trim() || selectedAliases.length < 2) return;
+
+            const children = selectedAliases.map((alias) => {
+                const row = this.selectedData.rows.find((r) => r.dataAlias === alias);
+                return {
+                    dataAlias: alias,
+                    title: row?.title ?? alias,
+                    sortAlias: row?.sortAlias ?? '',
+                    width: row?.width ?? ''
+                };
+            });
+
+            // Remove the individual rows (iterate in reverse to preserve indices)
+            const aliasSet = new Set(selectedAliases);
+            for (let i = this.selectedData.rows.length - 1; i >= 0; i--) {
+                if (aliasSet.has(this.selectedData.rows[i].dataAlias)) {
+                    this.selectedData.rows.splice(i, 1);
+                }
+            }
+
+            this._complexDimCounter += 1;
+            this.selectedData.rows.push({
+                isComplex: true,
+                title: name.trim(),
+                dataAlias: `__complex_${this._complexDimCounter}`,
+                children
+            });
+
+            this.complexDimDialog.isActive = false;
+        },
+        removeComplexDim(rowIndex) {
+            const [complexDim] = this.selectedData.rows.splice(rowIndex, 1);
+            if (complexDim?.children) {
+                complexDim.children.forEach(({ dataAlias }) => {
+                    this.$set(this.dimensionsOptions, dataAlias, false);
+                });
+            }
         },
 
         onSave({ isCloseAfterCalculatedMetric = false } = {}) {
