@@ -3467,8 +3467,8 @@ export default {
         },
 
         getLevelRowColorStyle(rowIndex) {
-            const { playerSettings: { levelRowColors }, tableHeadRows, tableRows } = this;
-            if (!levelRowColors || levelRowColors.length === 0) return {};
+            const { playerSettings: { levelRowColors, isUsedCollapse }, tableHeadRows, tableRows } = this;
+            if (!isUsedCollapse || !levelRowColors || levelRowColors.length === 0) return {};
             const dataRowIndex = rowIndex - tableHeadRows.length;
             if (dataRowIndex < 0 || dataRowIndex >= tableRows.length) return {};
             const cells = tableRows[dataRowIndex]?.cells ?? [];
@@ -3476,11 +3476,14 @@ export default {
                 (c) => c.type === CellsTypes.ROW || c.type === CellsTypes.SUBTOTAL_ROW
             );
             if (rowCells.length === 0) return {};
-            // Use the deepest (max) level among all dimension cells in this row.
-            // With isDuplicateDimensions=true, every row contains parent cells (level 0, 1, …)
-            // so .find() would always return the top-level cell. Max level gives the true row depth.
-            const maxLevel = rowCells.reduce((max, c) => Math.max(max, c.level ?? 0), 0);
-            const color = levelRowColors[maxLevel];
+            // hasBeenCollapsed=true marks the first cell of a new group at that dimension level.
+            // The first such cell (lowest index = outermost dimension) tells us the row's display depth:
+            // e.g. the first row of a new "Город" group is a level-0 row, regardless of how many
+            // deeper dimension cells are also present. Leaf rows have no hasBeenCollapsed=true cell,
+            // so they fall back to the last dimension cell's level.
+            const groupCell = rowCells.find((c) => c.hasBeenCollapsed);
+            const level = groupCell != null ? groupCell.level : (rowCells[rowCells.length - 1]?.level ?? 0);
+            const color = levelRowColors[level];
             return color != null && color !== '' ? { '--w-background-color': color } : {};
         },
 

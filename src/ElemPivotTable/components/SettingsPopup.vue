@@ -153,20 +153,25 @@
                         </label>
                     </div>
                 </div>
-                <div class="settings-popup-grid" v-if="!isFlatType && rowsCount > 1">
+                <div class="settings-popup-grid" v-if="!isFlatType && copyProps.isUsedCollapse && rowsCount > 1">
                     <div class="settings-popup-body__title">Цвет строк по уровням</div>
                     <div v-for="n in rowsCount" :key="n" class="settings-popup-control">
                         <label class="settings-popup-control__label">
                             <div class="settings-popup-control__name">Уровень {{ n }}</div>
-                            <input
-                                type="checkbox"
-                                :checked="!!copyProps.levelRowColors[n - 1]"
-                                @change="toggleLevelColor(n - 1, $event.target.checked)" />
-                            <input
-                                v-if="copyProps.levelRowColors[n - 1]"
-                                type="color"
-                                :value="copyProps.levelRowColors[n - 1]"
-                                @input="setLevelColor(n - 1, $event.target.value)" />
+                            <span class="settings-popup-control__level-color">
+                                <input
+                                    type="checkbox"
+                                    class="settings-popup-control__switch"
+                                    style="margin-left: 0"
+                                    :checked="!!copyProps.levelRowColors[n - 1]"
+                                    @change="toggleLevelColor(n - 1, $event.target.checked)" />
+                                <input
+                                    v-if="copyProps.levelRowColors[n - 1]"
+                                    type="color"
+                                    class="settings-popup-control__color"
+                                    :value="copyProps.levelRowColors[n - 1]"
+                                    @input="setLevelColor(n - 1, $event.target.value)" />
+                            </span>
                         </label>
                     </div>
                 </div>
