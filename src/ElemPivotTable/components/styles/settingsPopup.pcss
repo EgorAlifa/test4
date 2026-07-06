@@ -297,6 +297,11 @@
     @m border-top {
         border-top: 1px solid rgba(0, 0, 0, 0.1);
     }
+    @m complex-dim {
+        flex-wrap: wrap;
+        padding: 6px var(--spacer4);
+        min-height: 2.5rem;
+    }
 }
 
 @b settings-popup-grid {
@@ -317,12 +322,17 @@
     }
 }
 
-@b drag-item {
-    @m complex-dim {
-        flex-wrap: wrap;
-        padding: 6px var(--spacer4);
-        min-height: 2.5rem;
-    }
+@b complex-dim-trigger {
+    composes: flex items-center from global;
+    margin-left: auto;
+    font-size: 0.7rem;
+    font-weight: normal;
+    text-transform: none;
+    gap: 4px;
+    letter-spacing: 0;
+    white-space: nowrap;
+    color: inherit;
+    transition: opacity 0.15s;
 }
 
 @b complex-dim-dialog {

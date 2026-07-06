@@ -173,11 +173,13 @@
                             <div class="drag-container__elem drag-item drag-item--title">
                                 Строки
                                 <span
-                                    class="drag-item__icon mdi mdi-set-merge"
-                                    style="margin-left: auto; cursor: pointer;"
-                                    :style="{ opacity: simpleSelectedRows.length >= 2 ? 1 : 0.3 }"
+                                    class="complex-dim-trigger"
+                                    :style="{ opacity: simpleSelectedRows.length >= 2 ? 1 : 0.35, cursor: simpleSelectedRows.length >= 2 ? 'pointer' : 'default' }"
                                     title="Создать сложное измерение"
-                                    @click="showComplexDimDialog"></span>
+                                    @click="showComplexDimDialog">
+                                    <i class="mdi mdi-set-merge"></i>
+                                    Создать сложное измерение
+                                </span>
                             </div>
                             <div class="drag-container__caption">Перетащите сюда</div>
                             <ui-draggable
