@@ -9,6 +9,33 @@
             <ui-switch prop="canCommitMultiVars" :disabled="!props.canCommitVars" />
             <ui-switch prop="isUsedCollapse" :disabled="isFlatType" />
             <ui-switch prop="isUncollapsedAll" :disabled="isFlatType || !props.isUsedCollapse" />
+            <ui-has-panel v-if="!isFlatType && props.isUsedCollapse && levelRowColorLevels > 1">
+                <ui-label label-size="small">Цвет строк по уровням</ui-label>
+                <template #panel>
+                    <ui-panel :groups="[{ name: 'Цвет строк по уровням', slot: 'default' }]">
+                        <ui-container>
+                            <div
+                                v-for="n in levelRowColorLevels"
+                                :key="n"
+                                class="level-color-row">
+                                <span class="level-color-row__label">Уровень {{ n }}</span>
+                                <span class="level-color-row__controls">
+                                    <input
+                                        type="checkbox"
+                                        :checked="!!props.levelRowColors[n - 1]"
+                                        @change="toggleLevelColor(n - 1, $event.target.checked)" />
+                                    <input
+                                        v-if="props.levelRowColors[n - 1]"
+                                        type="color"
+                                        class="level-color-row__color"
+                                        :value="props.levelRowColors[n - 1]"
+                                        @input="setLevelColor(n - 1, $event.target.value)" />
+                                </span>
+                            </div>
+                        </ui-container>
+                    </ui-panel>
+                </template>
+            </ui-has-panel>
             <ui-switch prop="useFastSearch" />
             <ui-switch prop="isDuplicateDimensions" :disabled="isFlatType" />
             <ui-switch prop="canDropFiltersAfterStoreChange" />
@@ -464,9 +491,26 @@ export default {
                 this.props.playerConditions = value;
                 this.propChanged('playerConditions');
             }
+        },
+        levelRowColorLevels() {
+            return this.props.rows.reduce((sum, row) => sum + (row.isComplex ? row.children.length : 1), 0);
         }
     },
     methods: {
+        toggleLevelColor(index, enabled) {
+            const colors = [...(this.props.levelRowColors || [])];
+            while (colors.length <= index) colors.push('');
+            colors[index] = enabled ? '#ffffff' : '';
+            this.props.levelRowColors = colors;
+            this.propChanged('levelRowColors');
+        },
+        setLevelColor(index, color) {
+            const colors = [...(this.props.levelRowColors || [])];
+            while (colors.length <= index) colors.push('');
+            colors[index] = color;
+            this.props.levelRowColors = colors;
+            this.propChanged('levelRowColors');
+        },
         copyCondition(idx) {
             const {
                 props: { playerConditions }
@@ -482,3 +526,30 @@ export default {
     }
 };
 </script>
+
+<style scoped>
+.level-color-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    padding: 2px 0;
+}
+.level-color-row__label {
+    opacity: 0.8;
+}
+.level-color-row__controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+.level-color-row__color {
+    width: 32px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    cursor: pointer;
+}
+</style>

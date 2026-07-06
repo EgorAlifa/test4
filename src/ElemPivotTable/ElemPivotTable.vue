@@ -74,21 +74,13 @@
                         </div>
                     </div>
                     <div v-if="playerSettings.isUsedCollapse && flatPlayerRows.length > 1" class="toolbox__item">
-                        <template v-for="n in flatPlayerRows.length - 1">
-                            <div
-                                :key="n"
-                                class="toolbox-button"
-                                :title="`Уровень ${n}`"
-                                @click="setViewLevel(n)">
-                                <span>{{ n }}</span>
-                            </div>
-                        </template>
-                        <div
-                            class="toolbox-button"
-                            title="Все уровни"
-                            @click="setViewLevel(flatPlayerRows.length)">
-                            <span>Все</span>
-                        </div>
+                        <select
+                            class="toolbox-level-select"
+                            :value="currentViewLevel != null ? currentViewLevel : flatPlayerRows.length"
+                            @change="onViewLevelSelectChange($event)">
+                            <option v-for="n in flatPlayerRows.length - 1" :key="n" :value="n">Уровень {{ n }}</option>
+                            <option :value="flatPlayerRows.length">Все уровни</option>
+                        </select>
                     </div>
                 </div>
                 <div class="pivot-table-container__table resized-table" data-popover-table>
@@ -533,6 +525,7 @@ export default {
         dataTableRows: [],
         tableHeadRowsHook: null,
 
+        currentViewLevel: null,
         collapsedRows: [],
         collapsedColumns: [],
         playerConditions: [],
@@ -1181,6 +1174,11 @@ export default {
         },
         playerColumns() {
             this.selectedCells = [];
+        },
+        flatPlayerRows(rows) {
+            if (this.currentViewLevel == null || this.currentViewLevel > rows.length) {
+                this.currentViewLevel = rows.length;
+            }
         }
     },
     watchStore: [
@@ -4731,11 +4729,15 @@ export default {
 
         setViewLevel(n) {
             const { tableMaps: { collapsedRowsPaths = [] } = {} } = this;
+            this.currentViewLevel = n;
             this.collapsedRows =
                 n >= this.flatPlayerRows.length
                     ? []
                     : collapsedRowsPaths.filter(({ length }) => length === n);
             this.generateTableRows();
+        },
+        onViewLevelSelectChange(event) {
+            this.setViewLevel(Number(event.target.value));
         },
 
         async toggleCollapse(cell, needDraw = true) {

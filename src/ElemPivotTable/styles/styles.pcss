@@ -431,6 +431,23 @@
         color: var(--w-toolbox-button-icon-color-hover, #146ff8);
     }
 }
+@b toolbox-level-select {
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    background: var(--w-toolbox-button-background, transparent);
+    color: var(--w-toolbox-button-font-color, rgba(0, 0, 0, 0.48));
+    font-size: 0.75rem;
+    height: 3rem;
+    padding: 0 var(--spacer3);
+    cursor: pointer;
+    outline: none;
+    &:hover {
+        background: var(--w-toolbox-button-background-hover, transparent);
+        color: var(--w-toolbox-button-font-color-hover, #146ff8);
+    }
+}
+
 @b preloader {
     composes: preloader pad-7 absolute color-primary from global;
     transform: translate(-50%, -50%);
