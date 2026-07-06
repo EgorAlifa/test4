@@ -171,6 +171,19 @@
         composes: radio from global;
         margin-right: 10px;
     }
+    @e level-color {
+        composes: flex items-center from global;
+        margin-left: auto;
+        gap: 8px;
+    }
+    @e color {
+        width: 32px;
+        height: 20px;
+        padding: 0;
+        border: 1px solid var(--color-grey-light);
+        border-radius: 4px;
+        cursor: pointer;
+    }
 }
 
 @b drag-container {
@@ -301,6 +314,57 @@
     }
     @e from1to2 {
         composes: col-start-1 col-end-3 from global;
+    }
+}
+
+@b drag-item {
+    @m complex-dim {
+        flex-wrap: wrap;
+        padding: 6px var(--spacer4);
+        min-height: 2.5rem;
+    }
+}
+
+@b complex-dim-dialog {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--color-white);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    gap: 8px;
+    overflow-y: auto;
+
+    @e header {
+        font-weight: bold;
+        font-size: 0.875rem;
+        margin-bottom: 4px;
+    }
+    @e name {
+        width: 100%;
+        font-size: 0.875rem;
+    }
+    @e hint {
+        font-size: 0.75rem;
+        color: rgba(0, 0, 0, 0.5);
+    }
+    @e item {
+        composes: flex items-center from global;
+        gap: 8px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        padding: 2px 0;
+    }
+    @e actions {
+        composes: flex items-center from global;
+        gap: 8px;
+        margin-top: auto;
+        padding-top: 8px;
+        border-top: 1px solid var(--color-border);
     }
 }
 

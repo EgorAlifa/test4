@@ -153,6 +153,28 @@
                         </label>
                     </div>
                 </div>
+                <div class="settings-popup-grid" v-if="!isFlatType && copyProps.isUsedCollapse && rowsCount > 1">
+                    <div class="settings-popup-body__title">Цвет строк по уровням</div>
+                    <div v-for="n in rowsCount" :key="n" class="settings-popup-control">
+                        <label class="settings-popup-control__label">
+                            <div class="settings-popup-control__name">Уровень {{ n }}</div>
+                            <span class="settings-popup-control__level-color">
+                                <input
+                                    type="checkbox"
+                                    class="settings-popup-control__switch"
+                                    style="margin-left: 0"
+                                    :checked="!!copyProps.levelRowColors[n - 1]"
+                                    @change="toggleLevelColor(n - 1, $event.target.checked)" />
+                                <input
+                                    v-if="copyProps.levelRowColors[n - 1]"
+                                    type="color"
+                                    class="settings-popup-control__color"
+                                    :value="copyProps.levelRowColors[n - 1]"
+                                    @input="setLevelColor(n - 1, $event.target.value)" />
+                            </span>
+                        </label>
+                    </div>
+                </div>
             </div>
         </template>
         <template #footer="{ close }">
@@ -234,6 +256,14 @@ export default {
         isPagination: {
             type: Boolean,
             default: false
+        },
+        levelRowColors: {
+            type: Array,
+            default: () => []
+        },
+        rowsCount: {
+            type: Number,
+            default: 0
         }
     },
     static: {
@@ -259,7 +289,8 @@ export default {
             tableDrawType: '',
             metricsPosition: '',
             isPagination: false,
-            subtotal: createSubtotalSettings()
+            subtotal: createSubtotalSettings(),
+            levelRowColors: []
         }
     }),
     computed: {
@@ -296,7 +327,8 @@ export default {
                 subtotal,
                 isPagination,
                 tableDrawType,
-                metricsPosition
+                metricsPosition,
+                levelRowColors
             } = this;
 
             this.copyProps.isUsedCollapse = isUsedCollapse;
@@ -312,6 +344,19 @@ export default {
             this.copyProps.tableDrawType = tableDrawType;
             this.copyProps.metricsPosition = metricsPosition;
             this.copyProps.isPagination = isPagination;
+            this.copyProps.levelRowColors = levelRowColors ? [...levelRowColors] : [];
+        },
+        setLevelColor(index, color) {
+            const colors = [...(this.copyProps.levelRowColors || [])];
+            while (colors.length <= index) colors.push('');
+            colors[index] = color;
+            this.copyProps.levelRowColors = colors;
+        },
+        toggleLevelColor(index, enabled) {
+            const colors = [...(this.copyProps.levelRowColors || [])];
+            while (colors.length <= index) colors.push('');
+            colors[index] = enabled ? '#ffffff' : '';
+            this.copyProps.levelRowColors = colors;
         },
         onSave() {
             const { copyProps } = this;

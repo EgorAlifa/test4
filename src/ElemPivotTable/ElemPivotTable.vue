@@ -73,6 +73,23 @@
                             <i class="toolbox-button__icon toolbox-button__icon--fullscreen" />
                         </div>
                     </div>
+                    <div v-if="playerSettings.isUsedCollapse && flatPlayerRows.length > 1" class="toolbox__item">
+                        <template v-for="n in flatPlayerRows.length - 1">
+                            <div
+                                :key="n"
+                                class="toolbox-button"
+                                :title="`Уровень ${n}`"
+                                @click="setViewLevel(n)">
+                                <span>{{ n }}</span>
+                            </div>
+                        </template>
+                        <div
+                            class="toolbox-button"
+                            title="Все уровни"
+                            @click="setViewLevel(flatPlayerRows.length)">
+                            <span>Все</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="pivot-table-container__table resized-table" data-popover-table>
                     <ui-recycle-scroller
@@ -588,6 +605,22 @@ export default {
         updatedSingleFilters: []
     }),
     computedEditor: {
+        flatPlayerRows() {
+            return this.playerRows.flatMap((row) => (row.isComplex ? row.children : [row]));
+        },
+        complexDimRanges() {
+            const ranges = [];
+            let flatIndex = 0;
+            this.playerRows.forEach((row) => {
+                if (row.isComplex) {
+                    ranges.push({ start: flatIndex, end: flatIndex + row.children.length - 1, title: row.title });
+                    flatIndex += row.children.length;
+                } else {
+                    flatIndex++;
+                }
+            });
+            return ranges;
+        },
         baseRowsCssVars() {
             const {
                 props: { baseRowsSettings }
@@ -704,8 +737,8 @@ export default {
                 return 0;
             }
             const fixedColumnsCount = this.isFlat
-                ? this.playerRows.length + this.playerColumns.length
-                : this.playerRows.length;
+                ? this.flatPlayerRows.length + this.playerColumns.length
+                : this.flatPlayerRows.length;
             if (fixedColumnsCount === 0) {
                 return 0;
             }
@@ -778,7 +811,7 @@ export default {
 
         cellsCssVars() {
             const {
-                playerRows,
+                flatPlayerRows: playerRows,
                 playerColumns,
                 playerValues,
                 baseRowsCssVars,
@@ -934,7 +967,10 @@ export default {
             };
         },
         settingsPopupBinds() {
-            return this.playerSettings;
+            return {
+                ...this.playerSettings,
+                rowsCount: this.flatPlayerRows.length
+            };
         },
         formatPopupBinds() {
             const { playerValues: valuesSettings } = this;
@@ -943,10 +979,10 @@ export default {
             };
         },
         conditionsPopupBinds() {
-            const { playerConditions, playerRows, playerColumns, playerFilters } = this;
+            const { playerConditions, playerColumns, playerFilters } = this;
             return {
                 valuesSettings: this.getAllMetricSettings(),
-                rowsSettings: playerRows,
+                rowsSettings: this.flatPlayerRows,
                 columnsSettings: playerColumns,
                 filtersSettings: playerFilters,
                 conditions: playerConditions
@@ -1050,14 +1086,14 @@ export default {
             const {
                 selectedCells,
                 tableRows,
-                playerRows,
+                flatPlayerRows,
                 playerColumns,
                 tableHeadRows,
                 playerSettings: { isUsedIndexes },
                 isFlat
             } = this;
             const headLength = tableHeadRows.length;
-            const rowsLength = playerRows.length + (isFlat ? playerColumns.length : 0);
+            const rowsLength = flatPlayerRows.length + (isFlat ? playerColumns.length : 0);
             return selectedCells.reduce((acc, [rowIndex, indexes]) => {
                 if (rowIndex < headLength) {
                     return acc;
@@ -1217,13 +1253,13 @@ export default {
                 QueryFilterOperator,
                 dimensions,
                 uniqDimensionsFields,
-                playerRows,
+                flatPlayerRows,
                 playerColumns,
                 playerFilters,
                 props
             } = this;
             const { isHiddenFiltrationEnabled } = props;
-            const dimIndexes = [...playerRows, ...playerColumns, ...playerFilters].map(({ dataAlias }) =>
+            const dimIndexes = [...flatPlayerRows, ...playerColumns, ...playerFilters].map(({ dataAlias }) =>
                 dimensions.findIndex((dim) => dim === dataAlias)
             );
 
@@ -1278,10 +1314,10 @@ export default {
             if (this.fetchRowsUseCancel) {
                 this.cancelRequests(RequestType.ROWS);
             }
-            const { playerRows, playerColumns, playerFiltersValues, dimensions } = this;
-            const settings = playerRows.slice(0, path.length + 1).concat(fetchAllData ? playerColumns : []);
+            const { flatPlayerRows, playerColumns, playerFiltersValues, dimensions } = this;
+            const settings = flatPlayerRows.slice(0, path.length + 1).concat(fetchAllData ? playerColumns : []);
             const filterAliasDimIndex = dimensions.findIndex((dim) => dim === filterAlias);
-            const dimIndexes = playerRows
+            const dimIndexes = flatPlayerRows
                 .slice(0, path.length)
                 .map(({ dataAlias }) => dimensions.findIndex((dim) => dim === dataAlias));
 
@@ -1397,8 +1433,8 @@ export default {
         },
 
         async fetchTotalsForPath(path = [], level = 0) {
-            const { playerRows, playerFiltersValues, dimensions } = this;
-            const splicedPlayerRows = playerRows.slice(0, level + 2);
+            const { flatPlayerRows, playerFiltersValues, dimensions } = this;
+            const splicedPlayerRows = flatPlayerRows.slice(0, level + 2);
             const filterValues = playerFiltersValues.map((filter, index) => {
                 const rowIndex = splicedPlayerRows.findIndex(({ dataAlias }) => dimensions[index] === dataAlias);
                 if (rowIndex > -1 && path?.[rowIndex] != null) {
@@ -1479,7 +1515,7 @@ export default {
             }
         },
         buildRequestMetrics() {
-            const { metrics: datasetMetrics, playerValues, playerConditions, playerRows, playerColumns } = this;
+            const { metrics: datasetMetrics, playerValues, playerConditions, flatPlayerRows, playerColumns } = this;
             const allMetricSettings = this.getAllMetricSettings();
             const conditionMetricAliases = uniqArray(
                 playerConditions.flatMap((rule) => {
@@ -1513,7 +1549,7 @@ export default {
                             ? []
                             : [dataAlias, sortAlias, ...(IsUsedCalc ? [calcAlias] : [])]
                 ),
-                ...playerRows.map(({ sortAlias }) => sortAlias),
+                ...flatPlayerRows.map(({ sortAlias }) => sortAlias),
                 ...playerColumns.map(({ sortAlias }) => sortAlias)
             ]).filter((val) => val !== '');
             const metrics = [...datasetMetrics]
@@ -1562,7 +1598,7 @@ export default {
                     ];
                 });
         },
-        buildSlicedRequest({ limit = null, offset = null, playerRows = this.playerRows, isFlat = this.isFlat } = {}) {
+        buildSlicedRequest({ limit = null, offset = null, playerRows = this.flatPlayerRows, isFlat = this.isFlat } = {}) {
             const {
                 playerColumns,
                 playerValues,
@@ -2120,9 +2156,9 @@ export default {
             }
 
             const dimensionIndex = index - (isUsedIndexes === true ? 1 : 0);
-            const dimensions = this.isFlat ? [...this.playerRows, ...this.playerColumns] : this.playerRows;
+            const dimensions = this.isFlat ? [...this.flatPlayerRows, ...this.playerColumns] : this.flatPlayerRows;
             const dimensionSettings = dimensions[dimensionIndex] ?? {};
-            const isRowDimension = dimensionIndex < this.playerRows.length;
+            const isRowDimension = dimensionIndex < this.flatPlayerRows.length;
             const { cellWidth, columnsWidth, baseRowsSettings = {}, baseColumnsSettings = {} } = this.props ?? {};
             const { width: baseRowsWidth } = baseRowsSettings ?? {};
             const { width: baseColumnsWidth } = baseColumnsSettings ?? {};
@@ -2158,12 +2194,12 @@ export default {
                 selectedCells,
                 tableHeadRows,
                 tableRows,
-                playerRows,
+                flatPlayerRows,
                 playerColumns,
                 playerSettings: { isUsedIndexes },
                 isFlat
             } = this;
-            const rowsLength = playerRows.length + (isUsedIndexes ? 1 : 0);
+            const rowsLength = flatPlayerRows.length + (isUsedIndexes ? 1 : 0);
             if (isFlat) {
                 const headLength = tableHeadRows.length;
 
@@ -2200,12 +2236,12 @@ export default {
             const {
                 selectedCells,
                 tableRows,
-                playerRows,
+                flatPlayerRows,
                 tableHeadRows,
                 playerSettings: { isUsedIndexes }
             } = this;
             const headLength = tableHeadRows.length;
-            return playerRows.map((_, level) =>
+            return flatPlayerRows.map((_, level) =>
                 selectedCells.reduce((acc, [rowIndex, indexes]) => {
                     if (rowIndex < headLength || !indexes.includes(level + (isUsedIndexes ? 1 : 0))) {
                         return acc;
@@ -2220,7 +2256,7 @@ export default {
         },
         sendToStore() {
             const {
-                playerRows,
+                flatPlayerRows,
                 playerColumns,
                 props: { canCommitVars },
                 changedStoreValues
@@ -2230,7 +2266,7 @@ export default {
             }
             const storeRowsValues = this.buildSelectedRowsStoreValue();
             const storeColumnsValues = this.buildSelectedColumnsStoreValue();
-            const storeRows = playerRows.reduce((acc, { dataAlias }, level) => {
+            const storeRows = flatPlayerRows.reduce((acc, { dataAlias }, level) => {
                 const values = storeRowsValues[level];
                 if (values.length === 0 && changedStoreValues[dataAlias] == null) {
                     return acc;
@@ -2254,8 +2290,8 @@ export default {
         },
         async fetchPaginationData(rowFilter, columnSortOptions = null) {
             this.cancelRequests(RequestType.PAGINATION_DATA);
-            const { playerRows, playerColumns, playerFiltersValues, dimensions } = this;
-            const [row = null] = playerRows;
+            const { flatPlayerRows, playerColumns, playerFiltersValues, dimensions } = this;
+            const [row = null] = flatPlayerRows;
             const rows = row == null ? [] : [row];
             const columnDimensions = playerColumns.flatMap(({ dataAlias, sortAlias }) => {
                 const { sortAlias: propRowSortAlias } = this.findPropRowByDataAlias(dataAlias);
@@ -2308,7 +2344,7 @@ export default {
             }
         },
         resolveRowsActionsDataAliases(rows) {
-            const rowAliases = new Set(this.playerRows.map(({ dataAlias }) => dataAlias));
+            const rowAliases = new Set(this.flatPlayerRows.map(({ dataAlias }) => dataAlias));
             return uniqArray(
                 rows
                     .filter(({ actions }) => actions?.enabled === true)
@@ -2318,7 +2354,7 @@ export default {
             );
         },
         async fillPaginationRowsActionsData(rows, rowFilter) {
-            const [row = null] = this.playerRows;
+            const [row = null] = this.flatPlayerRows;
             const actionDataAliases = row == null ? [] : this.resolveRowsActionsDataAliases([row]);
             if (rows.length === 0 || actionDataAliases.length === 0) {
                 return rows;
@@ -2503,7 +2539,7 @@ export default {
         async generateFlatTable() {
             const {
                 playerSettings,
-                playerRows: rowsSettings,
+                flatPlayerRows: rowsSettings,
                 playerColumns: columnsSettings,
                 playerValues: valuesSettigns,
                 props: { rowsHeight, titleHeight, indexesHeight },
@@ -2539,7 +2575,7 @@ export default {
         async generateBasicTable() {
             const {
                 playerSettings,
-                playerRows: rows,
+                flatPlayerRows: rows,
                 playerColumns: columns,
                 playerValues: valuesData,
                 collapsedRows,
@@ -2616,7 +2652,9 @@ export default {
             });
             const headRowsCount = columns.length + 1 + (isUsedIndexes ? 1 : 0);
             const tableHeadRows = tableRows.splice(0, headRowsCount);
-            this.tableRows = tableRows.filter(({ cells }) => this.checkCellsValuesFilters(cells));
+            const filteredTableRows = tableRows.filter(({ cells }) => this.checkCellsValuesFilters(cells));
+            this.applyComplexDimCellRoles(filteredTableRows, tableHeadRows, isUsedIndexes);
+            this.tableRows = filteredTableRows;
             this.tableHeadRows = tableHeadRows;
         },
         async generateTableRows() {
@@ -2671,7 +2709,7 @@ export default {
             {
                 path,
                 filters = this.playerFilters,
-                rows = this.playerRows,
+                rows = this.flatPlayerRows,
                 columns = this.playerColumns,
                 startIndex = 0,
                 updateRowsHeap = null,
@@ -2745,7 +2783,7 @@ export default {
 
         async updateFilters({
             filters = this.playerFilters,
-            rows = this.playerRows,
+            rows = this.flatPlayerRows,
             columns = this.playerColumns
         } = {}) {
             const {
@@ -2807,7 +2845,7 @@ export default {
         },
         async generateTableMaps(
             data,
-            { filters = this.playerFilters, rows = this.playerRows, columns = this.playerColumns } = {}
+            { filters = this.playerFilters, rows = this.flatPlayerRows, columns = this.playerColumns } = {}
         ) {
             this.isGeneratedTableMaps = false;
             const {
@@ -2873,7 +2911,7 @@ export default {
             const {
                 props: { baseRowsSettings, baseColumnsSettings, baseValuesSettings, tableBorderColor },
                 playerValues,
-                playerRows,
+                flatPlayerRows,
                 playerColumns,
                 isFlat
             } = this;
@@ -2881,7 +2919,7 @@ export default {
             const addType = (arr, type) => arr.map((item) => ({ ...item, type }));
 
             const values = [].concat(
-                addType(playerRows, 'row'),
+                addType(flatPlayerRows, 'row'),
                 addType(playerColumns, 'column'),
                 addType(playerValues, 'value')
             );
@@ -2959,13 +2997,13 @@ export default {
             const {
                 props: { baseRowsSettings, tableBorderColor, rowTotalSettings, columnsTotalSettings },
                 playerValues,
-                playerRows,
+                flatPlayerRows,
                 playerColumns,
                 playerSettings: { columnsTotalPosition, rowTotalPosition, isShownColumnsTotal, isShownRowTotal },
                 isFlat
             } = this;
 
-            const values = [].concat(playerRows, playerColumns, playerValues);
+            const values = [].concat(flatPlayerRows, playerColumns, playerValues);
             const conditions = uniqWith(
                 fields.flatMap((field) => {
                     const { format = '', dataAlias = '' } = values.find((value) => value.dataAlias === field) ?? {};
@@ -3018,8 +3056,8 @@ export default {
                 const { query: { prepared = {} } = {} } = request ?? {};
                 return prepared;
             };
-            const rowsQueryPrepared = getQuery(playerRows);
-            const columnsQueryPrepared = getQuery(isFlat ? playerColumns.concat(playerRows) : playerColumns);
+            const rowsQueryPrepared = getQuery(flatPlayerRows);
+            const columnsQueryPrepared = getQuery(isFlat ? playerColumns.concat(flatPlayerRows) : playerColumns);
 
             const composeTotal = ({ totalSettings, query, position }) => {
                 const totalFormat = totalSettings.format || playerValues[0]?.format || baseRowsSettings.format;
@@ -3070,7 +3108,7 @@ export default {
                     // get first dataset dataProviderId
                     [this.DATASET_PROP]: [{ dataProviderId }]
                 },
-                playerRows,
+                flatPlayerRows,
                 playerColumns,
                 playerValues,
                 playerSettings,
@@ -3083,7 +3121,7 @@ export default {
                 isFlat: true
             });
 
-            const dimsCombined = [].concat(playerRows, playerColumns);
+            const dimsCombined = [].concat(flatPlayerRows, playerColumns);
             this.appendDimensionExplicitSort(request, dimsCombined);
             this.appendPlayerValuesSort(request);
             this.appendDimensionDefaultSort(request, dimsCombined);
@@ -3139,12 +3177,12 @@ export default {
                 props: { xlsxFilename, xlsxBlankName, xlsxAddDate }
             } = this;
             this.loaderStart();
-            const dimensionSettingsByAlias = keyBy([...this.playerRows, ...this.playerColumns], 'dataAlias');
+            const dimensionSettingsByAlias = keyBy([...this.flatPlayerRows, ...this.playerColumns], 'dataAlias');
             const resolveDimensionSettings = ({ cellType, dataAlias, level }) => {
                 if (dataAlias !== '') {
                     return dimensionSettingsByAlias[dataAlias];
                 }
-                return cellType === CellsTypes.COLUMN ? this.playerColumns[level] : this.playerRows[level];
+                return cellType === CellsTypes.COLUMN ? this.playerColumns[level] : this.flatPlayerRows[level];
             };
             const tableRows = [...this.tableHeadRows, ...this.tableRows].map(({ cells, ...data }, rowIndex) => ({
                 ...data,
@@ -3230,11 +3268,11 @@ export default {
         },
 
         resolveCellValueClasses({ type, hasBeenCollapsed, level, isLoader }) {
-            const { playerRows, playerSettings } = this;
+            const { flatPlayerRows, playerSettings } = this;
             return {
                 'scroller-table__value--with-space':
                     type === CellsTypes.ROW &&
-                    level !== playerRows.length - 1 &&
+                    level !== flatPlayerRows.length - 1 &&
                     !hasBeenCollapsed &&
                     playerSettings.isUsedCollapse,
                 'scroller-table__value--loader': isLoader
@@ -3313,7 +3351,10 @@ export default {
             const { shouldShowAggregateNames } = this.props;
             return shouldShowAggregateNames ? `${aggregate}(${value})` : value;
         },
-        resolveCellValue({ type, value, level, hasBeenCollapsed }) {
+        resolveCellValue({ type, value, level, hasBeenCollapsed, _complexRole, _complexTitle }) {
+            if (_complexRole === 'title') {
+                return _complexTitle;
+            }
             if (type === CellsTypes.VALUE_TITLE || type === CellsTypes.TOTAL_VALUE_TITLE) {
                 const { playerValues } = this;
                 const { aggregate, title } = playerValues[level] ?? {};
@@ -3335,7 +3376,7 @@ export default {
             }
             if (type === CellsTypes.ROW || type === CellsTypes.COLUMN) {
                 const {
-                    playerRows,
+                    flatPlayerRows,
                     playerColumns,
                     playerSettings: { isDuplicateDimensions },
                     isFlat
@@ -3348,7 +3389,7 @@ export default {
                 if (
                     !isDuplicateDimensions &&
                     !hasBeenCollapsed &&
-                    level < (type === CellsTypes.ROW ? playerRows : playerColumns).length - 1
+                    level < (type === CellsTypes.ROW ? flatPlayerRows : playerColumns).length - 1
                 ) {
                     return '';
                 }
@@ -3431,30 +3472,116 @@ export default {
             };
         },
         resolveCellCssStyle({ cell, rowIndex, index }) {
+            if (cell._complexRole === 'hidden') {
+                return { '--w-width': '0px', 'min-width': '0px', overflow: 'hidden', padding: '0', border: '0' };
+            }
             const {
                 props: { useZebra },
                 zebraCssVars
             } = this;
             const { type } = cell;
             const style = this.getCellCssStyle(cell);
+            const levelColorStyle = this.getLevelRowColorStyle(rowIndex);
             const condStyle = this.genCellCssVarsStyle(this.getCellCssStyleByCondition(cell, rowIndex, index));
             const resizeColStyle = this.buildResizedCellStyleByIndexes(index);
             const fixedFirstColumnStyle = this.buildFixedFirstColumnStyle(index);
+            const complexStyle =
+                cell._complexWidth != null
+                    ? { '--w-width': cell._complexWidth, 'padding-left': cell._complexIndentLevel > 0 ? `${cell._complexIndentLevel * 16}px` : '' }
+                    : {};
             return useZebra && rowIndex != null && isOdd(rowIndex) && type !== CellsTypes.ROW_INDEX
-                ? { ...style, ...zebraCssVars, ...condStyle, ...resizeColStyle, ...fixedFirstColumnStyle }
-                : { ...style, ...condStyle, ...resizeColStyle, ...fixedFirstColumnStyle };
+                ? { ...style, ...levelColorStyle, ...zebraCssVars, ...condStyle, ...resizeColStyle, ...fixedFirstColumnStyle, ...complexStyle }
+                : { ...style, ...levelColorStyle, ...condStyle, ...resizeColStyle, ...fixedFirstColumnStyle, ...complexStyle };
+        },
+
+        computeComplexDimTotalWidth(range) {
+            const { flatPlayerRows } = this;
+            const defaultPx = parseInt(this.props.baseRowsSettings?.width || this.props.cellWidth || '150', 10) || 150;
+            let total = 0;
+            for (let i = range.start; i <= range.end; i++) {
+                const w = parseInt((flatPlayerRows[i] || {}).width || '', 10);
+                total += Number.isNaN(w) ? defaultPx : w;
+            }
+            return `${total}px`;
+        },
+        applyComplexDimCellRoles(dataRows, headRows, isUsedIndexes) {
+            const { complexDimRanges } = this;
+            if (complexDimRanges.length === 0) return;
+            const offset = isUsedIndexes ? 1 : 0;
+
+            for (const range of complexDimRanges) {
+                const totalWidth = this.computeComplexDimTotalWidth(range);
+                // Header rows: first child cell = complex title, rest hidden
+                for (const row of headRows) {
+                    const { cells } = row;
+                    const first = cells[range.start + offset];
+                    if (first) {
+                        first._complexRole = 'title';
+                        first._complexTitle = range.title;
+                        first._complexWidth = totalWidth;
+                        first._complexIndentLevel = 0;
+                    }
+                    for (let i = range.start + 1; i <= range.end; i++) {
+                        const c = cells[i + offset];
+                        if (c) c._complexRole = 'hidden';
+                    }
+                }
+                // Data rows: find active child, hide others
+                for (const row of dataRows) {
+                    const { cells } = row;
+                    let activeIndex = range.end;
+                    for (let i = range.start; i <= range.end; i++) {
+                        const c = cells[i + offset];
+                        if (c && c.hasBeenCollapsed) {
+                            activeIndex = i;
+                            break;
+                        }
+                    }
+                    for (let i = range.start; i <= range.end; i++) {
+                        const c = cells[i + offset];
+                        if (!c) continue;
+                        if (i === activeIndex) {
+                            c._complexRole = 'active';
+                            c._complexWidth = totalWidth;
+                            c._complexIndentLevel = i - range.start;
+                        } else {
+                            c._complexRole = 'hidden';
+                        }
+                    }
+                }
+            }
+        },
+        getLevelRowColorStyle(rowIndex) {
+            const { playerSettings: { levelRowColors, isUsedCollapse }, tableHeadRows, tableRows } = this;
+            if (!isUsedCollapse || !levelRowColors || levelRowColors.length === 0) return {};
+            const dataRowIndex = rowIndex - tableHeadRows.length;
+            if (dataRowIndex < 0 || dataRowIndex >= tableRows.length) return {};
+            const cells = tableRows[dataRowIndex]?.cells ?? [];
+            const rowCells = cells.filter(
+                (c) => c.type === CellsTypes.ROW || c.type === CellsTypes.SUBTOTAL_ROW
+            );
+            if (rowCells.length === 0) return {};
+            // hasBeenCollapsed=true marks the first cell of a new group at that dimension level.
+            // The first such cell (lowest index = outermost dimension) tells us the row's display depth:
+            // e.g. the first row of a new "Город" group is a level-0 row, regardless of how many
+            // deeper dimension cells are also present. Leaf rows have no hasBeenCollapsed=true cell,
+            // so they fall back to the last dimension cell's level.
+            const groupCell = rowCells.find((c) => c.hasBeenCollapsed);
+            const level = groupCell != null ? groupCell.level : (rowCells[rowCells.length - 1]?.level ?? 0);
+            const color = levelRowColors[level];
+            return color != null && color !== '' ? { '--w-background-color': color } : {};
         },
 
         getCellCssStyle({ type, level, rowIndex }) {
-            const { cellsCssVars, playerRows } = this;
+            const { cellsCssVars, flatPlayerRows } = this;
             if (type === CellsTypes.SUBTOTAL_ROW) {
                 return cellsCssVars?.[CellsTypes.ROW]?.[level] ?? {};
             }
             if (type === CellsTypes.SPACE) {
                 return cellsCssVars?.[type]?.[rowIndex] ?? {};
             }
-            if (type === CellsTypes.COLUMN_INDEX && playerRows?.[level] == null) {
-                return cellsCssVars?.[type]?.[playerRows.length] ?? {};
+            if (type === CellsTypes.COLUMN_INDEX && flatPlayerRows?.[level] == null) {
+                return cellsCssVars?.[type]?.[flatPlayerRows.length] ?? {};
             }
             return cellsCssVars?.[type]?.[level] ?? {};
         },
@@ -3558,6 +3685,7 @@ export default {
                 tableDrawType,
                 metricsPosition,
                 isPagination,
+                levelRowColors,
                 playerConditions
             } = this.props;
             this.playerCalculatedValues = [];
@@ -3565,8 +3693,8 @@ export default {
                 .map(createCellSettings)
                 .filter(({ dataAlias }) => filters?.[dataAlias] ?? true);
             this.playerRows = rows
-                .map(createCellSettings)
-                .filter(({ dataAlias, isShown }) => isShown && (filters?.[dataAlias] ?? true));
+                .map((row) => (row.isComplex ? row : createCellSettings(row)))
+                .filter((row) => row.isComplex || (row.isShown && (filters?.[row.dataAlias] ?? true)));
             this.playerColumns = columns
                 .map(createCellSettings)
                 .filter(({ dataAlias }) => filters?.[dataAlias] ?? true);
@@ -3584,7 +3712,8 @@ export default {
                 subtotal,
                 tableDrawType,
                 metricsPosition,
-                isPagination
+                isPagination,
+                levelRowColors
             };
             this.updateValuesFilters();
             this.updateConditions(playerConditions);
@@ -3685,7 +3814,7 @@ export default {
                 return metric.title || metric.dataAlias;
             }
 
-            const dimension = [...this.playerRows, ...this.playerColumns, ...this.playerFilters].find(
+            const dimension = [...this.flatPlayerRows, ...this.playerColumns, ...this.playerFilters].find(
                 ({ dataAlias }) => dataAlias === alias
             );
             if (dimension != null) {
@@ -3768,7 +3897,7 @@ export default {
                 return this.playerValues?.[level]?.dataAlias ?? null;
             }
             if ([CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW].includes(type)) {
-                return this.playerRows?.[level]?.dataAlias ?? null;
+                return this.flatPlayerRows?.[level]?.dataAlias ?? null;
             }
             if ([CellsTypes.COLUMN, CellsTypes.TITLE].includes(type)) {
                 return this.playerColumns?.[level]?.dataAlias ?? null;
@@ -3801,7 +3930,7 @@ export default {
             };
         },
         resolveDimensionValue(alias, { rowPath = [], columnPath = [] } = {}) {
-            const rowIndex = this.playerRows.findIndex(({ dataAlias }) => dataAlias === alias);
+            const rowIndex = this.flatPlayerRows.findIndex(({ dataAlias }) => dataAlias === alias);
             if (rowIndex > -1 && rowPath?.[rowIndex] !== undefined) {
                 return rowPath[rowIndex];
             }
@@ -4047,7 +4176,7 @@ export default {
         },
         checkShownTitleFilter({ type, level, isFilters }) {
             const {
-                playerRows,
+                flatPlayerRows,
                 playerColumns,
                 playerFilters,
                 playerConditionsFilters,
@@ -4056,7 +4185,7 @@ export default {
             } = this;
             if (type === CellsTypes.ROW_TITLE || type === CellsTypes.TITLE) {
                 return this.checkUsedFilter(
-                    (type === CellsTypes.ROW_TITLE ? playerRows : playerColumns)?.[level]?.dataAlias
+                    (type === CellsTypes.ROW_TITLE ? flatPlayerRows : playerColumns)?.[level]?.dataAlias
                 );
             }
             if (type === CellsTypes.VALUE_TITLE) {
@@ -4267,7 +4396,8 @@ export default {
             subtotal,
             tableDrawType,
             metricsPosition,
-            isPagination
+            isPagination,
+            levelRowColors
         }) {
             const previousTableDrawType = this.playerSettings?.tableDrawType;
             const previousIsPagination = this.playerSettings?.isPagination;
@@ -4284,7 +4414,8 @@ export default {
                 subtotal,
                 tableDrawType,
                 metricsPosition,
-                isPagination
+                isPagination,
+                levelRowColors
             };
             this.commitTableSettingsToStore();
             if (this.playerSettings.isPagination) {
@@ -4412,7 +4543,7 @@ export default {
                 return;
             }
             const {
-                playerRows,
+                flatPlayerRows,
                 playerColumns,
                 playerSettings: { tableDrawType },
                 props: { canCommitVars }
@@ -4430,16 +4561,16 @@ export default {
             }
 
             if (type === CellsTypes.ROW_TITLE || type === CellsTypes.TITLE) {
-                const isRowLevel = playerRows[level] != null;
+                const isRowLevel = flatPlayerRows[level] != null;
                 const targetLevel =
                     tableDrawType === TableDrawTypes.TABLE
                         ? level
-                        : !isRowLevel && level >= playerRows.length
-                        ? level - playerRows.length
+                        : !isRowLevel && level >= flatPlayerRows.length
+                        ? level - flatPlayerRows.length
                         : level;
                 this.setFilterPopoverState({
                     cellType: type,
-                    fields: type === CellsTypes.ROW_TITLE && isRowLevel ? playerRows : playerColumns,
+                    fields: type === CellsTypes.ROW_TITLE && isRowLevel ? flatPlayerRows : playerColumns,
                     level: targetLevel,
                     event
                 });
@@ -4494,7 +4625,7 @@ export default {
                 tableMaps,
                 request: { limit }
             } = this;
-            const { dataAlias: filterAlias } = this.playerRows[path.length];
+            const { dataAlias: filterAlias } = this.flatPlayerRows[path.length];
             const slicedPath = path.slice(0, level + 1);
             let rowsNode = tableMaps.rowsHeap;
             slicedPath.forEach((name) => {
@@ -4596,6 +4727,15 @@ export default {
                 };
             }
             this.loaderEnd();
+        },
+
+        setViewLevel(n) {
+            const { tableMaps: { collapsedRowsPaths = [] } = {} } = this;
+            this.collapsedRows =
+                n >= this.flatPlayerRows.length
+                    ? []
+                    : collapsedRowsPaths.filter(({ length }) => length === n);
+            this.generateTableRows();
         },
 
         async toggleCollapse(cell, needDraw = true) {
@@ -4770,7 +4910,22 @@ export default {
                 playerConditions,
                 playerCalculatedValues
             } = this;
-            const [rows, columns, filters] = [playerRows, playerColumns, playerFilters].map((fields) =>
+            const serializeRow = (field) =>
+                field.isComplex
+                    ? {
+                          isComplex: true,
+                          dataAlias: field.dataAlias,
+                          title: field.title,
+                          children: field.children.map(({ dataAlias, title, sortAlias, width }) => ({
+                              dataAlias,
+                              title,
+                              sortAlias,
+                              width
+                          }))
+                      }
+                    : { dataAlias: field.dataAlias, title: field.title, sortAlias: field.sortAlias, width: field.width };
+            const rows = playerRows.map(serializeRow);
+            const [columns, filters] = [playerColumns, playerFilters].map((fields) =>
                 fields.map(({ dataAlias, title, sortAlias, width }) => ({ dataAlias, title, sortAlias, width }))
             );
             const [values, calculatedValues] = [playerValues, playerCalculatedValues].map((fields) =>
@@ -4890,6 +5045,9 @@ export default {
             [this.playerRows, this.playerColumns, this.playerFilters, this.playerValues, this.playerCalculatedValues] =
                 Object.entries({ rows, columns, filters, values, calculatedValues }).map(([fieldName, fields]) =>
                     fields.map((field) => {
+                        if (field.isComplex) {
+                            return field;
+                        }
                         const { dataAlias } = field;
                         const foundField = previousState[fieldName].find(({ dataAlias: alias }) => alias === dataAlias);
                         const propsField = propsFieldsMap[fieldName][dataAlias];

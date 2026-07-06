@@ -101,9 +101,23 @@ export default {
                     ...queryDataParams
                 };
 
-                const navigateOptions = buildNavigateOptions(linkUrl, { query: mergedQuery });
-
-                navigate(navigateOptions, { isNewWindow: isTargetBlank });
+                // Absolute URLs must not be wrapped by buildNavigateOptions (which prepends platform host).
+                if (/^https?:\/\//i.test(linkUrl)) {
+                    const qs = new URLSearchParams(
+                        Object.fromEntries(
+                            Object.entries(mergedQuery)
+                                .filter(([, v]) => v != null)
+                                .map(([k, v]) => [k, String(v)])
+                        )
+                    ).toString();
+                    const finalUrl = qs
+                        ? linkUrl + (linkUrl.includes('?') ? '&' : '?') + qs
+                        : linkUrl;
+                    window.open(finalUrl, isTargetBlank ? '_blank' : '_self');
+                } else {
+                    const navigateOptions = buildNavigateOptions(linkUrl, { query: mergedQuery });
+                    navigate(navigateOptions, { isNewWindow: isTargetBlank });
+                }
             }
         },
         [Methods.resolveCellActionLinkUrl](url, actionsParams) {
