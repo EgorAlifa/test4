@@ -101,6 +101,21 @@ export const descriptor = () => ({
             default: false,
             label: 'Развернуть все'
         },
+        isComplexOnlyDrill: {
+            type: Boolean,
+            default: true,
+            label: 'Дриллдаун только в сложном измерении'
+        },
+        isComplexOnlySubtotal: {
+            type: Boolean,
+            default: true,
+            label: 'Промежуточные итоги только в сложном измерении'
+        },
+        isComplexOnlyLink: {
+            type: Boolean,
+            default: true,
+            label: 'Переход по ссылке только в сложном измерении'
+        },
         levelRowColors: {
             type: Array,
             default: () => [],
