@@ -50,15 +50,6 @@
                                 v-model="copyProps.isComplexOnlySubtotal" />
                         </label>
                     </div>
-                    <div class="settings-popup-control" v-if="!isFlatType">
-                        <label class="settings-popup-control__label">
-                            <div class="settings-popup-control__name">Переход по ссылке только в сложном измерении</div>
-                            <input
-                                type="checkbox"
-                                class="settings-popup-control__switch"
-                                v-model="copyProps.isComplexOnlyLink" />
-                        </label>
-                    </div>
                     <div class="settings-popup-control">
                         <label class="settings-popup-control__label">
                             <div class="settings-popup-control__name">Нумерация</div>
@@ -292,10 +283,6 @@ export default {
             type: Boolean,
             default: true
         },
-        isComplexOnlyLink: {
-            type: Boolean,
-            default: true
-        },
         levelRowColors: {
             type: Array,
             default: () => []
@@ -330,7 +317,6 @@ export default {
             isPagination: false,
             isComplexOnlyDrill: true,
             isComplexOnlySubtotal: true,
-            isComplexOnlyLink: true,
             subtotal: createSubtotalSettings(),
             levelRowColors: []
         }
@@ -370,7 +356,6 @@ export default {
                 isPagination,
                 isComplexOnlyDrill,
                 isComplexOnlySubtotal,
-                isComplexOnlyLink,
                 tableDrawType,
                 metricsPosition,
                 levelRowColors
@@ -391,7 +376,6 @@ export default {
             this.copyProps.isPagination = isPagination;
             this.copyProps.isComplexOnlyDrill = isComplexOnlyDrill;
             this.copyProps.isComplexOnlySubtotal = isComplexOnlySubtotal;
-            this.copyProps.isComplexOnlyLink = isComplexOnlyLink;
             this.copyProps.levelRowColors = levelRowColors ? [...levelRowColors] : [];
         },
         setLevelColor(index, color) {

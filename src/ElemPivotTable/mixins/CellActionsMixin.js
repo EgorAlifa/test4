@@ -63,13 +63,6 @@ export default {
             }
             const { dataAlias, value } = found;
 
-            if (this.props?.isComplexOnlyLink && currentType === CellsTypes.ROW) {
-                const dimLevel = this.flatPlayerRows.findIndex((r) => r.dataAlias === dataAlias);
-                if (dimLevel >= 0 && !this.complexFlatIndices.has(dimLevel)) {
-                    return;
-                }
-            }
-
             const cellActions = cellTypeActions[dataAlias];
             // if no actions for dataAlias
             if (cellActions == null) {

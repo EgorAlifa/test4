@@ -11,7 +11,6 @@
             <ui-switch prop="isUncollapsedAll" :disabled="isFlatType || !props.isUsedCollapse" />
             <ui-switch prop="isComplexOnlyDrill" :disabled="isFlatType || !props.isUsedCollapse" />
             <ui-switch prop="isComplexOnlySubtotal" :disabled="isFlatType" />
-            <ui-switch prop="isComplexOnlyLink" :disabled="isFlatType" />
             <ui-has-panel v-if="!isFlatType && props.isUsedCollapse && levelRowColorLevels > 1">
                 <ui-label label-size="small">Цвет строк по уровням</ui-label>
                 <template #panel>
