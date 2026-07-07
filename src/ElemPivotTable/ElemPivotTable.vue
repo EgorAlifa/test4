@@ -73,13 +73,13 @@
                             <i class="toolbox-button__icon toolbox-button__icon--fullscreen" />
                         </div>
                     </div>
-                    <div v-if="playerSettings.isUsedCollapse && visibleFlatPlayerRows.length > 1" class="toolbox__item">
+                    <div v-if="playerSettings.isUsedCollapse && flatPlayerRows.length > 1" class="toolbox__item">
                         <select
                             class="toolbox-level-select"
-                            :value="currentViewLevel != null ? currentViewLevel : visibleFlatPlayerRows.length"
+                            :value="currentViewLevel != null ? currentViewLevel : flatPlayerRows.length"
                             @change="onViewLevelSelectChange($event)">
-                            <option v-for="n in visibleFlatPlayerRows.length - 1" :key="n" :value="n">Уровень {{ n }}</option>
-                            <option :value="visibleFlatPlayerRows.length">Все уровни</option>
+                            <option v-for="n in flatPlayerRows.length - 1" :key="n" :value="n">Уровень {{ n }}</option>
+                            <option :value="flatPlayerRows.length">Все уровни</option>
                         </select>
                     </div>
                 </div>
@@ -3718,7 +3718,7 @@ export default {
                 .filter(({ dataAlias }) => filters?.[dataAlias] ?? true);
             this.playerRows = rows
                 .map((row) => (row.isComplex ? row : createCellSettings(row)))
-                .filter((row) => row.isComplex || (filters?.[row.dataAlias] ?? true));
+                .filter((row) => row.isComplex || (row.isShown && (filters?.[row.dataAlias] ?? true)));
             this.playerColumns = columns
                 .map(createCellSettings)
                 .filter(({ dataAlias }) => filters?.[dataAlias] ?? true);
@@ -3778,7 +3778,7 @@ export default {
                 props: { rows, filters },
                 playerRows
             } = this;
-            const nextRows = rows.filter(({ dataAlias }) => (filters?.[dataAlias] ?? true));
+            const nextRows = rows.filter(({ dataAlias, isShown = true }) => isShown && (filters?.[dataAlias] ?? true));
             if (
                 nextRows.length !== playerRows.length ||
                 nextRows.some(({ dataAlias }, index) => playerRows[index]?.dataAlias !== dataAlias)
@@ -4762,7 +4762,7 @@ export default {
             const { tableMaps: { collapsedRowsPaths = [] } = {} } = this;
             this.currentViewLevel = n;
             this.collapsedRows =
-                n >= this.visibleFlatPlayerRows.length
+                n >= this.flatPlayerRows.length
                     ? []
                     : collapsedRowsPaths.filter(({ length }) => length === n);
             this.generateTableRows();
