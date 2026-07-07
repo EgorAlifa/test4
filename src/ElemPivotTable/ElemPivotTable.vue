@@ -2555,6 +2555,13 @@ export default {
             if (this?.result != null) {
                 this.loaderStart();
                 await this.generateTableMaps(this.result.rows);
+                // After map rebuild, stale collapsed paths (e.g. subtotal intermediate paths
+                // that were removed when subtotals are turned off) would silently collapse leaf
+                // rows under phantom paths. Keep only collapsed entries that still exist in
+                // the current rowsPaths.
+                const { rowsPaths = [] } = this.tableMaps;
+                const validPathStrs = new Set(rowsPaths.map((p) => p.join('.')));
+                this.collapsedRows = this.collapsedRows.filter((p) => validPathStrs.has(p.join('.')));
                 await this.generateTableRows();
                 this.loaderEnd();
             }
