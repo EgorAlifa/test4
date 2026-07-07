@@ -155,10 +155,26 @@ export default {
                 });
                 const sourceRow = this.result.rows[sourceRowIndex];
 
-                return actionsParams.map((param) => ({
+                const enriched = actionsParams.map((param) => ({
                     ...param,
-                    value: param.value ?? sourceRow[param.dataAlias]
+                    value: param.value ?? sourceRow?.[param.dataAlias]
                 }));
+
+                if (sourceRow != null) {
+                    const existingAliases = new Set(enriched.map((p) => p.dataAlias));
+                    const extra = Object.entries(sourceRow)
+                        .filter(([key]) => !existingAliases.has(key))
+                        .map(([key, val]) => ({
+                            type: currentType,
+                            dataAlias: key,
+                            value: val,
+                            columnIndex: -1,
+                            rowIndex: currentRowIndex
+                        }));
+                    return [...enriched, ...extra];
+                }
+
+                return enriched;
             }
 
             if (currentType === CellsTypes.COLUMN) {
