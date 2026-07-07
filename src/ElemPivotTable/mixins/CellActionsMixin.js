@@ -55,9 +55,13 @@ export default {
             if (actionsParams == null) {
                 return;
             }
-            const { dataAlias, value } = actionsParams.find(
+            const found = actionsParams.find(
                 ({ columnIndex, rowIndex }) => columnIndex === currentCell.index && rowIndex === currentCell.rowIndex
             );
+            if (found == null) {
+                return;
+            }
+            const { dataAlias, value } = found;
 
             const cellActions = cellTypeActions[dataAlias];
             // if no actions for dataAlias

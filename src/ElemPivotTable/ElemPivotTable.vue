@@ -3191,36 +3191,41 @@ export default {
             }));
             /** @type {import('@goodt-widgets-insight/api').ReportTableFieldSettings[][]} */
             const fields = tableRows.map((row) =>
-                row.cells.map(({ value, level, type: cellType, dataAlias = '', styles }) => {
-                    const borderColor = this.resolveColorWithFromCssVar(this?.props?.tableBorderColor);
-                    const bgColor = this.resolveColorWithFromCssVar(styles['--w-background-color'], 'rgb(255,255,255)');
-                    const color = this.resolveColorWithFromCssVar(styles['--w-color']);
-                    let decimals = 0;
-                    /** @type {import('@goodt-widgets-insight/api').CellType} */
-                    let type = 'text';
-                    if ([CellsTypes.CELL, CellsTypes.TOTAL_CELL, CellsTypes.TOTAL_ROW_CELL].includes(cellType)) {
-                        const { format = null } = this.playerValues[level] ?? {};
-                        ({ type, decimals } = this.resolveExportNumberFormatSettings(format));
-                    } else if ([CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW].includes(cellType)) {
-                        ({ type, decimals } = this.resolveExportDimensionFormatSettings(
-                            resolveDimensionSettings({ cellType, dataAlias, level })
-                        ));
-                    } else if (cellType === CellsTypes.COLUMN) {
-                        ({ type, decimals } = this.resolveExportDimensionFormatSettings(
-                            resolveDimensionSettings({ cellType, dataAlias, level })
-                        ));
-                    }
-                    /** @type {import('@goodt-widgets-insight/api').ReportTableFieldSettings} */
-                    const settings = {
-                        bgColor,
-                        borderColor,
-                        borderStyle: 'THIN',
-                        color,
-                        decimals,
-                        type
-                    };
-                    return { value, settings };
-                })
+                row.cells
+                    .filter(({ _complexRole }) => _complexRole !== 'hidden')
+                    .map(({ value, level, type: cellType, dataAlias = '', styles, hasBeenCollapsed, _complexRole, _complexTitle }) => {
+                        const borderColor = this.resolveColorWithFromCssVar(this?.props?.tableBorderColor);
+                        const bgColor = this.resolveColorWithFromCssVar(styles['--w-background-color'], 'rgb(255,255,255)');
+                        const color = this.resolveColorWithFromCssVar(styles['--w-color']);
+                        let decimals = 0;
+                        /** @type {import('@goodt-widgets-insight/api').CellType} */
+                        let type = 'text';
+                        if ([CellsTypes.CELL, CellsTypes.TOTAL_CELL, CellsTypes.TOTAL_ROW_CELL].includes(cellType)) {
+                            const { format = null } = this.playerValues[level] ?? {};
+                            ({ type, decimals } = this.resolveExportNumberFormatSettings(format));
+                        } else if ([CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW].includes(cellType)) {
+                            ({ type, decimals } = this.resolveExportDimensionFormatSettings(
+                                resolveDimensionSettings({ cellType, dataAlias, level })
+                            ));
+                        } else if (cellType === CellsTypes.COLUMN) {
+                            ({ type, decimals } = this.resolveExportDimensionFormatSettings(
+                                resolveDimensionSettings({ cellType, dataAlias, level })
+                            ));
+                        }
+                        const exportValue = [CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW, CellsTypes.COLUMN].includes(cellType)
+                            ? this.resolveCellValue({ type: cellType, value, level, hasBeenCollapsed, _complexRole, _complexTitle })
+                            : value;
+                        /** @type {import('@goodt-widgets-insight/api').ReportTableFieldSettings} */
+                        const settings = {
+                            bgColor,
+                            borderColor,
+                            borderStyle: 'THIN',
+                            color,
+                            decimals,
+                            type
+                        };
+                        return { value: exportValue, settings };
+                    })
             );
             const fileName = buildExportFilename([xlsxFilename, ExportFileType.EXCEL], {
                 withDate: xlsxAddDate
@@ -4623,7 +4628,12 @@ export default {
                 tableMaps,
                 request: { limit }
             } = this;
-            const { dataAlias: filterAlias } = this.flatPlayerRows[path.length];
+            const rowDim = this.flatPlayerRows[path.length];
+            if (rowDim == null) {
+                this.loaderEnd();
+                return;
+            }
+            const { dataAlias: filterAlias } = rowDim;
             const slicedPath = path.slice(0, level + 1);
             let rowsNode = tableMaps.rowsHeap;
             slicedPath.forEach((name) => {
@@ -4760,6 +4770,21 @@ export default {
 
                 if (this.isPagType) {
                     await this.loadAdditionalRows(cell);
+                } else {
+                    const pathStr = path.join('.');
+                    const seen = new Set(this.collapsedRows.map((r) => r.join('.')));
+                    for (const val of this.tableMaps?.collapsedRowsPaths ?? []) {
+                        if (
+                            val.length === path.length + 1 &&
+                            val.slice(0, path.length).join('.') === pathStr
+                        ) {
+                            const childKey = val.join('.');
+                            if (!seen.has(childKey)) {
+                                seen.add(childKey);
+                                this.collapsedRows.push(val);
+                            }
+                        }
+                    }
                 }
                 needDraw && (await this.generateTableRows());
                 return;
@@ -4781,7 +4806,7 @@ export default {
                     const children = [];
                     const seen = new Set();
 
-                    for (const val of this.tableMaps.columnsPaths) {
+                    for (const val of this.tableMaps?.columnsPaths ?? []) {
                         if (
                             val.length === pathLength + 1 &&
                             JSON.stringify(val.slice(0, pathLength)) === JSON.stringify(path)
