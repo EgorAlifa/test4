@@ -55,9 +55,13 @@ export default {
             if (actionsParams == null) {
                 return;
             }
-            const { dataAlias, value } = actionsParams.find(
+            const found = actionsParams.find(
                 ({ columnIndex, rowIndex }) => columnIndex === currentCell.index && rowIndex === currentCell.rowIndex
             );
+            if (found == null) {
+                return;
+            }
+            const { dataAlias, value } = found;
 
             const cellActions = cellTypeActions[dataAlias];
             // if no actions for dataAlias
@@ -151,10 +155,26 @@ export default {
                 });
                 const sourceRow = this.result.rows[sourceRowIndex];
 
-                return actionsParams.map((param) => ({
+                const enriched = actionsParams.map((param) => ({
                     ...param,
-                    value: param.value ?? sourceRow[param.dataAlias]
+                    value: param.value ?? sourceRow?.[param.dataAlias]
                 }));
+
+                if (sourceRow != null) {
+                    const existingAliases = new Set(enriched.map((p) => p.dataAlias));
+                    const extra = Object.entries(sourceRow)
+                        .filter(([key]) => !existingAliases.has(key))
+                        .map(([key, val]) => ({
+                            type: currentType,
+                            dataAlias: key,
+                            value: val,
+                            columnIndex: -1,
+                            rowIndex: currentRowIndex
+                        }));
+                    return [...enriched, ...extra];
+                }
+
+                return enriched;
             }
 
             if (currentType === CellsTypes.COLUMN) {
