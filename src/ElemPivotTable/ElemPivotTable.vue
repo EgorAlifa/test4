@@ -73,13 +73,13 @@
                             <i class="toolbox-button__icon toolbox-button__icon--fullscreen" />
                         </div>
                     </div>
-                    <div v-if="playerSettings.isUsedCollapse && flatPlayerRows.length > 1" class="toolbox__item">
+                    <div v-if="playerSettings.isUsedCollapse && visibleFlatPlayerRows.length > 1" class="toolbox__item">
                         <select
                             class="toolbox-level-select"
-                            :value="currentViewLevel != null ? currentViewLevel : flatPlayerRows.length"
+                            :value="currentViewLevel != null ? currentViewLevel : visibleFlatPlayerRows.length"
                             @change="onViewLevelSelectChange($event)">
-                            <option v-for="n in flatPlayerRows.length - 1" :key="n" :value="n">Уровень {{ n }}</option>
-                            <option :value="flatPlayerRows.length">Все уровни</option>
+                            <option v-for="n in visibleFlatPlayerRows.length - 1" :key="n" :value="n">Уровень {{ n }}</option>
+                            <option :value="visibleFlatPlayerRows.length">Все уровни</option>
                         </select>
                     </div>
                 </div>
@@ -600,6 +600,9 @@ export default {
     computedEditor: {
         flatPlayerRows() {
             return this.playerRows.flatMap((row) => (row.isComplex ? row.children : [row]));
+        },
+        visibleFlatPlayerRows() {
+            return this.flatPlayerRows.filter((row) => row.isShown !== false);
         },
         complexDimRanges() {
             const ranges = [];
@@ -2888,7 +2891,7 @@ export default {
             };
         },
         resolveExportNumberFormatSettings(format) {
-            const { pattern } = format === '' ? new NumberFormat() : NumberFormat.fromString(format);
+            const { pattern } = (format == null || format === '') ? new NumberFormat() : NumberFormat.fromString(format);
             const { digits = 0, modifiers = NumberFormatPattern.Modifier.FIXED } = pattern;
             return {
                 decimals: digits,
@@ -2899,6 +2902,9 @@ export default {
             return valueType === ValueType.NUMBER ? 'number' : 'text';
         },
         resolveExportDimensionFormatSettings(settings) {
+            if (settings == null || settings.isComplex) {
+                return { type: 'text', decimals: 0 };
+            }
             const { decimals } = this.resolveExportNumberFormatSettings(settings.format);
             return {
                 type: this.resolveExportDimensionType(settings),
@@ -3175,6 +3181,7 @@ export default {
                 props: { xlsxFilename, xlsxBlankName, xlsxAddDate }
             } = this;
             this.loaderStart();
+            try {
             const dimensionSettingsByAlias = keyBy([...this.flatPlayerRows, ...this.playerColumns], 'dataAlias');
             const resolveDimensionSettings = ({ cellType, dataAlias, level }) => {
                 if (dataAlias !== '') {
@@ -3192,7 +3199,13 @@ export default {
             /** @type {import('@goodt-widgets-insight/api').ReportTableFieldSettings[][]} */
             const fields = tableRows.map((row) =>
                 row.cells
-                    .filter(({ _complexRole }) => _complexRole !== 'hidden')
+                    .filter(({ _complexRole, level, type: cellType }) => {
+                        if (_complexRole === 'hidden') return false;
+                        if ([CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW, CellsTypes.ROW_TITLE].includes(cellType)) {
+                            return this.flatPlayerRows[level]?.isShown !== false;
+                        }
+                        return true;
+                    })
                     .map(({ value, level, type: cellType, dataAlias = '', styles, hasBeenCollapsed, _complexRole, _complexTitle }) => {
                         const borderColor = this.resolveColorWithFromCssVar(this?.props?.tableBorderColor);
                         const bgColor = this.resolveColorWithFromCssVar(styles['--w-background-color'], 'rgb(255,255,255)');
@@ -3233,11 +3246,14 @@ export default {
             const { isError, result, error } = await this.reportApiService.createReportTable({ fileName, fields });
             if (isError) {
                 this.$handleError(error);
-                this.loaderEnd();
                 return;
             }
             downloadBlobAsFile(result, { filename: fileName });
-            this.loaderEnd();
+            } catch (err) {
+                this.$handleError(err);
+            } finally {
+                this.loaderEnd();
+            }
         },
         /**
          * @param {?string} colorString
@@ -3272,10 +3288,11 @@ export default {
 
         resolveCellValueClasses({ type, hasBeenCollapsed, level, isLoader }) {
             const { flatPlayerRows, playerSettings } = this;
+            const lastVisibleRowIndex = flatPlayerRows.reduce((acc, row, i) => (row.isShown !== false ? i : acc), flatPlayerRows.length - 1);
             return {
                 'scroller-table__value--with-space':
                     type === CellsTypes.ROW &&
-                    level !== flatPlayerRows.length - 1 &&
+                    level < lastVisibleRowIndex &&
                     !hasBeenCollapsed &&
                     playerSettings.isUsedCollapse,
                 'scroller-table__value--loader': isLoader
@@ -3389,11 +3406,9 @@ export default {
                     return value;
                 }
 
-                if (
-                    !isDuplicateDimensions &&
-                    !hasBeenCollapsed &&
-                    level < (type === CellsTypes.ROW ? flatPlayerRows : playerColumns).length - 1
-                ) {
+                const targetRows = type === CellsTypes.ROW ? flatPlayerRows : playerColumns;
+                const lastVisibleIndex = targetRows.reduce((acc, row, i) => (row.isShown !== false ? i : acc), targetRows.length - 1);
+                if (!isDuplicateDimensions && !hasBeenCollapsed && level < lastVisibleIndex) {
                     return '';
                 }
                 return value;
@@ -3476,6 +3491,12 @@ export default {
         },
         resolveCellCssStyle({ cell, rowIndex, index }) {
             if (cell._complexRole === 'hidden') {
+                return { '--w-width': '0px', 'min-width': '0px', overflow: 'hidden', padding: '0', border: '0' };
+            }
+            if (
+                (cell.type === CellsTypes.ROW || cell.type === CellsTypes.SUBTOTAL_ROW || cell.type === CellsTypes.ROW_TITLE) &&
+                this.flatPlayerRows[cell.level]?.isShown === false
+            ) {
                 return { '--w-width': '0px', 'min-width': '0px', overflow: 'hidden', padding: '0', border: '0' };
             }
             const {
@@ -3697,7 +3718,7 @@ export default {
                 .filter(({ dataAlias }) => filters?.[dataAlias] ?? true);
             this.playerRows = rows
                 .map((row) => (row.isComplex ? row : createCellSettings(row)))
-                .filter((row) => row.isComplex || (row.isShown && (filters?.[row.dataAlias] ?? true)));
+                .filter((row) => row.isComplex || (filters?.[row.dataAlias] ?? true));
             this.playerColumns = columns
                 .map(createCellSettings)
                 .filter(({ dataAlias }) => filters?.[dataAlias] ?? true);
@@ -3757,7 +3778,7 @@ export default {
                 props: { rows, filters },
                 playerRows
             } = this;
-            const nextRows = rows.filter(({ dataAlias, isShown = true }) => isShown && (filters?.[dataAlias] ?? true));
+            const nextRows = rows.filter(({ dataAlias }) => (filters?.[dataAlias] ?? true));
             if (
                 nextRows.length !== playerRows.length ||
                 nextRows.some(({ dataAlias }, index) => playerRows[index]?.dataAlias !== dataAlias)
@@ -4741,7 +4762,7 @@ export default {
             const { tableMaps: { collapsedRowsPaths = [] } = {} } = this;
             this.currentViewLevel = n;
             this.collapsedRows =
-                n >= this.flatPlayerRows.length
+                n >= this.visibleFlatPlayerRows.length
                     ? []
                     : collapsedRowsPaths.filter(({ length }) => length === n);
             this.generateTableRows();
