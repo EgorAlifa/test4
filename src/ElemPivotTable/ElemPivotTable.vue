@@ -2554,14 +2554,18 @@ export default {
         async buildData() {
             if (this?.result != null) {
                 this.loaderStart();
+                // Capture before generateTableMaps changes isFirstInitTableMaps.
+                // During initial load isFirstInitTableMaps=false; after first init it becomes true.
+                const isSettingsChange = this.isFirstInitTableMaps;
                 await this.generateTableMaps(this.result.rows);
-                // After map rebuild, stale collapsed paths (e.g. subtotal intermediate paths
-                // that were removed when subtotals are turned off) would silently collapse leaf
-                // rows under phantom paths. Keep only collapsed entries that still exist in
-                // the current rowsPaths.
-                const { rowsPaths = [] } = this.tableMaps;
-                const validPathStrs = new Set(rowsPaths.map((p) => p.join('.')));
-                this.collapsedRows = this.collapsedRows.filter((p) => validPathStrs.has(p.join('.')));
+                if (isSettingsChange) {
+                    // After a settings-only map rebuild, stale collapsed paths (e.g. subtotal
+                    // intermediate paths removed when subtotals are turned off) would silently
+                    // collapse leaf rows under phantom paths. Keep only entries still in rowsPaths.
+                    const { rowsPaths = [] } = this.tableMaps;
+                    const validPathStrs = new Set(rowsPaths.map((p) => p.join('.')));
+                    this.collapsedRows = this.collapsedRows.filter((p) => validPathStrs.has(p.join('.')));
+                }
                 await this.generateTableRows();
                 this.loaderEnd();
             }
@@ -4803,8 +4807,13 @@ export default {
                 hasBeenCollapsed &&
                 playerSettings?.isUsedCollapse
             ) {
-                if (this.props.isComplexOnlyDrill && !this.complexFlatIndices.has(level)) {
-                    return;
+                if (this.props.isComplexOnlyDrill && this.complexDimRanges.length > 0) {
+                    const isInComplexDim = this.complexFlatIndices.has(level);
+                    // Allow the direct predecessor of a complex dim (e.g. КаналПродаж before Филиал+Месяц)
+                    const isDirectPredecessor = this.complexDimRanges.some(({ start }) => level === start - 1);
+                    if (!isInComplexDim && !isDirectPredecessor) {
+                        return;
+                    }
                 }
                 const findRow = this.findCollapsedRowIndexByPath(path);
                 if (findRow === -1) {
@@ -4816,9 +4825,16 @@ export default {
                 }
                 collapsedRows.splice(findRow, 1);
 
+                // When expanding the direct predecessor of a complex dim, show all sub-levels
+                // at once (deep expand) — the user cannot drill into each complex dim level
+                // individually, so the whole subtree opens in one click.
+                const isDirectPredecessorExpand =
+                    this.props.isComplexOnlyDrill &&
+                    this.complexDimRanges.some(({ start }) => level === start - 1);
+
                 if (this.isPagType) {
                     await this.loadAdditionalRows(cell);
-                } else {
+                } else if (!isDirectPredecessorExpand) {
                     const pathStr = path.join('.');
                     const seen = new Set(this.collapsedRows.map((r) => r.join('.')));
                     for (const val of this.tableMaps?.collapsedRowsPaths ?? []) {
