@@ -604,6 +604,18 @@ export default {
         visibleFlatPlayerRows() {
             return this.flatPlayerRows.filter((row) => row.isShown !== false);
         },
+        hasComplexDimInRows() {
+            return this.props.rows.some((row) => row.isComplex);
+        },
+        complexFlatIndices() {
+            const indices = new Set();
+            for (const { start, end } of this.complexDimRanges) {
+                for (let i = start; i <= end; i++) {
+                    indices.add(i);
+                }
+            }
+            return indices;
+        },
         complexDimRanges() {
             const ranges = [];
             let flatIndex = 0;
@@ -679,7 +691,17 @@ export default {
     computed: {
         isShownRowsSubtotals() {
             const { playerSettings } = this;
-            return [SubtotalType.ROWS, SubtotalType.ALL].includes(playerSettings?.subtotal?.type);
+            const isType = [SubtotalType.ROWS, SubtotalType.ALL].includes(playerSettings?.subtotal?.type);
+            if (!isType) return false;
+            if (this.props.isComplexOnlySubtotal && !this.hasComplexDimInRows) return false;
+            return true;
+        },
+        isShownColumnsSubtotals() {
+            const { playerSettings } = this;
+            const isType = [SubtotalType.COLUMNS, SubtotalType.ALL].includes(playerSettings?.subtotal?.type);
+            if (!isType) return false;
+            if (this.props.isComplexOnlySubtotal && !this.hasComplexDimInRows) return false;
+            return true;
         },
         isCollapsedAll() {
             return this.playerSettings?.isUncollapsedAll === false;
@@ -2590,8 +2612,7 @@ export default {
             } = this;
             const columnSortOptions = this.resolveEffectiveColumnSortOptions();
             const { isUsedIndexes = false } = playerSettings;
-            const isShownRowsSubtotals =
-                playerSettings.subtotal.type === SubtotalType.ROWS || playerSettings.subtotal.type === SubtotalType.ALL;
+            const isShownRowsSubtotals = this.isShownRowsSubtotals;
 
             if (isDatasetTotalAggregation) {
                 const isNeedDefaultTotals =
@@ -2728,12 +2749,8 @@ export default {
                 rows,
                 columns,
                 filters,
-                isShownRowsSubtotals:
-                    playerSettings.subtotal.type === SubtotalType.ROWS ||
-                    playerSettings.subtotal.type === SubtotalType.ALL,
-                isShownColumnsSubtotals:
-                    playerSettings.subtotal.type === SubtotalType.COLUMNS ||
-                    playerSettings.subtotal.type === SubtotalType.ALL,
+                isShownRowsSubtotals: this.isShownRowsSubtotals,
+                isShownColumnsSubtotals: this.isShownColumnsSubtotals,
                 isReplacingEmptyFields,
                 replacingVoidValue,
                 replacingNullValue,
@@ -4779,6 +4796,9 @@ export default {
                 hasBeenCollapsed &&
                 playerSettings?.isUsedCollapse
             ) {
+                if (this.props.isComplexOnlyDrill && !this.complexFlatIndices.has(level)) {
+                    return;
+                }
                 const findRow = this.findCollapsedRowIndexByPath(path);
                 if (findRow === -1) {
                     const exclude = collapsedRows.filter((row) => row.join('.').startsWith(path.join('.')));

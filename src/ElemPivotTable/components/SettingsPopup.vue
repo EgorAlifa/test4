@@ -32,6 +32,33 @@
                                 v-model="copyProps.isUsedCollapse" />
                         </label>
                     </div>
+                    <div class="settings-popup-control" v-if="!isFlatType && copyProps.isUsedCollapse">
+                        <label class="settings-popup-control__label">
+                            <div class="settings-popup-control__name">Дриллдаун только в сложном измерении</div>
+                            <input
+                                type="checkbox"
+                                class="settings-popup-control__switch"
+                                v-model="copyProps.isComplexOnlyDrill" />
+                        </label>
+                    </div>
+                    <div class="settings-popup-control" v-if="!isFlatType">
+                        <label class="settings-popup-control__label">
+                            <div class="settings-popup-control__name">Промежуточные итоги только в сложном измерении</div>
+                            <input
+                                type="checkbox"
+                                class="settings-popup-control__switch"
+                                v-model="copyProps.isComplexOnlySubtotal" />
+                        </label>
+                    </div>
+                    <div class="settings-popup-control" v-if="!isFlatType">
+                        <label class="settings-popup-control__label">
+                            <div class="settings-popup-control__name">Переход по ссылке только в сложном измерении</div>
+                            <input
+                                type="checkbox"
+                                class="settings-popup-control__switch"
+                                v-model="copyProps.isComplexOnlyLink" />
+                        </label>
+                    </div>
                     <div class="settings-popup-control">
                         <label class="settings-popup-control__label">
                             <div class="settings-popup-control__name">Нумерация</div>
@@ -257,6 +284,18 @@ export default {
             type: Boolean,
             default: false
         },
+        isComplexOnlyDrill: {
+            type: Boolean,
+            default: true
+        },
+        isComplexOnlySubtotal: {
+            type: Boolean,
+            default: true
+        },
+        isComplexOnlyLink: {
+            type: Boolean,
+            default: true
+        },
         levelRowColors: {
             type: Array,
             default: () => []
@@ -289,6 +328,9 @@ export default {
             tableDrawType: '',
             metricsPosition: '',
             isPagination: false,
+            isComplexOnlyDrill: true,
+            isComplexOnlySubtotal: true,
+            isComplexOnlyLink: true,
             subtotal: createSubtotalSettings(),
             levelRowColors: []
         }
@@ -326,6 +368,9 @@ export default {
                 rowTotalPosition,
                 subtotal,
                 isPagination,
+                isComplexOnlyDrill,
+                isComplexOnlySubtotal,
+                isComplexOnlyLink,
                 tableDrawType,
                 metricsPosition,
                 levelRowColors
@@ -344,6 +389,9 @@ export default {
             this.copyProps.tableDrawType = tableDrawType;
             this.copyProps.metricsPosition = metricsPosition;
             this.copyProps.isPagination = isPagination;
+            this.copyProps.isComplexOnlyDrill = isComplexOnlyDrill;
+            this.copyProps.isComplexOnlySubtotal = isComplexOnlySubtotal;
+            this.copyProps.isComplexOnlyLink = isComplexOnlyLink;
             this.copyProps.levelRowColors = levelRowColors ? [...levelRowColors] : [];
         },
         setLevelColor(index, color) {
