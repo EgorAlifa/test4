@@ -598,45 +598,6 @@ export default {
         updatedSingleFilters: []
     }),
     computedEditor: {
-        flatPlayerRows() {
-            return this.playerRows.flatMap((row) => {
-                if (row.isComplex) {
-                    return (row.children ?? []).filter((c) => c.dataAlias?.trim());
-                }
-                return row.dataAlias?.trim() ? [row] : [];
-            });
-        },
-        visibleFlatPlayerRows() {
-            return this.flatPlayerRows.filter((row) => row.isShown !== false);
-        },
-        hasComplexDimInRows() {
-            return this.props.rows.some((row) => row.isComplex);
-        },
-        complexFlatIndices() {
-            const indices = new Set();
-            for (const { start, end } of this.complexDimRanges) {
-                for (let i = start; i <= end; i++) {
-                    indices.add(i);
-                }
-            }
-            return indices;
-        },
-        complexDimRanges() {
-            const ranges = [];
-            let flatIndex = 0;
-            this.playerRows.forEach((row) => {
-                if (row.isComplex) {
-                    const validChildren = (row.children ?? []).filter((c) => c.dataAlias?.trim());
-                    if (validChildren.length > 0) {
-                        ranges.push({ start: flatIndex, end: flatIndex + validChildren.length - 1, title: row.title });
-                        flatIndex += validChildren.length;
-                    }
-                } else if (row.dataAlias?.trim()) {
-                    flatIndex++;
-                }
-            });
-            return ranges;
-        },
         baseRowsCssVars() {
             const {
                 props: { baseRowsSettings }
@@ -697,6 +658,42 @@ export default {
         }
     },
     computed: {
+        flatPlayerRows() {
+            return this.playerRows.flatMap((row) => {
+                if (row.isComplex) {
+                    return (row.children ?? []).filter((c) => c.dataAlias?.trim());
+                }
+                return row.dataAlias?.trim() ? [row] : [];
+            });
+        },
+        hasComplexDimInRows() {
+            return this.props.rows.some((row) => row.isComplex);
+        },
+        complexDimRanges() {
+            const ranges = [];
+            let flatIndex = 0;
+            this.playerRows.forEach((row) => {
+                if (row.isComplex) {
+                    const validChildren = (row.children ?? []).filter((c) => c.dataAlias?.trim());
+                    if (validChildren.length > 0) {
+                        ranges.push({ start: flatIndex, end: flatIndex + validChildren.length - 1, title: row.title });
+                        flatIndex += validChildren.length;
+                    }
+                } else if (row.dataAlias?.trim()) {
+                    flatIndex++;
+                }
+            });
+            return ranges;
+        },
+        complexFlatIndices() {
+            const indices = new Set();
+            for (const { start, end } of this.complexDimRanges) {
+                for (let i = start; i <= end; i++) {
+                    indices.add(i);
+                }
+            }
+            return indices;
+        },
         isShownRowsSubtotals() {
             const { playerSettings } = this;
             const isType = [SubtotalType.ROWS, SubtotalType.ALL].includes(playerSettings?.subtotal?.type);
