@@ -4827,14 +4827,6 @@ export default {
                 hasBeenCollapsed &&
                 playerSettings?.isUsedCollapse
             ) {
-                if (this.props.isComplexOnlyDrill && this.complexDimRanges.length > 0) {
-                    const isInComplexDim = this.complexFlatIndices.has(level);
-                    // Allow the direct predecessor of a complex dim (e.g. КаналПродаж before Филиал+Месяц)
-                    const isDirectPredecessor = this.complexDimRanges.some(({ start }) => level === start - 1);
-                    if (!isInComplexDim && !isDirectPredecessor) {
-                        return;
-                    }
-                }
                 const findRow = this.findCollapsedRowIndexByPath(path);
                 if (findRow === -1) {
                     const exclude = collapsedRows.filter((row) => row.join('.').startsWith(path.join('.')));
@@ -4845,30 +4837,8 @@ export default {
                 }
                 collapsedRows.splice(findRow, 1);
 
-                // When expanding the direct predecessor of a complex dim, show all sub-levels
-                // at once (deep expand) — the user cannot drill into each complex dim level
-                // individually, so the whole subtree opens in one click.
-                const isDirectPredecessorExpand =
-                    this.props.isComplexOnlyDrill &&
-                    this.complexDimRanges.some(({ start }) => level === start - 1);
-
                 if (this.isPagType) {
                     await this.loadAdditionalRows(cell);
-                } else if (!isDirectPredecessorExpand) {
-                    const pathStr = path.join('.');
-                    const seen = new Set(this.collapsedRows.map((r) => r.join('.')));
-                    for (const val of this.tableMaps?.collapsedRowsPaths ?? []) {
-                        if (
-                            val.length === path.length + 1 &&
-                            val.slice(0, path.length).join('.') === pathStr
-                        ) {
-                            const childKey = val.join('.');
-                            if (!seen.has(childKey)) {
-                                seen.add(childKey);
-                                this.collapsedRows.push(val);
-                            }
-                        }
-                    }
                 }
                 needDraw && (await this.generateTableRows());
                 return;
