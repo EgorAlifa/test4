@@ -1005,10 +1005,10 @@ export default {
             };
         },
         conditionsPopupBinds() {
-            const { playerConditions, playerColumns, playerFilters } = this;
+            const { playerConditions, playerRows, playerColumns, playerFilters } = this;
             return {
                 valuesSettings: this.getAllMetricSettings(),
-                rowsSettings: this.flatPlayerRows,
+                rowsSettings: playerRows,
                 columnsSettings: playerColumns,
                 filtersSettings: playerFilters,
                 conditions: playerConditions
@@ -5177,9 +5177,11 @@ export default {
                             : merge({}, foundField, field);
                     })
                 );
-            // If the stored rows were all corrupted (blank aliases), fall back to props
-            // so the widget is still usable rather than showing an empty table.
-            if (this.playerRows.length === 0 && this.props.rows.length > 0) {
+            // If the stored rows were all corrupted (blank aliases or complex dims with all-blank
+            // children), fall back to props so the widget is still usable rather than showing an
+            // empty table. We check flatPlayerRows (not playerRows) because a complex dim group with
+            // all-blank-alias children leaves playerRows non-empty but flatPlayerRows empty.
+            if (this.flatPlayerRows.length === 0 && this.props.rows.length > 0) {
                 this.playerRows = this.props.rows
                     .map((row) => (row.isComplex ? row : createCellSettings(row)))
                     .filter(
