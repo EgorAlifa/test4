@@ -599,7 +599,12 @@ export default {
     }),
     computedEditor: {
         flatPlayerRows() {
-            return this.playerRows.flatMap((row) => (row.isComplex ? row.children : [row]));
+            return this.playerRows.flatMap((row) => {
+                if (row.isComplex) {
+                    return (row.children ?? []).filter((c) => c.dataAlias?.trim());
+                }
+                return row.dataAlias?.trim() ? [row] : [];
+            });
         },
         visibleFlatPlayerRows() {
             return this.flatPlayerRows.filter((row) => row.isShown !== false);
@@ -621,9 +626,12 @@ export default {
             let flatIndex = 0;
             this.playerRows.forEach((row) => {
                 if (row.isComplex) {
-                    ranges.push({ start: flatIndex, end: flatIndex + row.children.length - 1, title: row.title });
-                    flatIndex += row.children.length;
-                } else {
+                    const validChildren = (row.children ?? []).filter((c) => c.dataAlias?.trim());
+                    if (validChildren.length > 0) {
+                        ranges.push({ start: flatIndex, end: flatIndex + validChildren.length - 1, title: row.title });
+                        flatIndex += validChildren.length;
+                    }
+                } else if (row.dataAlias?.trim()) {
                     flatIndex++;
                 }
             });
@@ -3746,7 +3754,11 @@ export default {
                 .filter(({ dataAlias }) => filters?.[dataAlias] ?? true);
             this.playerRows = rows
                 .map((row) => (row.isComplex ? row : createCellSettings(row)))
-                .filter((row) => row.isComplex || (row.isShown && (filters?.[row.dataAlias] ?? true)));
+                .filter(
+                    (row) =>
+                        row.isComplex ||
+                        (row.dataAlias?.trim() && row.isShown && (filters?.[row.dataAlias] ?? true))
+                );
             this.playerColumns = columns
                 .map(createCellSettings)
                 .filter(({ dataAlias }) => filters?.[dataAlias] ?? true);
@@ -5170,7 +5182,11 @@ export default {
             if (this.playerRows.length === 0 && this.props.rows.length > 0) {
                 this.playerRows = this.props.rows
                     .map((row) => (row.isComplex ? row : createCellSettings(row)))
-                    .filter((row) => row.isComplex || (row.isShown && (this.props.filters?.[row.dataAlias] ?? true)));
+                    .filter(
+                        (row) =>
+                            (row.isComplex || (row.isShown && (this.props.filters?.[row.dataAlias] ?? true))) &&
+                            (row.isComplex || row.dataAlias?.trim())
+                    );
             }
             this.playerConditions = conditions.reduce((acc, condition) => {
                 const normalizedCondition = createCondition(condition);
