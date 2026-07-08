@@ -5141,14 +5141,22 @@ export default {
                             // expand its children back to individual flat rows so the table
                             // renders correctly and the fields popup is usable again.
                             if (!field.title?.trim()) {
-                                return (field.children ?? []).map((child) => {
-                                    const propsField = propsFieldsMap[fieldName]?.[child.dataAlias];
-                                    return createCellSettings({ ...(propsField ?? {}), ...child });
-                                });
+                                return (field.children ?? [])
+                                    .filter((child) => child.dataAlias?.trim())
+                                    .map((child) => {
+                                        const propsField = propsFieldsMap[fieldName]?.[child.dataAlias];
+                                        return createCellSettings({ ...(propsField ?? {}), ...child });
+                                    });
                             }
                             return field;
                         }
                         const { dataAlias } = field;
+                        // Skip entries with a blank/missing dataAlias — these are corrupted
+                        // store entries that would cause the API to request no dimensions,
+                        // returning only the total row and leaving the table visually empty.
+                        if (!dataAlias?.trim()) {
+                            return [];
+                        }
                         const foundField = previousState[fieldName].find(({ dataAlias: alias }) => alias === dataAlias);
                         const propsField = propsFieldsMap[fieldName][dataAlias];
 
@@ -5157,6 +5165,13 @@ export default {
                             : merge({}, foundField, field);
                     })
                 );
+            // If the stored rows were all corrupted (blank aliases), fall back to props
+            // so the widget is still usable rather than showing an empty table.
+            if (this.playerRows.length === 0 && this.props.rows.length > 0) {
+                this.playerRows = this.props.rows
+                    .map((row) => (row.isComplex ? row : createCellSettings(row)))
+                    .filter((row) => row.isComplex || (row.isShown && (this.props.filters?.[row.dataAlias] ?? true)));
+            }
             this.playerConditions = conditions.reduce((acc, condition) => {
                 const normalizedCondition = createCondition(condition);
                 const foundCondition = previousState.conditions.find(({ uid, targetAlias }) =>
