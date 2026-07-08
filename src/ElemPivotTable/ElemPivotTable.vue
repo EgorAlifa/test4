@@ -5135,8 +5135,17 @@ export default {
 
             [this.playerRows, this.playerColumns, this.playerFilters, this.playerValues, this.playerCalculatedValues] =
                 Object.entries({ rows, columns, filters, values, calculatedValues }).map(([fieldName, fields]) =>
-                    fields.map((field) => {
+                    fields.flatMap((field) => {
                         if (field.isComplex) {
+                            // A complex dim with a blank title was saved in a broken state;
+                            // expand its children back to individual flat rows so the table
+                            // renders correctly and the fields popup is usable again.
+                            if (!field.title?.trim()) {
+                                return (field.children ?? []).map((child) => {
+                                    const propsField = propsFieldsMap[fieldName]?.[child.dataAlias];
+                                    return createCellSettings({ ...(propsField ?? {}), ...child });
+                                });
+                            }
                             return field;
                         }
                         const { dataAlias } = field;
