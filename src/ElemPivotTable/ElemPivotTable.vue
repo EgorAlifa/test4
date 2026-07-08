@@ -3759,6 +3759,17 @@ export default {
                         row.isComplex ||
                         (row.dataAlias?.trim() && row.isShown && (filters?.[row.dataAlias] ?? true))
                 );
+            if (this.flatPlayerRows.length === 0) {
+                this.playerRows = rows
+                    .map((row) => (row.isComplex ? row : createCellSettings(row)))
+                    .filter(
+                        (row) =>
+                            !row.isComplex &&
+                            row.dataAlias?.trim() &&
+                            row.isShown &&
+                            (filters?.[row.dataAlias] ?? true)
+                    );
+            }
             this.playerColumns = columns
                 .map(createCellSettings)
                 .filter(({ dataAlias }) => filters?.[dataAlias] ?? true);
