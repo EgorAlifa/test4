@@ -3258,7 +3258,9 @@ export default {
                                 resolveDimensionSettings({ cellType, dataAlias, level })
                             ));
                         }
-                        const exportValue = [CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW, CellsTypes.COLUMN].includes(cellType)
+                        const exportValue = _complexRole === 'title'
+                            ? (_complexTitle ?? value)
+                            : [CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW, CellsTypes.COLUMN].includes(cellType)
                             ? this.resolveCellValue({ type: cellType, value, level, hasBeenCollapsed, _complexRole, _complexTitle })
                             : value;
                         /** @type {import('@goodt-widgets-insight/api').ReportTableFieldSettings} */
