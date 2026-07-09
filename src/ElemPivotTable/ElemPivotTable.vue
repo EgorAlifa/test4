@@ -3588,15 +3588,28 @@ export default {
                 // Data rows: find active child, hide others
                 for (const row of dataRows) {
                     const { cells } = row;
-                    // hasBeenCollapsed=true on a cell means it's the first row of a new
-                    // group at that dimension level — show that outer dim label.
-                    // Rows without hasBeenCollapsed default to showing the innermost dim.
+                    // Short paths ([GV1] or [GV1,АА] subtotal/collapsed rows) have null at
+                    // range.end → show deepest populated level so the group label is correct.
+                    // Full leaf paths have a value at range.end → use hasBeenCollapsed to
+                    // show the outermost changed dim (e.g. "GV1" on the first row of that group).
+                    const deepestCell = cells[range.end + offset];
+                    const isShortPath = deepestCell == null || deepestCell.value == null;
                     let activeIndex = range.end;
-                    for (let i = range.start; i <= range.end; i++) {
-                        const c = cells[i + offset];
-                        if (c && c.hasBeenCollapsed) {
-                            activeIndex = i;
-                            break;
+                    if (isShortPath) {
+                        for (let i = range.end; i >= range.start; i--) {
+                            const c = cells[i + offset];
+                            if (c && c.value != null) {
+                                activeIndex = i;
+                                break;
+                            }
+                        }
+                    } else {
+                        for (let i = range.start; i <= range.end; i++) {
+                            const c = cells[i + offset];
+                            if (c && c.hasBeenCollapsed) {
+                                activeIndex = i;
+                                break;
+                            }
                         }
                     }
                     for (let i = range.start; i <= range.end; i++) {
@@ -4860,7 +4873,8 @@ export default {
 
                 const isDirectPredecessorExpand =
                     this.playerSettings?.isComplexOnlyDrill &&
-                    this.complexDimRanges.some(({ start }) => level === start - 1);
+                    (this.complexDimRanges.some(({ start }) => level === start - 1) ||
+                        this.complexDimRanges.some(({ end }) => level === end));
 
                 if (this.isPagType) {
                     await this.loadAdditionalRows(cell);
