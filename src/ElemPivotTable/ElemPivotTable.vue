@@ -3588,14 +3588,13 @@ export default {
                 // Data rows: find active child, hide others
                 for (const row of dataRows) {
                     const { cells } = row;
-                    // Pick the deepest cell in the range that has a non-null value.
-                    // A collapsed group row has null for inner cells, so the outer
-                    // cell wins. An expanded row has values for all levels, so the
-                    // innermost (deepest) cell wins — showing the drill-down value.
-                    let activeIndex = range.start;
-                    for (let i = range.end; i >= range.start; i--) {
+                    // hasBeenCollapsed=true on a cell means it's the first row of a new
+                    // group at that dimension level — show that outer dim label.
+                    // Rows without hasBeenCollapsed default to showing the innermost dim.
+                    let activeIndex = range.end;
+                    for (let i = range.start; i <= range.end; i++) {
                         const c = cells[i + offset];
-                        if (c && c.value != null) {
+                        if (c && c.hasBeenCollapsed) {
                             activeIndex = i;
                             break;
                         }
@@ -4844,7 +4843,8 @@ export default {
                 if (this.playerSettings?.isComplexOnlyDrill && this.complexDimRanges.length > 0) {
                     const isInComplexDim = this.complexFlatIndices.has(level);
                     const isDirectPredecessor = this.complexDimRanges.some(({ start }) => level === start - 1);
-                    if (!isInComplexDim && !isDirectPredecessor) {
+                    const isAfterComplexDim = this.complexDimRanges.some(({ end }) => level > end);
+                    if (!isInComplexDim && !isDirectPredecessor && !isAfterComplexDim) {
                         return;
                     }
                 }
@@ -4860,8 +4860,7 @@ export default {
 
                 const isDirectPredecessorExpand =
                     this.playerSettings?.isComplexOnlyDrill &&
-                    (this.complexDimRanges.some(({ start }) => level === start - 1) ||
-                        this.complexDimRanges.some(({ end }) => level === end));
+                    this.complexDimRanges.some(({ start }) => level === start - 1);
 
                 if (this.isPagType) {
                     await this.loadAdditionalRows(cell);
