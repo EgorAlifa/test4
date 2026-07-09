@@ -4858,7 +4858,10 @@ export default {
                 hasBeenCollapsed &&
                 playerSettings?.isUsedCollapse
             ) {
-                if (this.playerSettings?.isComplexOnlyDrill && this.complexDimRanges.length > 0) {
+                if (this.playerSettings?.isComplexOnlyDrill) {
+                    if (this.complexDimRanges.length === 0) {
+                        return;
+                    }
                     const isInComplexDim = this.complexFlatIndices.has(level);
                     const isDirectPredecessor = this.complexDimRanges.some(({ start }) => level === start - 1);
                     const isAfterComplexDim = this.complexDimRanges.some(({ end }) => level > end);
