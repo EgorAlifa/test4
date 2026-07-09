@@ -2677,7 +2677,9 @@ export default {
                 collapsedRows: playerSettings.isUsedCollapse ? collapsedRows : [],
                 valuesData,
                 columnSortOptions,
-                isBottomSubtotal: playerSettings.subtotal.rowPosition === SubtotalPosition.BOTTOM,
+                isBottomSubtotal: playerSettings.isComplexOnlySubtotal
+                    ? false
+                    : playerSettings.subtotal.rowPosition === SubtotalPosition.BOTTOM,
                 isShownRowsSubtotals,
                 data: this.result.rows,
                 metrics,
@@ -4717,7 +4719,7 @@ export default {
             await this.loadAdditionalRows(cell);
             this.generateTableRows();
         },
-        async loadAdditionalRows({ path, level, isLoader = false }) {
+        async loadAdditionalRows({ path, level, isLoader = false }, isDeepExpand = false) {
             this.loaderStart();
             const {
                 tableMaps,
@@ -4748,6 +4750,9 @@ export default {
                     if (!this.collapsedRows.some((row) => row.join('.') === pathString)) {
                         this.collapsedRows.push([...path]);
                     }
+                } else if (isDeepExpand) {
+                    // Deep-expand: remove path without adding children → all sub-paths become visible
+                    this.collapsedRows = this.collapsedRows.filter((row) => row.join('.') !== pathString);
                 } else {
                     this.collapsedRows = this.collapsedRows.filter((row) => row.join('.') !== pathString);
 
@@ -4800,7 +4805,10 @@ export default {
                 );
             }
             tableMaps.rowsPaths = tableMaps.rowsPaths.concat(map.rowsPaths);
-            this.collapsedRows = this.collapsedRows.concat(map.rowsPaths);
+            // Deep-expand: keep children visible (don't add to collapsedRows)
+            if (!isDeepExpand) {
+                this.collapsedRows = this.collapsedRows.concat(map.rowsPaths);
+            }
             rowsNode.offset = (offset ?? 0) + limit;
             // eslint-disable-next-line no-restricted-syntax
             const loaderPath = [...slicedPath, LOADER_COLUMN_KEY];
@@ -4877,7 +4885,7 @@ export default {
                         this.complexDimRanges.some(({ end }) => level === end));
 
                 if (this.isPagType) {
-                    await this.loadAdditionalRows(cell);
+                    await this.loadAdditionalRows(cell, isDirectPredecessorExpand);
                 } else if (!isDirectPredecessorExpand) {
                     const pathStr = path.join('.');
                     const seen = new Set(this.collapsedRows.map((r) => r.join('.')));
