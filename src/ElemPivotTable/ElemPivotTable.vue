@@ -4721,10 +4721,10 @@ export default {
             const { dataAlias: filterAlias } = rowDim;
             const slicedPath = path.slice(0, level + 1);
             let rowsNode = tableMaps.rowsHeap;
-            slicedPath.forEach((name) => {
-                rowsNode = rowsNode[name];
-            });
-            const { offset } = rowsNode;
+            for (const name of slicedPath) {
+                rowsNode = rowsNode?.[name];
+            }
+            const offset = rowsNode?.offset ?? null;
             if (offset != null && !isLoader) {
                 const pathString = path.join('.');
                 const hasChildren = this.collapsedRows.some(
@@ -4738,9 +4738,16 @@ export default {
                     if (!this.collapsedRows.some((row) => row.join('.') === pathString)) {
                         this.collapsedRows.push([...path]);
                     }
+                    return;
                 } else if (isDeepExpand) {
-                    // Deep-expand: remove path without adding children → all sub-paths become visible
                     this.collapsedRows = this.collapsedRows.filter((row) => row.join('.') !== pathString);
+                    // If children not yet in rowsPaths, fall through to fetch them
+                    const childrenLoaded = tableMaps.rowsPaths.some(
+                        (val) => val.length > path.length && val.slice(0, path.length).join('.') === pathString
+                    );
+                    if (childrenLoaded) {
+                        return;
+                    }
                 } else {
                     this.collapsedRows = this.collapsedRows.filter((row) => row.join('.') !== pathString);
 
@@ -4755,8 +4762,8 @@ export default {
                             this.collapsedRows.push(child);
                         }
                     });
+                    return;
                 }
-                return;
             }
             const columnSortOptions = this.resolveEffectiveColumnSortOptions();
             const { rows: uniqueRows, rowCount } = await this.fetchRows({
@@ -4779,9 +4786,9 @@ export default {
             tableMaps.columnsHeap = map.columnsHeap;
 
             rowsNode = tableMaps.rowsHeap;
-            slicedPath.forEach((name) => {
-                rowsNode = rowsNode[name];
-            });
+            for (const name of slicedPath) {
+                rowsNode = rowsNode?.[name];
+            }
 
             this.result.rows = [...this.result.rows, ...rows];
             if (offset == null && !this.isShownRowsSubtotals) {
@@ -4797,13 +4804,15 @@ export default {
             if (!isDeepExpand) {
                 this.collapsedRows = this.collapsedRows.concat(map.rowsPaths);
             }
-            rowsNode.offset = (offset ?? 0) + limit;
+            if (rowsNode) {
+                rowsNode.offset = (offset ?? 0) + limit;
+            }
             // eslint-disable-next-line no-restricted-syntax
             const loaderPath = [...slicedPath, LOADER_COLUMN_KEY];
             if (offset == null) {
                 tableMaps.rowsPaths.push(loaderPath);
             }
-            if (rowCount - rowsNode.offset <= 0) {
+            if (rowsNode && rowCount - rowsNode.offset <= 0) {
                 const index = tableMaps.rowsPaths.findIndex((rowPath) => isEqual(rowPath, loaderPath));
                 if (index > -1) {
                     tableMaps.rowsPaths.splice(index, 1);
