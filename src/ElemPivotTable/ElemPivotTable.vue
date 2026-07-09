@@ -698,14 +698,14 @@ export default {
             const { playerSettings } = this;
             const isType = [SubtotalType.ROWS, SubtotalType.ALL].includes(playerSettings?.subtotal?.type);
             if (!isType) return false;
-            if (this.props.isComplexOnlySubtotal && !this.hasComplexDimInRows) return false;
+            if (this.playerSettings?.isComplexOnlySubtotal && !this.hasComplexDimInRows) return false;
             return true;
         },
         isShownColumnsSubtotals() {
             const { playerSettings } = this;
             const isType = [SubtotalType.COLUMNS, SubtotalType.ALL].includes(playerSettings?.subtotal?.type);
             if (!isType) return false;
-            if (this.props.isComplexOnlySubtotal && !this.hasComplexDimInRows) return false;
+            if (this.playerSettings?.isComplexOnlySubtotal && !this.hasComplexDimInRows) return false;
             return true;
         },
         isCollapsedAll() {
@@ -3743,7 +3743,9 @@ export default {
                 metricsPosition,
                 isPagination,
                 levelRowColors,
-                playerConditions
+                playerConditions,
+                isComplexOnlyDrill,
+                isComplexOnlySubtotal
             } = this.props;
             this.playerCalculatedValues = [];
             this.playerFilters = filtersData
@@ -3785,7 +3787,9 @@ export default {
                 tableDrawType,
                 metricsPosition,
                 isPagination,
-                levelRowColors
+                levelRowColors,
+                isComplexOnlyDrill,
+                isComplexOnlySubtotal
             };
             this.updateValuesFilters();
             this.updateConditions(playerConditions);
@@ -4469,7 +4473,9 @@ export default {
             tableDrawType,
             metricsPosition,
             isPagination,
-            levelRowColors
+            levelRowColors,
+            isComplexOnlyDrill,
+            isComplexOnlySubtotal
         }) {
             const previousTableDrawType = this.playerSettings?.tableDrawType;
             const previousIsPagination = this.playerSettings?.isPagination;
@@ -4487,7 +4493,9 @@ export default {
                 tableDrawType,
                 metricsPosition,
                 isPagination,
-                levelRowColors
+                levelRowColors,
+                isComplexOnlyDrill,
+                isComplexOnlySubtotal
             };
             this.commitTableSettingsToStore();
             if (this.playerSettings.isPagination) {
@@ -4827,9 +4835,8 @@ export default {
                 hasBeenCollapsed &&
                 playerSettings?.isUsedCollapse
             ) {
-                if (this.props.isComplexOnlyDrill && this.complexDimRanges.length > 0) {
+                if (this.playerSettings?.isComplexOnlyDrill && this.complexDimRanges.length > 0) {
                     const isInComplexDim = this.complexFlatIndices.has(level);
-                    // Allow the direct predecessor of a complex dim (e.g. КаналПродаж before Филиал+Месяц)
                     const isDirectPredecessor = this.complexDimRanges.some(({ start }) => level === start - 1);
                     if (!isInComplexDim && !isDirectPredecessor) {
                         return;
@@ -4845,11 +4852,8 @@ export default {
                 }
                 collapsedRows.splice(findRow, 1);
 
-                // When expanding the direct predecessor of a complex dim, show all sub-levels
-                // at once (deep expand) — the user cannot drill into each complex dim level
-                // individually, so the whole subtree opens in one click.
                 const isDirectPredecessorExpand =
-                    this.props.isComplexOnlyDrill &&
+                    this.playerSettings?.isComplexOnlyDrill &&
                     this.complexDimRanges.some(({ start }) => level === start - 1);
 
                 if (this.isPagType) {
