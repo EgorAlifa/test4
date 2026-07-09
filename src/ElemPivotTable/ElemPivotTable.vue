@@ -3586,10 +3586,14 @@ export default {
                 // Data rows: find active child, hide others
                 for (const row of dataRows) {
                     const { cells } = row;
-                    let activeIndex = range.end;
-                    for (let i = range.start; i <= range.end; i++) {
+                    // Pick the deepest cell in the range that has a non-null value.
+                    // A collapsed group row has null for inner cells, so the outer
+                    // cell wins. An expanded row has values for all levels, so the
+                    // innermost (deepest) cell wins — showing the drill-down value.
+                    let activeIndex = range.start;
+                    for (let i = range.end; i >= range.start; i--) {
                         const c = cells[i + offset];
-                        if (c && c.hasBeenCollapsed) {
+                        if (c && c.value != null) {
                             activeIndex = i;
                             break;
                         }
@@ -4854,7 +4858,8 @@ export default {
 
                 const isDirectPredecessorExpand =
                     this.playerSettings?.isComplexOnlyDrill &&
-                    this.complexDimRanges.some(({ start }) => level === start - 1);
+                    (this.complexDimRanges.some(({ start }) => level === start - 1) ||
+                        this.complexDimRanges.some(({ end }) => level === end));
 
                 if (this.isPagType) {
                     await this.loadAdditionalRows(cell);
