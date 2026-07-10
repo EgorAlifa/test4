@@ -4725,6 +4725,22 @@ export default {
                 rowsNode = rowsNode?.[name];
             }
             const offset = rowsNode?.offset ?? null;
+            // eslint-disable-next-line no-console
+            console.log('[loadAdditionalRows]', {
+                path,
+                level,
+                slicedPath,
+                isDeepExpand,
+                isLoader,
+                offset,
+                rowsNodeExists: rowsNode != null,
+                rowsPathsCount: tableMaps.rowsPaths?.length,
+                rowsPathsContainPath: tableMaps.rowsPaths?.some(
+                    (p) => p.join('.') === slicedPath.join('.')
+                ),
+                isShownRowsSubtotals: this.isShownRowsSubtotals,
+                complexDimRanges: JSON.parse(JSON.stringify(this.complexDimRanges)),
+            });
             if (offset != null && !isLoader) {
                 const pathString = path.join('.');
                 const hasChildren = this.collapsedRows.some(
@@ -4798,6 +4814,15 @@ export default {
                 this.complexDimRanges.some(
                     ({ start, end }) => slicedPath.length >= start && slicedPath.length <= end + 1
                 );
+            // eslint-disable-next-line no-console
+            console.log('[loadAdditionalRows] pre-splice check', {
+                slicedPath,
+                offsetIsNull: offset == null,
+                isShownRowsSubtotals: this.isShownRowsSubtotals,
+                isComplexGroupHeader,
+                willSplice: offset == null && !this.isShownRowsSubtotals && !isComplexGroupHeader,
+                rowsPathsBefore: tableMaps.rowsPaths.map((p) => p.join('.')),
+            });
             if (offset == null && !this.isShownRowsSubtotals && !isComplexGroupHeader) {
                 tableMaps.rowsPaths.splice(
                     tableMaps.rowsPaths.findIndex((mapsPath) =>
@@ -4882,6 +4907,21 @@ export default {
                     this.playerSettings?.isComplexOnlyDrill &&
                     (this.complexDimRanges.some(({ start }) => level === start - 1) ||
                         this.complexDimRanges.some(({ end }) => level === end));
+
+                // eslint-disable-next-line no-console
+                console.log('[toggleCollapse]', {
+                    path,
+                    level,
+                    findRow,
+                    isDirectPredecessorExpand,
+                    complexDimRanges: JSON.parse(JSON.stringify(this.complexDimRanges)),
+                    complexFlatIndices: [...this.complexFlatIndices],
+                    isInComplexDim: this.complexFlatIndices.has(level),
+                    collapsedRowsCount: this.collapsedRows.length,
+                    rowsPathsCount: this.tableMaps?.rowsPaths?.length,
+                    isPagType: this.isPagType,
+                    isShownRowsSubtotals: this.isShownRowsSubtotals,
+                });
 
                 if (findRow === -1) {
                     if (isDirectPredecessorExpand) {
