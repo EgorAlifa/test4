@@ -4901,8 +4901,20 @@ export default {
 
                 if (findRow === -1) {
                     if (isDirectPredecessorExpand) {
-                        // Path not in collapsedRows (already expanded by parent deep-expand):
-                        // skip collapse, fall through to load children directly.
+                        // Path is not in collapsedRows — it was either never collapsed
+                        // (pre-expanded by a parent deep-expand) or was already expanded
+                        // by the user. If children are already loaded in rowsPaths this
+                        // click is a COLLAPSE action; otherwise fall through to expand.
+                        const pathStr = path.join('.');
+                        const childrenLoaded = (this.tableMaps?.rowsPaths ?? []).some(
+                            (p) => p.length > path.length && p.slice(0, path.length).join('.') === pathStr
+                        );
+                        if (childrenLoaded) {
+                            this.collapsedRows.push(path);
+                            needDraw && (await this.generateTableRows());
+                            return;
+                        }
+                        // No children in rowsPaths yet: fall through to load them.
                     } else {
                         const exclude = collapsedRows.filter((row) => row.join('.').startsWith(path.join('.')));
                         this.collapsedRows = this.collapsedRows.filter((v) => !exclude.includes(v));
