@@ -2762,7 +2762,7 @@ export default {
             } = this;
 
             const complexSubtotalLevels =
-                playerSettings?.isComplexOnlySubtotal && this.hasComplexDimInRows
+                playerSettings?.isComplexOnlySubtotal && this.complexDimRanges.length > 0
                     ? new Set(
                           this.complexDimRanges.flatMap(({ start, end }) =>
                               Array.from({ length: end - start + 1 }, (_, i) => start + i)
