@@ -11,6 +11,7 @@ function generateTableMaps({
     columns,
     isShownRowsSubtotals,
     isShownColumnsSubtotals,
+    complexSubtotalLevels = null,
     startIndex,
     updateRowsHeap = null,
     updateColumnsHeap = null,
@@ -69,7 +70,7 @@ function generateTableMaps({
                 heapLevel[name] = isNew ? createHeapLevel() : heapLevel?.[name];
                 heapLevel[name].rows.push(rowIndex);
                 heapLevel[name].sort = row?.[sortAliases?.[realLevel]] ?? null;
-                if (isNew && (isLast || isShownSubtotal)) {
+                if (isNew && (isLast || isShownSubtotal || complexSubtotalLevels?.has(realLevel))) {
                     paths.push(columnNames.map((_) => _));
                 }
                 if (isNew && !isLast) {
