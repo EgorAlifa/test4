@@ -3275,6 +3275,11 @@ export default {
                             : [CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW, CellsTypes.COLUMN].includes(cellType)
                             ? this.resolveCellValue({ type: cellType, value, level, hasBeenCollapsed, _complexRole, _complexTitle })
                             : value;
+                        // When a dimension cell has no value (group header rows where lower
+                        // dimensions are empty), force text type so the API writes blank
+                        // instead of 0 (which it does for null with a numeric column type).
+                        const isDimCell = [CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW, CellsTypes.COLUMN].includes(cellType);
+                        const exportType = isDimCell && (exportValue == null || exportValue === '') ? 'text' : type;
                         /** @type {import('@goodt-widgets-insight/api').ReportTableFieldSettings} */
                         const settings = {
                             bgColor,
@@ -3282,7 +3287,7 @@ export default {
                             borderStyle: 'THIN',
                             color,
                             decimals,
-                            type
+                            type: exportType
                         };
                         return { value: exportValue, settings };
                     })
