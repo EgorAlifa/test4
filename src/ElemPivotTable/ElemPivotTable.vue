@@ -2761,6 +2761,15 @@ export default {
                 props: { isReplacingEmptyFields, replacingVoidValue, replacingNullValue }
             } = this;
 
+            const complexSubtotalLevels =
+                playerSettings?.isComplexOnlySubtotal && this.hasComplexDimInRows
+                    ? new Set(
+                          this.complexDimRanges.flatMap(({ start, end }) =>
+                              Array.from({ length: end - start + 1 }, (_, i) => start + i)
+                          )
+                      )
+                    : null;
+
             const map = await asyncGenerateTableMaps({
                 rowPath: path,
                 data,
@@ -2769,6 +2778,7 @@ export default {
                 filters,
                 isShownRowsSubtotals: this.isShownRowsSubtotals,
                 isShownColumnsSubtotals: this.isShownColumnsSubtotals,
+                complexSubtotalLevels,
                 isReplacingEmptyFields,
                 replacingVoidValue,
                 replacingNullValue,
@@ -4725,22 +4735,6 @@ export default {
                 rowsNode = rowsNode?.[name];
             }
             const offset = rowsNode?.offset ?? null;
-            // eslint-disable-next-line no-console
-            console.log('[loadAdditionalRows]', {
-                path,
-                level,
-                slicedPath,
-                isDeepExpand,
-                isLoader,
-                offset,
-                rowsNodeExists: rowsNode != null,
-                rowsPathsCount: tableMaps.rowsPaths?.length,
-                rowsPathsContainPath: tableMaps.rowsPaths?.some(
-                    (p) => p.join('.') === slicedPath.join('.')
-                ),
-                isShownRowsSubtotals: this.isShownRowsSubtotals,
-                complexDimRanges: JSON.parse(JSON.stringify(this.complexDimRanges)),
-            });
             if (offset != null && !isLoader) {
                 const pathString = path.join('.');
                 const hasChildren = this.collapsedRows.some(
@@ -4814,15 +4808,6 @@ export default {
                 this.complexDimRanges.some(
                     ({ start, end }) => slicedPath.length >= start && slicedPath.length <= end + 1
                 );
-            // eslint-disable-next-line no-console
-            console.log('[loadAdditionalRows] pre-splice check', {
-                slicedPath,
-                offsetIsNull: offset == null,
-                isShownRowsSubtotals: this.isShownRowsSubtotals,
-                isComplexGroupHeader,
-                willSplice: offset == null && !this.isShownRowsSubtotals && !isComplexGroupHeader,
-                rowsPathsBefore: tableMaps.rowsPaths.map((p) => p.join('.')),
-            });
             if (offset == null && !this.isShownRowsSubtotals && !isComplexGroupHeader) {
                 tableMaps.rowsPaths.splice(
                     tableMaps.rowsPaths.findIndex((mapsPath) =>
@@ -4908,21 +4893,6 @@ export default {
                     (this.complexDimRanges.some(({ start }) => level === start - 1) ||
                         this.complexDimRanges.some(({ end }) => level === end));
 
-                // eslint-disable-next-line no-console
-                console.log('[toggleCollapse]', {
-                    path,
-                    level,
-                    findRow,
-                    isDirectPredecessorExpand,
-                    complexDimRanges: JSON.parse(JSON.stringify(this.complexDimRanges)),
-                    complexFlatIndices: [...this.complexFlatIndices],
-                    isInComplexDim: this.complexFlatIndices.has(level),
-                    collapsedRowsCount: this.collapsedRows.length,
-                    rowsPathsCount: this.tableMaps?.rowsPaths?.length,
-                    isPagType: this.isPagType,
-                    isShownRowsSubtotals: this.isShownRowsSubtotals,
-                });
-
                 if (findRow === -1) {
                     if (isDirectPredecessorExpand) {
                         // Path not in collapsedRows (already expanded by parent deep-expand):
@@ -4940,7 +4910,15 @@ export default {
 
                 if (this.isPagType) {
                     await this.loadAdditionalRows(cell, isDirectPredecessorExpand);
-                } else if (!isDirectPredecessorExpand) {
+                } else if (isDirectPredecessorExpand) {
+                    // Deep-expand in non-pag mode: all data is already in rowsPaths,
+                    // just remove every descendant of this path from collapsedRows so
+                    // Філіалі and deeper levels appear without requiring manual clicks.
+                    const pathStr = path.join('.');
+                    this.collapsedRows = this.collapsedRows.filter(
+                        (row) => !row.join('.').startsWith(pathStr + '.')
+                    );
+                } else {
                     const pathStr = path.join('.');
                     const seen = new Set(this.collapsedRows.map((r) => r.join('.')));
                     for (const val of this.tableMaps?.collapsedRowsPaths ?? []) {
