@@ -4791,7 +4791,14 @@ export default {
             }
 
             this.result.rows = [...this.result.rows, ...rows];
-            if (offset == null && !this.isShownRowsSubtotals) {
+            // When isComplexOnlySubtotal is ON, keep the path row (group header) visible so the
+            // user can collapse the section back. This applies to direct predecessors and all
+            // levels within the complex dim range (slicedPath.length ∈ [range.start, range.end+1]).
+            const isComplexGroupHeader = this.playerSettings?.isComplexOnlySubtotal &&
+                this.complexDimRanges.some(
+                    ({ start, end }) => slicedPath.length >= start && slicedPath.length <= end + 1
+                );
+            if (offset == null && !this.isShownRowsSubtotals && !isComplexGroupHeader) {
                 tableMaps.rowsPaths.splice(
                     tableMaps.rowsPaths.findIndex((mapsPath) =>
                         mapsPath.every((mapsPathName, mapsPathLevel) => mapsPathName === slicedPath[mapsPathLevel])
@@ -4870,19 +4877,26 @@ export default {
                     }
                 }
                 const findRow = this.findCollapsedRowIndexByPath(path);
-                if (findRow === -1) {
-                    const exclude = collapsedRows.filter((row) => row.join('.').startsWith(path.join('.')));
-                    this.collapsedRows = this.collapsedRows.filter((v) => !exclude.includes(v));
-                    this.collapsedRows.push(path);
-                    needDraw && (await this.generateTableRows());
-                    return;
-                }
-                collapsedRows.splice(findRow, 1);
 
                 const isDirectPredecessorExpand =
                     this.playerSettings?.isComplexOnlyDrill &&
                     (this.complexDimRanges.some(({ start }) => level === start - 1) ||
                         this.complexDimRanges.some(({ end }) => level === end));
+
+                if (findRow === -1) {
+                    if (isDirectPredecessorExpand) {
+                        // Path not in collapsedRows (already expanded by parent deep-expand):
+                        // skip collapse, fall through to load children directly.
+                    } else {
+                        const exclude = collapsedRows.filter((row) => row.join('.').startsWith(path.join('.')));
+                        this.collapsedRows = this.collapsedRows.filter((v) => !exclude.includes(v));
+                        this.collapsedRows.push(path);
+                        needDraw && (await this.generateTableRows());
+                        return;
+                    }
+                } else {
+                    collapsedRows.splice(findRow, 1);
+                }
 
                 if (this.isPagType) {
                     await this.loadAdditionalRows(cell, isDirectPredecessorExpand);
