@@ -3276,10 +3276,11 @@ export default {
                             ? this.resolveCellValue({ type: cellType, value, level, hasBeenCollapsed, _complexRole, _complexTitle })
                             : value;
                         // When a dimension cell has no value (group header rows where lower
-                        // dimensions are empty), force text type so the API writes blank
-                        // instead of 0 (which it does for null with a numeric column type).
+                        // dimensions are empty), send '' with text type so the API writes
+                        // a blank cell. Sending null — even with type:'text' — causes the
+                        // API to write 0 in the Excel file for numeric-typed dimensions.
                         const isDimCell = [CellsTypes.ROW, CellsTypes.SUBTOTAL_ROW, CellsTypes.COLUMN].includes(cellType);
-                        const exportType = isDimCell && (exportValue == null || exportValue === '') ? 'text' : type;
+                        const isEmptyDimCell = isDimCell && (exportValue == null || exportValue === '');
                         /** @type {import('@goodt-widgets-insight/api').ReportTableFieldSettings} */
                         const settings = {
                             bgColor,
@@ -3287,9 +3288,9 @@ export default {
                             borderStyle: 'THIN',
                             color,
                             decimals,
-                            type: exportType
+                            type: isEmptyDimCell ? 'text' : type
                         };
-                        return { value: exportValue, settings };
+                        return { value: isEmptyDimCell ? '' : exportValue, settings };
                     })
             );
             const fileName = buildExportFilename([xlsxFilename, ExportFileType.EXCEL], {
