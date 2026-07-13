@@ -42,7 +42,7 @@
                         v-bind="{
                             dataAliasOptions: dimensions,
                             sortDataAliasOptions: [{ label: '-', value: '' }, ...dimensions, ...metrics],
-                            usedDataAliases: props.rows.map(({ dataAlias }) => dataAlias)
+                            usedDataAliases: dimensions
                         }">
                         <template #default="{ settings }">
                             <ui-switch v-model="settings.sortDesc">Обратная сортировка</ui-switch>
@@ -92,7 +92,7 @@
                         v-bind="{
                             dataAliasOptions: dimensions,
                             sortDataAliasOptions: [{ label: '-', value: '' }, ...dimensions, ...metrics],
-                            usedDataAliases: props.columns.map(({ dataAlias }) => dataAlias)
+                            usedDataAliases: dimensions
                         }">
                         <template #default="{ settings }">
                             <ui-switch v-model="settings.sortDesc">Обратная сортировка</ui-switch>

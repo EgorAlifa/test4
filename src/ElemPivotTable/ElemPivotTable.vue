@@ -1648,9 +1648,20 @@ export default {
                     ]
                 )
             ).filter((val) => val !== '');
+            const { rows: propsRows = [], columns: propsColumns = [] } = this.props;
+            const linkDimAliases = [...propsRows, ...propsColumns]
+                .filter((r) => r.actions?.enabled)
+                .flatMap((r) => {
+                    const aliases = [];
+                    if (r.actions?.link?.url?.length > 0) aliases.push(r.actions.link.url);
+                    if (r.actions?.link?.queryMetrics?.length > 0) aliases.push(...r.actions.link.queryMetrics);
+                    return aliases;
+                })
+                .filter((alias) => alias && !/^https?:\/\//i.test(alias));
             const neededDimensions = uniqArray([
                 ...playerRows.flatMap(({ dataAlias, sortAlias }) => [dataAlias, sortAlias]),
-                ...playerColumns.flatMap(({ dataAlias, sortAlias }) => [dataAlias, sortAlias])
+                ...playerColumns.flatMap(({ dataAlias, sortAlias }) => [dataAlias, sortAlias]),
+                ...linkDimAliases
             ]).filter((val) => val !== '' && !metrics.includes(val));
             const neededMetrics = [...metrics]
                 .sort((first, second) => second.length - first.length)
