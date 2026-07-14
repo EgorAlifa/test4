@@ -2525,13 +2525,15 @@ export default {
                     { rows: totalData = [] } = {}
                 ] = await Promise.all([columnsPromise, totalPromise, this.generateTableMaps(pagResult)]);
                 this.result.rows.push(...columnsTotalData);
-                this.tableMaps.collapsedRowsPaths = rowsPaths;
                 this.tableMaps.rowsTotalHeap = RowsTotalHeap;
                 this.tableMaps.columnsPaths = columnsPaths;
                 this.tableMaps.columnsTotalHeap = ColumnsTotalHeap;
                 this.tableMaps.rowTotalData = this.props.isDatasetTotalAggregation ? totalData : null;
                 this.tableMaps.columnTotalData = columnTotalData;
                 this.collapsedRows = rowsPaths;
+                if (rowsPaths.length > 0) {
+                    this.currentViewLevel = 1;
+                }
                 this.collapsedColumns = collapsedColumnsPaths.filter((col) => col.length <= 1);
                 await this.generateTableRows();
             } catch (e) {
@@ -2922,6 +2924,8 @@ export default {
             const { collapsedColumnsPaths, collapsedRowsPaths } = map;
             this.collapsedRows = isUncollapsedAll ? [] : collapsedRowsPaths;
             this.collapsedColumns = isUncollapsedAll ? [] : collapsedColumnsPaths;
+            this.currentViewLevel =
+                !isUncollapsedAll && collapsedRowsPaths.length > 0 ? 1 : this.flatPlayerRows.length;
             this.tableMaps = { ...this.tableMaps, ...map };
             this.isFirstInitTableMaps = true;
             this.isGeneratedTableMaps = true;
@@ -2984,7 +2988,11 @@ export default {
                 addType(playerValues, 'value')
             );
 
-            const preparedFields = fields.filter((field) => !values.map((value) => value.sortAlias).includes(field));
+            const sortAliasSet = new Set(values.map((value) => value.sortAlias));
+            const dataAliasSet = new Set(values.map((value) => value.dataAlias));
+            const preparedFields = fields.filter(
+                (field) => !sortAliasSet.has(field) && dataAliasSet.has(field)
+            );
             return preparedFields.map((field) => {
                 const {
                     format = '',
@@ -4834,6 +4842,14 @@ export default {
                 );
             }
             tableMaps.rowsPaths = tableMaps.rowsPaths.concat(map.rowsPaths);
+            const existingCollapsedSet = new Set((tableMaps.collapsedRowsPaths ?? []).map((p) => p.join('.')));
+            for (const p of map.collapsedRowsPaths ?? []) {
+                const key = p.join('.');
+                if (!existingCollapsedSet.has(key)) {
+                    existingCollapsedSet.add(key);
+                    (tableMaps.collapsedRowsPaths ?? (tableMaps.collapsedRowsPaths = [])).push(p);
+                }
+            }
             // Deep-expand: keep children visible (don't add to collapsedRows)
             if (!isDeepExpand) {
                 this.collapsedRows = this.collapsedRows.concat(map.rowsPaths);
