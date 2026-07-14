@@ -73,7 +73,7 @@
                             <i class="toolbox-button__icon toolbox-button__icon--fullscreen" />
                         </div>
                     </div>
-                    <div v-if="playerSettings.isUsedCollapse && flatPlayerRows.length > 1" class="toolbox__item">
+                    <div v-if="playerSettings.isUsedCollapse && flatPlayerRows.length > 1 && (!playerSettings.isComplexOnlyDrill || complexDimRanges.length > 0)" class="toolbox__item">
                         <select
                             class="toolbox-level-select"
                             :value="currentViewLevel != null ? currentViewLevel : flatPlayerRows.length"
@@ -2525,6 +2525,7 @@ export default {
                     { rows: totalData = [] } = {}
                 ] = await Promise.all([columnsPromise, totalPromise, this.generateTableMaps(pagResult)]);
                 this.result.rows.push(...columnsTotalData);
+                this.tableMaps.collapsedRowsPaths = rowsPaths;
                 this.tableMaps.rowsTotalHeap = RowsTotalHeap;
                 this.tableMaps.columnsPaths = columnsPaths;
                 this.tableMaps.columnsTotalHeap = ColumnsTotalHeap;
@@ -4890,10 +4891,42 @@ export default {
         setViewLevel(n) {
             const { tableMaps: { collapsedRowsPaths = [] } = {} } = this;
             this.currentViewLevel = n;
-            this.collapsedRows =
-                n >= this.flatPlayerRows.length
-                    ? []
-                    : collapsedRowsPaths.filter(({ length }) => length === n);
+
+            if (n >= this.flatPlayerRows.length) {
+                this.collapsedRows = [];
+                this.generateTableRows();
+                return;
+            }
+
+            // Paths that have a direct child in collapsedRowsPaths = their sub-rows have been loaded.
+            // In pagination mode this set starts empty (only depth-1 paths) and grows as rows expand.
+            // In non-pag mode every intermediate path has loaded children (full dataset is present).
+            const pathsWithLoadedChildren = new Set(
+                collapsedRowsPaths
+                    .filter(({ length }) => length > 1)
+                    .map((p) => p.slice(0, -1).join('.'))
+            );
+
+            const seen = new Set();
+            const newCollapsed = [];
+            for (const path of collapsedRowsPaths) {
+                const { length } = path;
+                const key = path.join('.');
+                if (seen.has(key)) continue;
+                seen.add(key);
+                if (length === n) {
+                    // Exactly at target depth: collapse this group
+                    newCollapsed.push(path);
+                } else if (length < n && !pathsWithLoadedChildren.has(key)) {
+                    // Shallower than target and children not yet loaded: keep collapsed
+                    // (don't expand a row whose sub-data isn't fetched yet)
+                    newCollapsed.push(path);
+                }
+                // length > n → hidden under a collapsed ancestor, skip
+                // length < n with loaded children → let this level appear expanded
+            }
+
+            this.collapsedRows = newCollapsed;
             this.generateTableRows();
         },
         onViewLevelSelectChange(event) {
