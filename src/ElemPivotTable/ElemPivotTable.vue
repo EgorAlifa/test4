@@ -2531,7 +2531,7 @@ export default {
                 this.tableMaps.columnsTotalHeap = ColumnsTotalHeap;
                 this.tableMaps.rowTotalData = this.props.isDatasetTotalAggregation ? totalData : null;
                 this.tableMaps.columnTotalData = columnTotalData;
-                this.collapsedRows = rowsPaths;
+                this.collapsedRows = rowsPaths.slice();
                 if (rowsPaths.length > 0) {
                     this.currentViewLevel = 1;
                 }
@@ -2923,8 +2923,8 @@ export default {
             this.cancelRequests(RequestType.DATA);
 
             const { collapsedColumnsPaths, collapsedRowsPaths } = map;
-            this.collapsedRows = isUncollapsedAll ? [] : collapsedRowsPaths;
-            this.collapsedColumns = isUncollapsedAll ? [] : collapsedColumnsPaths;
+            this.collapsedRows = isUncollapsedAll ? [] : collapsedRowsPaths.slice();
+            this.collapsedColumns = isUncollapsedAll ? [] : collapsedColumnsPaths.slice();
             this.currentViewLevel =
                 !isUncollapsedAll && collapsedRowsPaths.length > 0 ? 1 : this.flatPlayerRows.length;
             this.tableMaps = { ...this.tableMaps, ...map };
