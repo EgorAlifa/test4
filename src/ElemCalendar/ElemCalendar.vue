@@ -1,5 +1,5 @@
 <template>
-    <w-elem :style="compactMode ? 'display:inline-block' : 'height:100%;display:block'">
+    <w-elem :style="compactMode ? 'display:block;width:100%;height:100%' : 'height:100%;display:block'">
     <div class="elem-cal" :class="calDynamicClass" :style="[cssStyle, calCssVars]">
         <!-- ── Header (full mode only) ─────────────────────────────── -->
         <div v-if="props.calShowHeader && !compactMode" class="elem-cal__header">
@@ -1514,10 +1514,11 @@ export default {
             // commit only `date` — no range variables written
             if (start && start === end) {
                 this.rangeEnd = null;
-                this._commitDate(start);
+                // Auto-commit only when there is no Apply button to confirm
+                if (!this.props.calCompactShowBottom) this._commitDate(start);
             } else {
                 this.rangeEnd = parseIso(end);
-                this._commitRange(start, end);
+                if (!this.props.calCompactShowBottom) this._commitRange(start, end);
             }
             if (this.rangeStart) this.navDate = new Date(this.rangeStart.getFullYear(), this.rangeStart.getMonth(), 1);
         },
@@ -1538,7 +1539,7 @@ export default {
             }
 
             if (this.compactClickStep === 0) {
-                // First click: select a single date; only commit `date` — no range yet
+                // First click: select the start date; wait for second click (or Apply)
                 this.rangeStart = cell.date;
                 this.rangeEnd = null;
                 this.compactHoverCell = cell;
@@ -1547,7 +1548,6 @@ export default {
                     this.rangeStartTime = this.props.calDefaultStartTime || '00:00';
                     this.rangeEndTime = this.props.calDefaultEndTime || '23:59';
                 }
-                this._commitDate(cell.iso);
             } else {
                 // Second click: extend to a full range and commit
                 const s = this.rangeStart;
@@ -1592,11 +1592,21 @@ export default {
 
         onCompactApply() {
             if (this.compactClickStep === 1 && this.rangeStart) {
-                // Finalize with just the start date as a single-day range
+                // User clicked Apply while still selecting end date — treat start as single-day range
                 const iso = isoDate(this.rangeStart);
-                this._setCompactRange(iso, iso);
+                this.rangeEnd = null;
+                this.compactClickStep = 0;
+                this.compactHoverCell = null;
+                this._commitDate(iso);
+            } else if (this.rangeStart) {
+                // Step 0: range (or single date) already set locally — now commit it
+                const start = isoDate(this.rangeStart);
+                if (this.rangeEnd) {
+                    this._commitRange(start, isoDate(this.rangeEnd));
+                } else {
+                    this._commitDate(start);
+                }
             }
-            // If already in step 0, the range is already committed — nothing to do
         },
 
         startEditingStart() {
@@ -2510,20 +2520,20 @@ export default {
    Compact mode — dashboard / report date-range picker
 ═══════════════════════════════════════════════════════════════════ */
 .elem-cal__compact {
-    display: inline-flex;
+    display: flex;
     justify-content: flex-start;
     align-items: flex-start;
     padding: 10px 12px;
-    height: auto;
-    width: auto;
+    width: 100%;
+    height: 100%;
     box-sizing: border-box;
 }
 .compact__inner {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    width: 280px;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 280px;
 }
 
 /* Preset chips */
