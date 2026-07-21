@@ -1,0 +1,24 @@
+{
+    "name": "widgets-launcher",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Standalone launcher that unpacks node_modules.zip and starts the widgets dev server, packaged as a single .exe via pkg.",
+    "main": "start.js",
+    "bin": "start.js",
+    "scripts": {
+        "build:win": "pkg . --targets node18-win-x64 --output dist/widgets-launcher-win.exe",
+        "build:linux": "pkg . --targets node18-linux-x64 --output dist/widgets-launcher-linux",
+        "build:macos": "pkg . --targets node18-macos-x64 --output dist/widgets-launcher-macos",
+        "build:all": "npm run build:win && npm run build:linux && npm run build:macos"
+    },
+    "pkg": {
+        "assets": [],
+        "targets": [
+            "node18-win-x64"
+        ],
+        "outputPath": "dist"
+    },
+    "devDependencies": {
+        "pkg": "^5.8.1"
+    }
+}
