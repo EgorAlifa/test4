@@ -1488,29 +1488,53 @@ export default {
         },
 
         /**
-         * Строит полный URL из slug с учётом base-path приложения.
-         * Если доступен $router — использует его resolve (корректно обрабатывает
-         * любой режим роутера: hash / history / base-path / subdirectory).
-         * Иначе — пытается вывести URL из текущего location.
+         * Определяет режим платформы по URL.
+         * Player: URL содержит /player/ — hash-роутинг, slug дописывается после #/
+         * Editor: URL содержит ?page=UUID — навигация через $emit, браузер не трогаем
+         */
+        _detectPlatformMode() {
+            if (typeof window === 'undefined') return 'unknown';
+            const href = window.location.href;
+            if (href.includes('/player/')) return 'player';
+            if (new URLSearchParams(window.location.search).has('page')) return 'editor';
+            return 'player'; // fallback — считаем плеером если нет признаков редактора
+        },
+
+        /**
+         * Строит полный URL для перехода / открытия в новой вкладке.
+         * Player-URL: https://dev.goodt.me/insight-dev/editor/player/3836/#/
+         * → берём часть до # и дописываем #/slug
          */
         _buildNavigationUrl(slug) {
             if (!slug) return slug;
             if (slug.startsWith('http://') || slug.startsWith('https://')) return slug;
 
-            if (this.$router) {
-                // router.resolve() возвращает href с учётом base и режима (hash/history)
-                const { href } = this.$router.resolve(slug);
-                return window.location.origin + href;
+            const href = window.location.href;
+
+            // Платформенный player — hash-routing, base фиксируем из текущего URL
+            // Пример: https://dev.goodt.me/insight-dev/editor/player/3836/#/page
+            if (href.includes('/player/')) {
+                const hashIdx = href.indexOf('#');
+                const base = hashIdx >= 0 ? href.substring(0, hashIdx) : href.replace(/\/?$/, '/');
+                const cleanSlug = slug.replace(/^[#/]+/, '');
+                return base + '#/' + cleanSlug;
             }
 
-            // Без роутера — определяем режим по наличию hash в URL
+            // Если роутер доступен — resolve возвращает путь с учётом base роутера
+            if (this.$router) {
+                const { href: resolved } = this.$router.resolve(slug);
+                // resolved в hash-mode: '#/page' → нужно добавить origin + pathname
+                if (resolved.startsWith('#')) {
+                    return window.location.origin + window.location.pathname + resolved;
+                }
+                return window.location.origin + resolved;
+            }
+
+            // Общий fallback — hash или history
             if (window.location.hash) {
-                // Hash-routing: заменяем хеш-часть
-                const base = window.location.href.replace(/#.*$/, '');
+                const base = href.replace(/#.*$/, '');
                 return base + '#' + slug.replace(/^[#/]+/, '');
             }
-
-            // History-routing без роутера: строим от origin + slug
             return window.location.origin + (slug.startsWith('/') ? '' : '/') + slug;
         },
 
@@ -1518,28 +1542,26 @@ export default {
             const slug = route.slug || route.url || route.path || route.href;
             if (!slug) return;
 
-            // Проверяем что не пытаемся перейти на текущую страницу
             if (this.currentSlug === slug) return;
 
             this.currentSlug = slug;
 
-            // Всегда эмитим событие — редактор перехватывает его для переключения страниц
+            // Всегда эмитим — редактор перехватывает это для переключения страниц
             this.$emit('navigate', route);
 
             if (typeof window === 'undefined') return;
 
-            // В редакторе виджет находится в iframe; реальная браузерная навигация
-            // там не нужна — достаточно emit выше. Исключение — открытие в новой вкладке.
-            const isEditorFrame = window.self !== window.top;
+            const mode = this._detectPlatformMode();
 
             if (this.props.routeOpenInNewTab) {
                 window.open(this._buildNavigationUrl(slug), '_blank', 'noopener,noreferrer');
                 return;
             }
 
-            if (isEditorFrame) return;
+            // В редакторе браузерная навигация не нужна — emit достаточен
+            if (mode === 'editor') return;
 
-            // Плеер: выполняем навигацию
+            // Плеер: hash-роутинг через $router или напрямую
             if (this.$router) {
                 this.$router.push(slug).catch(() => {});
             } else {
