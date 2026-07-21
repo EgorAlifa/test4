@@ -1487,37 +1487,63 @@ export default {
             await this.loadRoutes();
         },
 
-        navigateToRoute(route) {
-            const slug = route.slug || route.url || route.path || route.href;
-            if (!slug) {
-                return;
+        /**
+         * Строит полный URL из slug с учётом base-path приложения.
+         * Если доступен $router — использует его resolve (корректно обрабатывает
+         * любой режим роутера: hash / history / base-path / subdirectory).
+         * Иначе — пытается вывести URL из текущего location.
+         */
+        _buildNavigationUrl(slug) {
+            if (!slug) return slug;
+            if (slug.startsWith('http://') || slug.startsWith('https://')) return slug;
+
+            if (this.$router) {
+                // router.resolve() возвращает href с учётом base и режима (hash/history)
+                const { href } = this.$router.resolve(slug);
+                return window.location.origin + href;
             }
 
-            // Проверяем что не пытаемся перейти на текущую страницу
-            if (this.currentSlug === slug) {
-                return;
+            // Без роутера — определяем режим по наличию hash в URL
+            if (window.location.hash) {
+                // Hash-routing: заменяем хеш-часть
+                const base = window.location.href.replace(/#.*$/, '');
+                return base + '#' + slug.replace(/^[#/]+/, '');
             }
+
+            // History-routing без роутера: строим от origin + slug
+            return window.location.origin + (slug.startsWith('/') ? '' : '/') + slug;
+        },
+
+        navigateToRoute(route) {
+            const slug = route.slug || route.url || route.path || route.href;
+            if (!slug) return;
+
+            // Проверяем что не пытаемся перейти на текущую страницу
+            if (this.currentSlug === slug) return;
 
             this.currentSlug = slug;
 
-            // Эмитим событие для родительских компонентов
+            // Всегда эмитим событие — редактор перехватывает его для переключения страниц
             this.$emit('navigate', route);
 
             if (typeof window === 'undefined') return;
 
-            // Открыть в новой вкладке
+            // В редакторе виджет находится в iframe; реальная браузерная навигация
+            // там не нужна — достаточно emit выше. Исключение — открытие в новой вкладке.
+            const isEditorFrame = window.self !== window.top;
+
             if (this.props.routeOpenInNewTab) {
-                window.open(slug, '_blank', 'noopener,noreferrer');
+                window.open(this._buildNavigationUrl(slug), '_blank', 'noopener,noreferrer');
                 return;
             }
 
-            // В режиме плеера пытаемся реально перейти
-            if (this.isPlayerMode) {
-                if (this.$router) {
-                    this.$router.push(slug).catch(() => {});
-                } else {
-                    window.location.href = slug;
-                }
+            if (isEditorFrame) return;
+
+            // Плеер: выполняем навигацию
+            if (this.$router) {
+                this.$router.push(slug).catch(() => {});
+            } else {
+                window.location.href = this._buildNavigationUrl(slug);
             }
         },
 
