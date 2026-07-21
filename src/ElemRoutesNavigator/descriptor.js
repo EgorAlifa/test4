@@ -28,6 +28,12 @@ export const descriptor = () => ({
             label: 'Показывать ссылки страниц',
             hint: 'Показывает ссылку рядом с названием страницы'
         },
+        routeOpenInNewTab: {
+            type: Boolean,
+            default: false,
+            label: 'Открывать в новой вкладке',
+            hint: 'При клике на кнопку страница откроется в новой вкладке браузера'
+        },
         highlightActivePage: {
             type: Boolean,
             default: false,
