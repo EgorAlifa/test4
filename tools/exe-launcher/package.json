@@ -9,7 +9,8 @@
         "build:win": "pkg . --targets node18-win-x64 --output dist/widgets-launcher-win.exe",
         "build:linux": "pkg . --targets node18-linux-x64 --output dist/widgets-launcher-linux",
         "build:macos": "pkg . --targets node18-macos-x64 --output dist/widgets-launcher-macos",
-        "build:all": "npm run build:win && npm run build:linux && npm run build:macos"
+        "build:all": "npm run build:win && npm run build:linux && npm run build:macos",
+        "build:win:sea": "./build-sea.sh"
     },
     "pkg": {
         "assets": [],
