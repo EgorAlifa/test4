@@ -175,14 +175,9 @@
                     class="route-button"
                     :class="getButtonClass(route, index)"
                     :style="getButtonStyle(route, index)"
-                    :draggable="canReorder"
                     @click="props.enableHierarchy ? handleRouteClick(route) : navigateToRoute(route)"
                     @mouseenter="hoveredIndex = index"
                     @mouseleave="hoveredIndex = null"
-                    @dragstart="onDragStart(index, $event)"
-                    @dragover="onDragOver(index, $event)"
-                    @drop="onDrop(index, $event)"
-                    @dragend="onDragEnd"
                     type="button"
                 >
                     <span
@@ -1493,37 +1488,35 @@ export default {
         },
 
         navigateToRoute(route) {
-            // Если было перетаскивание, не делаем навигацию
-            if (this.isDragging) {
-                this.isDragging = false;
-                return;
-            }
-
-            if (!route.slug) {
+            const slug = route.slug || route.url || route.path || route.href;
+            if (!slug) {
                 return;
             }
 
             // Проверяем что не пытаемся перейти на текущую страницу
-            if (this.currentSlug === route.slug) {
+            if (this.currentSlug === slug) {
                 return;
             }
 
-            this.currentSlug = route.slug;
+            this.currentSlug = slug;
 
             // Эмитим событие для родительских компонентов
             this.$emit('navigate', route);
 
+            if (typeof window === 'undefined') return;
+
+            // Открыть в новой вкладке
+            if (this.props.routeOpenInNewTab) {
+                window.open(slug, '_blank', 'noopener,noreferrer');
+                return;
+            }
+
             // В режиме плеера пытаемся реально перейти
-            if (this.isPlayerMode && typeof window !== 'undefined') {
-                // Проверяем наличие роутера
+            if (this.isPlayerMode) {
                 if (this.$router) {
-                    // Используем catch для подавления ошибки NavigationDuplicated
-                    this.$router.push(route.slug).catch(() => {
-                        // Игнорируем ошибки навигации
-                    });
+                    this.$router.push(slug).catch(() => {});
                 } else {
-                    // Fallback на обычную навигацию
-                    window.location.href = route.slug;
+                    window.location.href = slug;
                 }
             }
         },

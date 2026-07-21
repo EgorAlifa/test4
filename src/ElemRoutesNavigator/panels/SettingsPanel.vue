@@ -19,6 +19,8 @@
 
             <ui-checkbox prop="highlightActivePage">Активная страница</ui-checkbox>
 
+            <ui-checkbox prop="routeOpenInNewTab">Открывать в новой вкладке</ui-checkbox>
+
             <ui-select prop="orientation" :options="options.orientations" label="Ориентация"></ui-select>
 
             <!-- Позиционирование кнопок (для vertical/dropdown/burger) -->
