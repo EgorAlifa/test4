@@ -1,5 +1,5 @@
 <template>
-    <w-elem :style="compactMode ? 'display:block;width:100%;height:100%' : 'height:100%;display:block'">
+    <w-elem :style="compactMode ? 'display:block;width:100%' : 'height:100%;display:block'">
     <div class="elem-cal" :class="calDynamicClass" :style="[cssStyle, calCssVars]">
         <!-- ── Header (full mode only) ─────────────────────────────── -->
         <div v-if="props.calShowHeader && !compactMode" class="elem-cal__header">
@@ -2525,7 +2525,7 @@ export default {
     align-items: flex-start;
     padding: 10px 12px;
     width: 100%;
-    height: 100%;
+    height: auto;
     box-sizing: border-box;
 }
 .compact__inner {
