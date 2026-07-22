@@ -13,6 +13,8 @@ sandbox/config/**/*.local.*
 # Project specific
 /dist
 /.secrets
+/Dockerfile.sandboxtest
+/ccr-ca-bundle.crt
 /src/lib/**/*.MD
 /src/*.*
 /docs
