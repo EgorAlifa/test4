@@ -1,0 +1,26 @@
+# Client-facing compose file: pulls a prebuilt image, no Nexus access or
+# build step needed. This is what `docker compose up` and the devcontainer
+# use by default.
+#
+#   docker compose up          # plain Docker
+#   Cursor/VS Code: "Reopen in Container" uses this via .devcontainer/
+#
+# To build/publish the image itself (maintainers only, needs Nexus access),
+# see docker-compose.build.yml and scripts/build-and-push-image.sh.
+#
+# node_modules lives in a named volume, not a bind mount, so the container
+# keeps the node_modules baked into the image (Linux-built) instead of it
+# being shadowed by whatever's on the host.
+services:
+  widgets-dev:
+    image: ${WIDGETS_IMAGE:-ghcr.io/egoralifa/insight-widgets-dev:latest}
+    volumes:
+      - .:/app
+      - node_modules_data:/app/node_modules
+    ports:
+      - "3001:3001"
+    environment:
+      - DEV_SERVER_PORT=3001
+
+volumes:
+  node_modules_data:

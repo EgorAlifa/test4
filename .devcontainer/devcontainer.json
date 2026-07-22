@@ -1,6 +1,6 @@
 {
     "name": "Insight Widgets Dev",
-    "dockerComposeFile": ["../docker-compose.dev.yml"],
+    "dockerComposeFile": ["../docker-compose.yml"],
     "service": "widgets-dev",
     "workspaceFolder": "/app",
     "forwardPorts": [3001],

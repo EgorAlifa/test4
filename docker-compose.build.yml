@@ -1,0 +1,14 @@
+# Override used ONLY to build/publish the image (maintainer machine with
+# Nexus access — e.g. the Ubuntu build box). Adds a build step and tags
+# the result with the same name docker-compose.yml pulls, so clients never
+# need to build anything themselves.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml build
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml push
+# or just: ./scripts/build-and-push-image.sh
+services:
+  widgets-dev:
+    build:
+      context: .
+    image: ${WIDGETS_IMAGE:-ghcr.io/egoralifa/insight-widgets-dev:latest}

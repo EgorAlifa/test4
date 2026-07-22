@@ -7,24 +7,44 @@
 
 ## 1. Быстрый старт
 
+### Вариант A — Docker-образ (рекомендуется)
+
+Готовый образ уже содержит правильно установленный `node_modules` —
+Node.js, npm, `.npmrc`/Nexus-токен и `--legacy-peer-deps` вам не нужны
+вообще, независимо от того, откуда вы получили проект.
+
+**Требования:** Docker (Desktop на Windows/Mac, Engine на Linux). Для
+работы с ИИ в IDE — Cursor или VS Code с расширением **Dev Containers**.
+
+1. Распакуйте zip / склонируйте репозиторий, откройте папку в Cursor.
+2. Cursor покажет всплывающее уведомление **«Reopen in Container»** —
+   нажмите его (или `Ctrl/Cmd+Shift+P` → `Dev Containers: Reopen in
+   Container`).
+3. Первый раз Docker скачает готовый образ (`docker-compose.yml` тянет
+   `ghcr.io/egoralifa/insight-widgets-dev:latest`) — заметно быстрее, чем
+   собирать самому, потому что зависимости уже внутри.
+4. Контейнер поднимется — dev-сервер (`npm run start`) уже работает как
+   основной процесс контейнера, порт `3001` Cursor прокинет на
+   `localhost` автоматически.
+
+Без Cursor — то же самое одной командой:
+```
+docker compose up
+```
+
+Готово — можно разрабатывать. Дальше подключаете виджет к редактору
+(раздел 2) и пишете код (раздел 4). Как публикуется сам образ — раздел 6.
+
+### Вариант B — локально, без Docker
+
 **Требования:** Node.js ≥ 18, npm ≥ 9 (`node -v`, `npm -v`), доступ к
-корпоративному npm-реестру Nexus (`art.goodt.me`).
+npm-реестру Nexus (`art.goodt.me`) — registry и публичный токен уже
+прописаны в `.npmrc` репозитория.
 
 1. Распакуйте zip в рабочую папку и откройте её в IDE (VS Code / Cursor /
    WebStorm — неважно, дальше всё через терминал).
 
-2. Проверьте `.npmrc` в корне проекта — registry там уже прописан:
-   ```
-   registry=https://art.goodt.me/repository/npm-group-public/
-   ```
-   Если у вас ещё нет токена доступа к этому реестру — получите его у
-   ответственного за инфраструктуру и добавьте отдельной командой (не
-   коммитьте токен в `.npmrc`):
-   ```
-   npm config set "//art.goodt.me/repository/npm-group-public/:_authToken" "<ваш токен>"
-   ```
-
-3. Установите зависимости **с флагом `--legacy-peer-deps`**:
+2. Установите зависимости **с флагом `--legacy-peer-deps`**:
    ```
    npm install --legacy-peer-deps
    ```
@@ -33,7 +53,7 @@
    с ошибкой `ERESOLVE`. Запоминайте флаг — он нужен и при `npm install`
    отдельных пакетов, и при `npm up` в будущем.
 
-4. Синхронизируйте версии зависимостей с текущей версией платформы
+3. Синхронизируйте версии зависимостей с текущей версией платформы
    (тянет актуальные версии `goodt-*` пакетов под `vendorOptions.platformUrl`
    из `package.json`):
    ```
@@ -41,7 +61,7 @@
    npm up --force --legacy-peer-deps
    ```
 
-5. Запустите dev-сервер:
+4. Запустите dev-сервер:
    ```
    npm run start
    ```
@@ -219,26 +239,72 @@ docker compose restart ins-editor
 
 | Проблема | Решение |
 |---|---|
-| `npm install` падает с `ERESOLVE` / конфликтом peer dependencies | Добавьте флаг: `npm install --legacy-peer-deps`. Это ожидаемо для этого пакета, см. раздел 1. |
-| `401 Unauthorized` при `npm install` | Токен для `art.goodt.me` не задан или истёк — см. шаг 2 в разделе 1. |
+| `npm install` падает с `ERESOLVE` / конфликтом peer dependencies | Добавьте флаг: `npm install --legacy-peer-deps`. Это ожидаемо для этого пакета, см. раздел 1. Либо используйте вариант A (Docker) — там этот шаг не нужен вовсе. |
+| `401 Unauthorized` при `npm install` | Токен для `art.goodt.me` не задан/истёк — проверьте `.npmrc` (registry + `_authToken` уже должны быть прописаны в репозитории). |
 | `update:platform-deps` падает с `SyntaxError: Unexpected token '<'` | `platformUrl` в `package.json` недоступен из вашей сети или указан неверно — откройте его в браузере и проверьте. |
-| `ReferenceError: fetch is not defined` | Node.js < 18 — обновите Node.js. |
-| Порт `3001` занят | `DEV_SERVER_PORT=3002 npm run start`. |
+| `ReferenceError: fetch is not defined` | Node.js < 18 — обновите Node.js (или используйте вариант A). |
+| Порт `3001` занят | `DEV_SERVER_PORT=3002 npm run start` (вариант B) или `WIDGETS_IMAGE=... DEV_SERVER_PORT=3002 docker compose up` / поменяйте `3001:3001` на `3002:3001` в `docker-compose.yml` (вариант A). |
 | `$elem` не определён в консоли | Обновите страницу редактора — глобальный объект создаётся при загрузке бандла редактора; либо страница открыта не из этой сборки редактора. |
 | Виджет не появился после `$elem.add` | Проверьте, что `types` совпадают с именами папок в `./src` (например, `ElemAccordion`, а не `elem-accordion`), и что `url` доступен из браузера (не заблокирован файрволом/не `localhost`, если браузер на другой машине). |
-| После правок в `./src` изменений не видно | Убедитесь, что dev-сервер ещё запущен и не упал с ошибкой сборки — смотрите его консоль. |
+| После правок в `./src` изменений не видно | Убедитесь, что dev-сервер ещё запущен и не упал с ошибкой сборки — смотрите его консоль (в Cursor — интегрированный терминал/лог Dev Containers; без него — `docker compose logs -f`). |
+| `Module not found` при сборке (например, `@goodt-widgets-insight/table-common` в `ElemPivotTable`) | Это не связано с Docker/зависимостями — код виджета ссылается на локальный пакет, не объявленный в `package.json` (в отличие от `@goodt-widgets-insight/utils`, который объявлен как `file:./src/common/utils`). Нужно либо добавить такую же `file:`-зависимость, либо поправить импорт. |
 
 ---
 
-## 6. Запуск без Node.js на машине (опционально)
+## 6. Публикация Docker-образа для клиентов
 
-Если нужно, чтобы кто-то без установленного Node.js мог поднять
-dev-сервер (например, нетехнический человек для демо), в
-`tools/exe-launcher/` есть отдельный лаунчер `widgets-launcher.exe`,
-который сам содержит рантайм Node.js и распаковывает заранее собранный
-`node_modules.zip`. Для штатной разработки виджетов он не нужен — это
-костыль для конкретного случая «нет Node.js», а не основной путь. Подробности
-сборки — в `tools/exe-launcher/build-sea.sh` и комментариях в
+Образ, который тянет `docker-compose.yml` (вариант A из раздела 1),
+нужно один раз собрать на машине **с доступом к Nexus** — например, на
+Ubuntu-машине — и запушить в реестр. Дальше клиенты только скачивают
+готовый образ, сборка и Nexus-токен им не нужны.
+
+**Требования на машине сборки:** Docker, доступ к `art.goodt.me`, логин в
+целевой реестр (по умолчанию — GitHub Container Registry, `ghcr.io`,
+привязан к этому GitHub-репозиторию):
+```
+echo "<GitHub PAT со scope write:packages>" | docker login ghcr.io -u <ваш GitHub-логин> --password-stdin
+```
+
+Сборка и публикация:
+```
+./scripts/build-and-push-image.sh          # тег latest
+./scripts/build-and-push-image.sh v1.2.0   # + дополнительный версионный тег
+```
+
+Что делает скрипт:
+1. Собирает образ через `docker-compose.build.yml` (это override,
+   добавляющий `build:` к тому же сервису, что описан в `docker-compose.yml`)
+   — по сути то же самое, что `docker build .`, но с тем же именем образа,
+   которое потом тянут клиенты.
+2. Пушит `latest` (и версионный тег, если передан) в `ghcr.io`.
+
+Проверено вживую: реальная сборка (`npm install --legacy-peer-deps` из
+`art.goodt.me`) ставит 1877 пакетов и занимает около 4 минут; итоговый
+контейнер поднимает dev-сервер и отвечает на `:3001`.
+
+**Другой реестр** (Docker Hub, свой Nexus с Docker-репозиторием и т.д.) —
+поменяйте значение по умолчанию в `docker-compose.yml`/
+`docker-compose.build.yml` (`WIDGETS_IMAGE`) или передавайте его через
+переменную окружения:
+```
+WIDGETS_IMAGE=docker.io/<org>/insight-widgets-dev ./scripts/build-and-push-image.sh
+```
+
+**Когда пересобирать:** при изменении `package.json`/выходе новой версии
+платформы — так же, как раньше `npm run update:platform-deps` + `npm up`,
+только теперь это делает тот, кто пересобирает образ, один раз, а не
+каждый клиент у себя.
+
+---
+
+## 7. Запуск без Node.js и без Docker (крайний случай)
+
+Если недоступны ни Docker, ни Node.js (штатные варианты A и B из
+раздела 1), в `tools/exe-launcher/` есть отдельный лаунчер
+`widgets-launcher.exe`, который сам содержит рантайм Node.js и
+распаковывает заранее собранный `node_modules.zip`. Это самый крайний
+фолбэк, не основной путь. Подробности сборки — в
+`tools/exe-launcher/build-sea.sh` и комментариях в
 `tools/exe-launcher/start.js`.
 
 ---
