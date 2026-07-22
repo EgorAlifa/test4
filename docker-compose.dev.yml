@@ -1,0 +1,21 @@
+# Local dev environment. Works two ways:
+#   1. Plain Docker, no IDE integration: `docker compose -f docker-compose.dev.yml up`
+#   2. VS Code / Cursor: open the project, "Reopen in Container" (see .devcontainer/devcontainer.json)
+#
+# node_modules lives in a named volume, not a bind mount, so it stays the
+# one built inside the container (Linux) and isn't shadowed by a host
+# node_modules built for a different OS/arch.
+services:
+  widgets-dev:
+    build:
+      context: .
+    volumes:
+      - .:/app
+      - node_modules_data:/app/node_modules
+    ports:
+      - "3001:3001"
+    environment:
+      - DEV_SERVER_PORT=3001
+
+volumes:
+  node_modules_data:

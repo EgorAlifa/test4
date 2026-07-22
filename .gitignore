@@ -12,6 +12,7 @@ sandbox/config/**/*.local.*
 
 # Project specific
 /dist
+/.secrets
 /src/lib/**/*.MD
 /src/*.*
 /docs

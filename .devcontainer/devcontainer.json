@@ -1,0 +1,23 @@
+{
+    "name": "Insight Widgets Dev",
+    "dockerComposeFile": ["../docker-compose.dev.yml"],
+    "service": "widgets-dev",
+    "workspaceFolder": "/app",
+    "forwardPorts": [3001],
+    "portsAttributes": {
+        "3001": {
+            "label": "Widgets dev server",
+            "onAutoForward": "notify"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "Vue.volar",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode"
+            ]
+        }
+    },
+    "shutdownAction": "stopCompose"
+}

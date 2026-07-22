@@ -1,0 +1,7 @@
+node_modules
+dist
+.git
+tools/exe-launcher/node_modules
+tools/exe-launcher/dist
+редактор
+*.zip
