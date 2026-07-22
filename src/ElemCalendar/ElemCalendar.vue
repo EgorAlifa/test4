@@ -1,5 +1,5 @@
 <template>
-    <w-elem :style="compactMode ? 'display:block;width:100%' : 'height:100%;display:block'">
+    <w-elem :style="compactMode ? (props.calCompactShowCalendar === false ? 'display:block;width:100%' : 'display:inline-block') : 'height:100%;display:block'">
     <div class="elem-cal" :class="calDynamicClass" :style="[cssStyle, calCssVars]">
         <!-- ── Header (full mode only) ─────────────────────────────── -->
         <div v-if="props.calShowHeader && !compactMode" class="elem-cal__header">
@@ -45,7 +45,7 @@
         </div>
 
         <!-- ── Compact mode (dashboard date-range picker) ───────────── -->
-        <div v-if="compactMode" class="elem-cal__compact">
+        <div v-if="compactMode" class="elem-cal__compact" :class="{ 'elem-cal__compact--wide': props.calCompactShowCalendar === false }">
           <div class="compact__inner" :style="compactInnerStyle">
 
             <!-- Preset chips -->
@@ -2520,20 +2520,31 @@ export default {
    Compact mode — dashboard / report date-range picker
 ═══════════════════════════════════════════════════════════════════ */
 .elem-cal__compact {
-    display: flex;
+    display: inline-flex;
     justify-content: flex-start;
     align-items: flex-start;
     padding: 10px 12px;
-    width: 100%;
     height: auto;
+    width: auto;
     box-sizing: border-box;
+}
+/* simplified / input — растягиваем на всю ширину контейнера */
+.elem-cal__compact--wide {
+    display: flex;
+    width: 100%;
 }
 .compact__inner {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    width: 280px;
+    flex-shrink: 0;
+}
+.elem-cal__compact--wide .compact__inner {
     flex: 1;
+    width: auto;
     min-width: 280px;
+    flex-shrink: 1;
 }
 
 /* Preset chips */
