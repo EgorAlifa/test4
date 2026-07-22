@@ -1495,8 +1495,9 @@ export default {
         _detectPlatformMode() {
             if (typeof window === 'undefined') return 'unknown';
             const href = window.location.href;
+            // /player/ проверяем первым — player-URL тоже содержит /editor/ в пути
             if (href.includes('/player/')) return 'player';
-            if (new URLSearchParams(window.location.search).has('page')) return 'editor';
+            if (href.includes('/editor/')) return 'editor';
             return 'player'; // fallback — считаем плеером если нет признаков редактора
         },
 
