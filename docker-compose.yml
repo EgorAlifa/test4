@@ -8,14 +8,21 @@
 # To build/publish the image itself (maintainers only, needs Nexus access),
 # see docker-compose.build.yml and scripts/build-and-push-image.sh.
 #
-# node_modules lives in a named volume, not a bind mount, so the container
-# keeps the node_modules baked into the image (Linux-built) instead of it
-# being shadowed by whatever's on the host.
+# Only ./src and ./public are bind-mounted -- those are what you actually
+# edit (widget code, widgets.local.json). Everything else (package.json,
+# vue.config.js, package-lock.json, node_modules, ...) stays exactly as
+# baked into the image. Deliberately NOT bind-mounting the whole project
+# root: package-lock.json in particular is gitignored, so a client package
+# built via `git archive` doesn't have it on the host -- mounting `.:/app`
+# would shadow the image's copy with a missing file and break the build
+# (vue.config.webpack.js requires it directly). Mounting only the
+# directories that need live-editing avoids that whole class of bug.
 services:
   widgets-dev:
     image: ${WIDGETS_IMAGE:-ghcr.io/app-insight/insight-widgets:latest}
     volumes:
-      - .:/app
+      - ./src:/app/src
+      - ./public:/app/public
       - node_modules_data:/app/node_modules
     ports:
       - "3001:3001"
