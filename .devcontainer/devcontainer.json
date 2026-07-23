@@ -1,5 +1,6 @@
 {
     "name": "Insight Widgets Dev",
+    "initializeCommand": "docker load -i insight-widgets.tar.gz || exit 0",
     "dockerComposeFile": ["../docker-compose.yml"],
     "service": "widgets-dev",
     "workspaceFolder": "/app",
