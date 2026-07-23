@@ -14,7 +14,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-IMAGE="${WIDGETS_IMAGE:-ghcr.io/egoralifa/insight-widgets-dev:latest}"
+IMAGE="${WIDGETS_IMAGE:-ghcr.io/app-insight/insight-widgets-dev:latest}"
 OUT="${1:-insight-widgets-dev.tar.gz}"
 
 echo "[build-and-save] Building $IMAGE ..."

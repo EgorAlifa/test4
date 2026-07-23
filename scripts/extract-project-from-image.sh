@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-IMAGE="${WIDGETS_IMAGE:-ghcr.io/egoralifa/insight-widgets-dev:latest}"
+IMAGE="${WIDGETS_IMAGE:-ghcr.io/app-insight/insight-widgets-dev:latest}"
 TARGET="${1:-./insight-widgets-project}"
 
 if [ -e "$TARGET" ]; then

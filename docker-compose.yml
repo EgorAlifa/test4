@@ -13,7 +13,7 @@
 # being shadowed by whatever's on the host.
 services:
   widgets-dev:
-    image: ${WIDGETS_IMAGE:-ghcr.io/egoralifa/insight-widgets-dev:latest}
+    image: ${WIDGETS_IMAGE:-ghcr.io/app-insight/insight-widgets-dev:latest}
     volumes:
       - .:/app
       - node_modules_data:/app/node_modules

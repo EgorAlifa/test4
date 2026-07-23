@@ -9,7 +9,7 @@
 #
 # Env:
 #   WIDGETS_IMAGE   Full image ref without tag issues handled automatically.
-#                    Defaults to ghcr.io/egoralifa/insight-widgets-dev.
+#                    Defaults to ghcr.io/app-insight/insight-widgets-dev.
 #
 # Requires: `docker login` already done for the target registry
 # (e.g. `echo $GITHUB_TOKEN | docker login ghcr.io -u <user> --password-stdin`,
@@ -18,7 +18,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-IMAGE="${WIDGETS_IMAGE:-ghcr.io/egoralifa/insight-widgets-dev}"
+IMAGE="${WIDGETS_IMAGE:-ghcr.io/app-insight/insight-widgets-dev}"
 TAG="${1:-latest}"
 
 echo "[build-and-push] Building $IMAGE:latest ..."
