@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # The dev image has the whole project baked in (Dockerfile does `COPY . .`),
-# so a client only needs the single image file (insight-widgets-dev.tar.gz)
+# so a client only needs the single image file (insight-widgets.tar.gz)
 # -- this pulls the project source back out of an already-`docker load`ed
 # image, no separate project zip needed.
 #
-# Usage (after `docker load -i insight-widgets-dev.tar.gz`):
+# Usage (after `docker load -i insight-widgets.tar.gz`):
 #   ./extract-project-from-image.sh [target-dir]
 #
 # This is just docker create + docker cp + docker rm; the client-facing
@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-IMAGE="${WIDGETS_IMAGE:-ghcr.io/app-insight/insight-widgets-dev:latest}"
+IMAGE="${WIDGETS_IMAGE:-ghcr.io/app-insight/insight-widgets:latest}"
 TARGET="${1:-./insight-widgets-project}"
 
 if [ -e "$TARGET" ]; then

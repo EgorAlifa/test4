@@ -11,4 +11,4 @@ services:
   widgets-dev:
     build:
       context: .
-    image: ${WIDGETS_IMAGE:-ghcr.io/app-insight/insight-widgets-dev:latest}
+    image: ${WIDGETS_IMAGE:-ghcr.io/app-insight/insight-widgets:latest}

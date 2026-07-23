@@ -14,8 +14,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-IMAGE="${WIDGETS_IMAGE:-ghcr.io/app-insight/insight-widgets-dev:latest}"
-OUT="${1:-insight-widgets-dev.tar.gz}"
+IMAGE="${WIDGETS_IMAGE:-ghcr.io/app-insight/insight-widgets:latest}"
+OUT="${1:-insight-widgets.tar.gz}"
 
 echo "[build-and-save] Building $IMAGE ..."
 WIDGETS_IMAGE="$IMAGE" docker compose -f docker-compose.yml -f docker-compose.build.yml build
