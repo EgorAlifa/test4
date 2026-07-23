@@ -28,6 +28,13 @@ services:
       - "3001:3001"
     environment:
       - DEV_SERVER_PORT=3001
+      # Native filesystem change events don't always cross the Docker
+      # Desktop bind-mount boundary reliably (most noticeable on Windows,
+      # especially for newly-created files rather than edits to existing
+      # ones) -- polling is slightly heavier on CPU but works regardless
+      # of platform.
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
 
 volumes:
   node_modules_data:
