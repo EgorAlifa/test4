@@ -400,9 +400,22 @@ Cursor не подключается к нему автоматически. П�
 `docker-compose.yml` помечен `profiles: ["ollama"]` специально, чтобы
 не ломать стандартный флоу тем, кому эта модель не нужна (образ
 несколько гигабайт, скачивать/грузить его всем клиентам подряд не
-нужно). Запускается отдельно:
+нужно). Запускается отдельно, в фоне (`-d`), а затем
+`scripts/print-urls.*` печатает ссылки на то, что реально поднялось
+(в фоне сам `docker compose` ничего не выводит, в отличие от
+foreground-режима):
 ```
-docker compose --profile ollama up
+docker compose --profile ollama up -d
+./scripts/print-urls.sh          # Linux/Mac
+.\scripts\print-urls.ps1         # Windows PowerShell
+```
+Позже, если нужно пересобрать/перезапустить только виджеты — `down`/
+`up -d` **без** `--profile ollama`, чтобы не задеть уже работающую
+Ollama (см. раздел 1 про `docker compose down` + `up`):
+```
+docker compose down
+docker compose up -d
+./scripts/print-urls.sh
 ```
 
 **Сборка и передача клиенту:**
@@ -421,7 +434,8 @@ WITH_OLLAMA=1 ./scripts/build-client-package.sh
 На клиенте — как обычно `docker load -i insight-ollama.tar.gz`, если
 файл лежит рядом (при `WITH_OLLAMA=1` `.devcontainer/devcontainer.json`
 подхватывает его сам через `initializeCommand`, как и
-`insight-widgets.tar.gz`), затем `docker compose --profile ollama up`.
+`insight-widgets.tar.gz`), затем `docker compose --profile ollama up -d`
++ `./scripts/print-urls.sh` (см. выше).
 
 **Почему `qwen2.5-coder:14b`, а не что-то мощнее.** Проверено вживую
 на машине без GPU (4 CPU, 15GB RAM, без swap) на реальной задаче —
