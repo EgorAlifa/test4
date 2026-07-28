@@ -12,16 +12,28 @@
 # Usage: ./scripts/build-client-package.sh [output.zip]
 # Requires: Nexus access (builds the image if insight-widgets.tar.gz
 # isn't already present next to this script's repo root).
+#
+# Optional AI coding assistant (offline, via Ollama -- see DEVELOPMENT.md
+# section 6.3): set WITH_OLLAMA=1 to also build/bundle insight-ollama.tar.gz.
+# Off by default because it adds several GB to the zip (model weights) --
+# most clients don't need it.
+#   WITH_OLLAMA=1 ./scripts/build-client-package.sh
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 OUT="${1:-insight-widgets-client-package.zip}"
 IMAGE_TAR="insight-widgets.tar.gz"
+OLLAMA_TAR="insight-ollama.tar.gz"
 
 if [ ! -f "$IMAGE_TAR" ]; then
     echo "[build-client-package] $IMAGE_TAR not found, building it first..."
     ./scripts/build-and-save-image.sh "$IMAGE_TAR"
+fi
+
+if [ "${WITH_OLLAMA:-}" = "1" ] && [ ! -f "$OLLAMA_TAR" ]; then
+    echo "[build-client-package] WITH_OLLAMA=1: $OLLAMA_TAR not found, building it first..."
+    ./scripts/build-and-save-ollama-image.sh "$OLLAMA_TAR"
 fi
 
 WORKDIR=$(mktemp -d)
@@ -33,9 +45,17 @@ git archive --format=tar HEAD | (cd "$WORKDIR" && tar -xf -)
 echo "[build-client-package] Adding $IMAGE_TAR..."
 cp "$IMAGE_TAR" "$WORKDIR/$IMAGE_TAR"
 
+if [ "${WITH_OLLAMA:-}" = "1" ]; then
+    echo "[build-client-package] Adding $OLLAMA_TAR..."
+    cp "$OLLAMA_TAR" "$WORKDIR/$OLLAMA_TAR"
+fi
+
 echo "[build-client-package] Zipping..."
 rm -f "$OUT"
 (cd "$WORKDIR" && zip -qr - .) > "$OUT"
 
 echo "[build-client-package] Done: $OUT ($(du -h "$OUT" | cut -f1))"
+if [ "${WITH_OLLAMA:-}" = "1" ]; then
+    echo "[build-client-package] Includes offline AI coding assistant (Ollama + ${OLLAMA_MODEL:-qwen2.5-coder:14b})."
+fi
 echo "[build-client-package] Client steps: unzip -> open the folder in Cursor -> 'Reopen in Container'."

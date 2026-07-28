@@ -12,3 +12,15 @@ services:
     build:
       context: .
     image: ${WIDGETS_IMAGE:-ghcr.io/app-insight/insight-widgets:latest}
+
+  # Builds the Ollama image with the coding model baked in (see
+  # Dockerfile.ollama). Needs internet access to Ollama's registry, but NOT
+  # Nexus -- unlike widgets-dev, this can be built on any machine.
+  ollama:
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama
+      args:
+        OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:14b}
+    image: ${OLLAMA_IMAGE:-ghcr.io/app-insight/insight-ollama:latest}
+    profiles: ["ollama"]

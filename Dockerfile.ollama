@@ -1,0 +1,34 @@
+# Ollama image with the widget-dev coding model baked in at build time,
+# so clients never download model weights themselves -- same "ship one
+# image" approach as the main Dockerfile (see there for the widgets-dev
+# side of this).
+#
+# Build:
+#   docker build -f Dockerfile.ollama --build-arg OLLAMA_MODEL=qwen2.5-coder:14b -t insight-ollama .
+# or via docker-compose.build.yml / scripts/build-and-save-ollama-image.sh
+#
+# Bigger models need more client RAM -- see DEVELOPMENT.md before changing
+# OLLAMA_MODEL to something larger than the 7b/14b tier.
+
+FROM ollama/ollama:latest
+
+ARG OLLAMA_MODEL=qwen2.5-coder:14b
+
+# Start the server just long enough to pull the model into this layer,
+# then stop it -- the base image's own CMD starts a fresh `ollama serve`
+# on `docker run`.
+RUN ollama serve & \
+    SERVER_PID=$! && \
+    sleep 5 && \
+    ollama pull "${OLLAMA_MODEL}" && \
+    kill "${SERVER_PID}"
+
+ENV OLLAMA_MODEL=${OLLAMA_MODEL}
+# Widgets run in the browser and call this API directly (like $elem.add
+# does for the dev server) -- needs CORS open, not just localhost.
+ENV OLLAMA_ORIGINS=*
+# Default is 4096 and silently truncates prompts that include real widget
+# files + style-guide excerpts. Override per-request if 8192 isn't enough.
+ENV OLLAMA_CONTEXT_LENGTH=8192
+
+EXPOSE 11434

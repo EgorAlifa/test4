@@ -36,5 +36,17 @@ services:
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
 
+  # Optional offline AI coding assistant (local LLM via Ollama, no
+  # internet/cloud needed). Not part of the default `docker compose up`
+  # -- the model is baked into its own multi-GB image that not every
+  # client package includes, so it only starts when explicitly requested:
+  #   docker compose --profile ollama up
+  # See DEVELOPMENT.md section 6.3 for what this actually gets you.
+  ollama:
+    image: ${OLLAMA_IMAGE:-ghcr.io/app-insight/insight-ollama:latest}
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+
 volumes:
   node_modules_data:
