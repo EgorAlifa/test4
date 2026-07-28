@@ -17,7 +17,8 @@ sandbox/config/**/*.local.*
 /ccr-ca-bundle.crt
 /src/lib/**/*.MD
 /src/*.*
-/docs
+/docs/*
+!/docs/ai-playbook
 package-lock.json
 *.example
 .env.*

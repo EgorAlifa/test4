@@ -1,0 +1,191 @@
+{
+  "core_principles": [
+    "widget = descriptor.js + Elem<Name>.vue + panels/ + utils/ + styles/",
+    "platform auto-discovers via meta export from descriptor.js",
+    "microfrontend: ALL CSS must be scoped — un-scoped breaks other widgets",
+    "goodt package imports: root-level only (Webpack Module Federation)",
+    "register descriptor vars BEFORE $storeCommit; $storeCommit BEFORE $storeWatchHandler",
+    "every prop mutation in panel MUST call propChanged('propName')",
+    "<w-elem> root for widgets; <w-panel> root for panels — both mandatory",
+    "dimension/size props stored as {size, unit} objects; convert with unit2PxMixin",
+    "run convertCssVarToComputedValue(opts, computedStyle) before passing to chart libs"
+  ],
+  "architecture": {
+    "required_structure": [
+      "descriptor.js — props + meta registration",
+      "Elem<Name>.vue — main component extends Elem",
+      "panels/index.js — async re-exports",
+      "panels/DatasetPanelMixin.js — auto-sync metrics/dimensions",
+      "panels/config.js — dropdown options, format constants",
+      "panels/<Name>Panel.vue — each config panel",
+      "utils/constants.js — default factories, series templates",
+      "utils/index.js — formatters, aggregation, uid()",
+      "styles/css-vars.js — theme variable mapping",
+      "styles/style.pcss — scoped component styles"
+    ],
+    "component_roles": {
+      "descriptor.js": "declares props, vars, dataset contract, cssVars, panels; exports meta via useDatasetMeta",
+      "Elem<Name>.vue": "extends Elem, dataset mixins, hooks.then, loadData, mounted updateDescriptorVars",
+      "DatasetPanelMixin.js": "watches metrics/dimensions, auto-populates metricsStyle, keeps dropdowns valid",
+      "panels/config.js": "all static option arrays {label, value} for ui-select components",
+      "css-vars.js": "function ({palette, typography}) => ({varName: value}) mapping theme to widget vars"
+    }
+  },
+  "hard_rules": {
+    "imports": [
+      "ONLY import from package roots — never sub-paths",
+      "FORBIDDEN: @goodt-wcore/src/*, @goodt-wcore/components/panel-ui, @goodt-common/utils/web-api",
+      "CORRECT roots: @goodt-wcore/elem, @goodt-wcore/panel, @goodt-wcore/panel-ui, @goodt-wcore/components, @goodt-wcore/managers, @goodt-common/data, @goodt-common/utils, @goodt-common/api"
+    ],
+    "naming": [
+      "widget name: Elem<Feature> PascalCase (e.g. ElemMultiSpline)",
+      "directory name must match widget name exactly",
+      "Vue files: PascalCase; JS modules: camelCase",
+      "panel files: <Name>Panel.vue suffix, located in panels/",
+      "CSS namespace: .elem{widgetname}-widget-root (all lowercase)",
+      "boolean data props: is*, has*, can*, should* prefix",
+      "array constants end with s; exported constants PascalCase"
+    ],
+    "styling": [
+      "ALWAYS use <style module> OR namespace wrapper .elem{name}-widget-root",
+      "NEVER un-scoped global styles — breaks microfrontend",
+      "no Tailwind — use scoped PostCSS",
+      "dimension props: {size, unit} object type (never plain Number)",
+      "use unit2PxMixin.takeUnit2Px({value, unit}) for pixel conversion",
+      "call convertCssVarToComputedValue(opts, computedStyle) before chart.setOption()"
+    ],
+    "vue": [
+      "<w-elem> root mandatory for all widget components",
+      "<w-panel> root mandatory for all panel components",
+      "call propChanged('propName') after every prop mutation",
+      "no inline style=\"\" attributes — use computed properties",
+      "no template literal expressions in templates — use computed",
+      "use == null for null/undefined checks (not !)",
+      "use === false for boolean-false checks (not !flag)",
+      "destructure nested props — avoid long property chains"
+    ],
+    "dataset": [
+      "register descriptor vars BEFORE $storeCommit (prevents NOT ACTIVE warnings)",
+      "$storeCommit BEFORE $storeWatchHandler (handler reads from storage)",
+      "use dimension names as keys (not column IDs)",
+      "clear with null not undefined",
+      "filter values: always arrays [value] not bare value",
+      "call updateDescriptorVars() in mounted()",
+      "$storeCommit = runtime cross-widget value sync",
+      "$storeMeta.setVar() = panel variable binding config"
+    ],
+    "panels": [
+      "cloneDeep() nested defaults before mutating",
+      "NEVER access props.varAliases directly — use $storeMeta.setVar()",
+      "all dropdown constants in panels/config.js",
+      "use static:{} for non-reactive panel constants",
+      "init CSS panel local state in mounted() NOT in watch (reactive loop)",
+      "debounce CSS style change handlers 300ms"
+    ],
+    "forbidden": [
+      "sub-path imports from goodt packages",
+      "un-scoped CSS styles",
+      "inline style=\"\" attributes in templates",
+      "magic numbers without // eslint-disable-line no-magic-numbers",
+      "! operator on non-boolean values",
+      "unused data/computed/methods",
+      "long property chains (destructure instead)",
+      "SVG <text> for user-facing text",
+      "shared default objects — use factory () => ({})",
+      "setTimeout for animations — use requestAnimationFrame",
+      "animation without cancelAnimationFrame in beforeDestroy",
+      "direct props.varAliases assignment in panels"
+    ]
+  },
+  "patterns": {
+    "descriptor": [
+      "descriptor() factory returns {props, vars, dataset}",
+      "dataset.vars: { dimension: { operation: StoreOperation.ALL } } for auto-var generation",
+      "meta = useDatasetMeta({descriptor, isChildAllowed, slotNames, cssVars, panels}, {panel: {isMultiple, mixins: [DatasetPanelMixin]}})",
+      "all object props use factory defaults: default: () => ({...})"
+    ],
+    "component": [
+      "extends: Elem, mixins: [DatasetMixin, unit2PxMixin], meta",
+      "hooks.then(results) processes results and triggers redraw",
+      "loadData: $requestCancel, isLoading=true, Promise.all(requests.map(r=>r?.send())), catch $handleError, finally isLoading=false",
+      "data(): spread ...ElemDatasetBaseMixinTypes",
+      "mounted(): updateDescriptorVars()",
+      "watchEditor for prop-driven redraws with _isEqual guard and $nextTick"
+    ],
+    "dataset_store_variables": [
+      "5-step filter: 1.registerDescriptorVariable 2.$set local state 3.build filterParams 4.$storeCommit 5.$storeWatchHandler",
+      "filterParams shape: {dimensionName: {__t:-1, name, operator: QueryFilterOperator.EQ, value: [val]}}",
+      "clear filter: {dimensionName: null}",
+      "cross-widget: $storeCommit({dim: value}); other widgets watch $store.state.dim",
+      "drilldown: $storeCommit({dim: value}) BEFORE $drilldown.push(dim, value)"
+    ],
+    "panels": [
+      "extends: Panel, mixins: [usePanelDatasetMixin()]",
+      "meta: {name: 'Panel Name', icon: 'material-icon'}",
+      "static: {} for non-reactive constants available in template",
+      "computed get/set pairs for complex nested props",
+      "DatasetPanelMixin watches metrics/dimensions, auto-populates metricsStyle",
+      "ui-input-units emits string '40px' — convert to {size,unit} in computed setter",
+      "gate advanced settings behind ui-has-panel + ui-checkbox pattern"
+    ],
+    "tooltip_slots": [
+      "isChildAllowed: true + slotNames: ['tooltip'] in meta for slot support",
+      "<w-elem :placeholder=\"$placeholder\"> passes platform placeholder slot",
+      "customTooltip: {options: {appendToBody, data, coordinates:[x,y], isFixed}, isShown}",
+      "<w-tooltip :is-shown.sync=\"customTooltip.isShown\" v-bind=\"customTooltip.options\">"
+    ],
+    "styling": [
+      "css-vars.js: ({palette, typography}) => ({varName: typography.heading.color, ...})",
+      "apply: <style src=\"./styles/style.pcss\" lang=\"pcss\" module></style>",
+      "dimension computed: const px = this.takeUnit2Px({value: obj.size, unit: obj.unit})",
+      "animation: requestAnimationFrame loop, store ID, cancelAnimationFrame in beforeDestroy",
+      "SVG: use viewBox + preserveAspectRatio='xMidYMid meet', HTML overlay for text"
+    ]
+  },
+  "minimal_templates": {
+    "widget_files": [
+      "descriptor.js", "Elem<Name>.vue", "panels/index.js", "panels/DatasetPanelMixin.js",
+      "panels/config.js", "panels/<Name>Panel.vue", "utils/constants.js", "utils/index.js",
+      "styles/css-vars.js", "styles/style.pcss"
+    ],
+    "descriptor_shape": [
+      "import {StoreOperation} from '@goodt-wcore/elem'",
+      "import {useDatasetMeta} from '@goodt-common/data'",
+      "export const descriptor = () => ({props:{}, vars:{}, dataset:{vars:{dimension:{operation:StoreOperation.ALL}}}})",
+      "export const meta = useDatasetMeta({descriptor,isChildAllowed:false,slotNames:[],cssVars,panels},{panel:{isMultiple:false,mixins:[DatasetPanelMixin]}})"
+    ],
+    "component_shape": [
+      "import {Elem} from '@goodt-wcore/elem'",
+      "import {useElemDatasetBaseMixin, ElemDatasetBaseMixinTypes} from '@goodt-common/data'",
+      "const DatasetMixin = useElemDatasetBaseMixin({drilldown:false})",
+      "extends:Elem, mixins:[DatasetMixin], meta",
+      "hooks:{then(results){this.results=results;}}",
+      "data(){return{isLoading:false,results:[],...ElemDatasetBaseMixinTypes}}",
+      "mounted(){this.updateDescriptorVars()}",
+      "template: <w-elem :placeholder=\"$placeholder\">...</w-elem>",
+      "style: <style lang=\"pcss\" module> .container{...} </style>"
+    ],
+    "panel_shape": [
+      "import {Panel} from '@goodt-wcore/panel'",
+      "import {usePanelDatasetMixin} from '@goodt-common/data'",
+      "extends:Panel, mixins:[usePanelDatasetMixin()]",
+      "meta:{name:'Name', icon:'icon'}",
+      "static:{options:{...}}",
+      "template: <w-panel><ui-container>...</ui-container></w-panel>"
+    ]
+  },
+  "session_policy": {
+    "priority": [
+      "json_over_md_when_conflict",
+      "10-official-frontend-docs.md over other playbook files when conflict",
+      "stricter rule wins when multiple sources overlap"
+    ],
+    "usage": [
+      "load_json_as_hard_rules",
+      "load_md_as_conceptual_guidance",
+      "validate_output_against_json_before_finalizing",
+      "for deep detail: reference source docs/ai-playbook/0N-*.md by section",
+      "reference widgets: src/ElemMultiSpline/ (chart), src/ElemWowTable/ (table)"
+    ]
+  }
+}
