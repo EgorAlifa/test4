@@ -213,21 +213,20 @@
                             type="date"
                             class="compact__chip-input"
                             :value="compactStart"
-                            @change="onCompactInputStart($event.target.value); editingStart = false"
-                            @blur="editingStart = false"
-                            @keydown.enter="$refs.inputStart && $refs.inputStart.blur()"
+                            @change="_handleCompactDateChange($event.target.value, 'start')"
+                            @blur="_handleCompactDateBlur('start')"
+                            @keydown.enter.prevent="_handleCompactDateEnter('start')"
                             @keydown.esc="editingStart = false"
                             @click.stop />
                         <input
                             v-else-if="editingStart && props.calWithTime"
                             ref="inputStart"
-                            type="text"
+                            type="datetime-local"
                             class="compact__chip-input compact__chip-input--datetime"
-                            :value="compactStartDisplay"
-                            placeholder="ДД.ММ.ГГГГ ЧЧ:мм"
-                            @change="onCompactInputStart($event.target.value); editingStart = false"
-                            @blur="editingStart = false"
-                            @keydown.enter="onCompactInputStart($refs.inputStart.value); editingStart = false"
+                            :value="compactStartDatetimeLocal"
+                            @change="_handleCompactDatetimeChange($event.target.value, 'start')"
+                            @blur="_handleCompactDatetimeBlur('start')"
+                            @keydown.enter.prevent="_handleCompactDatetimeEnter('start')"
                             @keydown.esc="editingStart = false"
                             @click.stop />
                         <span v-else class="compact__chip-value">{{ compactStart ? compactStartDisplay : '—' }}</span>
@@ -244,21 +243,20 @@
                             type="date"
                             class="compact__chip-input"
                             :value="compactEnd"
-                            @change="onCompactInputEnd($event.target.value); editingEnd = false"
-                            @blur="editingEnd = false"
-                            @keydown.enter="$refs.inputEnd && $refs.inputEnd.blur()"
+                            @change="_handleCompactDateChange($event.target.value, 'end')"
+                            @blur="_handleCompactDateBlur('end')"
+                            @keydown.enter.prevent="_handleCompactDateEnter('end')"
                             @keydown.esc="editingEnd = false"
                             @click.stop />
                         <input
                             v-else-if="editingEnd && props.calWithTime"
                             ref="inputEnd"
-                            type="text"
+                            type="datetime-local"
                             class="compact__chip-input compact__chip-input--datetime"
-                            :value="compactEndDisplay"
-                            placeholder="ДД.ММ.ГГГГ ЧЧ:мм"
-                            @change="onCompactInputEnd($event.target.value); editingEnd = false"
-                            @blur="editingEnd = false"
-                            @keydown.enter="onCompactInputEnd($refs.inputEnd.value); editingEnd = false"
+                            :value="compactEndDatetimeLocal"
+                            @change="_handleCompactDatetimeChange($event.target.value, 'end')"
+                            @blur="_handleCompactDatetimeBlur('end')"
+                            @keydown.enter.prevent="_handleCompactDatetimeEnter('end')"
                             @keydown.esc="editingEnd = false"
                             @click.stop />
                         <span v-else class="compact__chip-value">{{ compactEnd ? compactEndDisplay : '—' }}</span>
@@ -945,6 +943,18 @@ export default {
             const [y, m, d] = iso.split('-');
             if (!this.props.calWithTime) return `${d}.${m}.${y.slice(2)}`;
             return `${d}.${m}.${y} ${this.rangeEndTime || '23:59'}`;
+        },
+
+        // Values for type="datetime-local" inputs (format: YYYY-MM-DDTHH:mm)
+        compactStartDatetimeLocal() {
+            const iso = this.compactStart;
+            if (!iso) return '';
+            return `${iso}T${this.rangeStartTime || '00:00'}`;
+        },
+        compactEndDatetimeLocal() {
+            const iso = this.compactEnd;
+            if (!iso) return '';
+            return `${iso}T${this.rangeEndTime || '23:59'}`;
         },
 
         compactOffsetCells() {
@@ -1651,6 +1661,91 @@ export default {
             } else {
                 this._setCompactRange(this.compactStart && this.compactStart <= val ? this.compactStart : val, val);
             }
+        },
+
+        // ── type="date" chip input handlers ──────────────────────────
+        // Chrome auto-pads the year field on the first keystroke (e.g. "2" → "0002"),
+        // making the date immediately "valid" and firing `change` before the user has
+        // finished typing.  We guard against this by requiring year >= 1000.
+        _isCompactDateReady(val) {
+            return Boolean(val) && parseInt(val.split('-')[0], 10) >= 1000;
+        },
+
+        _handleCompactDateChange(val, side) {
+            // Ignore premature change events triggered by Chrome's year auto-padding.
+            if (!this._isCompactDateReady(val)) return;
+            // Guard: if the editing state was already closed by a prior event, skip.
+            const isEditing = side === 'start' ? this.editingStart : this.editingEnd;
+            if (!isEditing) return;
+            if (side === 'start') { this.onCompactInputStart(val); this.editingStart = false; }
+            else                  { this.onCompactInputEnd(val);   this.editingEnd   = false; }
+        },
+
+        _handleCompactDateBlur(side) {
+            // If change already processed + closed the input, skip (editingX is already false).
+            const isEditing = side === 'start' ? this.editingStart : this.editingEnd;
+            if (!isEditing) return;
+            const ref = side === 'start' ? this.$refs.inputStart : this.$refs.inputEnd;
+            const val = ref ? ref.value : '';
+            if (this._isCompactDateReady(val)) {
+                if (side === 'start') this.onCompactInputStart(val);
+                else                  this.onCompactInputEnd(val);
+            }
+            if (side === 'start') this.editingStart = false;
+            else                  this.editingEnd   = false;
+        },
+
+        _handleCompactDateEnter(side) {
+            this._handleCompactDateBlur(side);
+        },
+
+        // ── type="datetime-local" chip input handlers ─────────────────
+        // Parses the browser's YYYY-MM-DDTHH:mm value. Returns null on
+        // incomplete/invalid input (including Chrome's auto-padded year < 1000).
+        _parseDatetimeLocal(val) {
+            if (!val) return null;
+            const tIdx = val.indexOf('T');
+            if (tIdx < 0) return null;
+            const iso = val.slice(0, tIdx);
+            const time = val.slice(tIdx + 1) || '00:00';
+            if (parseInt(iso.split('-')[0], 10) < 1000) return null;
+            return { iso, time };
+        },
+
+        _applyCompactDatetime(parsed, side) {
+            if (side === 'start') {
+                this.rangeStartTime = parsed.time;
+                const endIso = this.compactEnd && this.compactEnd >= parsed.iso ? this.compactEnd : parsed.iso;
+                this._setCompactRange(parsed.iso, endIso);
+            } else {
+                this.rangeEndTime = parsed.time;
+                const startIso = this.compactStart && this.compactStart <= parsed.iso ? this.compactStart : parsed.iso;
+                this._setCompactRange(startIso, parsed.iso);
+            }
+        },
+
+        _handleCompactDatetimeChange(val, side) {
+            const parsed = this._parseDatetimeLocal(val);
+            if (!parsed) return;
+            const isEditing = side === 'start' ? this.editingStart : this.editingEnd;
+            if (!isEditing) return;
+            this._applyCompactDatetime(parsed, side);
+            if (side === 'start') this.editingStart = false;
+            else                  this.editingEnd   = false;
+        },
+
+        _handleCompactDatetimeBlur(side) {
+            const isEditing = side === 'start' ? this.editingStart : this.editingEnd;
+            if (!isEditing) return;
+            const ref = side === 'start' ? this.$refs.inputStart : this.$refs.inputEnd;
+            const parsed = this._parseDatetimeLocal(ref ? ref.value : '');
+            if (parsed) this._applyCompactDatetime(parsed, side);
+            if (side === 'start') this.editingStart = false;
+            else                  this.editingEnd   = false;
+        },
+
+        _handleCompactDatetimeEnter(side) {
+            this._handleCompactDatetimeBlur(side);
         },
 
         // ── Helpers ──────────────────────────────────────────────────
@@ -2747,6 +2842,11 @@ export default {
     min-width: 0;
     width: 100%;
     cursor: text;
+}
+.compact__chip-input--datetime {
+    /* datetime-local uses a wider native widget; constrain it to the chip */
+    min-width: 0;
+    max-width: 100%;
 }
 .compact__chip-sep {
     font-size: 13px;
