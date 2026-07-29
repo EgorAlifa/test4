@@ -73,7 +73,7 @@
  */
 import { Elem, Managers } from 'goodt-wcore';
 import { Url } from '@goodt-common/utils';
-import { useRouteQueryManager, useNavigate } from '@goodt-wcore/utils';
+import { useRouteQueryManager } from '@goodt-wcore/utils';
 import { Popover } from 'goodteditor-ui';
 import { POPUP_LIFETIME } from './constants';
 import { buildSerializedStoreUrl } from './utils';
@@ -82,7 +82,6 @@ import TiptapEditor from './components/TiptapEditor.vue';
 
 const { store, ValueObject } = Managers.StoreManager;
 const { addRouteQueryParams } = useRouteQueryManager();
-const { navigate } = useNavigate();
 
 /**
  * @typedef {import('./types').TInstance} TInstance
@@ -274,49 +273,83 @@ export default {
         triggerCustomEvent() {
             this.eventName.forEach(this.$eventTrigger);
         },
+        // ── Platform helpers (mirrors ElemRoutesNavigator logic) ─────────
+        _detectPlatformMode() {
+            if (typeof window === 'undefined') return 'unknown';
+            const href = window.location.href;
+            if (href.includes('/player/')) return 'player';
+            if (href.includes('/editor/')) return 'editor';
+            return 'player';
+        },
+
+        // Builds a full navigable URL for a relative slug/path, accounting for
+        // the deployment base path (e.g. /insight-dev/editor/player/3836/#/).
+        _buildNavigationUrl(url) {
+            if (!url) return url;
+            if (url.startsWith('http://') || url.startsWith('https://')) return url;
+            const href = window.location.href;
+            if (href.includes('/player/')) {
+                const hashIdx = href.indexOf('#');
+                const base = hashIdx >= 0 ? href.substring(0, hashIdx) : href.replace(/\/?$/, '/');
+                const clean = url.replace(/^[#/]+/, '');
+                return `${base}#/${clean}`;
+            }
+            if (this.$router) {
+                const { href: resolved } = this.$router.resolve(url);
+                if (resolved.startsWith('#')) {
+                    return window.location.origin + window.location.pathname + resolved;
+                }
+                return window.location.origin + resolved;
+            }
+            if (window.location.hash) {
+                const base = href.replace(/#.*$/, '');
+                return `${base}#${url.replace(/^[#/]+/, '')}`;
+            }
+            return window.location.origin + (url.startsWith('/') ? '' : '/') + url;
+        },
+
         navigateUrl() {
             const allowedProtocols = ['http', 'https'];
             const { url, isTargetBlank } = this.props;
-
             if ([null, undefined, ''].includes(url)) return;
+            if (typeof window === 'undefined') return;
 
             const urlModel = Url.create(url);
             const urlProtocol = urlModel.protocol ?? '';
             const queryParams = this.buildNavigateQueryParams();
 
+            // Reject non-http(s), non-relative protocols (e.g. javascript:, mailto:)
             if (
-                allowedProtocols.some((protocol) => urlProtocol.includes(protocol)) === false &&
+                allowedProtocols.some((p) => urlProtocol.includes(p)) === false &&
                 !urlModel.isRelative
-            ) {
-                return;
-            }
+            ) return;
 
-            if (urlModel.isRelative && urlModel.hash === '') {
-                const { path, query } = urlModel;
-                if (isTargetBlank) {
-                    const base = window.location.href.split('#')[0];
-                    window.open(`${base}#${path}`, '_blank');
-                } else {
-                    navigate(
-                        { url: urlModel.href, route: { path, query: { ...query, ...queryParams } } },
-                        { isNewWindow: false }
-                    );
-                }
-                return;
-            }
-
+            // Absolute URL: open with correct target
             if (urlModel.isAbsolute) {
                 const target = isTargetBlank === true ? '_blank' : '_self';
-                window.open(Url.create({ href: url, query: queryParams }), target);
+                window.open(String(Url.create({ href: url, query: queryParams })), target, 'noopener,noreferrer');
                 return;
             }
 
-            const { path, query } = Url.create(urlModel.hash.replace('#', ''));
-            urlModel.hash = '';
-            navigate(
-                { url: urlModel.href, route: { path, query: { ...query, ...queryParams } } },
-                { isNewWindow: isTargetBlank }
-            );
+            // Relative URL — platform-aware navigation
+            const mode = this._detectPlatformMode();
+
+            if (isTargetBlank) {
+                window.open(this._buildNavigationUrl(url), '_blank', 'noopener,noreferrer');
+                return;
+            }
+
+            // Don't navigate while in the editor
+            if (mode === 'editor') return;
+
+            // Player / standalone — navigate in the same tab
+            if (this.$router) {
+                const path = url.replace(/^#/, '');
+                const qp = queryParams && typeof queryParams === 'object' ? queryParams : {};
+                this.$router.push({ path, query: qp }).catch(() => {});
+            } else {
+                window.location.href = this._buildNavigationUrl(url);
+            }
         },
         saveUrlInStorage() {
             if (this.props.isSaveUrlForStore) {
