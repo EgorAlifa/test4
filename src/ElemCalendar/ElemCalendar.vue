@@ -213,9 +213,9 @@
                             type="date"
                             class="compact__chip-input"
                             :value="compactStart"
-                            @change="onCompactInputStart($event.target.value); editingStart = false"
-                            @blur="editingStart = false"
-                            @keydown.enter="$refs.inputStart && $refs.inputStart.blur()"
+                            @change="_handleCompactDateChange($event.target.value, 'start')"
+                            @blur="_handleCompactDateBlur('start')"
+                            @keydown.enter.prevent="_handleCompactDateEnter('start')"
                             @keydown.esc="editingStart = false"
                             @click.stop />
                         <input
@@ -244,9 +244,9 @@
                             type="date"
                             class="compact__chip-input"
                             :value="compactEnd"
-                            @change="onCompactInputEnd($event.target.value); editingEnd = false"
-                            @blur="editingEnd = false"
-                            @keydown.enter="$refs.inputEnd && $refs.inputEnd.blur()"
+                            @change="_handleCompactDateChange($event.target.value, 'end')"
+                            @blur="_handleCompactDateBlur('end')"
+                            @keydown.enter.prevent="_handleCompactDateEnter('end')"
                             @keydown.esc="editingEnd = false"
                             @click.stop />
                         <input
@@ -1651,6 +1651,42 @@ export default {
             } else {
                 this._setCompactRange(this.compactStart && this.compactStart <= val ? this.compactStart : val, val);
             }
+        },
+
+        // ── type="date" chip input handlers ──────────────────────────
+        // Chrome auto-pads the year field on the first keystroke (e.g. "2" → "0002"),
+        // making the date immediately "valid" and firing `change` before the user has
+        // finished typing.  We guard against this by requiring year >= 1000.
+        _isCompactDateReady(val) {
+            return Boolean(val) && parseInt(val.split('-')[0], 10) >= 1000;
+        },
+
+        _handleCompactDateChange(val, side) {
+            // Ignore premature change events triggered by Chrome's year auto-padding.
+            if (!this._isCompactDateReady(val)) return;
+            // Guard: if the editing state was already closed by a prior event, skip.
+            const isEditing = side === 'start' ? this.editingStart : this.editingEnd;
+            if (!isEditing) return;
+            if (side === 'start') { this.onCompactInputStart(val); this.editingStart = false; }
+            else                  { this.onCompactInputEnd(val);   this.editingEnd   = false; }
+        },
+
+        _handleCompactDateBlur(side) {
+            // If change already processed + closed the input, skip (editingX is already false).
+            const isEditing = side === 'start' ? this.editingStart : this.editingEnd;
+            if (!isEditing) return;
+            const ref = side === 'start' ? this.$refs.inputStart : this.$refs.inputEnd;
+            const val = ref ? ref.value : '';
+            if (this._isCompactDateReady(val)) {
+                if (side === 'start') this.onCompactInputStart(val);
+                else                  this.onCompactInputEnd(val);
+            }
+            if (side === 'start') this.editingStart = false;
+            else                  this.editingEnd   = false;
+        },
+
+        _handleCompactDateEnter(side) {
+            this._handleCompactDateBlur(side);
         },
 
         // ── Helpers ──────────────────────────────────────────────────
