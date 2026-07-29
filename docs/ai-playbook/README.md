@@ -2,10 +2,10 @@
 
 `ai-playbook-summary.md` (conceptual reference) и `ai-playbook-summary.json`
 (machine-readable hard rules) — компактный свод правил разработки
-виджетов для использования в контексте ИИ-ассистентов (Cursor, Twinny,
-любой другой инструмент с ограниченным контекстным окном).
+виджетов для использования в контексте ИИ-ассистентов (Kilo Code,
+Claude Code, любой другой инструмент с ограниченным контекстным окном).
 
-Пересекается с `.cursor/rules/widget.mdc` и `WIDGET_REFACTORING_SPEC.md`
+Пересекается с `widget.mdc` и `WIDGET_REFACTORING_SPEC.md`
 почти полностью — большинство правил дублируют друг друга в разных
 формулировках. Не дублирует, а дополняет:
 

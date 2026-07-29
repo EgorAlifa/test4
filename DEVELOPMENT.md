@@ -227,7 +227,7 @@ docker compose restart ins-editor
 В репозитории уже есть контекст, которым ИИ-агент (Claude Code, Cursor и
 т.п.) может пользоваться, чтобы писать код виджетов в едином стиле:
 
-- **`.cursor/rules/widget.mdc`** — плейбук по структуре виджета
+- **`widget.mdc`** — плейбук по структуре виджета
   (`descriptor.js`, `panels/`, `Elem<Name>.vue`, `utils/`, `styles/`) с
   примерами на реальных виджетах пакета.
 - **`WIDGET_REFACTORING_SPEC.md`** — стандарт панелей «Оформление» /
