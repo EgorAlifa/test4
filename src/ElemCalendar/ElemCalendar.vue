@@ -1082,6 +1082,35 @@ export default {
     },
 
     watch: {
+        // React to external store resets (e.g. Filter / Button widget clearing vars)
+        '$storeState': {
+            deep: true,
+            handler(state) {
+                if (!state || this.isEditorMode) return;
+                const selMode = this.props.calSelectionMode || 'single';
+                if (selMode === 'multi') {
+                    const stored = state.datesList;
+                    if ((stored == null || stored === '' || stored === '[]') && this.selectedDates.length > 0) {
+                        this.selectedDates = [];
+                        this.props.calSelectedDates = '';
+                    }
+                } else if (selMode === 'range') {
+                    const storedStart = state.dateStart;
+                    if ((storedStart == null || storedStart === '') && (this.rangeStart || this.props.calSelectedStart)) {
+                        this.rangeStart = null;
+                        this.rangeEnd = null;
+                        this.activePreset = null;
+                        this.props.calSelectedStart = '';
+                        this.props.calSelectedEnd = '';
+                    }
+                } else if (selMode === 'single') {
+                    const storedDate = state.date;
+                    if ((storedDate == null || storedDate === '') && this.props.calSelectedDate) {
+                        this.props.calSelectedDate = '';
+                    }
+                }
+            }
+        },
         isEditorMode(val, oldVal) {
             if (oldVal === true && val === false) {
                 this.rangeStart = null;
@@ -1315,7 +1344,7 @@ export default {
 
         _commitDate(iso) {
             this.props.calSelectedDate = iso;
-            this.propChanged('calSelectedDate');
+            if (!this.isEditorMode) this.propChanged('calSelectedDate');
             if (this.props.calWithTime) {
                 const ts = this._isoTimeToTs(iso, this.props.calDefaultStartTime || '00:00');
                 this.$storeCommit({ date: ts });
@@ -1327,8 +1356,10 @@ export default {
         _commitRange(start, end) {
             this.props.calSelectedStart = start;
             this.props.calSelectedEnd = end;
-            this.propChanged('calSelectedStart');
-            this.propChanged('calSelectedEnd');
+            if (!this.isEditorMode) {
+                this.propChanged('calSelectedStart');
+                this.propChanged('calSelectedEnd');
+            }
 
             if (this.props.calWithTime) {
                 const startTime = this.rangeStartTime || this.props.calDefaultStartTime || '00:00';
@@ -1343,10 +1374,15 @@ export default {
         },
 
         _commitMultiple(dates) {
+            if (dates.length === 0) {
+                this.props.calSelectedDates = '';
+                if (!this.isEditorMode) this.propChanged('calSelectedDates');
+                this.$storeCommit({ datesList: null });
+                return;
+            }
             const json = JSON.stringify(dates);
             this.props.calSelectedDates = json;
-            this.propChanged('calSelectedDates');
-            // Primary: vars panel variable (JSON string, consistent with store conventions)
+            if (!this.isEditorMode) this.propChanged('calSelectedDates');
             this.$storeCommit({ datesList: json });
         },
 

@@ -382,6 +382,53 @@
                 </label>
             </div>
 
+            <!-- ── Тултип (полный режим) ───────────────────────────── -->
+            <div v-if="props.calMode !== 'compact'" class="p-section">
+                <div
+                    class="p-section__label p-section__label--collapsible"
+                    @click="tooltipOpen = !tooltipOpen">
+                    Тултип
+                    <i :class="tooltipOpen ? 'mdi mdi-chevron-up' : 'mdi mdi-chevron-down'" class="p-section__chevron" />
+                </div>
+
+                <template v-if="tooltipOpen">
+                    <label class="toggle-row">
+                        <span class="toggle-row__label">Показывать тултип</span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calShowTooltip !== false }" @click="toggleBool('calShowTooltip')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
+
+                    <template v-if="props.calShowTooltip !== false">
+                        <div class="p-row" style="margin-top:6px">
+                            <span class="p-row__label">Фон</span>
+                            <input
+                                type="color"
+                                class="color-input"
+                                :value="props.calTooltipBg || '#1e293b'"
+                                @input="set('calTooltipBg', $event.target.value)" />
+                        </div>
+                        <div class="p-row">
+                            <span class="p-row__label">Цвет текста</span>
+                            <input
+                                type="color"
+                                class="color-input"
+                                :value="props.calTooltipColor || '#f1f5f9'"
+                                @input="set('calTooltipColor', $event.target.value)" />
+                        </div>
+                        <div class="p-row">
+                            <span class="p-row__label">Скругление</span>
+                            <input
+                                type="text"
+                                class="time-input"
+                                :value="props.calTooltipRadius || '10px'"
+                                placeholder="10px"
+                                @change="set('calTooltipRadius', $event.target.value || '10px')" />
+                        </div>
+                    </template>
+                </template>
+            </div>
+
         </ui-container>
     </w-panel>
 </template>
@@ -404,6 +451,7 @@ export default {
     meta: { name: 'Настройки', icon: 'cog' },
 
     data: () => ({
+        tooltipOpen: false,
         allViews: [
             { value: 'month', label: 'Месяц' },
             { value: 'week', label: 'Неделя' },
@@ -996,6 +1044,30 @@ export default {
 }
 .num-unit-ctrl__num {
     width: 52px;
+}
+
+/* ── Collapsible section label ────────────────────────────────── */
+.p-section__label--collapsible {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 0;
+}
+.p-section__label--collapsible:hover { color: #4f6aff; }
+.p-section__chevron { font-size: 14px; color: #94a3b8; }
+
+/* ── Color input ──────────────────────────────────────────────── */
+.color-input {
+    width: 36px;
+    height: 28px;
+    padding: 2px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #fff;
+    flex-shrink: 0;
 }
 
 /* ── Time input ───────────────────────────────────────────────── */
