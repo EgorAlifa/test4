@@ -204,7 +204,8 @@ export default {
         openKeys: [],
         globalOpen: false,
         localGlobalCss: '',
-        debounce: null,
+        debounceDesigner: null,
+        debounceGlobalCss: null,
         cssData: {}
     }),
 
@@ -252,8 +253,8 @@ export default {
         },
 
         _saveDesigner() {
-            clearTimeout(this.debounce);
-            this.debounce = setTimeout(() => {
+            clearTimeout(this.debounceDesigner);
+            this.debounceDesigner = setTimeout(() => {
                 this.props.calDesignerCss = JSON.stringify(this.cssData);
                 this.propChanged('calDesignerCss');
             }, 300);
@@ -261,8 +262,8 @@ export default {
 
         onGlobalCss(val) {
             this.localGlobalCss = val;
-            clearTimeout(this.debounce);
-            this.debounce = setTimeout(() => {
+            clearTimeout(this.debounceGlobalCss);
+            this.debounceGlobalCss = setTimeout(() => {
                 this.props.calCustomCss = val;
                 this.propChanged('calCustomCss');
             }, 300);

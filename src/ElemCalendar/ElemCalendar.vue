@@ -552,6 +552,8 @@ export default {
             event: 'refresh',
             handler() {
                 this.loadData();
+                this._refreshStoreEvents();
+                this._refreshStoreMetric();
             }
         }
     ],
@@ -578,6 +580,9 @@ export default {
                 } else {
                     if (date !== undefined) this._applyStoreDate(date);
                 }
+                // Refresh store-sourced events / metric on any store change
+                this._refreshStoreEvents();
+                this._refreshStoreMetric();
             }
         }
     ],
@@ -604,7 +609,10 @@ export default {
         rangeStartTime: '00:00',
         rangeEndTime: '23:59',
         // ── Multi mode state ─────────────────────────────────────────
-        selectedDates: []          // Array of ISO date strings for 'multi' mode
+        selectedDates: [],         // Array of ISO date strings for 'multi' mode
+        // ── Store-sourced data (reactive cache) ───────────────────────
+        _eventsStoreRaw: null,     // cached value from store var calEventsVar
+        _metricStoreRaw: null      // cached value from store var calMetricVar
     }),
 
     computed: {
@@ -757,10 +765,10 @@ export default {
         // ── Parsed events ────────────────────────────────────────────
         parsedEvents() {
             let raw = [];
-            // From store var
-            if (this.props.calEventsVar) {
+            // From store var — read from reactive cache populated by _refreshStoreEvents()
+            if (this.props.calEventsVar && this._eventsStoreRaw != null) {
                 try {
-                    const val = store.state[this.props.calEventsVar]?.value;
+                    const val = this._eventsStoreRaw;
                     if (val) raw = typeof val === 'string' ? JSON.parse(val) : val;
                 } catch (e) { /* noop */ }
             }
@@ -870,9 +878,10 @@ export default {
         // ── Metric / heatmap data ────────────────────────────────────
         metricData() {
             let raw = [];
-            if (this.props.calMetricVar) {
+            // From store var — read from reactive cache populated by _refreshStoreMetric()
+            if (this.props.calMetricVar && this._metricStoreRaw != null) {
                 try {
-                    const v = store.state[this.props.calMetricVar]?.value;
+                    const v = this._metricStoreRaw;
                     if (v) raw = typeof v === 'string' ? JSON.parse(v) : (Array.isArray(v) ? v : []);
                 } catch (e) { /* noop */ }
             }
@@ -952,7 +961,12 @@ export default {
 
         compactEnd() {
             if (this.rangeEnd) return isoDate(this.rangeEnd);
-            return this.props.calSelectedEnd || '';
+            // Only fall back to the committed prop value when NOT mid-selection.
+            // During step 1 (start chosen, awaiting end click) rangeEnd is null
+            // but props.calSelectedEnd still holds the PREVIOUS range's end —
+            // returning it here would draw a spurious stale range on the grid.
+            if (this.compactClickStep === 0) return this.props.calSelectedEnd || '';
+            return '';
         },
 
         compactStartDisplay() {
@@ -1133,10 +1147,18 @@ export default {
         'props.calSelectedDate'(v) {
             if (v) { const d = parseIso(v); if (d) this.navDate = new Date(d); }
         },
+        // ── Store-backed data: refresh cache when var names change ────
+        'props.calEventsVar': {
+            immediate: true,
+            handler() { this._refreshStoreEvents(); }
+        },
         // ── Heatmap auto-toggle ──────────────────────────────────────
         // Enable heatmap automatically when any metric source is provided;
         // disable when all sources are cleared.
-        'props.calMetricVar'()   { this._autoHeatmap(); },
+        'props.calMetricVar': {
+            immediate: true,
+            handler() { this._autoHeatmap(); this._refreshStoreMetric(); }
+        },
         'props.calMetricJson'()  { this._autoHeatmap(); },
         'props.calMetricDataCol'() { this._autoHeatmap(); }
     },
@@ -1165,8 +1187,11 @@ export default {
         this._tickNow();
         this.nowTimer = setInterval(() => this._tickNow(), 60000);
 
-        // Restore time component from stored timestamps when calWithTime is enabled
+        // Restore time defaults from props when calWithTime is enabled.
+        // Store-based values (actual user-edited times) will override via watchStore.
         if (this.props.calWithTime) {
+            this.rangeStartTime = this.props.calDefaultStartTime || '00:00';
+            this.rangeEndTime = this.props.calDefaultEndTime || '23:59';
         }
     },
 
@@ -1343,7 +1368,8 @@ export default {
             this.props.calSelectedDate = iso;
             if (!this.isEditorMode) this.propChanged('calSelectedDate');
             if (this.props.calWithTime) {
-                const ts = this._isoTimeToTs(iso, this.props.calDefaultStartTime || '00:00');
+                const time = this.rangeStartTime || this.props.calDefaultStartTime || '00:00';
+                const ts = this._isoTimeToTs(iso, time);
                 this.$storeCommit({ date: ts });
             } else {
                 this.$storeCommit({ date: iso });
@@ -1557,6 +1583,7 @@ export default {
             // commit only `date` — no range variables written
             if (start && start === end) {
                 this.rangeEnd = null;
+                this.props.calSelectedEnd = '';  // clear stale end so compactEnd returns ''
                 // Auto-commit only when there is no Apply button to confirm
                 if (!this.props.calCompactShowBottom) this._commitDate(start);
             } else {
@@ -1816,6 +1843,26 @@ export default {
 
         _tickNow() {
             this.today = new Date();
+        },
+
+        // ── Store-sourced data cache refresh ─────────────────────────
+        // Direct access to store.state is non-reactive in computed properties.
+        // These methods read from the store and write to local reactive data,
+        // making parsedEvents / metricData update when the store changes.
+        _refreshStoreEvents() {
+            if (!this.props.calEventsVar) { this._eventsStoreRaw = null; return; }
+            try {
+                const v = store.state[this.props.calEventsVar]?.value;
+                this._eventsStoreRaw = v != null ? v : null;
+            } catch (e) { this._eventsStoreRaw = null; }
+        },
+
+        _refreshStoreMetric() {
+            if (!this.props.calMetricVar) { this._metricStoreRaw = null; return; }
+            try {
+                const v = store.state[this.props.calMetricVar]?.value;
+                this._metricStoreRaw = v != null ? v : null;
+            } catch (e) { this._metricStoreRaw = null; }
         },
 
         // ── Store → local state sync helpers ─────────────────────────
