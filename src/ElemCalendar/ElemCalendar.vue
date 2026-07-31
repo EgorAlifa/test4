@@ -556,6 +556,32 @@ export default {
         }
     ],
 
+    // ── Bidirectional store variable sync ────────────────────────────────
+    // Fires immediately on mount (framework sets immediate:true) and on every
+    // change to any of the four mapped vars — handles both incoming values
+    // (navigate + apply) and null resets (clear selection).
+    watchStore: [
+        {
+            vars: ['date', 'dateStart', 'dateEnd', 'datesList'],
+            handler([date, dateStart, dateEnd, datesList]) {
+                if (this.isEditorMode) return;
+                const selMode = this.props.calSelectionMode || 'single';
+                if (selMode === 'multi') {
+                    if (datesList !== undefined) this._applyStoreDatesList(datesList);
+                } else if (selMode === 'range') {
+                    if (dateStart !== undefined || dateEnd !== undefined) {
+                        this._applyStoreDateRange(
+                            dateStart !== undefined ? dateStart : null,
+                            dateEnd !== undefined ? dateEnd : null
+                        );
+                    }
+                } else {
+                    if (date !== undefined) this._applyStoreDate(date);
+                }
+            }
+        }
+    ],
+
     data: () => ({
         ...ElemDatasetMixinTypes,
         currentView: 'month',
@@ -1082,35 +1108,6 @@ export default {
     },
 
     watch: {
-        // React to external store resets (e.g. Filter / Button widget clearing vars)
-        '$storeState': {
-            deep: true,
-            handler(state) {
-                if (!state || this.isEditorMode) return;
-                const selMode = this.props.calSelectionMode || 'single';
-                if (selMode === 'multi') {
-                    const stored = state.datesList;
-                    if ((stored == null || stored === '' || stored === '[]') && this.selectedDates.length > 0) {
-                        this.selectedDates = [];
-                        this.props.calSelectedDates = '';
-                    }
-                } else if (selMode === 'range') {
-                    const storedStart = state.dateStart;
-                    if ((storedStart == null || storedStart === '') && (this.rangeStart || this.props.calSelectedStart)) {
-                        this.rangeStart = null;
-                        this.rangeEnd = null;
-                        this.activePreset = null;
-                        this.props.calSelectedStart = '';
-                        this.props.calSelectedEnd = '';
-                    }
-                } else if (selMode === 'single') {
-                    const storedDate = state.date;
-                    if ((storedDate == null || storedDate === '') && this.props.calSelectedDate) {
-                        this.props.calSelectedDate = '';
-                    }
-                }
-            }
-        },
         isEditorMode(val, oldVal) {
             if (oldVal === true && val === false) {
                 this.rangeStart = null;
@@ -1819,6 +1816,98 @@ export default {
 
         _tickNow() {
             this.today = new Date();
+        },
+
+        // ── Store → local state sync helpers ─────────────────────────
+        // Converts an incoming store value (ISO string OR timestamp ms) into
+        // { iso: 'YYYY-MM-DD', time: 'HH:mm' | null }. Returns null on empty.
+        _parseStoreDate(val) {
+            if (val == null || val === '') return null;
+            if (typeof val === 'number') {
+                const d = new Date(val);
+                const h = String(d.getHours()).padStart(2, '0');
+                const m = String(d.getMinutes()).padStart(2, '0');
+                return { iso: isoDate(d), time: `${h}:${m}` };
+            }
+            if (typeof val === 'string' && val.length >= 10) {
+                return { iso: val.slice(0, 10), time: null };
+            }
+            return null;
+        },
+
+        // Navigate the visible month/year to the given ISO date.
+        _navigateTo(isoStr) {
+            const d = parseIso(isoStr);
+            if (!d) return;
+            this.navDate = new Date(d.getFullYear(), d.getMonth(), 1);
+            if (this.props.calCompactDualMonth) {
+                this.navDate2 = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+            }
+        },
+
+        // Apply an incoming store value for the `date` var (single mode).
+        _applyStoreDate(val) {
+            const parsed = this._parseStoreDate(val);
+            const iso = parsed ? parsed.iso : null;
+            const curIso = this.props.calSelectedDate || null;
+            if (iso === curIso) return;
+            if (!iso) {
+                this.props.calSelectedDate = '';
+            } else {
+                this.props.calSelectedDate = iso;
+                this._navigateTo(iso);
+            }
+        },
+
+        // Apply incoming store values for `dateStart` + `dateEnd` (range mode).
+        _applyStoreDateRange(startVal, endVal) {
+            const startParsed = this._parseStoreDate(startVal);
+            const endParsed   = this._parseStoreDate(endVal);
+            const startIso = startParsed ? startParsed.iso : null;
+            const endIso   = endParsed   ? endParsed.iso   : null;
+            const curStart = this.props.calSelectedStart || null;
+            const curEnd   = this.props.calSelectedEnd   || null;
+            if (startIso === curStart && endIso === curEnd) return;
+
+            if (!startIso) {
+                this.rangeStart = null;
+                this.rangeEnd = null;
+                this.activePreset = null;
+                this.compactClickStep = 0;
+                this.compactHoverCell = null;
+                this.props.calSelectedStart = '';
+                this.props.calSelectedEnd = '';
+                return;
+            }
+            this.rangeStart = parseIso(startIso);
+            this.rangeEnd   = endIso ? parseIso(endIso) : null;
+            this.props.calSelectedStart = startIso;
+            this.props.calSelectedEnd   = endIso || '';
+            this.activePreset = null;
+            this.compactClickStep = 0;
+            this.compactHoverCell = null;
+            if (startParsed && startParsed.time) this.rangeStartTime = startParsed.time;
+            if (endParsed   && endParsed.time)   this.rangeEndTime   = endParsed.time;
+            this._navigateTo(startIso);
+        },
+
+        // Apply an incoming store value for `datesList` (multi mode).
+        _applyStoreDatesList(val) {
+            if (val == null || val === '' || val === '[]') {
+                if (this.selectedDates.length === 0) return;
+                this.selectedDates = [];
+                this.props.calSelectedDates = '';
+                return;
+            }
+            try {
+                const parsed = Array.isArray(val) ? val : JSON.parse(val);
+                if (!Array.isArray(parsed)) return;
+                const newDates = parsed.map(String).filter(Boolean).sort();
+                if (newDates.join(',') === this.selectedDates.slice().sort().join(',')) return;
+                this.selectedDates = newDates;
+                this.props.calSelectedDates = JSON.stringify(newDates);
+                if (newDates.length) this._navigateTo(newDates[0]);
+            } catch (e) { /* noop */ }
         }
     }
 };

@@ -271,11 +271,11 @@
                     </div>
 
                     <!-- inline add form -->
-                    <div v-if="!addingPreset" class="preset-add-trigger">
+                    <div v-if="!addingPreset" key="preset-trigger" class="preset-add-trigger">
                         <button class="preset-add-trigger-btn" @click="startAddPreset">+ Добавить пресет</button>
                         <button class="preset-action-btn" @click="resetPresetsToDefault">По умолчанию</button>
                     </div>
-                    <div v-else class="preset-add-form">
+                    <div v-if="addingPreset" key="preset-form" ref="presetForm" class="preset-add-form">
                         <input
                             class="preset-add-form__input"
                             type="text"
@@ -497,12 +497,19 @@ export default {
         },
 
         setCompactMode(mode) {
-            const base = { calCompactShowBottom: true, calCompactDualMonth: false, calCompactShowCalendar: true, calCompactShowPresets: true };
+            const base = {
+                calCompactShowBottom: true,
+                calCompactDualMonth: false,
+                calCompactShowCalendar: true,
+                calCompactShowPresets: true,
+                calCompactShowToday: true,
+                calHighlightToday: true
+            };
             const map = {
                 standard:   { ...base },
                 extended:   { ...base, calCompactDualMonth: true },
-                simplified: { ...base, calCompactShowCalendar: false },
-                input:      { ...base, calCompactShowCalendar: false, calCompactShowPresets: false }
+                simplified: { ...base, calCompactShowCalendar: false, calCompactShowToday: false, calHighlightToday: false },
+                input:      { ...base, calCompactShowCalendar: false, calCompactShowPresets: false, calCompactShowToday: false, calHighlightToday: false }
             };
             Object.entries(map[mode]).forEach(([k, v]) => this.set(k, v));
         },
@@ -542,6 +549,9 @@ export default {
         startAddPreset() {
             this.newPreset = { label: '', type: 'builtin', builtinKey: 'today', start: '', end: '', daysBack: 7 };
             this.addingPreset = true;
+            this.$nextTick(() => {
+                if (this.$refs.presetForm) this.$refs.presetForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
         },
 
         confirmAddPreset() {
