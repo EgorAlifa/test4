@@ -491,8 +491,15 @@ const { store, ValueObject } = Managers.StoreManager;
 
 // ── Pure date helpers ──────────────────────────────────────────────
 function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
-function isoDate(d) { return d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : ''; }
-function parseIso(s) { if (!s) return null; const p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function isoDate(d) { if (!d || isNaN(d.getTime())) return ''; return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function parseIso(s) {
+    if (!s || typeof s !== 'string') return null;
+    const p = s.split('-');
+    if (p.length < 3) return null;
+    const y = +p[0], mo = +p[1] - 1, day = +p[2];
+    if (isNaN(y) || isNaN(mo) || isNaN(day)) return null;
+    return new Date(y, mo, day);
+}
 function isSameDay(a, b) { return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
 function getWeekNumber(d) {
     const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -824,10 +831,14 @@ export default {
             if (this.currentView === 'week') {
                 const ws = startOfWeek(this.navDate, this.firstDay);
                 const we = addDays(ws, 6);
+                const wy = ws.getFullYear();
                 if (ws.getMonth() === we.getMonth()) {
-                    return `${ws.getDate()}–${we.getDate()} ${months[ws.getMonth()]} ${y}`;
+                    return `${ws.getDate()}–${we.getDate()} ${months[ws.getMonth()]} ${wy}`;
                 }
-                return `${ws.getDate()} ${this.locale.monthsShort[ws.getMonth()]} – ${we.getDate()} ${this.locale.monthsShort[we.getMonth()]} ${y}`;
+                if (wy === we.getFullYear()) {
+                    return `${ws.getDate()} ${this.locale.monthsShort[ws.getMonth()]} – ${we.getDate()} ${this.locale.monthsShort[we.getMonth()]} ${wy}`;
+                }
+                return `${ws.getDate()} ${this.locale.monthsShort[ws.getMonth()]} ${wy} – ${we.getDate()} ${this.locale.monthsShort[we.getMonth()]} ${we.getFullYear()}`;
             }
             if (this.currentView === 'day') {
                 return `${d} ${months[m]} ${y}`;
@@ -1091,7 +1102,7 @@ export default {
                     }
                 } catch (e) { /* fall through */ }
             }
-            return [
+            const fallback = [
                 { key: 'today',      label: 'Сегодня' },
                 { key: 'yesterday',  label: 'Вчера' },
                 { key: 'week',       label: 'Эта неделя' },
@@ -1103,6 +1114,7 @@ export default {
                 { key: 'd90',        label: '90 дней' },
                 { key: 'year',       label: 'Этот год' }
             ];
+            return simplified ? fallback.filter(p => !SINGLE_DAY_KEYS.includes(p.key)) : fallback;
         },
 
         compactInnerStyle() {
@@ -1255,6 +1267,12 @@ export default {
             else if (this.currentView === 'agenda') d.setMonth(d.getMonth() - 1);
             else if (this.currentView === 'year') d.setFullYear(d.getFullYear() - 1);
             this.navDate = d;
+            // In dual-month compact mode navDate2 must stay at least one month ahead
+            if (this.compactMode && this.props.calCompactDualMonth) {
+                const n1 = d.getFullYear() * 12 + d.getMonth();
+                const n2 = this.navDate2.getFullYear() * 12 + this.navDate2.getMonth();
+                if (n2 <= n1) this.navDate2 = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+            }
         },
 
         nextPeriod() {
@@ -1266,11 +1284,21 @@ export default {
             else if (this.currentView === 'agenda') d.setMonth(d.getMonth() + 1);
             else if (this.currentView === 'year') d.setFullYear(d.getFullYear() + 1);
             this.navDate = d;
+            // In dual-month compact mode navDate2 must stay at least one month ahead
+            if (this.compactMode && this.props.calCompactDualMonth) {
+                const n1 = d.getFullYear() * 12 + d.getMonth();
+                const n2 = this.navDate2.getFullYear() * 12 + this.navDate2.getMonth();
+                if (n2 <= n1) this.navDate2 = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+            }
         },
 
         prevPeriod2() {
             const d = new Date(this.navDate2);
             d.setMonth(d.getMonth() - 1);
+            // navDate2 must remain strictly after navDate (by at least one month)
+            const n1 = this.navDate.getFullYear() * 12 + this.navDate.getMonth();
+            const n2 = d.getFullYear() * 12 + d.getMonth();
+            if (n2 <= n1) return;
             this.navDate2 = d;
         },
 
@@ -1282,6 +1310,9 @@ export default {
 
         goToday() {
             this.navDate = new Date();
+            if (this.compactMode && this.props.calCompactDualMonth) {
+                this.navDate2 = new Date(this.navDate.getFullYear(), this.navDate.getMonth() + 1, 1);
+            }
         },
 
         setView(v) {
@@ -1342,6 +1373,7 @@ export default {
         },
 
         onWeekColClick(day) {
+            if (this.props.calSelectionMode === SELECTION_MODES.NONE) return;
             this._commitDate(day.iso);
         },
 
@@ -1546,7 +1578,6 @@ export default {
         },
 
         applyPreset(p) {
-            this.activePreset = p.key;
             const t = this.today;
             const y = t.getFullYear(), m = t.getMonth(), d = t.getDate();
             let s, e;
@@ -1567,6 +1598,7 @@ export default {
             else if (p.key === 'd90')   { s = isoDate(addDays(t, -89)); e = isoDate(t); }
             else if (p.key === 'year')  { s = `${y}-01-01`; e = `${y}-12-31`; }
             if (s) {
+                this.activePreset = p.key;
                 if (this.props.calWithTime) {
                     this.rangeStartTime = this.props.calDefaultStartTime || '00:00';
                     this.rangeEndTime = this.props.calDefaultEndTime || '23:59';
@@ -1699,11 +1731,11 @@ export default {
             if (!val) return;
             this.activePreset = null;
             if (this.props.calWithTime) {
-                const parsed = this._parseDisplayDateTime(val);
-                if (!parsed) return;
-                this.rangeStartTime = parsed.time;
-                const endIso = this.compactEnd && this.compactEnd >= parsed.iso ? this.compactEnd : parsed.iso;
-                this._setCompactRange(parsed.iso, endIso);
+                // val from <input type="date"> is YYYY-MM-DD; time is managed separately
+                const iso = val.slice(0, 10);
+                if (iso.length < 10) return;
+                const endIso = this.compactEnd && this.compactEnd >= iso ? this.compactEnd : iso;
+                this._setCompactRange(iso, endIso);
             } else {
                 this._setCompactRange(val, this.compactEnd && this.compactEnd >= val ? this.compactEnd : val);
             }
@@ -1713,11 +1745,11 @@ export default {
             if (!val) return;
             this.activePreset = null;
             if (this.props.calWithTime) {
-                const parsed = this._parseDisplayDateTime(val);
-                if (!parsed) return;
-                this.rangeEndTime = parsed.time;
-                const startIso = this.compactStart && this.compactStart <= parsed.iso ? this.compactStart : parsed.iso;
-                this._setCompactRange(startIso, parsed.iso);
+                // val from <input type="date"> is YYYY-MM-DD; time is managed separately
+                const iso = val.slice(0, 10);
+                if (iso.length < 10) return;
+                const startIso = this.compactStart && this.compactStart <= iso ? this.compactStart : iso;
+                this._setCompactRange(startIso, iso);
             } else {
                 this._setCompactRange(this.compactStart && this.compactStart <= val ? this.compactStart : val, val);
             }
@@ -1902,6 +1934,7 @@ export default {
                 this.props.calSelectedDate = '';
             } else {
                 this.props.calSelectedDate = iso;
+                if (parsed.time && this.props.calWithTime) this.rangeStartTime = parsed.time;
                 this._navigateTo(iso);
             }
         },
