@@ -204,7 +204,8 @@ export default {
         openKeys: [],
         globalOpen: false,
         localGlobalCss: '',
-        debounce: null,
+        debounceDesigner: null,
+        debounceGlobalCss: null,
         cssData: {}
     }),
 
@@ -238,8 +239,8 @@ export default {
         isOpen(key) { return this.openKeys.includes(key); },
         toggle(key) {
             const idx = this.openKeys.indexOf(key);
-            if (idx >= 0) this.openKeys.splice(idx, 1);
-            else this.openKeys.push(key);
+            if (idx >= 0) this.openKeys = this.openKeys.filter((_, i) => i !== idx);
+            else this.openKeys = [...this.openKeys, key];
         },
 
         getVal(key) { return this.cssData[key] || ''; },
@@ -252,8 +253,8 @@ export default {
         },
 
         _saveDesigner() {
-            clearTimeout(this.debounce);
-            this.debounce = setTimeout(() => {
+            clearTimeout(this.debounceDesigner);
+            this.debounceDesigner = setTimeout(() => {
                 this.props.calDesignerCss = JSON.stringify(this.cssData);
                 this.propChanged('calDesignerCss');
             }, 300);
@@ -261,8 +262,8 @@ export default {
 
         onGlobalCss(val) {
             this.localGlobalCss = val;
-            clearTimeout(this.debounce);
-            this.debounce = setTimeout(() => {
+            clearTimeout(this.debounceGlobalCss);
+            this.debounceGlobalCss = setTimeout(() => {
                 this.props.calCustomCss = val;
                 this.propChanged('calCustomCss');
             }, 300);

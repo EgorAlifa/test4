@@ -323,17 +323,6 @@ export default {
             this.propChanged(key);
         },
 
-        openColor(key) {
-            const ref = this.$refs[`clr_${key}`];
-            const el = Array.isArray(ref) ? ref[0] : ref;
-            if (el) el.click();
-        },
-
-        simpleColor(val) {
-            if (!val) return '#000000';
-            return val.startsWith('#') && val.length <= 9 ? val : '#4f6aff';
-        },
-
         toggleBool(key) {
             this.props[key] = !this.props[key];
             this.propChanged(key);

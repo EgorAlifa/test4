@@ -284,7 +284,7 @@
                 </div>
             </div>
             <div class="elem-cal__grid">
-                <template v-for="(week, wi) in monthWeeks">
+                <template v-for="(week, wi) in monthWeeks" :key="`week-${wi}`">
                     <div v-if="props.calShowWeekNumbers" :key="`wn-${wi}`" class="elem-cal__wnum">
                         {{ week.num }}
                     </div>
@@ -440,7 +440,7 @@
                 <div class="elem-cal__year-month-hd" @click="goToMonth(month.m)">{{ month.label }}</div>
                 <div class="elem-cal__year-month-grid">
                     <div v-for="(wd, wi) in weekdayHeaders" :key="`yw-${wi}`" class="elem-cal__year-wd">{{ wd.charAt(0) }}</div>
-                    <template v-for="(cell, ci) in month.cells">
+                    <template v-for="(cell, ci) in month.cells" :key="`cell-${month.m}-${ci}`">
                         <div
                             v-if="cell"
                             :key="`yd-${month.m}-${ci}`"
@@ -491,8 +491,15 @@ const { store, ValueObject } = Managers.StoreManager;
 
 // ── Pure date helpers ──────────────────────────────────────────────
 function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
-function isoDate(d) { return d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : ''; }
-function parseIso(s) { if (!s) return null; const p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function isoDate(d) { if (!d || isNaN(d.getTime())) return ''; return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function parseIso(s) {
+    if (!s || typeof s !== 'string') return null;
+    const p = s.split('-');
+    if (p.length < 3) return null;
+    const y = +p[0], mo = +p[1] - 1, day = +p[2];
+    if (isNaN(y) || isNaN(mo) || isNaN(day)) return null;
+    return new Date(y, mo, day);
+}
 function isSameDay(a, b) { return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
 function getWeekNumber(d) {
     const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -552,6 +559,8 @@ export default {
             event: 'refresh',
             handler() {
                 this.loadData();
+                this._refreshStoreEvents();
+                this._refreshStoreMetric();
             }
         }
     ],
@@ -578,6 +587,9 @@ export default {
                 } else {
                     if (date !== undefined) this._applyStoreDate(date);
                 }
+                // Refresh store-sourced events / metric on any store change
+                this._refreshStoreEvents();
+                this._refreshStoreMetric();
             }
         }
     ],
@@ -604,7 +616,10 @@ export default {
         rangeStartTime: '00:00',
         rangeEndTime: '23:59',
         // ── Multi mode state ─────────────────────────────────────────
-        selectedDates: []          // Array of ISO date strings for 'multi' mode
+        selectedDates: [],         // Array of ISO date strings for 'multi' mode
+        // ── Store-sourced data (reactive cache) ───────────────────────
+        _eventsStoreRaw: null,     // cached value from store var calEventsVar
+        _metricStoreRaw: null      // cached value from store var calMetricVar
     }),
 
     computed: {
@@ -719,14 +734,14 @@ export default {
             const days = [];
             for (let i = 0; i < 7; i++) {
                 const d = addDays(start, i);
-                days.push(this._buildDayFull(d));
+                days.push(this._buildDay(d, true));
             }
             return days;
         },
 
         // ── Day view ─────────────────────────────────────────────────
         dayViewDay() {
-            return this._buildDayFull(this.navDate);
+            return this._buildDay(this.navDate, true);
         },
 
         dayViewEvents() {
@@ -757,10 +772,10 @@ export default {
         // ── Parsed events ────────────────────────────────────────────
         parsedEvents() {
             let raw = [];
-            // From store var
-            if (this.props.calEventsVar) {
+            // From store var — read from reactive cache populated by _refreshStoreEvents()
+            if (this.props.calEventsVar && this._eventsStoreRaw != null) {
                 try {
-                    const val = store.state[this.props.calEventsVar]?.value;
+                    const val = this._eventsStoreRaw;
                     if (val) raw = typeof val === 'string' ? JSON.parse(val) : val;
                 } catch (e) { /* noop */ }
             }
@@ -816,10 +831,14 @@ export default {
             if (this.currentView === 'week') {
                 const ws = startOfWeek(this.navDate, this.firstDay);
                 const we = addDays(ws, 6);
+                const wy = ws.getFullYear();
                 if (ws.getMonth() === we.getMonth()) {
-                    return `${ws.getDate()}–${we.getDate()} ${months[ws.getMonth()]} ${y}`;
+                    return `${ws.getDate()}–${we.getDate()} ${months[ws.getMonth()]} ${wy}`;
                 }
-                return `${ws.getDate()} ${this.locale.monthsShort[ws.getMonth()]} – ${we.getDate()} ${this.locale.monthsShort[we.getMonth()]} ${y}`;
+                if (wy === we.getFullYear()) {
+                    return `${ws.getDate()} ${this.locale.monthsShort[ws.getMonth()]} – ${we.getDate()} ${this.locale.monthsShort[we.getMonth()]} ${wy}`;
+                }
+                return `${ws.getDate()} ${this.locale.monthsShort[ws.getMonth()]} ${wy} – ${we.getDate()} ${this.locale.monthsShort[we.getMonth()]} ${we.getFullYear()}`;
             }
             if (this.currentView === 'day') {
                 return `${d} ${months[m]} ${y}`;
@@ -870,9 +889,10 @@ export default {
         // ── Metric / heatmap data ────────────────────────────────────
         metricData() {
             let raw = [];
-            if (this.props.calMetricVar) {
+            // From store var — read from reactive cache populated by _refreshStoreMetric()
+            if (this.props.calMetricVar && this._metricStoreRaw != null) {
                 try {
-                    const v = store.state[this.props.calMetricVar]?.value;
+                    const v = this._metricStoreRaw;
                     if (v) raw = typeof v === 'string' ? JSON.parse(v) : (Array.isArray(v) ? v : []);
                 } catch (e) { /* noop */ }
             }
@@ -952,7 +972,12 @@ export default {
 
         compactEnd() {
             if (this.rangeEnd) return isoDate(this.rangeEnd);
-            return this.props.calSelectedEnd || '';
+            // Only fall back to the committed prop value when NOT mid-selection.
+            // During step 1 (start chosen, awaiting end click) rangeEnd is null
+            // but props.calSelectedEnd still holds the PREVIOUS range's end —
+            // returning it here would draw a spurious stale range on the grid.
+            if (this.compactClickStep === 0) return this.props.calSelectedEnd || '';
+            return '';
         },
 
         compactStartDisplay() {
@@ -1077,7 +1102,7 @@ export default {
                     }
                 } catch (e) { /* fall through */ }
             }
-            return [
+            const fallback = [
                 { key: 'today',      label: 'Сегодня' },
                 { key: 'yesterday',  label: 'Вчера' },
                 { key: 'week',       label: 'Эта неделя' },
@@ -1089,6 +1114,7 @@ export default {
                 { key: 'd90',        label: '90 дней' },
                 { key: 'year',       label: 'Этот год' }
             ];
+            return simplified ? fallback.filter(p => !SINGLE_DAY_KEYS.includes(p.key)) : fallback;
         },
 
         compactInnerStyle() {
@@ -1133,10 +1159,18 @@ export default {
         'props.calSelectedDate'(v) {
             if (v) { const d = parseIso(v); if (d) this.navDate = new Date(d); }
         },
+        // ── Store-backed data: refresh cache when var names change ────
+        'props.calEventsVar': {
+            immediate: true,
+            handler() { this._refreshStoreEvents(); }
+        },
         // ── Heatmap auto-toggle ──────────────────────────────────────
         // Enable heatmap automatically when any metric source is provided;
         // disable when all sources are cleared.
-        'props.calMetricVar'()   { this._autoHeatmap(); },
+        'props.calMetricVar': {
+            immediate: true,
+            handler() { this._autoHeatmap(); this._refreshStoreMetric(); }
+        },
         'props.calMetricJson'()  { this._autoHeatmap(); },
         'props.calMetricDataCol'() { this._autoHeatmap(); }
     },
@@ -1165,8 +1199,11 @@ export default {
         this._tickNow();
         this.nowTimer = setInterval(() => this._tickNow(), 60000);
 
-        // Restore time component from stored timestamps when calWithTime is enabled
+        // Restore time defaults from props when calWithTime is enabled.
+        // Store-based values (actual user-edited times) will override via watchStore.
         if (this.props.calWithTime) {
+            this.rangeStartTime = this.props.calDefaultStartTime || '00:00';
+            this.rangeEndTime = this.props.calDefaultEndTime || '23:59';
         }
     },
 
@@ -1205,11 +1242,6 @@ export default {
             };
         },
 
-        _buildDayFull(date) {
-            const day = this._buildDay(date, true);
-            return day;
-        },
-
         _eventsForDay(date) {
             const iso = isoDate(date);
             return this.parsedEvents.filter((ev) => {
@@ -1230,6 +1262,12 @@ export default {
             else if (this.currentView === 'agenda') d.setMonth(d.getMonth() - 1);
             else if (this.currentView === 'year') d.setFullYear(d.getFullYear() - 1);
             this.navDate = d;
+            // In dual-month compact mode navDate2 must stay at least one month ahead
+            if (this.compactMode && this.props.calCompactDualMonth) {
+                const n1 = d.getFullYear() * 12 + d.getMonth();
+                const n2 = this.navDate2.getFullYear() * 12 + this.navDate2.getMonth();
+                if (n2 <= n1) this.navDate2 = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+            }
         },
 
         nextPeriod() {
@@ -1241,11 +1279,21 @@ export default {
             else if (this.currentView === 'agenda') d.setMonth(d.getMonth() + 1);
             else if (this.currentView === 'year') d.setFullYear(d.getFullYear() + 1);
             this.navDate = d;
+            // In dual-month compact mode navDate2 must stay at least one month ahead
+            if (this.compactMode && this.props.calCompactDualMonth) {
+                const n1 = d.getFullYear() * 12 + d.getMonth();
+                const n2 = this.navDate2.getFullYear() * 12 + this.navDate2.getMonth();
+                if (n2 <= n1) this.navDate2 = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+            }
         },
 
         prevPeriod2() {
             const d = new Date(this.navDate2);
             d.setMonth(d.getMonth() - 1);
+            // navDate2 must remain strictly after navDate (by at least one month)
+            const n1 = this.navDate.getFullYear() * 12 + this.navDate.getMonth();
+            const n2 = d.getFullYear() * 12 + d.getMonth();
+            if (n2 <= n1) return;
             this.navDate2 = d;
         },
 
@@ -1257,6 +1305,9 @@ export default {
 
         goToday() {
             this.navDate = new Date();
+            if (this.compactMode && this.props.calCompactDualMonth) {
+                this.navDate2 = new Date(this.navDate.getFullYear(), this.navDate.getMonth() + 1, 1);
+            }
         },
 
         setView(v) {
@@ -1317,6 +1368,7 @@ export default {
         },
 
         onWeekColClick(day) {
+            if (this.props.calSelectionMode === SELECTION_MODES.NONE) return;
             this._commitDate(day.iso);
         },
 
@@ -1343,7 +1395,8 @@ export default {
             this.props.calSelectedDate = iso;
             if (!this.isEditorMode) this.propChanged('calSelectedDate');
             if (this.props.calWithTime) {
-                const ts = this._isoTimeToTs(iso, this.props.calDefaultStartTime || '00:00');
+                const time = this.rangeStartTime || this.props.calDefaultStartTime || '00:00';
+                const ts = this._isoTimeToTs(iso, time);
                 this.$storeCommit({ date: ts });
             } else {
                 this.$storeCommit({ date: iso });
@@ -1425,7 +1478,8 @@ export default {
 
         weekEventStyle(ev) {
             const [sh, sm] = (ev.startTime || '00:00').split(':').map(Number);
-            const [eh, em] = (ev.endTime || `${sh + 1}:00`).split(':').map(Number);
+            const endFallback = sh >= 23 ? '23:59' : `${sh + 1}:00`;
+            const [eh, em] = (ev.endTime || endFallback).split(':').map(Number);
             const top = (sh + sm / 60) * HOUR_HEIGHT;
             const height = Math.max((eh + em / 60 - sh - sm / 60) * HOUR_HEIGHT, 20);
             return {
@@ -1520,9 +1574,8 @@ export default {
         },
 
         applyPreset(p) {
-            this.activePreset = p.key;
             const t = this.today;
-            const y = t.getFullYear(), m = t.getMonth(), d = t.getDate();
+            const y = t.getFullYear(), m = t.getMonth();
             let s, e;
             if (p.start != null) {
                 s = p.start;
@@ -1541,6 +1594,7 @@ export default {
             else if (p.key === 'd90')   { s = isoDate(addDays(t, -89)); e = isoDate(t); }
             else if (p.key === 'year')  { s = `${y}-01-01`; e = `${y}-12-31`; }
             if (s) {
+                this.activePreset = p.key;
                 if (this.props.calWithTime) {
                     this.rangeStartTime = this.props.calDefaultStartTime || '00:00';
                     this.rangeEndTime = this.props.calDefaultEndTime || '23:59';
@@ -1557,6 +1611,7 @@ export default {
             // commit only `date` — no range variables written
             if (start && start === end) {
                 this.rangeEnd = null;
+                this.props.calSelectedEnd = '';  // clear stale end so compactEnd returns ''
                 // Auto-commit only when there is no Apply button to confirm
                 if (!this.props.calCompactShowBottom) this._commitDate(start);
             } else {
@@ -1672,11 +1727,11 @@ export default {
             if (!val) return;
             this.activePreset = null;
             if (this.props.calWithTime) {
-                const parsed = this._parseDisplayDateTime(val);
-                if (!parsed) return;
-                this.rangeStartTime = parsed.time;
-                const endIso = this.compactEnd && this.compactEnd >= parsed.iso ? this.compactEnd : parsed.iso;
-                this._setCompactRange(parsed.iso, endIso);
+                // val from <input type="date"> is YYYY-MM-DD; time is managed separately
+                const iso = val.slice(0, 10);
+                if (iso.length < 10) return;
+                const endIso = this.compactEnd && this.compactEnd >= iso ? this.compactEnd : iso;
+                this._setCompactRange(iso, endIso);
             } else {
                 this._setCompactRange(val, this.compactEnd && this.compactEnd >= val ? this.compactEnd : val);
             }
@@ -1686,11 +1741,11 @@ export default {
             if (!val) return;
             this.activePreset = null;
             if (this.props.calWithTime) {
-                const parsed = this._parseDisplayDateTime(val);
-                if (!parsed) return;
-                this.rangeEndTime = parsed.time;
-                const startIso = this.compactStart && this.compactStart <= parsed.iso ? this.compactStart : parsed.iso;
-                this._setCompactRange(startIso, parsed.iso);
+                // val from <input type="date"> is YYYY-MM-DD; time is managed separately
+                const iso = val.slice(0, 10);
+                if (iso.length < 10) return;
+                const startIso = this.compactStart && this.compactStart <= iso ? this.compactStart : iso;
+                this._setCompactRange(startIso, iso);
             } else {
                 this._setCompactRange(this.compactStart && this.compactStart <= val ? this.compactStart : val, val);
             }
@@ -1818,6 +1873,26 @@ export default {
             this.today = new Date();
         },
 
+        // ── Store-sourced data cache refresh ─────────────────────────
+        // Direct access to store.state is non-reactive in computed properties.
+        // These methods read from the store and write to local reactive data,
+        // making parsedEvents / metricData update when the store changes.
+        _refreshStoreEvents() {
+            if (!this.props.calEventsVar) { this._eventsStoreRaw = null; return; }
+            try {
+                const v = store.state[this.props.calEventsVar]?.value;
+                this._eventsStoreRaw = v != null ? v : null;
+            } catch (e) { this._eventsStoreRaw = null; }
+        },
+
+        _refreshStoreMetric() {
+            if (!this.props.calMetricVar) { this._metricStoreRaw = null; return; }
+            try {
+                const v = store.state[this.props.calMetricVar]?.value;
+                this._metricStoreRaw = v != null ? v : null;
+            } catch (e) { this._metricStoreRaw = null; }
+        },
+
         // ── Store → local state sync helpers ─────────────────────────
         // Converts an incoming store value (ISO string OR timestamp ms) into
         // { iso: 'YYYY-MM-DD', time: 'HH:mm' | null }. Returns null on empty.
@@ -1855,6 +1930,7 @@ export default {
                 this.props.calSelectedDate = '';
             } else {
                 this.props.calSelectedDate = iso;
+                if (parsed.time && this.props.calWithTime) this.rangeStartTime = parsed.time;
                 this._navigateTo(iso);
             }
         },
@@ -1902,8 +1978,11 @@ export default {
             try {
                 const parsed = Array.isArray(val) ? val : JSON.parse(val);
                 if (!Array.isArray(parsed)) return;
-                const newDates = parsed.map(String).filter(Boolean).sort();
-                if (newDates.join(',') === this.selectedDates.slice().sort().join(',')) return;
+                const newDates = parsed
+                    .filter(v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v))
+                    .map(v => v.slice(0, 10))
+                    .sort();
+                if (JSON.stringify(newDates) === JSON.stringify(this.selectedDates.slice().sort())) return;
                 this.selectedDates = newDates;
                 this.props.calSelectedDates = JSON.stringify(newDates);
                 if (newDates.length) this._navigateTo(newDates[0]);
