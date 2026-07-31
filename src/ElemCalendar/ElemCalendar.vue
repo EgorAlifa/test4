@@ -1,5 +1,5 @@
 <template>
-    <w-elem :style="compactMode ? (props.calCompactShowCalendar === false ? 'display:block;width:100%' : 'display:inline-block') : 'height:100%;display:block'">
+    <w-elem :style="compactMode ? ((props.calCompactShowCalendar === false || props.calCompactDualMonth) ? 'display:block;width:100%' : 'display:inline-block') : 'height:100%;display:block'">
     <div class="elem-cal" :class="calDynamicClass" :style="[cssStyle, calCssVars]">
         <!-- ── Header (full mode only) ─────────────────────────────── -->
         <div v-if="props.calShowHeader && !compactMode" class="elem-cal__header">
@@ -45,7 +45,7 @@
         </div>
 
         <!-- ── Compact mode (dashboard date-range picker) ───────────── -->
-        <div v-if="compactMode" class="elem-cal__compact" :class="{ 'elem-cal__compact--wide': props.calCompactShowCalendar === false }">
+        <div v-if="compactMode" class="elem-cal__compact" :class="{ 'elem-cal__compact--wide': props.calCompactShowCalendar === false || props.calCompactDualMonth }">
           <div class="compact__inner" :style="compactInnerStyle">
 
             <!-- Preset chips -->
@@ -1119,6 +1119,7 @@ export default {
 
         compactInnerStyle() {
             if (this.props.calCompactShowCalendar === false) return { width: 'auto' };
+            if (this.props.calCompactDualMonth) return { width: 'auto', minWidth: '520px' };
             return {};
         },
 
