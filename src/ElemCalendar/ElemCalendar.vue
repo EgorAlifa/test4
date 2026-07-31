@@ -1483,7 +1483,8 @@ export default {
 
         weekEventStyle(ev) {
             const [sh, sm] = (ev.startTime || '00:00').split(':').map(Number);
-            const [eh, em] = (ev.endTime || `${sh + 1}:00`).split(':').map(Number);
+            const endFallback = sh >= 23 ? '23:59' : `${sh + 1}:00`;
+            const [eh, em] = (ev.endTime || endFallback).split(':').map(Number);
             const top = (sh + sm / 60) * HOUR_HEIGHT;
             const height = Math.max((eh + em / 60 - sh - sm / 60) * HOUR_HEIGHT, 20);
             return {
@@ -1982,7 +1983,10 @@ export default {
             try {
                 const parsed = Array.isArray(val) ? val : JSON.parse(val);
                 if (!Array.isArray(parsed)) return;
-                const newDates = parsed.map(String).filter(Boolean).sort();
+                const newDates = parsed
+                    .filter(v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v))
+                    .map(v => v.slice(0, 10))
+                    .sort();
                 if (newDates.join(',') === this.selectedDates.slice().sort().join(',')) return;
                 this.selectedDates = newDates;
                 this.props.calSelectedDates = JSON.stringify(newDates);
