@@ -239,8 +239,8 @@ export default {
         isOpen(key) { return this.openKeys.includes(key); },
         toggle(key) {
             const idx = this.openKeys.indexOf(key);
-            if (idx >= 0) this.openKeys.splice(idx, 1);
-            else this.openKeys.push(key);
+            if (idx >= 0) this.openKeys = this.openKeys.filter((_, i) => i !== idx);
+            else this.openKeys = [...this.openKeys, key];
         },
 
         getVal(key) { return this.cssData[key] || ''; },

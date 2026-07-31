@@ -284,7 +284,7 @@
                 </div>
             </div>
             <div class="elem-cal__grid">
-                <template v-for="(week, wi) in monthWeeks">
+                <template v-for="(week, wi) in monthWeeks" :key="`week-${wi}`">
                     <div v-if="props.calShowWeekNumbers" :key="`wn-${wi}`" class="elem-cal__wnum">
                         {{ week.num }}
                     </div>
@@ -440,7 +440,7 @@
                 <div class="elem-cal__year-month-hd" @click="goToMonth(month.m)">{{ month.label }}</div>
                 <div class="elem-cal__year-month-grid">
                     <div v-for="(wd, wi) in weekdayHeaders" :key="`yw-${wi}`" class="elem-cal__year-wd">{{ wd.charAt(0) }}</div>
-                    <template v-for="(cell, ci) in month.cells">
+                    <template v-for="(cell, ci) in month.cells" :key="`cell-${month.m}-${ci}`">
                         <div
                             v-if="cell"
                             :key="`yd-${month.m}-${ci}`"
@@ -734,14 +734,14 @@ export default {
             const days = [];
             for (let i = 0; i < 7; i++) {
                 const d = addDays(start, i);
-                days.push(this._buildDayFull(d));
+                days.push(this._buildDay(d, true));
             }
             return days;
         },
 
         // ── Day view ─────────────────────────────────────────────────
         dayViewDay() {
-            return this._buildDayFull(this.navDate);
+            return this._buildDay(this.navDate, true);
         },
 
         dayViewEvents() {
@@ -1242,11 +1242,6 @@ export default {
             };
         },
 
-        _buildDayFull(date) {
-            const day = this._buildDay(date, true);
-            return day;
-        },
-
         _eventsForDay(date) {
             const iso = isoDate(date);
             return this.parsedEvents.filter((ev) => {
@@ -1580,7 +1575,7 @@ export default {
 
         applyPreset(p) {
             const t = this.today;
-            const y = t.getFullYear(), m = t.getMonth(), d = t.getDate();
+            const y = t.getFullYear(), m = t.getMonth();
             let s, e;
             if (p.start != null) {
                 s = p.start;
@@ -1987,7 +1982,7 @@ export default {
                     .filter(v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v))
                     .map(v => v.slice(0, 10))
                     .sort();
-                if (newDates.join(',') === this.selectedDates.slice().sort().join(',')) return;
+                if (JSON.stringify(newDates) === JSON.stringify(this.selectedDates.slice().sort())) return;
                 this.selectedDates = newDates;
                 this.props.calSelectedDates = JSON.stringify(newDates);
                 if (newDates.length) this._navigateTo(newDates[0]);

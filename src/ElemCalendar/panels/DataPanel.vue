@@ -94,7 +94,7 @@
                     <div v-if="localEvents.length === 0" class="ev-empty">Нет событий</div>
 
                     <div class="ev-list">
-                        <div v-for="(ev, idx) in localEvents" :key="idx" class="ev-card">
+                        <div v-for="(ev, idx) in localEvents" :key="ev.id || (ev.date + '-' + idx)" class="ev-card">
                             <div class="ev-card__head">
                                 <button class="ev-card__color-btn" @click="openEvColor(idx)">
                                     <span class="ev-card__color-dot" :style="{ background: ev.color || '#4f6aff' }"></span>
@@ -170,7 +170,7 @@
                     <div v-if="localMetric.length === 0" class="ev-empty">Нет точек</div>
 
                     <div class="metric-list">
-                        <div v-for="(pt, idx) in localMetric" :key="idx" class="metric-card">
+                        <div v-for="(pt, idx) in localMetric" :key="pt.date || idx" class="metric-card">
                             <div class="ev-card__field" style="flex:1">
                                 <div class="ev-card__field-label">Дата</div>
                                 <input type="date" class="ev-card__input" :value="pt.date"

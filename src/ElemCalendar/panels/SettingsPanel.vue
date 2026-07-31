@@ -113,7 +113,7 @@
                         <div class="seg-ctrl">
                             <button
                                 class="seg-ctrl__btn"
-                                :class="{ 'seg-ctrl__btn--active': props.calSelectionMode !== 'single' }"
+                                :class="{ 'seg-ctrl__btn--active': props.calSelectionMode === 'range' }"
                                 @click="set('calSelectionMode', 'range')">
                                 Диапазон
                             </button>
