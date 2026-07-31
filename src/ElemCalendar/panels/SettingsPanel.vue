@@ -271,11 +271,11 @@
                     </div>
 
                     <!-- inline add form -->
-                    <div v-if="!addingPreset" key="preset-trigger" class="preset-add-trigger">
+                    <div v-if="!addingPreset" :key="'preset-trigger'" class="preset-add-trigger">
                         <button class="preset-add-trigger-btn" @click="startAddPreset">+ Добавить пресет</button>
                         <button class="preset-action-btn" @click="resetPresetsToDefault">По умолчанию</button>
                     </div>
-                    <div v-if="addingPreset" key="preset-form" ref="presetForm" class="preset-add-form">
+                    <div v-if="addingPreset" :key="'preset-form'" ref="presetForm" class="preset-add-form">
                         <input
                             class="preset-add-form__input"
                             type="text"
