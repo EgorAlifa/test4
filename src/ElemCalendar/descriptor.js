@@ -356,6 +356,76 @@ export const descriptor = () => ({
             default: '10px',
             label: 'Тултип: скругление'
         },
+        calTooltipOpacity: {
+            type: Number,
+            default: 100,
+            label: 'Тултип: непрозрачность фона (0-100%)'
+        },
+        calTooltipFontFamily: {
+            type: String,
+            default: '',
+            label: 'Тултип: шрифт'
+        },
+        calTooltipFontSize: {
+            type: String,
+            default: '12px',
+            label: 'Тултип: размер шрифта'
+        },
+        calTooltipShadow: {
+            type: String,
+            default: '0 8px 32px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.14)',
+            label: 'Тултип: тень'
+        },
+        calTooltipBorderWidth: {
+            type: String,
+            default: '0px',
+            label: 'Тултип: толщина рамки'
+        },
+        calTooltipBorderColor: {
+            type: String,
+            default: 'rgba(255,255,255,0.15)',
+            label: 'Тултип: цвет рамки'
+        },
+        calTooltipPosition: {
+            type: String,
+            default: 'right',
+            label: 'Тултип: положение относительно курсора/ячейки (right/left/top/bottom/cursor)'
+        },
+        calTooltipOffsetX: {
+            type: Number,
+            default: 8,
+            label: 'Тултип: смещение по X (px)'
+        },
+        calTooltipOffsetY: {
+            type: Number,
+            default: 0,
+            label: 'Тултип: смещение по Y (px)'
+        },
+        calTooltipMinWidth: {
+            type: String,
+            default: '165px',
+            label: 'Тултип: мин. ширина'
+        },
+        calTooltipMaxWidth: {
+            type: String,
+            default: '245px',
+            label: 'Тултип: макс. ширина'
+        },
+        calTooltipMinHeight: {
+            type: String,
+            default: '',
+            label: 'Тултип: мин. высота'
+        },
+        calTooltipMaxHeight: {
+            type: String,
+            default: '',
+            label: 'Тултип: макс. высота'
+        },
+        calTooltipShowMetric: {
+            type: Boolean,
+            default: true,
+            label: 'Тултип: показывать доп. метрику (если задана)'
+        },
         // ── Refresh event ─────────────────────────────────────────────
         events: {
             type: Object,

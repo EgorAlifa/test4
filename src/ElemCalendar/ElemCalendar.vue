@@ -679,10 +679,29 @@ export default {
                 '--cal-font-weight':      p.calFontWeight || '400',
                 '--cal-letter-spacing':   p.calLetterSpacing || '0',
                 '--cal-text-transform':   p.calTextTransform || 'none',
-                '--cal-tooltip-bg':       p.calTooltipBg || '#1e293b',
-                '--cal-tooltip-color':    p.calTooltipColor || '#f1f5f9',
-                '--cal-tooltip-radius':   p.calTooltipRadius || '10px'
+                '--cal-tooltip-bg':          this.tooltipBgColor,
+                '--cal-tooltip-color':       p.calTooltipColor || '#f1f5f9',
+                '--cal-tooltip-radius':      p.calTooltipRadius || '10px',
+                '--cal-tooltip-font-family': p.calTooltipFontFamily || 'inherit',
+                '--cal-tooltip-font-size':   p.calTooltipFontSize || '12px',
+                '--cal-tooltip-shadow':      p.calTooltipShadow || '0 8px 32px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.14)',
+                '--cal-tooltip-border':      (p.calTooltipBorderWidth && p.calTooltipBorderWidth !== '0px') ? `${p.calTooltipBorderWidth} solid ${p.calTooltipBorderColor || 'rgba(255,255,255,0.15)'}` : 'none',
+                '--cal-tooltip-min-width':   p.calTooltipMinWidth || '165px',
+                '--cal-tooltip-max-width':   p.calTooltipMaxWidth || '245px',
+                '--cal-tooltip-min-height':  p.calTooltipMinHeight || '0',
+                '--cal-tooltip-max-height':  p.calTooltipMaxHeight || 'none'
             };
+        },
+
+        // Tooltip background as rgba, blending calTooltipBg with calTooltipOpacity
+        tooltipBgColor() {
+            const hex = this.props.calTooltipBg || '#1e293b';
+            const opacity = this.props.calTooltipOpacity;
+            if (opacity == null || opacity === '' || Number(opacity) >= 100) return hex;
+            const rgb = hexToRgb(hex);
+            if (!rgb) return hex;
+            const a = Math.max(0, Math.min(100, Number(opacity))) / 100;
+            return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${a})`;
         },
 
         // ── Dataset result ───────────────────────────────────────────
@@ -970,6 +989,7 @@ export default {
 
         tooltipMetricVal() {
             if (!this.tooltipDay || !this.props.calHeatmapEnabled) return null;
+            if (this.props.calTooltipShowMetric === false) return null;
             const val = this.getMetricValue(this.tooltipDay.iso);
             return val !== undefined ? this.formatMetric(val) : null;
         },
@@ -1540,8 +1560,34 @@ export default {
         // ── Tooltip ──────────────────────────────────────────────────
         showTooltip(day, event) {
             const rect = event.currentTarget.getBoundingClientRect();
-            const x = Math.min(rect.right + 8, window.innerWidth - 260);
-            const y = Math.max(4, Math.min(rect.top, window.innerHeight - 210));
+            const offsetX = Number(this.props.calTooltipOffsetX) || 0;
+            const offsetY = Number(this.props.calTooltipOffsetY) || 0;
+            const tw = parseInt(this.props.calTooltipMaxWidth, 10) || 245;
+            const th = parseInt(this.props.calTooltipMaxHeight, 10) || 210;
+            let x, y;
+            switch (this.props.calTooltipPosition) {
+                case 'cursor':
+                    x = event.clientX + offsetX;
+                    y = event.clientY + offsetY;
+                    break;
+                case 'left':
+                    x = rect.left - tw - offsetX;
+                    y = rect.top + offsetY;
+                    break;
+                case 'top':
+                    x = rect.left + offsetX;
+                    y = rect.top - th - offsetY;
+                    break;
+                case 'bottom':
+                    x = rect.left + offsetX;
+                    y = rect.bottom + offsetY;
+                    break;
+                default: // 'right'
+                    x = rect.right + offsetX;
+                    y = rect.top + offsetY;
+            }
+            x = Math.max(4, Math.min(x, window.innerWidth - tw - 4));
+            y = Math.max(4, Math.min(y, window.innerHeight - th - 4));
             this.tooltipDay = day;
             this.tooltipMeta = { x, y };
         },
@@ -2832,15 +2878,21 @@ export default {
 
 /* ── Tooltip ─────────────────────────────────────────────────────── */
 .elem-cal__tooltip {
-    min-width: 165px;
-    max-width: 245px;
+    min-width: var(--cal-tooltip-min-width, 165px);
+    max-width: var(--cal-tooltip-max-width, 245px);
+    min-height: var(--cal-tooltip-min-height, 0);
+    max-height: var(--cal-tooltip-max-height, none);
+    overflow: auto;
     padding: 10px 12px;
     background: var(--cal-tooltip-bg);
     color: var(--cal-tooltip-color);
     border-radius: var(--cal-tooltip-radius);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.14);
-    font-size: 12px;
+    border: var(--cal-tooltip-border, none);
+    box-shadow: var(--cal-tooltip-shadow);
+    font-family: var(--cal-tooltip-font-family, inherit);
+    font-size: var(--cal-tooltip-font-size, 12px);
     line-height: 1.4;
+    box-sizing: border-box;
 }
 
 .elem-cal__tooltip-date {
