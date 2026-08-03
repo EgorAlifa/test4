@@ -165,6 +165,27 @@ export const descriptor = () => ({
             default: '',
             label: 'Переменная хранилища: метрика'
         },
+        // ── Input variables (listen from store) ───────────────────────
+        calDateVar: {
+            type: String,
+            default: '',
+            label: 'Входящая переменная: дата (слушать из хранилища)'
+        },
+        calDateStartVar: {
+            type: String,
+            default: '',
+            label: 'Входящая переменная: начало диапазона (слушать)'
+        },
+        calDateEndVar: {
+            type: String,
+            default: '',
+            label: 'Входящая переменная: конец диапазона (слушать)'
+        },
+        calDatesListVar: {
+            type: String,
+            default: '',
+            label: 'Входящая переменная: список дат (слушать)'
+        },
         calMetricJson: {
             type: String,
             default: '',
