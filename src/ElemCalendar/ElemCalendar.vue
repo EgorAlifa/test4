@@ -1614,12 +1614,25 @@ export default {
                 this.rangeEnd = null;
                 this.props.calSelectedEnd = '';  // clear stale end so compactEnd returns ''
                 // Auto-commit only when there is no Apply button to confirm
-                if (!this.props.calCompactShowBottom) this._commitDate(start);
+                if (!this.props.calCompactShowBottom) {
+                    if ((this.props.calSelectionMode || 'single') === 'range') {
+                        this._commitRange(start, start);
+                    } else {
+                        this._commitDate(start);
+                    }
+                }
             } else {
                 this.rangeEnd = parseIso(end);
                 if (!this.props.calCompactShowBottom) this._commitRange(start, end);
             }
-            if (this.rangeStart) this.navDate = new Date(this.rangeStart.getFullYear(), this.rangeStart.getMonth(), 1);
+            if (this.rangeStart) {
+                this.navDate = new Date(this.rangeStart.getFullYear(), this.rangeStart.getMonth(), 1);
+                if (this.props.calCompactDualMonth) {
+                    const n1 = this.navDate.getFullYear() * 12 + this.navDate.getMonth();
+                    const n2 = this.navDate2.getFullYear() * 12 + this.navDate2.getMonth();
+                    if (n2 <= n1) this.navDate2 = new Date(this.navDate.getFullYear(), this.navDate.getMonth() + 1, 1);
+                }
+            }
         },
 
         // Two-click range selection on the mini calendar
@@ -1690,18 +1703,26 @@ export default {
         },
 
         onCompactApply() {
+            const isRange = (this.props.calSelectionMode || 'single') === 'range';
             if (this.compactClickStep === 1 && this.rangeStart) {
-                // User clicked Apply while still selecting end date — treat start as single-day range
+                // User clicked Apply mid-selection (only start chosen) — commit as one-day range/date
                 const iso = isoDate(this.rangeStart);
                 this.rangeEnd = null;
                 this.compactClickStep = 0;
                 this.compactHoverCell = null;
-                this._commitDate(iso);
+                if (isRange) {
+                    this._commitRange(iso, iso);
+                } else {
+                    this._commitDate(iso);
+                }
             } else if (this.rangeStart) {
                 // Step 0: range (or single date) already set locally — now commit it
                 const start = isoDate(this.rangeStart);
                 if (this.rangeEnd) {
                     this._commitRange(start, isoDate(this.rangeEnd));
+                } else if (isRange) {
+                    // Same-day preset (today/yesterday): rangeEnd is null but mode expects a range
+                    this._commitRange(start, start);
                 } else {
                     this._commitDate(start);
                 }
