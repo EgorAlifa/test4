@@ -623,6 +623,20 @@ export default {
     }),
 
     computed: {
+        // ── Reactive store-input reads (bypass varAliases/watchStore) ──
+        _storeInDate() {
+            return this.props.calDateVar ? store.state[this.props.calDateVar]?.value : undefined;
+        },
+        _storeInDateStart() {
+            return this.props.calDateStartVar ? store.state[this.props.calDateStartVar]?.value : undefined;
+        },
+        _storeInDateEnd() {
+            return this.props.calDateEndVar ? store.state[this.props.calDateEndVar]?.value : undefined;
+        },
+        _storeInDatesList() {
+            return this.props.calDatesListVar ? store.state[this.props.calDatesListVar]?.value : undefined;
+        },
+
         todayHighlight() {
             return this.props.calHighlightToday !== false;
         },
@@ -1164,6 +1178,39 @@ export default {
         'props.calEventsVar': {
             immediate: true,
             handler() { this._refreshStoreEvents(); }
+        },
+        // ── Input variable watchers (reactive store → calendar) ───────
+        '_storeInDate': {
+            immediate: true,
+            handler(val) {
+                if (this.isEditorMode || val === undefined) return;
+                const selMode = this.props.calSelectionMode || 'single';
+                if (selMode !== 'range' && selMode !== 'multi') this._applyStoreDate(val);
+            }
+        },
+        '_storeInDateStart': {
+            immediate: true,
+            handler(val) {
+                if (this.isEditorMode || val === undefined) return;
+                const selMode = this.props.calSelectionMode || 'single';
+                if (selMode === 'range') this._applyStoreDateRange(val, this._storeInDateEnd);
+            }
+        },
+        '_storeInDateEnd': {
+            immediate: true,
+            handler(val) {
+                if (this.isEditorMode || val === undefined) return;
+                const selMode = this.props.calSelectionMode || 'single';
+                if (selMode === 'range') this._applyStoreDateRange(this._storeInDateStart, val);
+            }
+        },
+        '_storeInDatesList': {
+            immediate: true,
+            handler(val) {
+                if (this.isEditorMode || val === undefined) return;
+                const selMode = this.props.calSelectionMode || 'single';
+                if (selMode === 'multi') this._applyStoreDatesList(val);
+            }
         },
         // ── Heatmap auto-toggle ──────────────────────────────────────
         // Enable heatmap automatically when any metric source is provided;
