@@ -35,14 +35,9 @@
 
                 <!-- Live preview -->
                 <div class="tooltip-preview-wrap">
-                    <div
-                        class="tooltip-preview"
-                        :style="{
-                            background: props.calTooltipBg || '#1e293b',
-                            color: props.calTooltipColor || '#f1f5f9',
-                            borderRadius: props.calTooltipRadius || '10px'
-                        }">
+                    <div class="tooltip-preview" :style="tooltipPreviewStyle">
                         <div class="tooltip-preview__date">Понедельник, 9 июня 2025</div>
+                        <div v-if="props.calTooltipShowMetric !== false" class="tooltip-preview__metric">◉ 42</div>
                         <div class="tooltip-preview__events">
                             <div class="tooltip-preview__ev">
                                 <span class="tooltip-preview__dot" :style="{ background: props.calAccentColor || '#4f6aff' }" />
@@ -57,18 +52,8 @@
                 </div>
 
                 <div class="tooltip-controls">
-                    <div class="tooltip-color-row">
-                        <ui-input-cp prop="calTooltipBg">Фон</ui-input-cp>
-                        <ui-input-cp prop="calTooltipColor">Текст</ui-input-cp>
-                    </div>
-                    <div class="p-field-label" style="margin-top:8px">Скругление</div>
-                    <div class="slider-row">
-                        <input type="range" class="slider" min="0" max="24"
-                            :value="parseRadius(props.calTooltipRadius)"
-                            @input="set('calTooltipRadius', $event.target.value + 'px')" />
-                        <span class="slider-val">{{ props.calTooltipRadius || '10px' }}</span>
-                    </div>
-                    <div class="p-field-label" style="margin-top:8px">Показывать тултип</div>
+                    <!-- Видимость -->
+                    <div class="p-field-label">Показывать тултип</div>
                     <label class="toggle-row">
                         <span class="toggle-row__label">В полном календаре</span>
                         <div class="toggle" :class="{ 'toggle--on': props.calShowTooltip !== false }" @click="toggleBool('calShowTooltip')">
@@ -81,6 +66,125 @@
                             <div class="toggle__thumb" />
                         </div>
                     </label>
+                    <label class="toggle-row">
+                        <span class="toggle-row__label">Доп. метрика в тултипе</span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calTooltipShowMetric !== false }" @click="toggleBool('calTooltipShowMetric')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
+
+                    <!-- Текст -->
+                    <div class="p-field-label" style="margin-top:10px">Шрифт, размер, цвет текста</div>
+                    <div class="font-grid">
+                        <button
+                            v-for="f in fontFamilyOptions"
+                            :key="`tt-ff-${f.value}`"
+                            class="font-chip"
+                            :class="{ 'font-chip--active': (props.calTooltipFontFamily || '') === f.value }"
+                            :style="{ fontFamily: f.value || 'inherit' }"
+                            @click="set('calTooltipFontFamily', f.value)">
+                            {{ f.label }}
+                        </button>
+                    </div>
+                    <div class="seg-ctrl" style="margin-top:6px">
+                        <button
+                            v-for="fs in fontSizes"
+                            :key="`tt-fs-${fs.value}`"
+                            class="seg-ctrl__btn"
+                            :class="{ 'seg-ctrl__btn--active': (props.calTooltipFontSize || '12px') === fs.value }"
+                            @click="set('calTooltipFontSize', fs.value)">
+                            {{ fs.label }}
+                        </button>
+                    </div>
+                    <div class="tooltip-color-row" style="margin-top:8px">
+                        <ui-input-cp prop="calTooltipColor">Цвет текста</ui-input-cp>
+                    </div>
+
+                    <!-- Фон / прозрачность -->
+                    <div class="p-field-label" style="margin-top:10px">Цвет фона / прозрачность</div>
+                    <div class="tooltip-color-row">
+                        <ui-input-cp prop="calTooltipBg">Фон</ui-input-cp>
+                    </div>
+                    <div class="slider-row" style="margin-top:6px">
+                        <input type="range" class="slider" min="0" max="100"
+                            :value="props.calTooltipOpacity != null ? props.calTooltipOpacity : 100"
+                            @input="set('calTooltipOpacity', Number($event.target.value))" />
+                        <span class="slider-val">{{ props.calTooltipOpacity != null ? props.calTooltipOpacity : 100 }}%</span>
+                    </div>
+
+                    <!-- Скругление, тень, рамка -->
+                    <div class="p-field-label" style="margin-top:10px">Скругление углов</div>
+                    <div class="slider-row">
+                        <input type="range" class="slider" min="0" max="24"
+                            :value="parseRadius(props.calTooltipRadius)"
+                            @input="set('calTooltipRadius', $event.target.value + 'px')" />
+                        <span class="slider-val">{{ props.calTooltipRadius || '10px' }}</span>
+                    </div>
+                    <div class="p-field-label" style="margin-top:8px">Тень</div>
+                    <div class="shadow-chips">
+                        <button
+                            v-for="s in shadowPresets"
+                            :key="`tt-sh-${s.label}`"
+                            class="shadow-chip"
+                            :class="{ 'shadow-chip--active': props.calTooltipShadow === s.value }"
+                            @click="set('calTooltipShadow', s.value)">
+                            {{ s.label }}
+                        </button>
+                    </div>
+                    <div class="p-field-label" style="margin-top:8px">Рамка</div>
+                    <div class="slider-row">
+                        <input type="range" class="slider" min="0" max="4"
+                            :value="parseRadius(props.calTooltipBorderWidth)"
+                            @input="set('calTooltipBorderWidth', $event.target.value + 'px')" />
+                        <span class="slider-val">{{ props.calTooltipBorderWidth || '0px' }}</span>
+                    </div>
+                    <div v-if="parseRadius(props.calTooltipBorderWidth) > 0" class="tooltip-color-row" style="margin-top:6px">
+                        <ui-input-cp prop="calTooltipBorderColor">Цвет рамки</ui-input-cp>
+                    </div>
+
+                    <!-- Положение относительно курсора -->
+                    <div class="p-field-label" style="margin-top:10px">Положение относительно курсора/ячейки</div>
+                    <div class="seg-ctrl seg-ctrl--wrap">
+                        <button
+                            v-for="pos in tooltipPositions"
+                            :key="pos.value"
+                            class="seg-ctrl__btn"
+                            :class="{ 'seg-ctrl__btn--active': (props.calTooltipPosition || 'right') === pos.value }"
+                            @click="set('calTooltipPosition', pos.value)">
+                            {{ pos.label }}
+                        </button>
+                    </div>
+                    <div class="tooltip-field-row" style="margin-top:8px">
+                        <span class="tooltip-field-row__label">Смещение X / Y (px)</span>
+                        <div class="tooltip-dual-input">
+                            <input type="number" class="tooltip-num-input"
+                                :value="props.calTooltipOffsetX != null ? props.calTooltipOffsetX : 8"
+                                @change="set('calTooltipOffsetX', Number($event.target.value))" />
+                            <input type="number" class="tooltip-num-input"
+                                :value="props.calTooltipOffsetY != null ? props.calTooltipOffsetY : 0"
+                                @change="set('calTooltipOffsetY', Number($event.target.value))" />
+                        </div>
+                    </div>
+
+                    <!-- Размеры -->
+                    <div class="p-field-label" style="margin-top:10px">Ширина, мин / макс</div>
+                    <div class="tooltip-dual-input">
+                        <input type="text" class="tooltip-num-input" placeholder="165px"
+                            :value="props.calTooltipMinWidth"
+                            @change="set('calTooltipMinWidth', $event.target.value)" />
+                        <input type="text" class="tooltip-num-input" placeholder="245px"
+                            :value="props.calTooltipMaxWidth"
+                            @change="set('calTooltipMaxWidth', $event.target.value)" />
+                    </div>
+                    <div class="p-field-label" style="margin-top:8px">Высота, мин / макс</div>
+                    <div class="tooltip-dual-input">
+                        <input type="text" class="tooltip-num-input" placeholder="auto"
+                            :value="props.calTooltipMinHeight"
+                            @change="set('calTooltipMinHeight', $event.target.value)" />
+                        <input type="text" class="tooltip-num-input" placeholder="auto"
+                            :value="props.calTooltipMaxHeight"
+                            @change="set('calTooltipMaxHeight', $event.target.value)" />
+                    </div>
                 </div>
             </div>
 
@@ -250,6 +354,13 @@
 import { Panel } from 'goodt-wcore';
 import { PRESETS, buildDemoEvents } from '../constants';
 
+function hexToRgb(hex) {
+    if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return null;
+    const c = hex.length === 4 ? hex.replace(/([^#])/g, '$1$1') : hex;
+    const m = /^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(c);
+    return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : null;
+}
+
 export default {
     extends: Panel,
     meta: { name: 'Оформление', icon: 'brush' },
@@ -307,6 +418,13 @@ export default {
             { label: 'M',    value: '0 4px 24px rgba(79,106,255,0.10), 0 1px 4px rgba(0,0,0,0.06)' },
             { label: 'L',    value: '0 8px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08)' },
             { label: 'XL',   value: '0 16px 64px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.1)' }
+        ],
+        tooltipPositions: [
+            { label: 'Справа',   value: 'right' },
+            { label: 'Слева',    value: 'left' },
+            { label: 'Сверху',   value: 'top' },
+            { label: 'Снизу',    value: 'bottom' },
+            { label: 'За курсором', value: 'cursor' }
         ]
     }),
 
@@ -314,6 +432,29 @@ export default {
         letterSpacingVal() {
             const v = parseFloat(this.props.calLetterSpacing || '0');
             return isNaN(v) ? 0 : v;
+        },
+        tooltipPreviewBg() {
+            const hex = this.props.calTooltipBg || '#1e293b';
+            const opacity = this.props.calTooltipOpacity;
+            if (opacity == null || opacity === '' || Number(opacity) >= 100) return hex;
+            const rgb = hexToRgb(hex);
+            if (!rgb) return hex;
+            const a = Math.max(0, Math.min(100, Number(opacity))) / 100;
+            return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${a})`;
+        },
+        tooltipPreviewStyle() {
+            const p = this.props;
+            return {
+                background: this.tooltipPreviewBg,
+                color: p.calTooltipColor || '#f1f5f9',
+                borderRadius: p.calTooltipRadius || '10px',
+                fontFamily: p.calTooltipFontFamily || 'inherit',
+                fontSize: p.calTooltipFontSize || '12px',
+                boxShadow: p.calTooltipShadow || '0 8px 32px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.14)',
+                border: (p.calTooltipBorderWidth && p.calTooltipBorderWidth !== '0px') ? `${p.calTooltipBorderWidth} solid ${p.calTooltipBorderColor || 'rgba(255,255,255,0.15)'}` : 'none',
+                minWidth: p.calTooltipMinWidth || '165px',
+                maxWidth: p.calTooltipMaxWidth || '245px'
+            };
         }
     },
 
@@ -650,6 +791,41 @@ export default {
 .tooltip-preview__ev { display: flex; align-items: center; gap: 6px; font-size: 0.9em; }
 .tooltip-preview__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .tooltip-preview__title { opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tooltip-preview__metric {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.10);
+    border-radius: 6px;
+    margin-bottom: 7px;
+    font-size: 0.92em;
+    font-weight: 700;
+}
+
+/* ── Tooltip position / size fields ───────────────────────────── */
+.tooltip-field-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.tooltip-field-row__label { font-size: 11px; color: #64748b; font-weight: 600; }
+.tooltip-dual-input { display: flex; gap: 6px; margin-top: 4px; }
+.tooltip-num-input {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 8px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 7px;
+    font-size: 11px;
+    color: #334155;
+    background: #f8fafc;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.12s;
+}
+.tooltip-num-input:focus { border-color: #4f6aff; background: #fff; }
 
 /* ── Tooltip toggle rows ──────────────────────────────────────── */
 .toggle-row {
