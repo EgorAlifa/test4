@@ -156,7 +156,7 @@
                 </template>
 
                 <!-- SINGLE-MONTH MODE -->
-                <template v-else>
+                <template v-if="!props.calCompactDualMonth">
                     <div class="compact__head">
                         <button class="compact__nav" @click="prevPeriod">
                             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -1946,8 +1946,11 @@ export default {
         _applyStoreDate(val) {
             const parsed = this._parseStoreDate(val);
             const iso = parsed ? parsed.iso : null;
-            const curIso = this.props.calSelectedDate || null;
-            if (iso === curIso) return;
+            // Use ?? '' so that null and '' both normalise to '' — prevents the
+            // early-return from firing when the prop is '' and iso is null
+            // (both would have become null with || null, hiding the clear).
+            const curIso = this.props.calSelectedDate ?? '';
+            if ((iso ?? '') === curIso) return;
             if (!iso) {
                 this.props.calSelectedDate = '';
             } else {
@@ -1963,9 +1966,12 @@ export default {
             const endParsed   = this._parseStoreDate(endVal);
             const startIso = startParsed ? startParsed.iso : null;
             const endIso   = endParsed   ? endParsed.iso   : null;
-            const curStart = this.props.calSelectedStart || null;
-            const curEnd   = this.props.calSelectedEnd   || null;
-            if (startIso === curStart && endIso === curEnd) return;
+            // Use ?? '' so that null and '' both normalise to '' — prevents the
+            // early-return from firing when the props are '' and incoming ISOs
+            // are null (both would have become null with || null, hiding the clear).
+            const curStart = this.props.calSelectedStart ?? '';
+            const curEnd   = this.props.calSelectedEnd   ?? '';
+            if ((startIso ?? '') === curStart && (endIso ?? '') === curEnd) return;
 
             if (!startIso) {
                 this.rangeStart = null;
@@ -1973,6 +1979,8 @@ export default {
                 this.activePreset = null;
                 this.compactClickStep = 0;
                 this.compactHoverCell = null;
+                this.editingStart = false;
+                this.editingEnd = false;
                 this.props.calSelectedStart = '';
                 this.props.calSelectedEnd = '';
                 return;
@@ -1992,7 +2000,12 @@ export default {
         // Apply an incoming store value for `datesList` (multi mode).
         _applyStoreDatesList(val) {
             if (val == null || val === '' || val === '[]') {
-                if (this.selectedDates.length === 0) return;
+                // Guard: skip only when BOTH the local array and the prop are
+                // already cleared — avoids a no-op but still catches the case
+                // where selectedDates is [] while calSelectedDates still holds a
+                // stale string, which would cause the null reset to be silently
+                // ignored with the previous `selectedDates.length === 0` check.
+                if (this.selectedDates.length === 0 && !this.props.calSelectedDates) return;
                 this.selectedDates = [];
                 this.props.calSelectedDates = '';
                 return;
