@@ -156,12 +156,12 @@
                     </div>
                     <div class="p-field-label" style="margin-top:10px">Смещение X / Y (px)</div>
                     <div class="tooltip-dual-input">
-                        <input type="number" class="tooltip-num-input"
+                        <input type="text" inputmode="numeric" pattern="-?[0-9]*" class="tooltip-num-input"
                             :value="props.calTooltipOffsetX != null ? props.calTooltipOffsetX : 8"
-                            @change="set('calTooltipOffsetX', Number($event.target.value))" />
-                        <input type="number" class="tooltip-num-input"
+                            @change="set('calTooltipOffsetX', Number($event.target.value) || 0)" />
+                        <input type="text" inputmode="numeric" pattern="-?[0-9]*" class="tooltip-num-input"
                             :value="props.calTooltipOffsetY != null ? props.calTooltipOffsetY : 0"
-                            @change="set('calTooltipOffsetY', Number($event.target.value))" />
+                            @change="set('calTooltipOffsetY', Number($event.target.value) || 0)" />
                     </div>
 
                     <!-- Размеры -->
