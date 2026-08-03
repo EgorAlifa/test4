@@ -154,16 +154,14 @@
                             {{ pos.label }}
                         </button>
                     </div>
-                    <div class="tooltip-field-row" style="margin-top:8px">
-                        <span class="tooltip-field-row__label">Смещение X / Y (px)</span>
-                        <div class="tooltip-dual-input">
-                            <input type="number" class="tooltip-num-input"
-                                :value="props.calTooltipOffsetX != null ? props.calTooltipOffsetX : 8"
-                                @change="set('calTooltipOffsetX', Number($event.target.value))" />
-                            <input type="number" class="tooltip-num-input"
-                                :value="props.calTooltipOffsetY != null ? props.calTooltipOffsetY : 0"
-                                @change="set('calTooltipOffsetY', Number($event.target.value))" />
-                        </div>
+                    <div class="p-field-label" style="margin-top:10px">Смещение X / Y (px)</div>
+                    <div class="tooltip-dual-input">
+                        <input type="number" class="tooltip-num-input"
+                            :value="props.calTooltipOffsetX != null ? props.calTooltipOffsetX : 8"
+                            @change="set('calTooltipOffsetX', Number($event.target.value))" />
+                        <input type="number" class="tooltip-num-input"
+                            :value="props.calTooltipOffsetY != null ? props.calTooltipOffsetY : 0"
+                            @change="set('calTooltipOffsetY', Number($event.target.value))" />
                     </div>
 
                     <!-- Размеры -->
@@ -804,14 +802,7 @@ export default {
 }
 
 /* ── Tooltip position / size fields ───────────────────────────── */
-.tooltip-field-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-.tooltip-field-row__label { font-size: 11px; color: #64748b; font-weight: 600; }
-.tooltip-dual-input { display: flex; gap: 6px; margin-top: 4px; }
+.tooltip-dual-input { display: flex; gap: 6px; margin-top: 4px; width: 100%; }
 .tooltip-num-input {
     flex: 1;
     min-width: 0;
