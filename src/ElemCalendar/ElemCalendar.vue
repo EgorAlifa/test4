@@ -156,7 +156,7 @@
                 </template>
 
                 <!-- SINGLE-MONTH MODE -->
-                <template v-else>
+                <template v-if="!props.calCompactDualMonth">
                     <div class="compact__head">
                         <button class="compact__nav" @click="prevPeriod">
                             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
