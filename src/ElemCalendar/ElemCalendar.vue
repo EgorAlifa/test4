@@ -1722,8 +1722,17 @@ export default {
                 this.navDate = new Date(this.rangeStart.getFullYear(), this.rangeStart.getMonth(), 1);
                 if (this.props.calCompactDualMonth) {
                     const n1 = this.navDate.getFullYear() * 12 + this.navDate.getMonth();
-                    const n2 = this.navDate2.getFullYear() * 12 + this.navDate2.getMonth();
-                    if (n2 <= n1) this.navDate2 = new Date(this.navDate.getFullYear(), this.navDate.getMonth() + 1, 1);
+                    if (this.rangeEnd) {
+                        // An explicit end date is known (typed in, or picked on the mini-calendar) —
+                        // jump the second month to it so it's always visible, instead of leaving
+                        // navDate2 wherever it last happened to be.
+                        const endNav = new Date(this.rangeEnd.getFullYear(), this.rangeEnd.getMonth(), 1);
+                        const nEnd = endNav.getFullYear() * 12 + endNav.getMonth();
+                        this.navDate2 = nEnd > n1 ? endNav : new Date(this.navDate.getFullYear(), this.navDate.getMonth() + 1, 1);
+                    } else {
+                        const n2 = this.navDate2.getFullYear() * 12 + this.navDate2.getMonth();
+                        if (n2 <= n1) this.navDate2 = new Date(this.navDate.getFullYear(), this.navDate.getMonth() + 1, 1);
+                    }
                 }
             }
         },
@@ -2025,13 +2034,23 @@ export default {
             return null;
         },
 
-        // Navigate the visible month/year to the given ISO date.
-        _navigateTo(isoStr) {
+        // Navigate the visible month/year to the given ISO date. When an end date is
+        // also passed (range mode), the second month jumps to it so it's visible
+        // instead of always defaulting to start's month + 1.
+        _navigateTo(isoStr, endIsoStr) {
             const d = parseIso(isoStr);
             if (!d) return;
             this.navDate = new Date(d.getFullYear(), d.getMonth(), 1);
             if (this.props.calCompactDualMonth) {
-                this.navDate2 = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+                const n1 = this.navDate.getFullYear() * 12 + this.navDate.getMonth();
+                const endDate = endIsoStr ? parseIso(endIsoStr) : null;
+                if (endDate) {
+                    const endNav = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+                    const nEnd = endNav.getFullYear() * 12 + endNav.getMonth();
+                    this.navDate2 = nEnd > n1 ? endNav : new Date(this.navDate.getFullYear(), this.navDate.getMonth() + 1, 1);
+                } else {
+                    this.navDate2 = new Date(this.navDate.getFullYear(), this.navDate.getMonth() + 1, 1);
+                }
             }
         },
 
@@ -2087,7 +2106,7 @@ export default {
             this.compactHoverCell = null;
             if (startParsed && startParsed.time) this.rangeStartTime = startParsed.time;
             if (endParsed   && endParsed.time)   this.rangeEndTime   = endParsed.time;
-            this._navigateTo(startIso);
+            this._navigateTo(startIso, endIso);
         },
 
         // Apply an incoming store value for `datesList` (multi mode).
