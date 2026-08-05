@@ -20,90 +20,90 @@
 <path d="M 1060 869.0 L 1110.0 869.0 L 1110.0 715.0 L 1160 715.0" fill="none" stroke="#CBD5E1" stroke-width="1.5"/>
 <path d="M 1060 869.0 L 1110.0 869.0 L 1110.0 869.0 L 1160 869.0" fill="none" stroke="#CBD5E1" stroke-width="1.5"/>
 <path d="M 1060 869.0 L 1110.0 869.0 L 1110.0 1011.0 L 1160 1011.0" fill="none" stroke="#CBD5E1" stroke-width="1.5"/>
-<g transform="translate(20,531.6666666666666)"><g id="cehovaya_sebestoimost" data-name="Цеховая себестоимость">
-    <rect x="0" y="0" width="280" height="130" rx="11" fill="#FEF2F2" stroke="#EF4444" stroke-width="2"/>
-    </g></g>
-<g transform="translate(20,685.6666666666666)"><g id="udelnaya_sebestoimost" data-name="Удельная себестоимость">
-    <rect x="0" y="0" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(400,65.0)"><g id="obem_proizvodstva" data-name="Объем производства">
-    <rect x="0" y="0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(400,195.0)"><g id="v_tom_chisle_anody" data-name="В том числе аноды">
-    <rect x="0" y="0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(400,325.0)"><g id="v_tom_chisle_granuly" data-name="В том числе гранулы">
-    <rect x="0" y="0" width="280" height="106" rx="11" fill="#FEF2F2" stroke="#EF4444" stroke-width="2"/>
-    </g></g>
-<g transform="translate(400,528.0)"><g id="uslovno_peremennye" data-name="Условно переменные расходы">
-    <rect x="0" y="0" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(400,1014.0)"><g id="uslovno_postoyannye" data-name="Условно постоянные расходы">
-    <rect x="0" y="0" width="280" height="130" rx="11" fill="#FEF2F2" stroke="#EF4444" stroke-width="2"/>
-    </g></g>
-<g transform="translate(780,378.0)"><g id="energeticheskie_zatraty" data-name="Энергетические затраты">
-    <rect x="0" y="0" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(780,532.0)"><g id="vspomogatelnye_materialy" data-name="Вспомогательные материалы">
-    <rect x="0" y="0" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(780,686.0)"><g id="prochee" data-name="Прочее">
-    <rect x="0" y="0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(780,816.0)"><g id="opr" data-name="ОПР">
-    <rect x="0" y="0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(780,946.0)"><g id="zp_otchisleniya" data-name="ЗП+отчисления">
-    <rect x="0" y="0" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(780,1100.0)"><g id="amortizaciya" data-name="Амортизация">
-    <rect x="0" y="0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(780,1230.0)"><g id="specosnastka" data-name="Спецоснастка">
-    <rect x="0" y="0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(1160,0)"><g id="vyhod_v_gp" data-name="Выход в ГП">
-    <rect x="0" y="0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(1160,130)"><g id="vremya_plavki" data-name="Время плавки">
-    <rect x="0" y="0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(1160,260)"><g id="gaz" data-name="Газ">
-    <rect x="0" y="0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(1160,390)"><g id="mazut" data-name="Мазут">
-    <rect x="0" y="0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(1160,520)"><g id="elektroenergiya" data-name="Электроэнергия">
-    <rect x="0" y="0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(1160,650)"><g id="remonty" data-name="Ремонты">
-    <rect x="0" y="0" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(1160,804)"><g id="energoresursy" data-name="Энергоресурсы на содерж. зданий">
-    <rect x="0" y="0" width="280" height="130" rx="11" fill="#FEF2F2" stroke="#EF4444" stroke-width="2"/>
-    </g></g>
-<g transform="translate(1160,958)"><g id="prochie_opr" data-name="Прочие ОПР">
-    <rect x="0" y="0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    </g></g>
-<g transform="translate(20,839.6666666666666)"><g id="deviation_panel">
-    <rect x="0" y="0" width="280" height="496.33333333333337" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-    <text x="16" y="27" font-family="Arial, Helvetica, sans-serif" font-size="15px" fill="#94A3B8" xml:space="preserve">Отклонение, тыс. Р</text>
-    <text x="16" y="62" font-family="Arial, Helvetica, sans-serif" font-size="26px" font-weight="700" fill="#0F172A" xml:space="preserve">1 677</text>
-    <text x="16" y="96" font-family="Arial, Helvetica, sans-serif" font-size="14px" font-weight="700" fill="#0F172A" xml:space="preserve">За счёт:</text>
-    <text x="16" y="126" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#334155" xml:space="preserve">Условно переменных расходов:</text>
-    <text x="16" y="152" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#94A3B8" xml:space="preserve">Объёма</text>
-    <text x="16" y="172" font-family="Arial, Helvetica, sans-serif" font-size="15px" font-weight="700" fill="#0F172A" xml:space="preserve">919</text>
-    <text x="16" y="202" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#94A3B8" xml:space="preserve">Норм</text>
-    <text x="16" y="222" font-family="Arial, Helvetica, sans-serif" font-size="15px" font-weight="700" fill="#0F172A" xml:space="preserve">-2 779</text>
-    <text x="16" y="252" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#94A3B8" xml:space="preserve">Цен</text>
-    <text x="16" y="272" font-family="Arial, Helvetica, sans-serif" font-size="15px" font-weight="700" fill="#0F172A" xml:space="preserve">-222</text>
-    <text x="16" y="302" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#334155" xml:space="preserve">Условно постоянных расходов:</text>
-    <text x="16" y="328" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#94A3B8" xml:space="preserve">Ремонтов</text>
-    <text x="16" y="348" font-family="Arial, Helvetica, sans-serif" font-size="15px" font-weight="700" fill="#0F172A" xml:space="preserve">3 328</text>
-    <text x="16" y="378" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#94A3B8" xml:space="preserve">Прочих</text>
-    <text x="16" y="398" font-family="Arial, Helvetica, sans-serif" font-size="15px" font-weight="700" fill="#0F172A" xml:space="preserve">430</text>
-    <text x="16" y="428" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#94A3B8" xml:space="preserve">Без учета факторов V и ремонта</text>
-    <text x="16" y="448" font-family="Arial, Helvetica, sans-serif" font-size="15px" font-weight="700" fill="#0F172A" xml:space="preserve">-5 563</text>
-    </g></g>
+<g id="cehovaya_sebestoimost" data-name="Цеховая себестоимость">
+    <rect x="20" y="531.6666666666666" width="280" height="130" rx="11" fill="#FEF2F2" stroke="#EF4444" stroke-width="2"/>
+    </g>
+<g id="udelnaya_sebestoimost" data-name="Удельная себестоимость">
+    <rect x="20" y="685.6666666666666" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="obem_proizvodstva" data-name="Объем производства">
+    <rect x="400" y="65.0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="v_tom_chisle_anody" data-name="В том числе аноды">
+    <rect x="400" y="195.0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="v_tom_chisle_granuly" data-name="В том числе гранулы">
+    <rect x="400" y="325.0" width="280" height="106" rx="11" fill="#FEF2F2" stroke="#EF4444" stroke-width="2"/>
+    </g>
+<g id="uslovno_peremennye" data-name="Условно переменные расходы">
+    <rect x="400" y="528.0" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="uslovno_postoyannye" data-name="Условно постоянные расходы">
+    <rect x="400" y="1014.0" width="280" height="130" rx="11" fill="#FEF2F2" stroke="#EF4444" stroke-width="2"/>
+    </g>
+<g id="energeticheskie_zatraty" data-name="Энергетические затраты">
+    <rect x="780" y="378.0" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="vspomogatelnye_materialy" data-name="Вспомогательные материалы">
+    <rect x="780" y="532.0" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="prochee" data-name="Прочее">
+    <rect x="780" y="686.0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="opr" data-name="ОПР">
+    <rect x="780" y="816.0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="zp_otchisleniya" data-name="ЗП+отчисления">
+    <rect x="780" y="946.0" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="amortizaciya" data-name="Амортизация">
+    <rect x="780" y="1100.0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="specosnastka" data-name="Спецоснастка">
+    <rect x="780" y="1230.0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="vyhod_v_gp" data-name="Выход в ГП">
+    <rect x="1160" y="0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="vremya_plavki" data-name="Время плавки">
+    <rect x="1160" y="130" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="gaz" data-name="Газ">
+    <rect x="1160" y="260" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="mazut" data-name="Мазут">
+    <rect x="1160" y="390" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="elektroenergiya" data-name="Электроэнергия">
+    <rect x="1160" y="520" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="remonty" data-name="Ремонты">
+    <rect x="1160" y="650" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="energoresursy" data-name="Энергоресурсы на содерж. зданий">
+    <rect x="1160" y="804" width="280" height="130" rx="11" fill="#FEF2F2" stroke="#EF4444" stroke-width="2"/>
+    </g>
+<g id="prochie_opr" data-name="Прочие ОПР">
+    <rect x="1160" y="958" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    </g>
+<g id="deviation_panel">
+    <rect x="20" y="839.6666666666666" width="280" height="496.33333333333337" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    <text x="36" y="866.6666666666666" font-family="Arial, Helvetica, sans-serif" font-size="15px" fill="#94A3B8" xml:space="preserve">Отклонение, тыс. Р</text>
+    <text x="36" y="901.6666666666666" font-family="Arial, Helvetica, sans-serif" font-size="26px" font-weight="700" fill="#0F172A" xml:space="preserve">1 677</text>
+    <text x="36" y="935.6666666666666" font-family="Arial, Helvetica, sans-serif" font-size="14px" font-weight="700" fill="#0F172A" xml:space="preserve">За счёт:</text>
+    <text x="36" y="965.6666666666666" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#334155" xml:space="preserve">Условно переменных расходов:</text>
+    <text x="36" y="991.6666666666666" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#94A3B8" xml:space="preserve">Объёма</text>
+    <text x="36" y="1011.6666666666666" font-family="Arial, Helvetica, sans-serif" font-size="15px" font-weight="700" fill="#0F172A" xml:space="preserve">919</text>
+    <text x="36" y="1041.6666666666665" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#94A3B8" xml:space="preserve">Норм</text>
+    <text x="36" y="1061.6666666666665" font-family="Arial, Helvetica, sans-serif" font-size="15px" font-weight="700" fill="#0F172A" xml:space="preserve">-2 779</text>
+    <text x="36" y="1091.6666666666665" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#94A3B8" xml:space="preserve">Цен</text>
+    <text x="36" y="1111.6666666666665" font-family="Arial, Helvetica, sans-serif" font-size="15px" font-weight="700" fill="#0F172A" xml:space="preserve">-222</text>
+    <text x="36" y="1141.6666666666665" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#334155" xml:space="preserve">Условно постоянных расходов:</text>
+    <text x="36" y="1167.6666666666665" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#94A3B8" xml:space="preserve">Ремонтов</text>
+    <text x="36" y="1187.6666666666665" font-family="Arial, Helvetica, sans-serif" font-size="15px" font-weight="700" fill="#0F172A" xml:space="preserve">3 328</text>
+    <text x="36" y="1217.6666666666665" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#94A3B8" xml:space="preserve">Прочих</text>
+    <text x="36" y="1237.6666666666665" font-family="Arial, Helvetica, sans-serif" font-size="15px" font-weight="700" fill="#0F172A" xml:space="preserve">430</text>
+    <text x="36" y="1267.6666666666665" font-family="Arial, Helvetica, sans-serif" font-size="13px" fill="#94A3B8" xml:space="preserve">Без учета факторов V и ремонта</text>
+    <text x="36" y="1287.6666666666665" font-family="Arial, Helvetica, sans-serif" font-size="15px" font-weight="700" fill="#0F172A" xml:space="preserve">-5 563</text>
+    </g>
 </svg>
