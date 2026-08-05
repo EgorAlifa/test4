@@ -194,15 +194,15 @@
                 </template>
             </ui-has-panel>
             <ui-has-panel>
-                <ui-switch prop="factorPanel.enabled">Режим панели отклонений (переменное число строк)</ui-switch>
+                <ui-switch prop="factorPanel.enabled">Режим панели отклонений</ui-switch>
                 <template #panel>
                     <ui-panel :groups="[{ slot: 'default', name: 'Панель отклонений' }]">
                         <ui-container>
                             <ui-hint>
                                 <template #label>Как это работает</template>
-                                Для узла (или нескольких), выбранного ниже, вместо карточки рисуется
+                                Число строк переменное. Для узла (или нескольких), выбранного ниже,
                                 <br />
-                                общий итог + список строк переменной длины ("bold"/"section"/"item"),
+                                вместо карточки рисуется общий итог + список строк ("bold"/"section"/"item"),
                                 <br />
                                 которые виджет достраивает из ДРУГИХ строк датасета — сколько их и
                                 <br />
