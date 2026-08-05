@@ -183,12 +183,27 @@ export class SvgViewModel extends BaseViewModel {
         });
     }
 
+    // Boolean-typed dataset fields don't always arrive as a real JS boolean -
+    // plenty of data providers (this platform's "Провайдер №2" included, per
+    // the BOOLEAN column that came through as text) serialize them as the
+    // literal string "true"/"false". Naive `Boolean(value)` treats "false" as
+    // truthy (it's a non-empty string), which highlighted every row
+    // regardless of its actual value. Parse it properly instead.
+    resolveBooleanField(value) {
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            return normalized !== '' && normalized !== 'false' && normalized !== '0';
+        }
+        return Boolean(value);
+    }
+
     // ── Value-card mode ──────────────────────────────────────────────
     // Applies the highlighted vs. normal background/border to the bound
     // shape itself, based on cardFields.highlightField on the matched row.
     applyCardHighlight({ element, row }) {
         const { cardFields, cardStyle } = this.widget.props;
-        const isHighlighted = cardFields.highlightField != null && Boolean(row[cardFields.highlightField]);
+        const isHighlighted =
+            cardFields.highlightField != null && this.resolveBooleanField(row[cardFields.highlightField]);
         this.applyPaintStyle({
             element,
             fill: isHighlighted ? cardStyle.highlightBg : cardStyle.bg,
