@@ -48,6 +48,29 @@ export const CardStyle = {
     highlightBorder: '#EF4444'
 };
 
+// ── Factor-breakdown panel mode ───────────────────────────────────────
+// For a node that isn't a single-value KPI card but a variable-length
+// "deviation factors" list (bold/section/item lines, count and content
+// changing per period/filter - like the DAX card_type 3 template). One
+// SVG node (picked in `nodeIds`) renders: a total value (from the row
+// matched via fields.metricId, field `totalField`) plus a dynamic list
+// of lines pulled from OTHER dataset rows that share the same group key
+// (`groupField` on those rows === the panel row's own fields.metricId value).
+export const FactorPanelFields = {
+    enabled: false,
+    nodeIds: [],
+    totalField: null,
+    totalFormat: null,
+    totalLabel: 'Отклонение, тыс. Р',
+    // fields read off each *factor row* (rows.filter matched by groupField)
+    groupField: null,
+    orderField: null,
+    // typeField row value: 'bold' | 'section' | 'item' (see build order below)
+    typeField: null,
+    labelField: null,
+    valueField: null
+};
+
 export const ColorSettings = {
     defaultColor: 'inherit',
     defaultStroke: 'inherit',

@@ -193,6 +193,69 @@
                     </ui-panel>
                 </template>
             </ui-has-panel>
+            <ui-has-panel>
+                <ui-switch prop="factorPanel.enabled">Режим панели отклонений (переменное число строк)</ui-switch>
+                <template #panel>
+                    <ui-panel :groups="[{ slot: 'default', name: 'Панель отклонений' }]">
+                        <ui-container>
+                            <ui-hint>
+                                <template #label>Как это работает</template>
+                                Для узла (или нескольких), выбранного ниже, вместо карточки рисуется
+                                <br />
+                                общий итог + список строк переменной длины ("bold"/"section"/"item"),
+                                <br />
+                                которые виджет достраивает из ДРУГИХ строк датасета — сколько их и
+                                <br />
+                                какие значения, целиком зависит от текущего фильтра/периода.
+                            </ui-hint>
+                            <ui-select prop="factorPanel.nodeIds" :options="factorPanelNodeOptions" multiple>
+                                Объекты-панели
+                            </ui-select>
+                            <ui-hint>
+                                <template #label>Итоговое значение</template>
+                                Берётся из строки, найденной как обычно (fields.metricId ==
+                                data-id узла) — как у карточек.
+                            </ui-hint>
+                            <ui-has-two-columns>
+                                <template #left>
+                                    <ui-select prop="factorPanel.totalField" :options="metricDimensionOptions">
+                                        Поле итога
+                                    </ui-select>
+                                </template>
+                                <template #right>
+                                    <ui-number-format prop="factorPanel.totalFormat">Формат итога</ui-number-format>
+                                </template>
+                            </ui-has-two-columns>
+                            <ui-input prop="factorPanel.totalLabel">Подпись над итогом</ui-input>
+                            <ui-hint>
+                                <template #label>Строки списка</template>
+                                Отдельные строки датасета, у каждой — поле группировки со
+                                <br />
+                                значением, равным ID строки-панели выше (связь "одна панель — много строк").
+                            </ui-hint>
+                            <ui-select prop="factorPanel.groupField" :options="metricDimensionOptions">
+                                Поле группировки (= ID панели)
+                            </ui-select>
+                            <ui-select prop="factorPanel.orderField" :options="metricDimensionOptions">
+                                Поле порядка (необязательно)
+                            </ui-select>
+                            <ui-select prop="factorPanel.typeField" :options="metricDimensionOptions">
+                                <ui-hint>
+                                    <template #label>Поле типа строки</template>
+                                    Значения: 'bold' (жирный заголовок), 'section' (подзаголовок),
+                                    'item' (строка label + value). Всё остальное = 'item'.
+                                </ui-hint>
+                            </ui-select>
+                            <ui-select prop="factorPanel.labelField" :options="metricDimensionOptions">
+                                Поле подписи строки
+                            </ui-select>
+                            <ui-select prop="factorPanel.valueField" :options="metricDimensionOptions">
+                                Поле значения (для типа 'item')
+                            </ui-select>
+                        </ui-container>
+                    </ui-panel>
+                </template>
+            </ui-has-panel>
             <ui-select prop="fields.metricByClick" :options="metricDimensionOptions">Событие при нажатии</ui-select>
             <ui-input prop="events.unselect">Событие при отмене выбора</ui-input>
             <ui-input-auto prop="routeUrl">Переход по ссылке</ui-input-auto>
@@ -228,6 +291,9 @@ export default {
     computed: {
         metricDimensionOptions() {
             return [...this.metrics, ...this.dimensions];
+        },
+        factorPanelNodeOptions() {
+            return this.elementInstance.nodesOptions.map(({ label }) => ({ label, value: label }));
         }
     },
     methods: {

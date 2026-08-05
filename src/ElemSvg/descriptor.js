@@ -1,6 +1,15 @@
 import { TooltipDefaultFactory } from '@goodt-wcore/components';
 import panels from './panels';
-import { CardFields, CardStyle, ColorSettings, Fields, GeneralSettings, HoverSettings, SelectSettings } from './config';
+import {
+    CardFields,
+    CardStyle,
+    ColorSettings,
+    FactorPanelFields,
+    Fields,
+    GeneralSettings,
+    HoverSettings,
+    SelectSettings
+} from './config';
 
 /**
  * @enum {string}
@@ -109,6 +118,11 @@ const descriptor = () => ({
         cardStyle: {
             type: Object,
             default: () => CardStyle
+        },
+        // ── Factor-breakdown panel mode ──────────────────────────────
+        factorPanel: {
+            type: Object,
+            default: () => FactorPanelFields
         },
         events: {
             type: Object,
