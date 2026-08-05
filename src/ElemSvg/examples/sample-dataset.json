@@ -262,5 +262,74 @@
     "percent_display": "0,00%",
     "direction": "down",
     "highlight": false
+  },
+  {
+    "id": "deviation_panel",
+    "name": "Отклонение",
+    "name2": "",
+    "total": 1677
+  },
+  {
+    "panelId": "deviation_panel",
+    "rowType": "bold",
+    "label": "За счёт:",
+    "value": null,
+    "order": 0
+  },
+  {
+    "panelId": "deviation_panel",
+    "rowType": "section",
+    "label": "Условно переменных расходов:",
+    "value": null,
+    "order": 1
+  },
+  {
+    "panelId": "deviation_panel",
+    "rowType": "item",
+    "label": "Объёма",
+    "value": 919,
+    "order": 2
+  },
+  {
+    "panelId": "deviation_panel",
+    "rowType": "item",
+    "label": "Норм",
+    "value": -2779,
+    "order": 3
+  },
+  {
+    "panelId": "deviation_panel",
+    "rowType": "item",
+    "label": "Цен",
+    "value": -222,
+    "order": 4
+  },
+  {
+    "panelId": "deviation_panel",
+    "rowType": "section",
+    "label": "Условно постоянных расходов:",
+    "value": null,
+    "order": 5
+  },
+  {
+    "panelId": "deviation_panel",
+    "rowType": "item",
+    "label": "Ремонтов",
+    "value": 3328,
+    "order": 6
+  },
+  {
+    "panelId": "deviation_panel",
+    "rowType": "item",
+    "label": "Прочих",
+    "value": 430,
+    "order": 7
+  },
+  {
+    "panelId": "deviation_panel",
+    "rowType": "item",
+    "label": "Без учета факторов V и ремонта",
+    "value": -5563,
+    "order": 8
   }
 ]

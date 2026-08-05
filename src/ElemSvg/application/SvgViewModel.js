@@ -107,7 +107,7 @@ export class SvgViewModel extends BaseViewModel {
     }
 
     updateNodes({ nodes, rows, labels, metricId, svg }) {
-        const { cardMode } = this.widget.props;
+        const { cardMode, factorPanel } = this.widget.props;
         nodes.forEach(({ id, isVisible }) => {
             const element = svg.getElementById(id);
             if (element == null || element.style == null) {
@@ -145,7 +145,10 @@ export class SvgViewModel extends BaseViewModel {
             }
 
             element.style.cursor = 'pointer';
-            if (cardMode) {
+            const isFactorPanel = factorPanel.enabled && factorPanel.nodeIds.includes(element.getAttribute('data-id'));
+            if (isFactorPanel) {
+                this._state.textNodes.push(this.createFactorPanelNode({ element, row, rows, metricId, svg }));
+            } else if (cardMode) {
                 this.applyCardHighlight({ element, row });
                 this._state.textNodes.push(this.createValueCardNode({ element, row, svg }));
             } else if (labels.length > 0) {
@@ -319,6 +322,130 @@ export class SvgViewModel extends BaseViewModel {
                 `<tspan fill="${cardStyle.planLabelColor}">${this.escapeXml(cardFields.planLabel ?? 'План ')}</tspan>` +
                 `<tspan fill="${cardStyle.planValueColor}">${this.escapeXml(planText)}</tspan>`;
             g.appendChild(planNode);
+        }
+
+        svg.appendChild(g);
+        return g;
+    }
+
+    // ── Factor-breakdown panel mode ──────────────────────────────────
+    // Renders a variable-length list of "deviation factor" lines (bold /
+    // section / item rows) next to a total value, all pulled from the
+    // dataset instead of baked into the SVG - so a period/filter change
+    // that alters how many factors there are (or their values) is
+    // reflected automatically, same as cardMode. The matched row (found
+    // via fields.metricId, same as any other node) supplies the total;
+    // the individual lines are OTHER rows sharing factorPanel.groupField
+    // with that row's own id.
+    createFactorPanelNode({ element, row, rows, metricId, svg }) {
+        const { factorPanel, cardStyle } = this.widget.props;
+        const { x, y, width } = element.getBBox();
+        const pad = 16;
+
+        const totalValue = factorPanel.totalField != null ? row[factorPanel.totalField] : null;
+        const totalText =
+            totalValue != null
+                ? this.svgUtils.formatData({ value: totalValue, format: factorPanel.totalFormat, shouldSplitWords: false })
+                : '—';
+
+        const ownId = row[metricId];
+        const factorRows =
+            factorPanel.groupField != null ? rows.filter((r) => r[factorPanel.groupField] === ownId) : [];
+        if (factorPanel.orderField != null) {
+            factorRows.sort((a, b) => Number(a[factorPanel.orderField]) - Number(b[factorPanel.orderField]));
+        }
+
+        const NS = 'http://www.w3.org/2000/svg';
+        const g = document.createElementNS(NS, 'g');
+        g.setAttribute('id', element.getAttribute('data-id'));
+        g.setAttribute('transform', `translate(${x}, ${y})`);
+        g.style.pointerEvents = 'none';
+
+        const totalLabelNode = document.createElementNS(NS, 'text');
+        totalLabelNode.setAttribute('x', pad);
+        totalLabelNode.setAttribute('y', pad + 11);
+        totalLabelNode.setAttribute('font-family', cardStyle.fontFamily);
+        totalLabelNode.setAttribute('font-size', cardStyle.titleFontSize);
+        totalLabelNode.setAttribute('fill', cardStyle.titleColor);
+        totalLabelNode.textContent = factorPanel.totalLabel ?? '';
+        g.appendChild(totalLabelNode);
+
+        const totalValueNode = document.createElementNS(NS, 'text');
+        totalValueNode.setAttribute('x', pad);
+        totalValueNode.setAttribute('y', pad + 46);
+        totalValueNode.setAttribute('font-family', cardStyle.fontFamily);
+        totalValueNode.setAttribute('font-size', cardStyle.valueFontSize);
+        totalValueNode.setAttribute('font-weight', '700');
+        totalValueNode.setAttribute('fill', cardStyle.valueColor);
+        totalValueNode.textContent = totalText;
+        g.appendChild(totalValueNode);
+
+        let cy = pad + 80;
+        const lineGap = { bold: 30, section: 26, itemLabel: 20, itemValue: 30 };
+        factorRows.forEach((factorRow) => {
+            const type = factorPanel.typeField != null ? factorRow[factorPanel.typeField] : 'item';
+            const label = factorPanel.labelField != null ? factorRow[factorPanel.labelField] : '';
+
+            if (type === 'bold') {
+                const node = document.createElementNS(NS, 'text');
+                node.setAttribute('x', pad);
+                node.setAttribute('y', cy);
+                node.setAttribute('font-family', cardStyle.fontFamily);
+                node.setAttribute('font-size', '14px');
+                node.setAttribute('font-weight', '700');
+                node.setAttribute('fill', cardStyle.valueColor);
+                node.textContent = label;
+                g.appendChild(node);
+                cy += lineGap.bold;
+                return;
+            }
+
+            if (type === 'section') {
+                const node = document.createElementNS(NS, 'text');
+                node.setAttribute('x', pad);
+                node.setAttribute('y', cy);
+                node.setAttribute('font-family', cardStyle.fontFamily);
+                node.setAttribute('font-size', '13px');
+                node.setAttribute('fill', cardStyle.planValueColor);
+                node.textContent = label;
+                g.appendChild(node);
+                cy += lineGap.section;
+                return;
+            }
+
+            // 'item'
+            const value = factorPanel.valueField != null ? factorRow[factorPanel.valueField] : null;
+            const valueText =
+                value != null ? this.svgUtils.formatData({ value, format: factorPanel.totalFormat, shouldSplitWords: false }) : '—';
+
+            const labelNode = document.createElementNS(NS, 'text');
+            labelNode.setAttribute('x', pad);
+            labelNode.setAttribute('y', cy);
+            labelNode.setAttribute('font-family', cardStyle.fontFamily);
+            labelNode.setAttribute('font-size', '13px');
+            labelNode.setAttribute('fill', cardStyle.titleColor);
+            labelNode.textContent = label;
+            g.appendChild(labelNode);
+            cy += lineGap.itemLabel;
+
+            const valueNode = document.createElementNS(NS, 'text');
+            valueNode.setAttribute('x', pad);
+            valueNode.setAttribute('y', cy);
+            valueNode.setAttribute('font-family', cardStyle.fontFamily);
+            valueNode.setAttribute('font-size', '15px');
+            valueNode.setAttribute('font-weight', '700');
+            valueNode.setAttribute('fill', cardStyle.valueColor);
+            valueNode.textContent = valueText;
+            g.appendChild(valueNode);
+            cy += lineGap.itemValue;
+        });
+
+        // The panel's own shape was drawn at a fixed height in the static SVG -
+        // resize it here so it grows/shrinks with however many factor lines
+        // this period's data actually has, instead of clipping or leaving a gap.
+        const rect = element.querySelector('rect');
+        if (rect != null) {
+            rect.setAttribute('height', String(cy + pad - 4));
         }
 
         svg.appendChild(g);
