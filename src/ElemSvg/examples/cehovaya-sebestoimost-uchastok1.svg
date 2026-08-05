@@ -21,7 +21,7 @@
 <path d="M 1060 869.0 L 1110.0 869.0 L 1110.0 869.0 L 1160 869.0" fill="none" stroke="#CBD5E1" stroke-width="1.5"/>
 <path d="M 1060 869.0 L 1110.0 869.0 L 1110.0 1011.0 L 1160 1011.0" fill="none" stroke="#CBD5E1" stroke-width="1.5"/>
 <g id="cehovaya_sebestoimost" data-name="Цеховая себестоимость">
-    <rect x="20" y="531.6666666666666" width="280" height="130" rx="11" fill="#FEF2F2" stroke="#EF4444" stroke-width="2"/>
+    <rect x="20" y="531.6666666666666" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
     </g>
 <g id="udelnaya_sebestoimost" data-name="Удельная себестоимость">
     <rect x="20" y="685.6666666666666" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
@@ -33,13 +33,13 @@
     <rect x="400" y="195.0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
     </g>
 <g id="v_tom_chisle_granuly" data-name="В том числе гранулы">
-    <rect x="400" y="325.0" width="280" height="106" rx="11" fill="#FEF2F2" stroke="#EF4444" stroke-width="2"/>
+    <rect x="400" y="325.0" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
     </g>
 <g id="uslovno_peremennye" data-name="Условно переменные расходы">
     <rect x="400" y="528.0" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
     </g>
 <g id="uslovno_postoyannye" data-name="Условно постоянные расходы">
-    <rect x="400" y="1014.0" width="280" height="130" rx="11" fill="#FEF2F2" stroke="#EF4444" stroke-width="2"/>
+    <rect x="400" y="1014.0" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
     </g>
 <g id="energeticheskie_zatraty" data-name="Энергетические затраты">
     <rect x="780" y="378.0" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
@@ -81,7 +81,7 @@
     <rect x="1160" y="650" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
     </g>
 <g id="energoresursy" data-name="Энергоресурсы на содерж. зданий">
-    <rect x="1160" y="804" width="280" height="130" rx="11" fill="#FEF2F2" stroke="#EF4444" stroke-width="2"/>
+    <rect x="1160" y="804" width="280" height="130" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
     </g>
 <g id="prochie_opr" data-name="Прочие ОПР">
     <rect x="1160" y="958" width="280" height="106" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
