@@ -1,0 +1,2 @@
+export const DEFAULT_OFFSET_Y = 40;
+export const REQUEST_ANIMATION_TIMEOUT = 16;
