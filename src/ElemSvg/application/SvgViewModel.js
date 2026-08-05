@@ -164,14 +164,36 @@ export class SvgViewModel extends BaseViewModel {
         });
     }
 
+    // Setting fill/stroke via CSS (element.style...) on a wrapping <g> only
+    // visually works if none of its descendant shapes carry their own fill/
+    // stroke presentation attribute - a plain SVG attribute on a shape counts
+    // as that shape's own "specified value" and blocks inheritance from an
+    // ancestor's style, even one set at runtime via JS. Any card box whose
+    // <rect> has an explicit fill="..."/stroke="..." (ours does, and so do
+    // plenty of hand-authored/exported SVGs) would silently ignore this -
+    // the color computed here would be correct in the DOM but invisible on
+    // screen. Setting it on the shape descendants too sidesteps that: an
+    // inline style always wins over that same element's own attribute.
+    applyPaintStyle({ element, fill, stroke }) {
+        element.style.fill = fill;
+        element.style.stroke = stroke;
+        element.querySelectorAll('rect, path, circle, ellipse, polygon, polyline, line').forEach((shape) => {
+            shape.style.fill = fill;
+            shape.style.stroke = stroke;
+        });
+    }
+
     // ── Value-card mode ──────────────────────────────────────────────
     // Applies the highlighted vs. normal background/border to the bound
     // shape itself, based on cardFields.highlightField on the matched row.
     applyCardHighlight({ element, row }) {
         const { cardFields, cardStyle } = this.widget.props;
         const isHighlighted = cardFields.highlightField != null && Boolean(row[cardFields.highlightField]);
-        element.style.fill = isHighlighted ? cardStyle.highlightBg : cardStyle.bg;
-        element.style.stroke = isHighlighted ? cardStyle.highlightBorder : cardStyle.border;
+        this.applyPaintStyle({
+            element,
+            fill: isHighlighted ? cardStyle.highlightBg : cardStyle.bg,
+            stroke: isHighlighted ? cardStyle.highlightBorder : cardStyle.border
+        });
     }
 
     // Value/plan/diff resolution shared by rendering and (later) tooltip use.
