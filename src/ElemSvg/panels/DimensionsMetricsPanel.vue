@@ -169,6 +169,26 @@
                                 Поле подсветки (истина → карточка выделена)
                             </ui-select>
                             <ui-input prop="cardFields.planLabel">Подпись плана</ui-input>
+                            <ui-collapse>
+                                <template #header>Готовый текст вместо формата (необязательно)</template>
+                                <ui-container>
+                                    <ui-hint>
+                                        <template #label>Когда это нужно</template>
+                                        Если у строк разная точность (напр. "716" и "22,00" и "5,0"),
+                                        один формат для всех не подходит — выберите поле с уже
+                                        готовым текстом, оно покажется как есть вместо факта/плана/%.
+                                    </ui-hint>
+                                    <ui-select prop="cardFields.valueDisplayField" :options="metricDimensionOptions">
+                                        Готовый текст факта
+                                    </ui-select>
+                                    <ui-select prop="cardFields.planDisplayField" :options="metricDimensionOptions">
+                                        Готовый текст плана
+                                    </ui-select>
+                                    <ui-select prop="cardFields.percentDisplayField" :options="metricDimensionOptions">
+                                        Готовый текст % (без стрелки, она добавляется сама)
+                                    </ui-select>
+                                </ui-container>
+                            </ui-collapse>
                         </ui-container>
                     </ui-panel>
                 </template>

@@ -224,22 +224,37 @@ export class SvgViewModel extends BaseViewModel {
         const { hasValue, plan, hasPlan, diff, percent } = this.resolveCardDiff({ row, cardFields });
         const { arrow, isGood } = this.resolveCardDirection({ diff, row, cardFields });
 
-        const valueText = hasValue
-            ? this.svgUtils.formatData({
-                  value: row[cardFields.valueField],
-                  format: cardFields.valueFormat,
-                  shouldSplitWords: false
-              })
-            : '—';
-        const planText = hasPlan
-            ? this.svgUtils.formatData({
-                  value: plan,
-                  format: cardFields.planFormat || cardFields.valueFormat,
-                  shouldSplitWords: false
-              })
-            : '—';
+        // Display-override fields take precedence over the computed/formatted text —
+        // useful when rows need different decimal precision (e.g. "716" vs "22,00" vs
+        // "5,0") that a single widget-wide number format can't express at once.
+        const valueDisplay = cardFields.valueDisplayField != null ? row[cardFields.valueDisplayField] : null;
+        const planDisplay = cardFields.planDisplayField != null ? row[cardFields.planDisplayField] : null;
+        const percentDisplay = cardFields.percentDisplayField != null ? row[cardFields.percentDisplayField] : null;
+
+        const valueText =
+            valueDisplay != null
+                ? String(valueDisplay)
+                : hasValue
+                ? this.svgUtils.formatData({
+                      value: row[cardFields.valueField],
+                      format: cardFields.valueFormat,
+                      shouldSplitWords: false
+                  })
+                : '—';
+        const planText =
+            planDisplay != null
+                ? String(planDisplay)
+                : hasPlan
+                ? this.svgUtils.formatData({
+                      value: plan,
+                      format: cardFields.planFormat || cardFields.valueFormat,
+                      shouldSplitWords: false
+                  })
+                : '—';
         const percentText =
-            percent != null
+            percentDisplay != null
+                ? String(percentDisplay)
+                : percent != null
                 ? `${this.svgUtils.formatData({
                       value: percent * 100,
                       format: cardFields.percentFormat,
