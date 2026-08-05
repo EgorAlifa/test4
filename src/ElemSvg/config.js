@@ -21,7 +21,13 @@ export const CardFields = {
     positiveDirectionField: null,
     // row field: truthy => card uses cardStyle.highlightBg/highlightBorder
     highlightField: null,
-    planLabel: 'План '
+    planLabel: 'План ',
+    // Optional: row fields holding already-formatted display text, used verbatim
+    // instead of valueFormat/planFormat/percentFormat. Use when rows need mixed
+    // decimal precision (e.g. "716" vs "22,00" vs "5,0") a single format can't cover.
+    valueDisplayField: null,
+    planDisplayField: null,
+    percentDisplayField: null
 };
 
 export const CardStyle = {
