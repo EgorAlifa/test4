@@ -39,7 +39,7 @@ import { useElemDatasetBaseMixin, ElemDatasetBaseMixinTypes } from '@goodt-commo
 import { Tooltip as WTooltip } from '@goodt-wcore/components';
 import { convertCssVarToComputedValue } from '@goodt-common/utils';
 import echarts from 'echarts';
-import { cloneDeep, isEqual as _isEqual, throttle as _throttle, merge as _merge } from 'lodash';
+import { cloneDeep, isEqual as _isEqual, throttle as _throttle, merge as _merge, pick } from 'lodash';
 import {
     ComparedSeriesTemplate,
     STACK_TAG,
@@ -235,26 +235,18 @@ export default {
                 return null;
             }
 
-            return [
-                {
-                    ...dataZoom,
-                    moveHandleSize: 0,
-                    ...position,
-                    textStyle: {
-                        ...dataZoom.textStyle,
-                        fontSize: this.takeUnit2Px({ size: dataZoom.textStyle.fontSize })
-                    },
-                    handleIcon: `path://${handleIcon}`,
-                    endValue: endValue - 1
+            return {
+                ...dataZoom,
+                moveHandleSize: 0,
+                ...position,
+                textStyle: {
+                    ...dataZoom.textStyle,
+                    fontSize: this.takeUnit2Px({ size: dataZoom.textStyle.fontSize })
                 },
-                {
-                    ...dataZoom,
-                    ...position,
-                    handleIcon: `path://${handleIcon}`,
-                    endValue: endValue - 1,
-                    ...dataZoomInside
-                }
-            ];
+                handleIcon: `path://${handleIcon}`,
+                endValue: endValue - 1,
+                ...dataZoomInside
+            };
         },
         axisPointer() {
             const { axisPointer } = this.props;
@@ -382,6 +374,7 @@ export default {
             } = this;
             const categoryAxis = utils.findCategoryAxis(seriesOptions, axis);
             const idx = categoryAxis === 'xAxis' ? seriesOptions.xAxisIndex : seriesOptions.yAxisIndex;
+            //Берем ссылку на объект для мутации здесь
             const curCategoryAxis = axis[categoryAxis][idx];
             const { data, valueFontSize, axisLabel } = curCategoryAxis;
             const { seriesData, axisData } = this.aggregateData(seriesOptions, dataRows);
@@ -403,6 +396,17 @@ export default {
                     data.push(item);
                 }
             });
+
+            const correctDimOrder = dataRows.reduce((acc, item) => {
+                if (acc.includes(item[dimName])) {
+                    return acc;
+                }
+
+                return [...acc, item[dimName]];
+            }, []);
+
+            data.sort((a, b) => correctDimOrder.indexOf(a.name) - correctDimOrder.indexOf(b.name));
+
             let result = this.formSeriesTop(seriesOptions, seriesData, curCategoryAxis);
 
             if (seriesOptions.isCumulativeTotal) {
@@ -411,7 +415,7 @@ export default {
             if (seriesOptions.isCumulativeDifference) {
                 result = utils.getCumulativeDifference(result);
             }
-            result = utils.resolveStyleDataItems(seriesOptions, result);
+            result = utils.resolveStyleDataItems(seriesOptions, result, dataRows, dimName);
             return result;
         },
 
@@ -490,7 +494,7 @@ export default {
 
         formSeriesTop(seriesOptions, data, curAxis) {
             const { enable, type, rest, metrics, number, dir } = this.props.topOptions;
-            if (!['bar', 'line'].includes(seriesOptions.customType) || type === TopType.METRIC) {
+            if (!['bar', 'line', 'step line'].includes(seriesOptions.customType) || type === TopType.METRIC) {
                 return data;
             }
             if (enable && this.hasTopMode) {
@@ -767,8 +771,18 @@ export default {
                 animationEasingUpdate: seriesItem.animationEasing,
                 animationDurationUpdate: seriesItem.animationDuration,
                 animationDelayUpdate: seriesItem.animationDelay,
-                ...(seriesItem.customType === 'line'
+                ...(['line', 'step line'].includes(seriesItem.customType)
                     ? {
+                          ...(seriesItem.customType === 'step line' && !seriesItem.disconnectLine
+                              ? { step: seriesItem.stepType || 'start' }
+                              : {}),
+                          ...(seriesItem.customType === 'step line' && seriesItem.disconnectLine
+                              ? {
+                                    symbol: 'rect',
+                                    showSymbol: true,
+                                    symbolSize: [seriesItem.markerWidth || 32, seriesItem.markerHeight || 3]
+                                }
+                              : {}),
                           itemStyle: {
                               ...itemStyle,
                               ...(() => {
@@ -788,7 +802,10 @@ export default {
                               shadowOffsetX,
                               shadowOffsetY,
                               color: seriesItem.color,
-                              shadowColor: seriesItem.shouldSyncShadowColor ? seriesItem.color : shadowColor
+                              shadowColor: seriesItem.shouldSyncShadowColor ? seriesItem.color : shadowColor,
+                              ...(seriesItem.customType === 'step line' && seriesItem.disconnectLine
+                                  ? { opacity: 0 }
+                                  : {})
                           }
                       }
                     : {
@@ -1351,19 +1368,49 @@ export default {
             const { dataZoom } = this;
             const buildedCategoryAxis = [yAxis, xAxis].flat().find(({ type }) => type === 'category');
             const dataLength = buildedCategoryAxis?.data?.length ?? 0;
+            let dataZoomOpts = null;
+            let dataZoomMouseOpts = null;
+
+            /**
+             * @param {{ xAxisIndex:number, yAxisIndex:number }[]} series
+             * @param {'xAxisIndex'|'yAxisIndex'} axisType
+             * @param {object[]} axis
+             * @return {number[]}
+             */
+            const getSeriesAxisIndexes = (series, axisType, axis) => {
+                const indexes = [...new Set(series.map((s) => s[axisType]).flat())];
+                const isValid = (i) => i >= 0 && i < axis.length;
+                return indexes.filter(isValid);
+            };
+
+            if (dataZoom) {
+                const { inverseDirection, startValue, endValue } = dataZoom;
+                dataZoomOpts = cloneDeep(dataZoom);
+                const isHorizontal = dataZoom.orient === 'horizontal';
+                const axisType = isHorizontal ? 'xAxisIndex' : 'yAxisIndex';
+                const targetAxis = isHorizontal ? xAxis : yAxis;
+                dataZoomOpts[axisType] = getSeriesAxisIndexes(series, axisType, targetAxis);
+
+                if (inverseDirection) {
+                    dataZoomOpts = Object.assign(dataZoomOpts, {
+                        startValue: dataLength - endValue,
+                        endValue: dataLength - startValue
+                    });
+                }
+
+                dataZoomMouseOpts = pick(dataZoomOpts, [
+                    'xAxisIndex',
+                    'yAxisIndex',
+                    'moveOnMouseWheel',
+                    'zoomOnMouseWheel',
+                    'moveOnMouseMove'
+                ]);
+                dataZoomMouseOpts.type = 'inside';
+            }
+
             const opts = {
                 ...this.options,
-                dataZoom:
-                    dataZoom != null &&
-                    dataZoom
-                        .map(({ inverseDirection = false }) => inverseDirection)
-                        .find((inverseDirection) => inverseDirection) === true
-                        ? dataZoom.map(({ startValue, endValue, ...other }) => ({
-                              startValue: dataLength - endValue,
-                              endValue: dataLength - startValue,
-                              ...other
-                          }))
-                        : dataZoom,
+                dataZoom: dataZoomOpts ? [dataZoomOpts, dataZoomMouseOpts] : null,
                 series,
                 xAxis,
                 yAxis
@@ -1381,8 +1428,8 @@ export default {
             if (opts.tooltip != null) {
                 setDefaultTooltipStyle(opts);
             }
-
             // this.setBreadcrumbText();
+            // console.log('datazoom', opts);
             this.drawChart(opts);
             this.addEventListeners(series);
         },

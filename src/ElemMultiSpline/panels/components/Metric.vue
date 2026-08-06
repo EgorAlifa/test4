@@ -543,7 +543,9 @@
                     </ui-panel>
                 </template>
             </ui-has-panel>
+        </template>
 
+        <template v-if="['bar', 'line', 'step line'].includes(currentOptions.customType)">
             <ui-has-panel>
                 <ui-checkbox v-model="currentOptions.styleConditions.enable" @change="collectSettings">
                     Задать стили условием
@@ -566,20 +568,36 @@
                                             </ui-select>
                                         </template>
                                         <template #right>
-                                            <ui-input
-                                                type="number"
-                                                v-model.number="cond.value"
-                                                :disabled="cond.type === 'ALL' || cond.dimValues.length > 0"
+                                            <ui-select
+                                                v-model="cond.compareSource"
+                                                :options="compareSourceOptions"
+                                                :disabled="cond.type === 'ALL'"
                                                 @change="collectCondition(cond)">
-                                                Значение
-                                            </ui-input>
+                                                Источник
+                                            </ui-select>
                                         </template>
                                     </ui-has-two-columns>
+                                    <ui-input
+                                        v-if="!cond.compareSource || cond.compareSource === 'value'"
+                                        type="number"
+                                        v-model.number="cond.value"
+                                        :disabled="cond.type === 'ALL' || cond.dimValues.length > 0"
+                                        @change="collectCondition(cond)">
+                                        Значение
+                                    </ui-input>
+                                    <ui-select
+                                        v-else
+                                        v-model="cond.compareMetric"
+                                        :options="metricNames"
+                                        :disabled="cond.type === 'ALL' || cond.dimValues.length > 0"
+                                        @change="collectCondition(cond)">
+                                        Метрика для сравнения
+                                    </ui-select>
                                     <ui-select
                                         multiple
                                         v-model="cond.dimValues"
                                         :options="dimValueNames"
-                                        :disabled="cond.value !== ''"
+                                        :disabled="cond.value !== '' || cond.compareSource === 'metric'"
                                         @change="collectCondition(cond)">
                                         Значение измерения
                                     </ui-select>
@@ -638,7 +656,44 @@
         </template>
 
         <template v-if="currentOptions.type === 'line'">
-            <ui-has-panel>
+            <ui-select
+                v-if="currentOptions.customType === 'step line'"
+                v-model="currentOptions.stepType"
+                :options="stepTypeOptions"
+                :disabled="currentOptions.disconnectLine"
+                @change="collectSettings">
+                Тип ступеньки
+            </ui-select>
+
+            <template v-if="currentOptions.customType === 'step line'">
+                <ui-switch v-model="currentOptions.disconnectLine" @change="collectSettings">
+                    Без соединения (маркеры)
+                    <template #hint>
+                        Скрывает соединяющие линии между точками. Каждая точка отображается как отдельный
+                        горизонтальный штрих. Настройте ширину ниже и цвет через "Настройки символов".
+                    </template>
+                </ui-switch>
+                <ui-has-two-columns v-if="currentOptions.disconnectLine">
+                    <template #left>
+                        <ui-input-units
+                            :units="CommonSizeFirstPxUnits"
+                            v-model="markerWidth"
+                            @change="collectSettings">
+                            Ширина маркера
+                        </ui-input-units>
+                    </template>
+                    <template #right>
+                        <ui-input-units
+                            :units="CommonSizeFirstPxUnits"
+                            v-model="markerHeight"
+                            @change="collectSettings">
+                            Высота маркера
+                        </ui-input-units>
+                    </template>
+                </ui-has-two-columns>
+            </template>
+
+            <ui-has-panel v-if="!currentOptions.disconnectLine">
                 <ui-checkbox
                     v-model="currentOptions.fillLine"
                     :disabled="currentOptions.customFillLine"
@@ -777,15 +832,23 @@
                 </template>
             </ui-has-panel>
 
-            <ui-select v-model="currentOptions.lineStyle.type" :options="lineTypes" @change="collectSettings">
+            <ui-select
+                v-if="!currentOptions.disconnectLine"
+                v-model="currentOptions.lineStyle.type"
+                :options="lineTypes"
+                @change="collectSettings">
                 Тип линии
             </ui-select>
 
-            <ui-input-units :units="CommonSizeFirstPxUnits" v-model="lineStyleWidth" @change="collectSettings">
+            <ui-input-units
+                v-if="!currentOptions.disconnectLine"
+                :units="CommonSizeFirstPxUnits"
+                v-model="lineStyleWidth"
+                @change="collectSettings">
                 Толщина линии
             </ui-input-units>
 
-            <ui-has-panel>
+            <ui-has-panel v-if="!currentOptions.disconnectLine">
                 <ui-checkbox v-model="currentOptions.showSymbol" @change="collectSettings">Точки</ui-checkbox>
                 <template #panel>
                     <ui-panel :groups="[{ name: 'Настройка точек', slot: 'default' }]">
@@ -1074,6 +1137,7 @@ import {
     LINE_TYPES,
     SYMBOL_TYPES,
     ANIMATION_TYPES,
+    STEP_TYPE_OPTIONS,
     LabelAlignOptions,
     SortOptions,
     VerticalAlignOptions,
@@ -1190,6 +1254,22 @@ export default {
                 this.currentOptions.symbolBdrWidth = val;
             }
         },
+        markerWidth: {
+            get() {
+                return `${this.currentOptions.markerWidth}`;
+            },
+            set(val) {
+                this.currentOptions.markerWidth = val;
+            }
+        },
+        markerHeight: {
+            get() {
+                return `${this.currentOptions.markerHeight}`;
+            },
+            set(val) {
+                this.currentOptions.markerHeight = val;
+            }
+        },
         barMinHeight: {
             get() {
                 return `${this.currentOptions.barMinHeight}`;
@@ -1296,7 +1376,12 @@ export default {
         VerticalAlignOptions,
         SortOptions,
         CommonSizeFirstPxUnits,
-        FontSizeFirstPxUnits
+        FontSizeFirstPxUnits,
+        compareSourceOptions: [
+            { label: 'Число', value: 'value' },
+            { label: 'Метрика', value: 'metric' }
+        ],
+        stepTypeOptions: STEP_TYPE_OPTIONS
     },
 
     watch: {
@@ -1424,10 +1509,11 @@ export default {
                     }
                     break;
                 case 'line':
+                case 'step line':
                     if (currentOptions.type === 'bar') {
                         currentOptions.colorForLine = currentOptions.colorForBar;
                     }
-                    this.currentOptions.type = seriesType;
+                    this.currentOptions.type = 'line';
                     this.currentOptions.itemStyle = {};
                     break;
                 case 'bar':
