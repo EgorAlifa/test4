@@ -792,7 +792,15 @@ export default {
 
                                   return {
                                       borderColor: color,
-                                      color: seriesItem.shouldDotsSyncColor ? color : seriesItem.symbolColor
+                                      // Point fill: "Цвет дублирует цвет графика" wins if on; otherwise it's
+                                      // only the custom color when "Задавать цвет" (fillSymbol) is actually
+                                      // checked - previously symbolColor was applied unconditionally here,
+                                      // so toggling fillSymbol on/off never changed anything on screen.
+                                      color: seriesItem.shouldDotsSyncColor
+                                          ? color
+                                          : seriesItem.fillSymbol
+                                          ? seriesItem.symbolColor
+                                          : undefined
                                   };
                               })()
                           },
