@@ -3,7 +3,7 @@
 import { cloneDeep, merge as _merge, memoize as _memoize, isEmpty as _isEmpty } from 'lodash';
 import Color from 'color';
 import dayjs from 'dayjs';
-import { formatNumber } from '@/common/utils';
+import { formatNumber } from '@goodt-widgets-insight/utils';
 
 import {
     AxisTemplate,
