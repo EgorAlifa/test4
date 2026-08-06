@@ -317,6 +317,10 @@ const SeriesTemplate = {
     customType: 'line',
     type: 'line',
     smooth: true,
+    stepType: 'start',
+    disconnectLine: false,
+    markerWidth: '2rem',
+    markerHeight: '0.2rem',
     seriesLayoutBy: 'column',
     excess: {
         color: 'black',
@@ -755,7 +759,8 @@ const DataZoomOptions = {
 };
 
 const DataZoomInsideOptions = {
-    type: 'inside',
+    // все ломает этот inside
+    // type: 'inside',
     zoomOnMouseWheel: false,
     moveOnMouseMove: false,
     moveOnMouseWheel: false
@@ -841,5 +846,7 @@ export const SeriesFields = [
     'barMinHeight',
     'barWidth',
     'barMinWidth',
-    'barMaxWidth'
+    'barMaxWidth',
+    'markerWidth',
+    'markerHeight'
 ];
