@@ -233,6 +233,102 @@
                     </ui-panel>
                 </template>
             </ui-has-panel>
+            <ui-has-panel v-if="props.factorPanel.enabled">
+                <div class="form-label form-label-small">Оформление панели отклонений</div>
+                <template #panel>
+                    <ui-panel :groups="[{ slot: 'default', name: 'Оформление панели отклонений' }]">
+                        <ui-container>
+                            <ui-has-two-columns>
+                                <template #left>
+                                    <ui-input
+                                        v-model="props.factorPanelStyle.fontFamily"
+                                        @change="propChanged('factorPanelStyle')">
+                                        Шрифт
+                                    </ui-input>
+                                </template>
+                                <template #right>
+                                    <ui-input-units
+                                        v-model="props.factorPanelStyle.totalLabelFontSize"
+                                        :units="FontSizes"
+                                        @change="propChanged('factorPanelStyle')">
+                                        Размер подписи итога
+                                    </ui-input-units>
+                                </template>
+                            </ui-has-two-columns>
+                            <ui-input-units
+                                v-model="props.factorPanelStyle.totalValueFontSize"
+                                :units="FontSizes"
+                                @change="propChanged('factorPanelStyle')">
+                                Размер значения итога
+                            </ui-input-units>
+                            <ui-has-two-columns>
+                                <template #left>
+                                    <ui-input-cp
+                                        v-model="props.factorPanelStyle.totalLabelColor"
+                                        @change="propChanged('factorPanelStyle')">
+                                        Цвет подписи итога
+                                    </ui-input-cp>
+                                </template>
+                                <template #right>
+                                    <ui-input-cp
+                                        v-model="props.factorPanelStyle.totalValueColor"
+                                        @change="propChanged('factorPanelStyle')">
+                                        Цвет значения итога
+                                    </ui-input-cp>
+                                </template>
+                            </ui-has-two-columns>
+                            <ui-has-two-columns>
+                                <template #left>
+                                    <ui-input-cp
+                                        v-model="props.factorPanelStyle.boldColor"
+                                        @change="propChanged('factorPanelStyle')">
+                                        Цвет жирной строки
+                                    </ui-input-cp>
+                                </template>
+                                <template #right>
+                                    <ui-input-cp
+                                        v-model="props.factorPanelStyle.sectionColor"
+                                        @change="propChanged('factorPanelStyle')">
+                                        Цвет подзаголовка
+                                    </ui-input-cp>
+                                </template>
+                            </ui-has-two-columns>
+                            <ui-has-two-columns>
+                                <template #left>
+                                    <ui-input-cp
+                                        v-model="props.factorPanelStyle.itemLabelColor"
+                                        @change="propChanged('factorPanelStyle')">
+                                        Цвет подписи строки
+                                    </ui-input-cp>
+                                </template>
+                                <template #right>
+                                    <ui-input-cp
+                                        v-model="props.factorPanelStyle.itemValueColor"
+                                        @change="propChanged('factorPanelStyle')">
+                                        Цвет значения строки
+                                    </ui-input-cp>
+                                </template>
+                            </ui-has-two-columns>
+                            <ui-has-two-columns>
+                                <template #left>
+                                    <ui-input-cp
+                                        v-model="props.factorPanelStyle.bg"
+                                        @change="propChanged('factorPanelStyle')">
+                                        Фон панели
+                                    </ui-input-cp>
+                                </template>
+                                <template #right>
+                                    <ui-input-cp
+                                        v-model="props.factorPanelStyle.border"
+                                        @change="propChanged('factorPanelStyle')">
+                                        Рамка панели
+                                    </ui-input-cp>
+                                </template>
+                            </ui-has-two-columns>
+                        </ui-container>
+                    </ui-panel>
+                </template>
+            </ui-has-panel>
             <ui-tooltip
                 v-model="props.customTooltip"
                 :options="dimensionsMetrics"
