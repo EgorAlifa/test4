@@ -5,6 +5,7 @@ import {
     CardStyle,
     ColorSettings,
     FactorPanelFields,
+    FactorPanelStyle,
     Fields,
     GeneralSettings,
     HoverSettings,
@@ -123,6 +124,10 @@ const descriptor = () => ({
         factorPanel: {
             type: Object,
             default: () => FactorPanelFields
+        },
+        factorPanelStyle: {
+            type: Object,
+            default: () => FactorPanelStyle
         },
         events: {
             type: Object,

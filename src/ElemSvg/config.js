@@ -71,6 +71,28 @@ export const FactorPanelFields = {
     valueField: null
 };
 
+// Visual style for factorPanel - kept separate from CardStyle (rather than
+// reusing it) so the panel can be themed independently of the KPI cards,
+// e.g. on a dark dashboard where the cards already got custom dark colors
+// but the panel was still stuck with the SVG file's baked-in white box.
+// Defaults match exactly what this panel already rendered before it had its
+// own style object (it borrowed cardStyle's title/value/planValue colors) -
+// so existing widgets that enabled factorPanel keep looking the same unless
+// someone explicitly opens this new section and changes something.
+export const FactorPanelStyle = {
+    fontFamily: 'Arial, Helvetica, sans-serif',
+    bg: '#FFFFFF',
+    border: '#E2E8F0',
+    totalLabelColor: '#94A3B8',
+    totalLabelFontSize: '15px',
+    totalValueColor: '#0F172A',
+    totalValueFontSize: '26px',
+    boldColor: '#0F172A',
+    sectionColor: '#475569',
+    itemLabelColor: '#94A3B8',
+    itemValueColor: '#0F172A'
+};
+
 export const ColorSettings = {
     defaultColor: 'inherit',
     defaultStroke: 'inherit',

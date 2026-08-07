@@ -147,6 +147,8 @@ export class SvgViewModel extends BaseViewModel {
             element.style.cursor = 'pointer';
             const isFactorPanel = factorPanel.enabled && factorPanel.nodeIds.includes(element.getAttribute('data-id'));
             if (isFactorPanel) {
+                const { factorPanelStyle } = this.widget.props;
+                this.applyPaintStyle({ element, fill: factorPanelStyle.bg, stroke: factorPanelStyle.border });
                 this._state.textNodes.push(this.createFactorPanelNode({ element, row, rows, metricId, svg }));
             } else if (cardMode) {
                 this.applyCardHighlight({ element, row });
@@ -375,7 +377,7 @@ export class SvgViewModel extends BaseViewModel {
     // the individual lines are OTHER rows sharing factorPanel.groupField
     // with that row's own id.
     createFactorPanelNode({ element, row, rows, metricId, svg }) {
-        const { factorPanel, cardStyle } = this.widget.props;
+        const { factorPanel, factorPanelStyle } = this.widget.props;
         const { x, y, width } = element.getBBox();
         const pad = 16;
 
@@ -401,19 +403,19 @@ export class SvgViewModel extends BaseViewModel {
         const totalLabelNode = document.createElementNS(NS, 'text');
         totalLabelNode.setAttribute('x', pad);
         totalLabelNode.setAttribute('y', pad + 11);
-        totalLabelNode.setAttribute('font-family', cardStyle.fontFamily);
-        totalLabelNode.setAttribute('font-size', cardStyle.titleFontSize);
-        totalLabelNode.setAttribute('fill', cardStyle.titleColor);
+        totalLabelNode.setAttribute('font-family', factorPanelStyle.fontFamily);
+        totalLabelNode.setAttribute('font-size', factorPanelStyle.totalLabelFontSize);
+        totalLabelNode.setAttribute('fill', factorPanelStyle.totalLabelColor);
         totalLabelNode.textContent = factorPanel.totalLabel ?? '';
         g.appendChild(totalLabelNode);
 
         const totalValueNode = document.createElementNS(NS, 'text');
         totalValueNode.setAttribute('x', pad);
         totalValueNode.setAttribute('y', pad + 46);
-        totalValueNode.setAttribute('font-family', cardStyle.fontFamily);
-        totalValueNode.setAttribute('font-size', cardStyle.valueFontSize);
+        totalValueNode.setAttribute('font-family', factorPanelStyle.fontFamily);
+        totalValueNode.setAttribute('font-size', factorPanelStyle.totalValueFontSize);
         totalValueNode.setAttribute('font-weight', '700');
-        totalValueNode.setAttribute('fill', cardStyle.valueColor);
+        totalValueNode.setAttribute('fill', factorPanelStyle.totalValueColor);
         totalValueNode.textContent = totalText;
         g.appendChild(totalValueNode);
 
@@ -427,10 +429,10 @@ export class SvgViewModel extends BaseViewModel {
                 const node = document.createElementNS(NS, 'text');
                 node.setAttribute('x', pad);
                 node.setAttribute('y', cy);
-                node.setAttribute('font-family', cardStyle.fontFamily);
+                node.setAttribute('font-family', factorPanelStyle.fontFamily);
                 node.setAttribute('font-size', '14px');
                 node.setAttribute('font-weight', '700');
-                node.setAttribute('fill', cardStyle.valueColor);
+                node.setAttribute('fill', factorPanelStyle.boldColor);
                 node.textContent = label;
                 g.appendChild(node);
                 cy += lineGap.bold;
@@ -441,9 +443,9 @@ export class SvgViewModel extends BaseViewModel {
                 const node = document.createElementNS(NS, 'text');
                 node.setAttribute('x', pad);
                 node.setAttribute('y', cy);
-                node.setAttribute('font-family', cardStyle.fontFamily);
+                node.setAttribute('font-family', factorPanelStyle.fontFamily);
                 node.setAttribute('font-size', '13px');
-                node.setAttribute('fill', cardStyle.planValueColor);
+                node.setAttribute('fill', factorPanelStyle.sectionColor);
                 node.textContent = label;
                 g.appendChild(node);
                 cy += lineGap.section;
@@ -458,9 +460,9 @@ export class SvgViewModel extends BaseViewModel {
             const labelNode = document.createElementNS(NS, 'text');
             labelNode.setAttribute('x', pad);
             labelNode.setAttribute('y', cy);
-            labelNode.setAttribute('font-family', cardStyle.fontFamily);
+            labelNode.setAttribute('font-family', factorPanelStyle.fontFamily);
             labelNode.setAttribute('font-size', '13px');
-            labelNode.setAttribute('fill', cardStyle.titleColor);
+            labelNode.setAttribute('fill', factorPanelStyle.itemLabelColor);
             labelNode.textContent = label;
             g.appendChild(labelNode);
             cy += lineGap.itemLabel;
@@ -468,10 +470,10 @@ export class SvgViewModel extends BaseViewModel {
             const valueNode = document.createElementNS(NS, 'text');
             valueNode.setAttribute('x', pad);
             valueNode.setAttribute('y', cy);
-            valueNode.setAttribute('font-family', cardStyle.fontFamily);
+            valueNode.setAttribute('font-family', factorPanelStyle.fontFamily);
             valueNode.setAttribute('font-size', '15px');
             valueNode.setAttribute('font-weight', '700');
-            valueNode.setAttribute('fill', cardStyle.valueColor);
+            valueNode.setAttribute('fill', factorPanelStyle.itemValueColor);
             valueNode.textContent = valueText;
             g.appendChild(valueNode);
             cy += lineGap.itemValue;
