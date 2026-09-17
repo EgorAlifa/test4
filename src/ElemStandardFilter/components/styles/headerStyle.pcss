@@ -1,0 +1,98 @@
+.filter-header {
+    --icon-font-size: 1rem;
+}
+.info-wrapper {
+    display: flex;
+    width: 100%;
+    line-height: 1rem;
+    max-height: 1rem;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--w-placeholder_color);
+}
+.filter-placeholder {
+    .placeholder {
+        font-size: var(--w-placeholder_font-size);
+        font-weight: var(--w-placeholder-font-weight);
+
+        &.multiselect {
+            font-size: var(--w-placeholder--multiselect_font-size);
+        }
+    }
+    .badge {
+        background-color: var(--w-placeholder--active_color);
+        color: var(--w-menu_color);
+        font-size: var(--w-placeholder_font-size);
+    }
+}
+
+.chevron-filter {
+    opacity: 0.8;
+    cursor: pointer;
+    font-size: var(--w-icon_font-size);
+}
+.chevron-animation {
+    transition: 0.2s ease;
+}
+.rotate-up {
+    transform: rotate(180deg);
+}
+.rotate-down {
+    transform: rotate(0deg);
+}
+
+.search-input-wrapper {
+    background-color: var(--w-input-search_bg-color);
+    display: flex;
+    align-items: center;
+    border-radius: var(--w-input-search_border-radius);
+    border-style: solid;
+    border-width: var(--w-input-search_border-width);
+    border-color: var(--w-input-search_border-color);
+    overflow: hidden;
+    height: var(--w-input-smart-search-height);
+}
+.search-input {
+    border: none;
+    outline: none;
+    color: var(--w-input-search_color);
+    background-color: var(--w-input-search_bg-color);
+    font-size: var(--w-input-search_font-size);
+    margin-left: var(--w-input-search_margin-left);
+    &::placeholder {
+        color: var(--w-input-search_color);
+        opacity: 0.75;
+    }
+    &:focus {
+        outline: none;
+    }
+}
+
+.search-icon {
+    font-size: var(--w-input-search-prefix_font-size);
+    color: var(--w-input-search-prefix_color);
+    margin-left: var(--w-input-search-prefix_margin-left);
+}
+
+.dimension-list {
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.icon-delete {
+    opacity: 0.8;
+    font-size: var(--icon-font-size);
+}
+
+.input-icon-delete {
+    opacity: 0.8;
+    font-size: var(--w-input-search-postfix_font-size);
+    color: var(--w-input-search-postfix_color);
+    margin-right: var(--w-input-search-postfix_margin-right);
+}
+
+.multy-count-unit {
+    font-size: var(--w-multi-count-size-unit)
+}
