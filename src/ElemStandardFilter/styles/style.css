@@ -1,0 +1,16 @@
+.checkbox {
+    background-color: transparent;
+    border-radius: 2.4px;
+    outline-width: 0;
+    box-shadow: none !important;
+    width: var(--w-checkbox_font-size);
+    height: var(--w-checkbox_font-size);
+    color: transparent;
+    border: #999999 2px solid;
+}
+
+.checkbox:checked {
+    color: var(--w-menu_color);
+    background-color: var(--w-placeholder--active_color);
+    border: none;
+}

@@ -1,0 +1,20 @@
+@b pagination {
+    composes: pull-right justify-end w-100 from global;
+
+    @e button {
+        composes: btn btn-small from global;
+        font-family: var(--w-pagination-font-family);
+        font-size: var(--w-pagination-font-size);
+        color: var(--w-pagination-color);
+
+        &:focus {
+            outline: none;
+            box-shadow: none !important;
+        }
+
+        @m active {
+            background: var(--w-pagination-active-background);
+            color: var(--w-pagination-active-color);
+        }
+    }
+}
