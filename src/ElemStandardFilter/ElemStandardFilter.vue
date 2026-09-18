@@ -224,7 +224,7 @@
 import { Elem } from '@goodt-wcore/core';
 import { StoreManager } from '@goodt-wcore/managers';
 import { Query, useDremio, useSDKDataProvider } from '@goodt-common/dremio';
-import { get as _get, cloneDeep, isEqual, truncate as _truncate, isEmpty, kebabCase, uniq, uniqBy, omit } from 'lodash';
+import { get as _get, cloneDeep, isEqual, truncate as _truncate, isEmpty, kebabCase, uniq, omit } from 'lodash';
 import { useNavigate } from '@goodt-wcore/utils';
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller';
 import { formatNumber } from '@goodt-widgets-insight/utils';
@@ -864,19 +864,18 @@ export default {
         createFilterData() {
             const { selectedDimension } = this.props;
             const multiSelectNames = new Set(this.multiSelect.map(({ name }) => name));
-            this.data = uniqBy(
-                this.allDatasetsRows
-                    .filter((row) => row[selectedDimension] != null)
-                    .map((row) => ({
-                        name: row[selectedDimension],
-                        metric: row[this.selectedMetric]
-                    })),
-                'name'
-            ).map((item, index) => ({
-                ...item,
-                index,
-                selected: multiSelectNames.has(item.name)
-            }));
+            this.data = this.allDatasetsRows
+                .filter((row) => row[selectedDimension] != null)
+                .map((row, index) => {
+                    const name = row[selectedDimension];
+                    const metric = row[this.selectedMetric];
+                    return {
+                        name,
+                        metric,
+                        index,
+                        selected: multiSelectNames.has(name)
+                    };
+                });
         },
         triggerEventAndCommitToStore({ isDatasetFiltered = false } = {}) {
             const { result: results, subState } = this;
