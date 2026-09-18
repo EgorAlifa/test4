@@ -93,7 +93,10 @@
 }
 
 @b multi-list-wrapper {
-    composes: mar-top-5 scroll-y scroll-hide from global;
+    composes: mar-top-5 from global;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 
     &__btn-clear {
         composes: btn btn-primary btn-small mar-right-2 from global;
@@ -119,6 +122,17 @@
     @m full-growth {
         composes: flex-grow from global;
     }
+}
+
+/* Owns the actual scrolling for the virtualized multi-select list -
+ * multi-list-wrapper only clips (its height/max-height is set by the host
+ * dashboard's CSS), this fills that box and lets vue-virtual-scroller's own
+ * overflow-y:auto do the real scrolling. min-height: 0 is required so a flex
+ * child can shrink below its content size instead of pushing past the
+ * wrapper's bound. */
+.multi-list-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .btn-common {
