@@ -154,31 +154,31 @@
                             :items="filteredList"
                             :min-item-size="40"
                             key-field="index"
-                            list-tag="ul"
-                            item-tag="li"
                             class="multi-list multi-list-scroll">
                             <template #default="{ item, index, active }">
                                 <ui-dynamic-scroller-item
                                     :item="item"
                                     :active="active"
                                     :size-dependencies="[item.name]"
-                                    :data-index="index"
-                                    :class="{ 'mar-top-l1': !!index }"
-                                    class="multi-list__element cursor-pointer"
-                                    @click.native="changeSelect(item)">
-                                    <label>
-                                        <input
-                                            class="checkbox"
-                                            :class="{ checked: item.selected }"
-                                            :checked="item.selected"
-                                            type="checkbox" />
-                                        <i></i>
-                                    </label>
-                                    <div class="item-wrapper w-100">
-                                        <a class="multi-list__link">{{ item.name }}</a>
-                                        <span v-if="props.isDisplayMetric && item.metric" class="metric">
-                                            {{ formatMetric(item.metric) }}
-                                        </span>
+                                    :data-index="index">
+                                    <div
+                                        :class="{ 'mar-top-l1': !!index }"
+                                        class="multi-list__element cursor-pointer"
+                                        @click="changeSelect(item)">
+                                        <label>
+                                            <input
+                                                class="checkbox"
+                                                :class="{ checked: item.selected }"
+                                                :checked="item.selected"
+                                                type="checkbox" />
+                                            <i></i>
+                                        </label>
+                                        <div class="item-wrapper w-100">
+                                            <a class="multi-list__link">{{ item.name }}</a>
+                                            <span v-if="props.isDisplayMetric && item.metric" class="metric">
+                                                {{ formatMetric(item.metric) }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </ui-dynamic-scroller-item>
                             </template>
