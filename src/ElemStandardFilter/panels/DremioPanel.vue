@@ -1,7 +1,6 @@
 <script>
 import { DremioMultiPanel as DremioPanel } from '@goodt-common/dremio-panels';
 import { Dremio } from 'goodt-wcore';
-import { cloneDeep } from 'lodash';
 
 const { Query } = Dremio;
 
@@ -13,7 +12,7 @@ export default {
             deep: true,
             handler() {
                 const { dremio, selectedDimension } = this.props;
-                if (selectedDimension !== '' || dremio == null || dremio.length === 0) {
+                if (selectedDimension !== '' || dremio == null || dremio.length === 0 || !Array.isArray(dremio)) {
                     return;
                 }
 

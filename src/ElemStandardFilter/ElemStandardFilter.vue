@@ -235,6 +235,7 @@ import { FilterHeader, SmartSearchView, Pagination } from './components';
 import { DremioFieldTypes, NonExistentValues, TooltipOptions, Buttons } from './config';
 import { TOGGLE_MENU_DELAY, EMPTY_FIELD_URL } from './constants';
 import { buildCssStyle } from './utils';
+import { DremioNormalizeMixin } from '@goodt-widgets-insight/utils';
 
 const { store, ValueObject } = StoreManager;
 
@@ -259,13 +260,14 @@ export default {
         WSmartSearchView: SmartSearchView,
         WPagination: Pagination
     },
-    mixins: [useDremio().mixin],
+    mixins: [DremioNormalizeMixin, useDremio().mixin],
     meta,
     data() {
         return {
             loadDataHooks: {
-                then: () => {
+                then: (_, { isDatasetFiltered }) => {
                     this.createFilterData();
+                    this.triggerEventAndCommitToStore({ isDatasetFiltered });
                 }
             },
             isMenuVisible: false,
@@ -487,10 +489,10 @@ export default {
             } = this;
 
             if (paginationOptions.isEnable) {
-                const { dimensionValues: selectedDimensionValues } = this.resolveStateSelectedDimensionValues(
-                    subState,
-                    selectedDimension
-                );
+                const { dimensionValues: selectedDimensionValues } = this.resolveStateSelectedDimensionValues({
+                    results: this.result,
+                    subState
+                });
 
                 const stateDimensions = [...new Set(selectedDimensionValues)]
                     .filter((dim) => !allRows.some((row) => row[selectedDimension] === dim))
@@ -682,7 +684,7 @@ export default {
             }
         },
         /** @public */
-        loadData() {
+        loadData({ isDatasetFiltered = false } = {}) {
             if (!this.isAllowedLoadData) {
                 return [];
             }
@@ -705,7 +707,7 @@ export default {
             )
                 .then((result) => {
                     this.result = result;
-                    this.loadDataHooks.then(result);
+                    this.loadDataHooks.then(result, { isDatasetFiltered });
                 })
                 .catch(this.loadDataHooks.catch)
                 .finally(this.loadDataHooks.finally);
@@ -834,6 +836,7 @@ export default {
             }
 
             if (values.length > 0) {
+                this.data = this.data.map((filterItem) => ({ ...filterItem, selected: false }));
                 const { result } = this.createStandardSingleFilter(values[values.length - 1]);
                 this.singleSelect = result;
             }
@@ -858,14 +861,9 @@ export default {
             });
             this.loadDataPage();
         },
-        createFilterData({ isDatasetFiltered = false } = {}) {
-            const { selectedDimension, multiMode, paginationOptions } = this.props;
-            const { result, subState } = this;
-            if (result === null) {
-                return;
-            }
-            const multiSelectNames = this.multiSelect.map(({ name }) => name);
-
+        createFilterData() {
+            const { selectedDimension } = this.props;
+            const multiSelectNames = new Set(this.multiSelect.map(({ name }) => name));
             this.data = uniqBy(
                 this.allDatasetsRows
                     .filter((row) => row[selectedDimension] != null)
@@ -877,21 +875,29 @@ export default {
             ).map((item, index) => ({
                 ...item,
                 index,
-                selected: multiSelectNames.includes(item.name)
+                selected: multiSelectNames.has(item.name)
             }));
+        },
+        triggerEventAndCommitToStore({ isDatasetFiltered = false } = {}) {
+            const { result: results, subState } = this;
+            if ((results?.length ?? 0) === 0) {
+                return;
+            }
+
+            const { selectedDimension, multiMode, paginationOptions, isAlwaysFirstValue } = this.props;
 
             if (this.isFirstAppearance) {
                 this.isFirstAppearance = false;
                 this.triggerDefaultValues();
-            } else if (this.props.isAlwaysFirstValue && isDatasetFiltered) {
+            } else if (isAlwaysFirstValue && isDatasetFiltered) {
                 this.multiSelect = [];
                 this.triggerFirstValue(isDatasetFiltered);
             }
 
             let isOnlySelectedDimension = true;
-            if (subState != null) {
+            if (!isEmpty(subState)) {
                 const { isAnotherDimension, dimensionValues: selectedDimensionValues } =
-                    this.resolveStateSelectedDimensionValues(subState, selectedDimension);
+                    this.resolveStateSelectedDimensionValues({ results, subState });
                 isOnlySelectedDimension = !isAnotherDimension;
                 if (this.firstSubState == null) {
                     this.firstSubState = cloneDeep(subState);
@@ -913,13 +919,11 @@ export default {
                 } else {
                     this.setFilterValues(selectedDimensionValues);
                 }
-
                 if (!isOnlySelectedDimension) {
                     this.state = {
                         ...this.state,
                         [selectedDimension]: selectedDimensionValues
                     };
-
                     this.$storeCommit(this.state);
                 }
             }
@@ -935,7 +939,7 @@ export default {
         selectSingleDimension(dimension, metric) {
             if (this.props.isDisplayMetric && metric != null) {
                 this.singleSelectMetric = metric;
-                this.createFilterData();
+                this.triggerEventAndCommitToStore();
             }
             this.singleSelect = dimension;
             this.formStateToCommit();
@@ -1295,13 +1299,12 @@ export default {
                 if (isDataSetFiltered) {
                     this.offset = 0;
                     this.subState = subState;
-                    this.loadFilterData();
+                    this.loadData({ isDatasetFiltered: true });
                     return;
                 }
                 if (isEqual(this.subState, subState) === false) {
                     this.subState = subState;
-
-                    this.createFilterData();
+                    this.triggerEventAndCommitToStore();
                 }
             });
         },
@@ -1327,11 +1330,12 @@ export default {
 
             return Object.values(newState).length === 0 ? {} : newState;
         },
-        resolveStateSelectedDimensionValues(state, selectedDimension) {
+        resolveStateSelectedDimensionValues({ results = this.result, subState }) {
+            const { selectedDimension } = this.props;
             let isAnotherDimension = false;
-            const flattedRows = this.result.flatMap(({ rows }) => rows);
+            const flattedRows = results.flatMap(({ rows }) => rows);
 
-            const dimensionValues = Object.entries(state).flatMap(([key, value]) => {
+            const dimensionValues = Object.entries(subState ?? {}).flatMap(([key, value]) => {
                 if (key === selectedDimension) {
                     return value;
                 }
