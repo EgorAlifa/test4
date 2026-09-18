@@ -154,31 +154,31 @@
                             :items="filteredList"
                             :min-item-size="40"
                             key-field="index"
-                            class="h-100 multi-list">
+                            list-tag="ul"
+                            item-tag="li"
+                            class="multi-list multi-list-scroll">
                             <template #default="{ item, index, active }">
                                 <ui-dynamic-scroller-item
                                     :item="item"
                                     :active="active"
                                     :size-dependencies="[item.name]"
-                                    :data-index="index">
-                                    <div
-                                        :class="{ 'mar-top-l1': !!index }"
-                                        class="multi-list__element cursor-pointer"
-                                        @click="changeSelect(item)">
-                                        <label>
-                                            <input
-                                                class="checkbox"
-                                                :class="{ checked: item.selected }"
-                                                :checked="item.selected"
-                                                type="checkbox" />
-                                            <i></i>
-                                        </label>
-                                        <div class="item-wrapper w-100">
-                                            <a class="multi-list__link">{{ item.name }}</a>
-                                            <span v-if="props.isDisplayMetric && item.metric" class="metric">
-                                                {{ formatMetric(item.metric) }}
-                                            </span>
-                                        </div>
+                                    :data-index="index"
+                                    :class="{ 'mar-top-l1': !!index }"
+                                    class="multi-list__element cursor-pointer"
+                                    @click.native="changeSelect(item)">
+                                    <label>
+                                        <input
+                                            class="checkbox"
+                                            :class="{ checked: item.selected }"
+                                            :checked="item.selected"
+                                            type="checkbox" />
+                                        <i></i>
+                                    </label>
+                                    <div class="item-wrapper w-100">
+                                        <a class="multi-list__link">{{ item.name }}</a>
+                                        <span v-if="props.isDisplayMetric && item.metric" class="metric">
+                                            {{ formatMetric(item.metric) }}
+                                        </span>
                                     </div>
                                 </ui-dynamic-scroller-item>
                             </template>
@@ -224,7 +224,7 @@
 import { Elem } from '@goodt-wcore/core';
 import { StoreManager } from '@goodt-wcore/managers';
 import { Query, useDremio, useSDKDataProvider } from '@goodt-common/dremio';
-import { get as _get, cloneDeep, isEqual, truncate as _truncate, isEmpty, kebabCase, uniq, uniqBy, omit } from 'lodash';
+import { get as _get, cloneDeep, isEqual, truncate as _truncate, isEmpty, kebabCase, uniq, omit } from 'lodash';
 import { useNavigate } from '@goodt-wcore/utils';
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller';
 import { formatNumber } from '@goodt-widgets-insight/utils';
@@ -864,19 +864,18 @@ export default {
         createFilterData() {
             const { selectedDimension } = this.props;
             const multiSelectNames = new Set(this.multiSelect.map(({ name }) => name));
-            this.data = uniqBy(
-                this.allDatasetsRows
-                    .filter((row) => row[selectedDimension] != null)
-                    .map((row) => ({
-                        name: row[selectedDimension],
-                        metric: row[this.selectedMetric]
-                    })),
-                'name'
-            ).map((item, index) => ({
-                ...item,
-                index,
-                selected: multiSelectNames.has(item.name)
-            }));
+            this.data = this.allDatasetsRows
+                .filter((row) => row[selectedDimension] != null)
+                .map((row, index) => {
+                    const name = row[selectedDimension];
+                    const metric = row[this.selectedMetric];
+                    return {
+                        name,
+                        metric,
+                        index,
+                        selected: multiSelectNames.has(name)
+                    };
+                });
         },
         triggerEventAndCommitToStore({ isDatasetFiltered = false } = {}) {
             const { result: results, subState } = this;
