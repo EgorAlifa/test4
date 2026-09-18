@@ -212,7 +212,15 @@
 
     @e link {
         composes: d-block cursor-pointer mar-left-3 from global;
-        composes: option;
+        /* Same text look as @b option (color/size/weight) without composing
+         * its class name: the host dashboard has a rule keyed on
+         * [class*="style-module_option"] inside .vue-recycle-scroller
+         * (meant only for the single-select radio list) that would
+         * otherwise also match here now that the multi-select list is
+         * virtualized too, drawing an unwanted radio-style circle. */
+        color: var(--w-option_color);
+        font-size: var(--w-option_font-size);
+        font-weight: var(--w-dimensions-font-weight);
         text-decoration: none;
         opacity: 0.8;
     }
