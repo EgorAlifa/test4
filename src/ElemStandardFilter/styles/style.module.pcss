@@ -202,12 +202,14 @@
 @b multi-list {
     composes: d-block from global;
     list-style: inside none;
+    list-style-type: none;
     :hover {
         color: var(--w-multiselect--hover);
     }
 
     @e element {
         composes: d-flex flex-v-center from global;
+        list-style-type: none;
     }
 
     @e link {
