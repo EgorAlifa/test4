@@ -346,7 +346,12 @@ export default {
          * @return {SelectOption[]}
          */
         typeList() {
-            return this.props.multiCount ? this.data : this.dimensionList;
+            // multiMode never reorders: dimensionList moves selected items to the
+            // top reactively, and with the multi-select list now virtualized,
+            // resorting mid-click can hand a click to whatever item slides into
+            // the clicked screen position, selecting the wrong row alongside the
+            // intended one. Single-select keeps the existing sort-to-top behavior.
+            return this.props.multiCount || this.props.multiMode ? this.data : this.dimensionList;
         },
         /**
          * @return {SelectOption[]}
