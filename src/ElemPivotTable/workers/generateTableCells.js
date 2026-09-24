@@ -49,6 +49,16 @@ function generateTableCells(
     const expressionMetricsAliases = utils.buildArgsAliases(metrics);
     const resizedRowsAliases = Object.fromEntries(resizedRowsIndexes);
     const resizedColumnsAliases = Object.fromEntries(resizedColumnsIndexes);
+    const indexesSetsCache = new WeakMap();
+
+    const getIndexesSet = (indexes) => {
+        let indexesSet = indexesSetsCache.get(indexes);
+        if (indexesSet == null) {
+            indexesSet = new Set(indexes);
+            indexesSetsCache.set(indexes, indexesSet);
+        }
+        return indexesSet;
+    };
 
     if (columns.length + rows.length + valuesData.length === 0) {
         return [];
@@ -124,7 +134,7 @@ function generateTableCells(
             return rowIndexes;
         }
 
-        return utils.findIntesection(rowIndexes, columnIndexes);
+        return Array.from(getIndexesSet(rowIndexes).intersection(getIndexesSet(columnIndexes)));
     };
 
     const buildSortedPathsIndexes = ({

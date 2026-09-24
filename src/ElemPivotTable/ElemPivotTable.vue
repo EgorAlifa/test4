@@ -468,14 +468,40 @@ const countVisiblePaths = ({ paths = [], collapsedPaths = [], isCollapseEnabled 
     }
 
     const visibleCollapsedPaths = new Set();
+    const collapsedPathIndexes = { children: new Map(), index: null };
+    collapsedPaths.forEach((collapsedPath, index) => {
+        if (collapsedPath.some(Number.isNaN)) {
+            return;
+        }
+        let currentNode = collapsedPathIndexes;
+        collapsedPath.forEach((value) => {
+            if (!currentNode.children.has(value)) {
+                currentNode.children.set(value, { children: new Map(), index: null });
+            }
+            currentNode = currentNode.children.get(value);
+        });
+        if (currentNode.index == null) {
+            currentNode.index = index;
+        }
+    });
+
     return paths.reduce((count, path) => {
-        const collapsedPath = collapsedPaths.find(
-            (candidate) => candidate.length <= path.length && candidate.every((value, level) => value === path[level])
-        );
-        if (collapsedPath == null) {
+        let currentNode = collapsedPathIndexes;
+        let matchedIndex = currentNode.index;
+        for (const value of path) {
+            currentNode = currentNode.children.get(value);
+            if (currentNode == null) {
+                break;
+            }
+            if (currentNode.index != null && (matchedIndex == null || currentNode.index < matchedIndex)) {
+                matchedIndex = currentNode.index;
+            }
+        }
+
+        if (matchedIndex == null) {
             return count + 1;
         }
-        const key = JSON.stringify(collapsedPath);
+        const key = JSON.stringify(collapsedPaths[matchedIndex]);
         if (visibleCollapsedPaths.has(key)) {
             return count;
         }
@@ -2763,8 +2789,26 @@ export default {
                     isCollapseEnabled: this.playerSettings?.isUsedCollapse
                 });
                 const metricCount = Math.max(this.playerValues.length, 1);
+                const isMetricsInRows = this.playerSettings?.metricsPosition === 'rows';
+                const isUsedIndexes = this.playerSettings?.isUsedIndexes === true;
+                const headerRowsCount = this.playerColumns.length + 1 + Number(isUsedIndexes);
+                const bodyRowsCount = rowsCount * (isMetricsInRows ? metricCount : 1);
+                const subtotalRowsCount = this.isShownRowsSubtotals ? bodyRowsCount : 0;
+                const totalRowsCount = this.playerSettings?.isShownColumnsTotal
+                    ? isMetricsInRows
+                        ? metricCount
+                        : 1
+                    : 0;
+                const indexesRowCount = Number(isUsedIndexes);
+                const estimatedCellsPerRow =
+                    columnsCount * metricCount +
+                    this.flatPlayerRows.length +
+                    metricCount +
+                    2 +
+                    Number(isUsedIndexes);
                 const estimatedCellCount =
-                    rowsCount * (columnsCount * metricCount + this.flatPlayerRows.length + metricCount + 2);
+                    (headerRowsCount + bodyRowsCount + subtotalRowsCount + totalRowsCount + indexesRowCount) *
+                    estimatedCellsPerRow;
                 if (estimatedCellCount > MAX_PIVOT_TABLE_CELLS) {
                     this.tableRows = [];
                     this.tableHeadRows = [];
