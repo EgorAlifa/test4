@@ -84,7 +84,14 @@
                     </div>
                 </div>
                 <div class="pivot-table-container__table resized-table" data-popover-table>
+                    <div
+                        v-if="tableGenerationMessage"
+                        class="pivot-table-limit-message"
+                        role="status">
+                        {{ tableGenerationMessage }}
+                    </div>
                     <ui-recycle-scroller
+                        v-else
                         :key="scrollerKey"
                         v-bind="scrollerSettings"
                         class="scroller"
@@ -453,6 +460,29 @@ import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 const convertToAbsoluteValue = SizeConverter.instance.convertToAbsoluteValue.bind(SizeConverter.instance);
 const convertCssVarToValue = SizeConverter.instance.convertCssVarToValue.bind(SizeConverter.instance);
 const rowMinHeight = convertToAbsoluteValue({ size: CELL_MIN_HEIGHT });
+const MAX_PIVOT_TABLE_CELLS = 250000;
+
+const countVisiblePaths = ({ paths = [], collapsedPaths = [], isCollapseEnabled = false }) => {
+    if (!isCollapseEnabled || collapsedPaths.length === 0) {
+        return paths.length;
+    }
+
+    const visibleCollapsedPaths = new Set();
+    return paths.reduce((count, path) => {
+        const collapsedPath = collapsedPaths.find(
+            (candidate) => candidate.length <= path.length && candidate.every((value, level) => value === path[level])
+        );
+        if (collapsedPath == null) {
+            return count + 1;
+        }
+        const key = JSON.stringify(collapsedPath);
+        if (visibleCollapsedPaths.has(key)) {
+            return count;
+        }
+        visibleCollapsedPaths.add(key);
+        return count + 1;
+    }, 0);
+};
 
 export default {
     extends: Elem,
@@ -521,6 +551,7 @@ export default {
         tableMapsHook: null,
         uniqDimensionsFieldsBuf: null,
         isGeneratedTableMaps: false,
+        tableGenerationMessage: '',
 
         dataTableRows: [],
         tableHeadRowsHook: null,
@@ -2718,18 +2749,44 @@ export default {
             if (!this.isGeneratedTableMaps) {
                 return;
             }
+            this.tableGenerationMessage = '';
+            if (!this.isFlat) {
+                const { rowsPaths = [], columnsPaths = [] } = this.tableMaps;
+                const rowsCount = countVisiblePaths({
+                    paths: this.filteredRowsPaths ?? rowsPaths,
+                    collapsedPaths: this.collapsedRows,
+                    isCollapseEnabled: this.playerSettings?.isUsedCollapse
+                });
+                const columnsCount = countVisiblePaths({
+                    paths: this.filteredColumnsPaths ?? columnsPaths,
+                    collapsedPaths: this.collapsedColumns,
+                    isCollapseEnabled: this.playerSettings?.isUsedCollapse
+                });
+                const metricCount = Math.max(this.playerValues.length, 1);
+                const estimatedCellCount =
+                    rowsCount * (columnsCount * metricCount + this.flatPlayerRows.length + metricCount + 2);
+                if (estimatedCellCount > MAX_PIVOT_TABLE_CELLS) {
+                    this.tableRows = [];
+                    this.tableHeadRows = [];
+                    this.tableGenerationMessage =
+                        `Сводная таблица содержит слишком много ячеек для отображения (${estimatedCellCount.toLocaleString('ru-RU')}). ` +
+                        'Сузьте данные фильтром, сверните группы или перенесите поле из «Столбцов» в «Строки».';
+                    return;
+                }
+            }
             this.loaderStart();
             this.selectedCells = [];
             this.isGeneratedTableRows = true;
-            if (this.isFlat) {
-                await this.generateFlatTable();
+            try {
+                if (this.isFlat) {
+                    await this.generateFlatTable();
+                    return;
+                }
+                await this.generateBasicTable();
+            } finally {
                 this.isGeneratedTableRows = false;
                 this.loaderEnd();
-                return;
             }
-            await this.generateBasicTable();
-            this.isGeneratedTableRows = false;
-            this.loaderEnd();
         },
         checkCellsValuesFilters(cells) {
             const { valuesFilters } = this;
@@ -3846,6 +3903,7 @@ export default {
             this._settingsRestored = null;
             this.tableMaps = {};
             this.tableRows = [];
+            this.tableGenerationMessage = '';
             this.memoFormatNumber = createMemoization(formatNumber);
             this.conditionMetricsCache = null;
             this.collapsedRows = [];

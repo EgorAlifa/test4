@@ -140,7 +140,7 @@ function generateTableCells(
         if (pathsEntries.length === 0) {
             return [];
         }
-        const levels = rows.length;
+        const levels = pathsEntries.reduce((maxLevel, [, path]) => Math.max(maxLevel, path.length), 0);
 
         for (let level = 0; level < levels; level++) {
             pathsEntries.sort(([aliasKey1, path1], [aliasKey2, path2]) => {
