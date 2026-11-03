@@ -215,6 +215,15 @@ const normalizeSlug = (slug) =>
  * @param {*} error
  * @return {boolean}
  */
+/** Адрес на другом origin, чем страница? */
+const isCrossOrigin = (url) => {
+    try {
+        return new URL(url, window.location.href).origin !== window.location.origin;
+    } catch (e) {
+        return false;
+    }
+};
+
 const isAbortError = (error) => !!error && error.name === 'AbortError';
 
 let messageSeq = 0;
@@ -234,6 +243,7 @@ export default {
         assistantStatus: ASSISTANT_STATUS.CHECKING,
         isOpen: false,
         isFabSeen: readFabSeen(),
+        serverWarning: '',
         messages: [],
         draft: '',
         isBusy: false,
@@ -311,6 +321,9 @@ export default {
             const s = this.corpusState;
             if (s.phase === CORPUS_PHASE.LOADING) {
                 return s.total ? `Читаю вики: ${s.loaded}/${s.total}` : 'Читаю вики…';
+            }
+            if (this.serverWarning) {
+                return this.serverWarning;
             }
             if (s.phase === CORPUS_PHASE.READY) {
                 return `База знаний: ${s.pages} страниц`;
@@ -477,6 +490,7 @@ export default {
         },
 
         rebuildApi() {
+            this.serverWarning = '';
             const nr = this._aiw;
             clearTimeout(nr.apiRebuildTimer);
             nr.apiRebuildTimer = null;
@@ -493,7 +507,9 @@ export default {
             nr.api = createAssistantApi({
                 apiBase: mode === BACKEND_MODE.SERVER ? apiBase : apiBase || INTERNAL_API_BASE,
                 fetchImpl: this.createBackendFetch(mode),
-                locale: 'ru'
+                locale: 'ru',
+                // сервер на другом домене (например, Discovery): нужна его cookie-сессия
+                credentials: mode === BACKEND_MODE.SERVER && isCrossOrigin(apiBase) ? 'include' : 'same-origin'
             });
             this.checkStatus();
         },
@@ -517,6 +533,11 @@ export default {
                     return;
                 }
                 nr.statusInfo = info;
+                // сервер в режиме «полное руководство» отвечает по своей вики и игнорирует наши разделы
+                this.serverWarning =
+                    this.props.backendMode === BACKEND_MODE.SERVER && info.isFullGuide
+                        ? 'Сервер отвечает по своему руководству: выключите на нём режим «полное руководство»'
+                        : '';
                 if (info.isAvailable) {
                     this.assistantStatus = ASSISTANT_STATUS.ONLINE;
                 } else if (info.reason === 'signed-out') {
