@@ -3,9 +3,9 @@
  *
  * Пути: `…/status`, `…/route`, `…/ask` (с потоком SSE или JSON). Модель не вызывается:
  * роутинг — пересечение слов, ответ — склейка начала найденных разделов со ссылками `[[pageId]]`.
+ * Что это мок, виджет показывает в строке статуса, а не в тексте ответа.
  */
 
-const MOCK_INTRO = '_Это ответ мок-сервера: модель не вызывалась. Ниже — найденные разделы._';
 const MOCK_EMPTY = 'В руководстве об этом не написано. Попробуйте переформулировать вопрос.';
 const SNIPPET_CHARS = 300;
 
@@ -142,7 +142,7 @@ function mockAnswer(sections) {
     if (list.length === 0) {
         return { answer: MOCK_EMPTY, pageIds: [] };
     }
-    const parts = [MOCK_INTRO];
+    const parts = [];
     const pageIds = [];
     list.forEach((section) => {
         const heading = section.heading || section.title || section.pageId;

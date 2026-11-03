@@ -308,7 +308,8 @@ export default {
                 return s.total ? `Читаю вики: ${s.loaded}/${s.total}` : 'Читаю вики…';
             }
             if (s.phase === CORPUS_PHASE.READY) {
-                return `База знаний: ${s.pages} страниц`;
+                const isMock = this.props.backendMode !== BACKEND_MODE.LOCAL && this.props.backendMode !== BACKEND_MODE.SERVER;
+                return `База знаний: ${s.pages} страниц${isMock ? ' · мок: ответы без модели' : ''}`;
             }
             if (s.phase === CORPUS_PHASE.ERROR) {
                 return s.error || 'Не удалось прочитать вики';
