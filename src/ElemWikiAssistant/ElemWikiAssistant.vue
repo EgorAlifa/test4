@@ -283,6 +283,8 @@ export default {
         assistantStatus: ASSISTANT_STATUS.CHECKING,
         isOpen: false,
         isFabSeen: readFabSeen(),
+        /** сервер недоступен без входа — отвечаем поиском по вики (без модели) */
+        isSearchOnly: false,
         messages: [],
         draft: '',
         isBusy: false,
@@ -362,7 +364,7 @@ export default {
                 return s.total ? `Читаю вики: ${s.loaded}/${s.total}` : 'Читаю вики…';
             }
             if (s.phase === CORPUS_PHASE.READY) {
-                return `База знаний: ${s.pages} страниц`;
+                return `База знаний: ${s.pages} страниц${this.isSearchOnly ? ' · без входа — только поиск' : ''}`;
             }
             if (s.phase === CORPUS_PHASE.ERROR) {
                 return s.error || 'Не удалось прочитать вики';
@@ -392,6 +394,9 @@ export default {
         },
         'props.apiBase'() {
             this.scheduleRebuildApi();
+        },
+        'props.anonymousFallback'() {
+            this.rebuildApi();
         },
         'props.llmBaseUrl'() {
             this.scheduleRebuildApi();
@@ -555,6 +560,7 @@ export default {
         },
 
         rebuildApi() {
+            this.isSearchOnly = false;
             const nr = this._aiw;
             clearTimeout(nr.apiRebuildTimer);
             nr.apiRebuildTimer = null;
@@ -575,6 +581,28 @@ export default {
                 ...this.serverAuthOptions(mode)
             });
             this.checkStatus();
+        },
+
+        /**
+         * Режим «Сервер» без входа: переключаемся на ответы выборкой из вики прямо в браузере.
+         * Модель не вызывается, бюджет не тратится, токен не нужен.
+         *
+         * @return {boolean} переключились ли
+         */
+        enableSearchFallback() {
+            if (this.props.backendMode !== BACKEND_MODE.SERVER || this.props.anonymousFallback === false) {
+                return false;
+            }
+            const nr = this._aiw;
+            nr.api = createAssistantApi({
+                apiBase: INTERNAL_API_BASE,
+                fetchImpl: createMockFetch({ latencyMs: 150 }),
+                locale: 'ru'
+            });
+            nr.statusInfo = { isAvailable: true, isFullGuide: false };
+            this.isSearchOnly = true;
+            this.assistantStatus = ASSISTANT_STATUS.ONLINE;
+            return true;
         },
 
         async checkStatus() {
@@ -599,7 +627,10 @@ export default {
                 if (info.isAvailable) {
                     this.assistantStatus = ASSISTANT_STATUS.ONLINE;
                 } else if (info.reason === 'signed-out') {
-                    this.assistantStatus = ASSISTANT_STATUS.SIGNED_OUT;
+                    // пользователь без входа (публичная страница): вместо «Нужно войти» — поиск по вики
+                    if (!this.enableSearchFallback()) {
+                        this.assistantStatus = ASSISTANT_STATUS.SIGNED_OUT;
+                    }
                 } else if (info.reason === 'disabled') {
                     this.assistantStatus = ASSISTANT_STATUS.DISABLED;
                 } else {
@@ -978,7 +1009,10 @@ export default {
                     msg.status = 'error';
                     msg.error = errorText(error);
                     const status = error && typeof error.status === 'number' ? error.status : -1;
-                    if (status === 401) {
+                    if (status === 401 && this.enableSearchFallback()) {
+                        // сессия пропала посреди диалога — дальше отвечаем поиском по вики
+                        msg.error = 'Вход не найден — дальше отвечаю поиском по вики, без ИИ. Повторите вопрос.';
+                    } else if (status === 401) {
                         this.assistantStatus = ASSISTANT_STATUS.SIGNED_OUT;
                     } else if (status === 0 || status === 503) {
                         this.assistantStatus = ASSISTANT_STATUS.UNAVAILABLE;

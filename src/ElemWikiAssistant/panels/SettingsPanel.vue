@@ -52,6 +52,9 @@
                                 <div v-if="props.backendMode === 'server'" class="form-label form-label-small">
                                     Запросы идут на /api/assistant-widget/v1/ по токену Keycloak платформы.
                                 </div>
+                                <ui-switch v-if="props.backendMode === 'server'" prop="anonymousFallback">
+                                    Без входа — отвечать поиском по вики
+                                </ui-switch>
 
                                 <ui-has-panel v-if="props.backendMode === 'local'">
                                     <div class="form-label form-label-small">Модель</div>
