@@ -1,13 +1,12 @@
+import { extractiveAnswer } from '../backend/extractive.js';
+
 /**
  * Мок серверного API помощника: fetch-совместимая функция, позволяющая запускать виджет без сервера.
  *
  * Пути: `…/status`, `…/route`, `…/ask` (с потоком SSE или JSON). Модель не вызывается:
- * роутинг — пересечение слов, ответ — склейка начала найденных разделов со ссылками `[[pageId]]`.
- * Что это мок, виджет показывает в строке статуса, а не в тексте ответа.
+ * роутинг — пересечение слов, ответ — выборка подходящих фрагментов из найденных разделов (extractive.js).
  */
 
-const MOCK_EMPTY = 'В руководстве об этом не написано. Попробуйте переформулировать вопрос.';
-const SNIPPET_CHARS = 300;
 
 /**
  * @return {Error}
@@ -106,52 +105,6 @@ function mockRoute(body) {
         .sort((a, b) => b.score - a.score || a.index - b.index)
         .slice(0, 3)
         .map((x) => x.id);
-}
-
-/**
- * Начало текста раздела, обрезанное по границе предложения/строки (≤ SNIPPET_CHARS).
- *
- * @param {string} text
- * @return {string}
- */
-function snippet(text) {
-    const clean = String(text || '').trim();
-    if (clean.length <= SNIPPET_CHARS) {
-        return clean;
-    }
-    const head = clean.slice(0, SNIPPET_CHARS);
-    let cut = -1;
-    const re = /[.!?…](?=\s)|\n/g;
-    let match;
-    while ((match = re.exec(head)) !== null) {
-        cut = match.index + (match[0] === '\n' ? 0 : 1);
-    }
-    if (cut < SNIPPET_CHARS / 3) {
-        const space = head.lastIndexOf(' ');
-        return `${head.slice(0, space > 0 ? space : SNIPPET_CHARS).trim()}…`;
-    }
-    return head.slice(0, cut).trim();
-}
-
-/**
- * @param {Array<{ pageId: string, heading?: string, title?: string, text?: string }>} sections
- * @return {{ answer: string, pageIds: string[] }}
- */
-function mockAnswer(sections) {
-    const list = (Array.isArray(sections) ? sections : []).filter((s) => s && s.pageId).slice(0, 3);
-    if (list.length === 0) {
-        return { answer: MOCK_EMPTY, pageIds: [] };
-    }
-    const parts = [];
-    const pageIds = [];
-    list.forEach((section) => {
-        const heading = section.heading || section.title || section.pageId;
-        parts.push(`**${heading}**\n${snippet(section.text)} [[${section.pageId}]]`);
-        if (!pageIds.includes(section.pageId)) {
-            pageIds.push(section.pageId);
-        }
-    });
-    return { answer: parts.join('\n\n'), pageIds };
 }
 
 /**
@@ -293,7 +246,8 @@ export function createMockFetch({ delayMs = 18, latencyMs = 400 } = {}) {
             if (!String(body.question || '').trim()) {
                 return jsonResponse(400, { code: 'EMPTY_QUESTION' });
             }
-            const result = mockAnswer(body.sections);
+            const { answer, pageIds } = extractiveAnswer(body.question, body.sections);
+            const result = { answer, pageIds };
             if (body.stream) {
                 return streamResponse(result, delayMs, signal);
             }

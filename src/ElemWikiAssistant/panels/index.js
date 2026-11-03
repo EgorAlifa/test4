@@ -1,10 +1,9 @@
 /**
  * Панели ElemWikiAssistant
- * Порядок: Настройки → Оформление → Я дизайнер → Кнопка
+ * Порядок: Настройки → Оформление → Я дизайнер
  */
 export default [
     () => import('./SettingsPanel.vue'), // «Настройки»
     () => import('./AppearancePanel.vue'), // «Оформление»
-    () => import('./DesignerPanel.vue'), // «Я дизайнер»
-    () => import('./FabPanel.vue') // «Кнопка» — вид плавающей кнопки с живым превью
+    () => import('./DesignerPanel.vue') // «Я дизайнер»
 ];

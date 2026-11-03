@@ -179,7 +179,7 @@ function trimCatalog(pages) {
  *   fetchImpl?: typeof fetch,
  *   locale?: string,
  *   credentials?: RequestCredentials,
- *   getHeaders?: () => Record<string, string> | undefined
+ *   getHeaders?: () => Record<string, string> | undefined | Promise<Record<string, string> | undefined>
  * }} options
  */
 export function createAssistantApi({ apiBase, fetchImpl, locale = 'ru', credentials = 'same-origin', getHeaders }) {
@@ -188,14 +188,20 @@ export function createAssistantApi({ apiBase, fetchImpl, locale = 'ru', credenti
 
     /**
      * @param {boolean} hasBody
-     * @return {Record<string, string>}
+     * @return {Promise<Record<string, string>>}
      */
-    const buildHeaders = (hasBody) => {
+    const buildHeaders = async (hasBody) => {
         const headers = { Accept: 'application/json, text/event-stream', 'X-UI-Locale': locale };
         if (hasBody) {
             headers['Content-Type'] = 'application/json';
         }
-        const extra = typeof getHeaders === 'function' ? getHeaders() : null;
+        // заголовки авторизации (например, Bearer-токен Keycloak) — могут обновляться асинхронно
+        let extra = null;
+        try {
+            extra = typeof getHeaders === 'function' ? await getHeaders() : null;
+        } catch (e) {
+            extra = null;
+        }
         return extra ? { ...headers, ...extra } : headers;
     };
 
@@ -205,10 +211,10 @@ export function createAssistantApi({ apiBase, fetchImpl, locale = 'ru', credenti
      * @param {AbortSignal} signal
      * @return {Promise<Response>}
      */
-    const request = (path, body, signal) =>
+    const request = async (path, body, signal) =>
         doFetch(base + path, {
             method: body ? 'POST' : 'GET',
-            headers: buildHeaders(!!body),
+            headers: await buildHeaders(!!body),
             body: body ? JSON.stringify(body) : undefined,
             credentials,
             signal

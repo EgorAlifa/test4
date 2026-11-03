@@ -49,6 +49,12 @@
                                     placeholder="/api/wiki-assistant/">
                                     Адрес API помощника
                                 </ui-input>
+                                <ui-select
+                                    v-if="props.backendMode === 'server'"
+                                    prop="serverAuth"
+                                    :options="options.serverAuth">
+                                    Вход на сервер помощника
+                                </ui-select>
 
                                 <ui-has-panel v-if="props.backendMode === 'local'">
                                     <div class="form-label form-label-small">Модель</div>
@@ -60,10 +66,6 @@
                                                         Адрес API модели
                                                     </ui-input>
 
-                                                    <ui-input prop="llmModel" placeholder="gpt-4o-mini">
-                                                        Модель
-                                                    </ui-input>
-
                                                     <ui-input prop="llmApiKey" type="password" autocomplete="off">
                                                         Ключ API модели
                                                     </ui-input>
@@ -72,6 +74,36 @@
                                                         Ключ сохраняется в настройках проекта и виден любому зрителю.
                                                         Для боевого стенда укажите прокси, который добавляет ключ сам,
                                                         и оставьте поле пустым.
+                                                    </div>
+
+                                                    <!-- Модель: список с провайдера (GET /models) или ручной ввод -->
+                                                    <ui-select
+                                                        v-if="modelOptions.length && !isManualModel"
+                                                        prop="llmModel"
+                                                        :options="modelOptions">
+                                                        Модель
+                                                    </ui-select>
+                                                    <ui-input v-else prop="llmModel" placeholder="gpt-4o-mini">
+                                                        Модель
+                                                    </ui-input>
+
+                                                    <div class="aiw-models-row">
+                                                        <ui-button :disabled="models.isLoading" @click="loadModels">
+                                                            {{ models.isLoading ? 'Загружаю…' : 'Обновить список моделей' }}
+                                                        </ui-button>
+                                                        <a
+                                                            v-if="models.list.length"
+                                                            href="#"
+                                                            class="aiw-models-toggle"
+                                                            @click.prevent="isManualModel = !isManualModel">
+                                                            {{ isManualModel ? 'Выбрать из списка' : 'Ввести вручную' }}
+                                                        </a>
+                                                    </div>
+                                                    <div
+                                                        v-if="models.status"
+                                                        class="form-label form-label-small"
+                                                        :class="models.error ? 'text-danger' : 'text-success'">
+                                                        {{ models.status }}
                                                     </div>
 
                                                     <ui-input prop="llmAuthHeader" placeholder="Authorization">
@@ -138,6 +170,10 @@
 <script>
 import { Panel } from '@goodt-wcore/panel';
 import { PanelInstanceTypeDescriptor } from '../types';
+import { listProviderModels } from '../core/backend/models.js';
+
+/** Пауза после ввода адреса/ключа перед запросом списка моделей */
+const MODELS_DEBOUNCE_MS = 700;
 
 /**
  * Значение из события ввода: компоненты UI отдают строку, нативные — событие.
@@ -171,13 +207,20 @@ export default {
         ...PanelInstanceTypeDescriptor,
         suggestionsText: '',
         excludedText: '',
+        isManualModel: false,
+        models: { list: [], isLoading: false, status: '', error: false },
         options: {
             displayModes: [
                 { label: 'Плавающая кнопка', value: 'floating' },
                 { label: 'Встроенный чат', value: 'inline' }
             ],
+            serverAuth: [
+                { label: 'Автоматически', value: 'auto' },
+                { label: 'Токен Keycloak (Bearer)', value: 'keycloak' },
+                { label: 'Cookie-сессия сервера', value: 'cookie' }
+            ],
             backendModes: [
-                { label: 'Мок (без модели)', value: 'mock' },
+                { label: 'Без модели (поиск по вики)', value: 'mock' },
                 { label: 'Модель из браузера', value: 'local' },
                 { label: 'Сервер (apiBase)', value: 'server' }
             ]
@@ -188,9 +231,105 @@ export default {
         // Локальная модель textarea: заполняется из пропов один раз, дальше пишем только в проп
         this.suggestionsText = (this.props.suggestions || []).join('\n');
         this.excludedText = (this.props.excludedSlugs || []).join('\n');
+        // таймер и запрос списка моделей — вне реактивности
+        this.modelsTimer = null;
+        this.modelsController = null;
+        if (this.props.backendMode === 'local' && this.props.llmBaseUrl) {
+            this.loadModels();
+        }
+    },
+
+    beforeDestroy() {
+        clearTimeout(this.modelsTimer);
+        if (this.modelsController) {
+            this.modelsController.abort();
+        }
+    },
+
+    computed: {
+        /** Варианты для выпадающего списка; текущая модель остаётся в списке, даже если провайдер её не вернул */
+        modelOptions() {
+            const options = this.models.list.map((m) => ({ label: m.label, value: m.id }));
+            const current = String(this.props.llmModel || '').trim();
+            if (current && !options.some((o) => o.value === current)) {
+                options.unshift({ label: `${current} (нет в списке)`, value: current });
+            }
+            return options;
+        }
+    },
+
+    watch: {
+        'props.backendMode'(mode) {
+            if (mode === 'local' && this.props.llmBaseUrl && !this.models.list.length) {
+                this.loadModels();
+            }
+        },
+        // адрес и ключ меняются при наборе — список перезапрашиваем после паузы
+        'props.llmBaseUrl'() {
+            this.scheduleLoadModels();
+        },
+        'props.llmApiKey'() {
+            this.scheduleLoadModels();
+        },
+        'props.llmAuthHeader'() {
+            this.scheduleLoadModels();
+        },
+        'props.llmAuthPrefix'() {
+            this.scheduleLoadModels();
+        }
     },
 
     methods: {
+        scheduleLoadModels() {
+            clearTimeout(this.modelsTimer);
+            if (this.props.backendMode !== 'local') {
+                return;
+            }
+            this.modelsTimer = setTimeout(() => this.loadModels(), MODELS_DEBOUNCE_MS);
+        },
+
+        /** GET {llmBaseUrl}/models с ключом из настроек */
+        async loadModels() {
+            clearTimeout(this.modelsTimer);
+            if (this.modelsController) {
+                this.modelsController.abort();
+            }
+            const controller = new AbortController();
+            this.modelsController = controller;
+            this.models.isLoading = true;
+            this.models.status = '';
+            try {
+                const { models, error } = await listProviderModels({
+                    baseUrl: this.props.llmBaseUrl,
+                    apiKey: this.props.llmApiKey,
+                    authHeader: this.props.llmAuthHeader,
+                    authPrefix: this.props.llmAuthPrefix,
+                    signal: controller.signal
+                });
+                if (controller !== this.modelsController) {
+                    return;
+                }
+                this.models.list = models;
+                this.models.error = Boolean(error);
+                this.models.status = error || `Моделей у провайдера: ${models.length}`;
+                if (models.length) {
+                    this.isManualModel = false;
+                    // модель ещё не выбрана — подставляем первую из списка
+                    if (!String(this.props.llmModel || '').trim()) {
+                        this.props.llmModel = models[0].id;
+                        this.propChanged('llmModel');
+                    }
+                }
+            } catch (e) {
+                // отменено новым запросом или закрытием панели
+            } finally {
+                if (controller === this.modelsController) {
+                    this.models.isLoading = false;
+                    this.modelsController = null;
+                }
+            }
+        },
+
         onSuggestionsInput(payload) {
             this.suggestionsText = inputValue(payload);
             this.props.suggestions = toLines(this.suggestionsText);
@@ -205,3 +344,16 @@ export default {
     }
 };
 </script>
+
+<style scoped>
+.aiw-models-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.aiw-models-toggle {
+    font-size: 12px;
+}
+</style>

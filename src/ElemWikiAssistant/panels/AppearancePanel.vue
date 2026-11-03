@@ -71,6 +71,11 @@
                 </div>
             </div>
 
+            <!-- Плавающая кнопка (только в режиме плавающей кнопки) -->
+            <div v-if="props.displayMode !== 'inline'" class="panel-section">
+                <div class="panel-section__title">Плавающая кнопка</div>
+                <fab-settings :props="props" :set="set" />
+            </div>
         </div>
     </w-panel>
 </template>
@@ -78,9 +83,11 @@
 <script>
 import { Panel } from '@goodt-wcore/panel';
 import { PanelInstanceTypeDescriptor } from '../types';
+import FabSettings from './components/FabSettings.vue';
 
 export default {
     extends: Panel,
+    components: { FabSettings },
 
     meta: { name: 'Оформление', icon: 'palette-outline' },
 
@@ -89,6 +96,16 @@ export default {
     }),
 
     methods: {
+        /**
+         * Записать проп (используется вложенными блоками настроек)
+         * @param {string} key
+         * @param {*} value
+         */
+        set(key, value) {
+            this.props[key] = value;
+            this.propChanged(key);
+        },
+
         /**
          * Записать числовой проп из нативного range-контрола
          * @param {string} name

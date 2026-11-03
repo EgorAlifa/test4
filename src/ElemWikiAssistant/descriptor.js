@@ -61,7 +61,7 @@ export const descriptor = () => ({
             default: 'mock',
             label: 'Источник ответов',
             options: [
-                { label: 'Мок (без модели)', value: 'mock' },
+                { label: 'Без модели (поиск по вики)', value: 'mock' },
                 { label: 'Модель из браузера', value: 'local' },
                 { label: 'Сервер (apiBase)', value: 'server' }
             ],
@@ -72,6 +72,17 @@ export const descriptor = () => ({
             default: '/api/wiki-assistant/',
             label: 'Адрес API помощника',
             hint: 'Используется только в режиме «Сервер»'
+        },
+        serverAuth: {
+            type: String,
+            default: 'auto',
+            label: 'Вход на сервер помощника',
+            options: [
+                { label: 'Автоматически', value: 'auto' },
+                { label: 'Токен Keycloak (Bearer)', value: 'keycloak' },
+                { label: 'Cookie-сессия сервера', value: 'cookie' }
+            ],
+            hint: 'Автоматически: токен Keycloak платформы, если он есть, иначе cookie'
         },
 
         // ─── Модель (режим «Модель из браузера») ───────────────────
