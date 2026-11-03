@@ -64,5 +64,5 @@ export const LOADER_DEFAULTS = Object.freeze({
     idbName: 'wiki-assistant',
     idbStore: 'corpus',
     /** версия формата корпуса: при изменении парсера старый кеш игнорируется */
-    formatVersion: 1
+    formatVersion: 2
 });

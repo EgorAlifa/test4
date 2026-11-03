@@ -69,8 +69,9 @@ const LINE_BREAK_TAGS = new Set([
 const HEADING_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'summary']);
 const BOLD_TAGS = new Set(['strong', 'b']);
 const SKIP_CONTENT_TAGS = new Set(['script', 'style', 'svg', 'template']);
-const TOKEN_RE = /<!--[\s\S]*?-->|<\/?[a-zA-Z][^>]*>|[^<]+|</g;
-const TAG_RE = /^<(\/?)([a-zA-Z0-9]+)([^>]*)>$/;
+// Тег целиком, с учётом кавычек: в атрибутах бывает `>` (onclick="() => …")
+const TOKEN_RE = /<!--[\s\S]*?-->|<\/?[a-zA-Z](?:[^>"']|"[^"]*"|'[^']*')*>|[^<]+|</g;
+const TAG_RE = /^<(\/?)([a-zA-Z0-9]+)([\s\S]*)>$/;
 
 /**
  * @param {string} str
