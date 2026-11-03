@@ -186,6 +186,66 @@ export const descriptor = () => ({
             label: 'Слой (z-index)'
         },
 
+        // ─── Кнопка (панель «Кнопка», пресеты — в fab.js) ───────────
+        fabSize: {
+            type: Number,
+            default: 56,
+            label: 'Размер кнопки, px'
+        },
+        fabShape: {
+            type: String,
+            default: 'circle',
+            label: 'Форма кнопки',
+            options: [
+                { label: 'Круг', value: 'circle' },
+                { label: 'Скруглённый квадрат', value: 'squircle' },
+                { label: 'Квадрат', value: 'square' }
+            ]
+        },
+        fabIcon: {
+            type: String,
+            default: 'chat',
+            label: 'Иконка кнопки'
+        },
+        fabLabel: {
+            type: String,
+            default: '',
+            label: 'Текст на кнопке',
+            hint: 'Пусто — только иконка; с текстом кнопка становится «пилюлей»'
+        },
+        fabBg: {
+            type: String,
+            default: '',
+            label: 'Фон кнопки',
+            hint: 'Пусто — акцентный цвет'
+        },
+        fabIconColor: {
+            type: String,
+            default: '#ffffff',
+            label: 'Цвет иконки и текста',
+            hint: 'Пусто — акцентный цвет'
+        },
+        fabShadow: {
+            type: String,
+            default: 'm',
+            label: 'Тень кнопки'
+        },
+        fabBorderWidth: {
+            type: Number,
+            default: 0,
+            label: 'Толщина рамки кнопки, px'
+        },
+        fabBorderColor: {
+            type: String,
+            default: '#ffffff',
+            label: 'Цвет рамки кнопки'
+        },
+        fabPulse: {
+            type: Boolean,
+            default: true,
+            label: 'Пульсация до первого открытия'
+        },
+
         // ─── Я дизайнер ────────────────────────────────────────────
         customStyles: {
             type: Object,

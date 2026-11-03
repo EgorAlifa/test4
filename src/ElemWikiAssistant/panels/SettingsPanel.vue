@@ -5,10 +5,6 @@
 
             <ui-select prop="displayMode" :options="options.displayModes">Режим отображения</ui-select>
 
-            <ui-select v-if="props.displayMode !== 'inline'" prop="position" :options="options.positions">
-                Положение кнопки
-            </ui-select>
-
             <!-- Тексты чата -->
             <ui-has-panel>
                 <div class="form-label form-label-small">Тексты чата</div>
@@ -184,10 +180,6 @@ export default {
                 { label: 'Мок (без модели)', value: 'mock' },
                 { label: 'Модель из браузера', value: 'local' },
                 { label: 'Сервер (apiBase)', value: 'server' }
-            ],
-            positions: [
-                { label: 'Справа внизу', value: 'bottom-right' },
-                { label: 'Слева внизу', value: 'bottom-left' }
             ]
         }
     }),

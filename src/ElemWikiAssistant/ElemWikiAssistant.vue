@@ -1,22 +1,15 @@
 <template>
     <w-elem>
         <div :id="rootId" class="aiw" :class="rootClasses" :style="cssVars">
-            <!-- Плавающая кнопка -->
-            <button
+            <!-- Плавающая кнопка (вид настраивается в панели «Кнопка») -->
+            <fab-button
                 v-if="isFloating"
                 v-show="!isOpen"
-                type="button"
-                class="aiw-fab"
+                class="aiw-fab-fixed"
+                :config="props"
                 :title="props.title"
-                :aria-label="props.title"
-                @click="open">
-                <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
-                    <path
-                        fill="currentColor"
-                        d="M12 3C6.5 3 2 6.6 2 11c0 2.4 1.3 4.5 3.4 6L4.6 21l4.2-2.3c1 .2 2.1.3 3.2.3 5.5 0 10-3.6 10-8s-4.5-8-10-8Zm-4 9.3a1.3 1.3 0 1 1 0-2.6 1.3 1.3 0 0 1 0 2.6Zm4 0a1.3 1.3 0 1 1 0-2.6 1.3 1.3 0 0 1 0 2.6Zm4 0a1.3 1.3 0 1 1 0-2.6 1.3 1.3 0 0 1 0 2.6Z"
-                    />
-                </svg>
-            </button>
+                :pulse="props.fabPulse !== false && !isFabSeen"
+                @click="open" />
 
             <transition name="aiw-pop">
                 <section
@@ -155,6 +148,7 @@ import { Elem } from '@goodt-wcore/elem';
 import { meta } from './descriptor';
 import { ElemInstanceTypeDescriptor } from './types';
 import AssistantMessage from './components/AssistantMessage.vue';
+import FabButton from './components/FabButton.vue';
 import {
     ASSISTANT_STATUS,
     COMPOSER_MAX_HEIGHT,
@@ -184,6 +178,16 @@ import { errorText } from './core/chat/errors.js';
 
 /** Минут → мс */
 const MINUTE_MS = 60 * 1000;
+const FAB_SEEN_KEY = 'wiki-assistant-fab-seen';
+
+/** Кнопку уже открывали на этом устройстве? (localStorage может быть недоступен) */
+const readFabSeen = () => {
+    try {
+        return window.localStorage.getItem(FAB_SEEN_KEY) === '1';
+    } catch (e) {
+        return false;
+    }
+};
 
 /**
  * Число из пропа (в панели number-поле может записать строку)
@@ -218,7 +222,7 @@ let messageSeq = 0;
 export default {
     extends: Elem,
 
-    components: { AssistantMessage },
+    components: { AssistantMessage, FabButton },
 
     meta,
 
@@ -229,6 +233,7 @@ export default {
         ...ElemInstanceTypeDescriptor,
         assistantStatus: ASSISTANT_STATUS.CHECKING,
         isOpen: false,
+        isFabSeen: readFabSeen(),
         messages: [],
         draft: '',
         isBusy: false,
@@ -308,8 +313,7 @@ export default {
                 return s.total ? `Читаю вики: ${s.loaded}/${s.total}` : 'Читаю вики…';
             }
             if (s.phase === CORPUS_PHASE.READY) {
-                const isMock = this.props.backendMode !== BACKEND_MODE.LOCAL && this.props.backendMode !== BACKEND_MODE.SERVER;
-                return `База знаний: ${s.pages} страниц${isMock ? ' · мок: ответы без модели' : ''}`;
+                return `База знаний: ${s.pages} страниц`;
             }
             if (s.phase === CORPUS_PHASE.ERROR) {
                 return s.error || 'Не удалось прочитать вики';
@@ -748,6 +752,7 @@ export default {
 
         open() {
             this.isOpen = true;
+            this.markFabSeen();
             this.ensureCorpusRequested();
             this.$nextTick(() => {
                 this.scrollToBottom();
@@ -755,6 +760,19 @@ export default {
                     this.$refs.input.focus();
                 }
             });
+        },
+
+        /** Кнопка пульсирует, пока её ни разу не открыли (запоминается на устройстве) */
+        markFabSeen() {
+            if (this.isFabSeen) {
+                return;
+            }
+            this.isFabSeen = true;
+            try {
+                window.localStorage.setItem(FAB_SEEN_KEY, '1');
+            } catch (e) {
+                // хранилище недоступно — пульсация просто вернётся при следующем заходе
+            }
         },
 
         close() {

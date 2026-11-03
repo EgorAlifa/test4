@@ -43,36 +43,14 @@
 
 /* ─── Плавающая кнопка ─────────────────────────────────────────── */
 
-.aiw-fab {
+.aiw-fab-fixed {
     position: fixed;
     right: var(--aiw-offset);
     bottom: var(--aiw-offset);
     z-index: var(--aiw-z);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 56px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    background: var(--aiw-accent);
-    color: #ffffff;
-    box-shadow: 0 8px 24px color-mix(in srgb, var(--aiw-accent) 40%, transparent), 0 2px 6px rgba(0, 0, 0, 0.12);
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-
-    &:hover {
-        transform: translateY(-2px) scale(1.04);
-    }
-
-    &:focus-visible {
-        outline: 3px solid color-mix(in srgb, var(--aiw-accent) 45%, transparent);
-        outline-offset: 3px;
-    }
 }
 
-.aiw--left .aiw-fab {
+.aiw--left .aiw-fab-fixed {
     right: auto;
     left: var(--aiw-offset);
 }
