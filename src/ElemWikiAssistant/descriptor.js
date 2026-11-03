@@ -73,6 +73,17 @@ export const descriptor = () => ({
             label: 'Адрес API помощника',
             hint: 'Используется только в режиме «Сервер»'
         },
+        serverAuth: {
+            type: String,
+            default: 'auto',
+            label: 'Вход на сервер помощника',
+            options: [
+                { label: 'Автоматически', value: 'auto' },
+                { label: 'Токен Keycloak (Bearer)', value: 'keycloak' },
+                { label: 'Cookie-сессия сервера', value: 'cookie' }
+            ],
+            hint: 'Автоматически: токен Keycloak платформы, если он есть, иначе cookie'
+        },
 
         // ─── Модель (режим «Модель из браузера») ───────────────────
         llmBaseUrl: {

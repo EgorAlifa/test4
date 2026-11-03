@@ -215,6 +215,29 @@ const normalizeSlug = (slug) =>
  * @param {*} error
  * @return {boolean}
  */
+const KEYCLOAK_MIN_VALIDITY_S = 30;
+
+/**
+ * Экземпляр keycloak-js платформы (стандартная сборка Goodt кладёт его в window.$keycloak;
+ * в редакторе виджет может жить в iframe — тогда ищем у родителя).
+ *
+ * @return {{ token?: string, updateToken: Function }|null}
+ */
+const findKeycloak = () => {
+    const pick = (win) => {
+        try {
+            const kc = win && win.$keycloak;
+            return kc && typeof kc.updateToken === 'function' ? kc : null;
+        } catch (e) {
+            return null; // родитель с другого origin
+        }
+    };
+    if (typeof window === 'undefined') {
+        return null;
+    }
+    return pick(window) || (window.parent !== window ? pick(window.parent) : null);
+};
+
 /** Адрес на другом origin, чем страница? */
 const isCrossOrigin = (url) => {
     try {
@@ -357,6 +380,9 @@ export default {
         'props.apiBase'() {
             this.scheduleRebuildApi();
         },
+        'props.serverAuth'() {
+            this.rebuildApi();
+        },
         'props.llmBaseUrl'() {
             this.scheduleRebuildApi();
         },
@@ -489,6 +515,44 @@ export default {
             return undefined;
         },
 
+        /**
+         * Как входить на сервер помощника (режим «Сервер»).
+         * Bearer-токен Keycloak платформы не зависит от домена стенда: сервер может пускать любой origin
+         * с валидным токеном. Cookie-сессия на чужом домене требует credentials: 'include'
+         * и явного списка разрешённых доменов на сервере.
+         *
+         * @param {string} mode
+         * @param {string} apiBase
+         * @return {{ credentials: RequestCredentials, getHeaders?: Function }}
+         */
+        serverAuthOptions(mode, apiBase) {
+            if (mode !== BACKEND_MODE.SERVER) {
+                return { credentials: 'same-origin' };
+            }
+            const isCross = isCrossOrigin(apiBase);
+            const auth = this.props.serverAuth || 'auto';
+            const useBearer = auth === 'keycloak' || (auth === 'auto' && findKeycloak() != null);
+            if (!useBearer) {
+                return { credentials: isCross ? 'include' : 'same-origin' };
+            }
+            return {
+                credentials: isCross ? 'omit' : 'same-origin',
+                getHeaders: async () => {
+                    const kc = findKeycloak();
+                    if (!kc) {
+                        return null;
+                    }
+                    try {
+                        // продлить токен, если истекает в ближайшие 30 секунд
+                        await kc.updateToken(KEYCLOAK_MIN_VALIDITY_S);
+                    } catch (e) {
+                        // не удалось продлить — отправляем текущий, сервер ответит 401
+                    }
+                    return kc.token ? { Authorization: `Bearer ${kc.token}` } : null;
+                }
+            };
+        },
+
         rebuildApi() {
             this.serverWarning = '';
             const nr = this._aiw;
@@ -508,8 +572,7 @@ export default {
                 apiBase: mode === BACKEND_MODE.SERVER ? apiBase : apiBase || INTERNAL_API_BASE,
                 fetchImpl: this.createBackendFetch(mode),
                 locale: 'ru',
-                // сервер на другом домене (например, Discovery): нужна его cookie-сессия
-                credentials: mode === BACKEND_MODE.SERVER && isCrossOrigin(apiBase) ? 'include' : 'same-origin'
+                ...this.serverAuthOptions(mode, apiBase)
             });
             this.checkStatus();
         },

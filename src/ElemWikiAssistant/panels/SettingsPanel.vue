@@ -49,6 +49,12 @@
                                     placeholder="/api/wiki-assistant/">
                                     Адрес API помощника
                                 </ui-input>
+                                <ui-select
+                                    v-if="props.backendMode === 'server'"
+                                    prop="serverAuth"
+                                    :options="options.serverAuth">
+                                    Вход на сервер помощника
+                                </ui-select>
 
                                 <ui-has-panel v-if="props.backendMode === 'local'">
                                     <div class="form-label form-label-small">Модель</div>
@@ -207,6 +213,11 @@ export default {
             displayModes: [
                 { label: 'Плавающая кнопка', value: 'floating' },
                 { label: 'Встроенный чат', value: 'inline' }
+            ],
+            serverAuth: [
+                { label: 'Автоматически', value: 'auto' },
+                { label: 'Токен Keycloak (Bearer)', value: 'keycloak' },
+                { label: 'Cookie-сессия сервера', value: 'cookie' }
             ],
             backendModes: [
                 { label: 'Без модели (поиск по вики)', value: 'mock' },
