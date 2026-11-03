@@ -71,25 +71,6 @@
                 </div>
             </div>
 
-            <!-- Плавающая кнопка -->
-            <div v-if="props.displayMode !== 'inline'" class="panel-section">
-                <div class="panel-section__title">Расположение</div>
-                <div class="panel-row panel-row--inline">
-                    <span class="panel-label">Отступ от края ({{ props.offset }}px)</span>
-                    <input
-                        type="range"
-                        class="range-slider"
-                        min="0"
-                        max="80"
-                        step="2"
-                        :value="props.offset"
-                        @input="setNumber('offset', $event)"
-                    />
-                </div>
-                <div class="panel-row">
-                    <ui-input prop="zIndex" type="number" min="0">Слой (z-index)</ui-input>
-                </div>
-            </div>
         </div>
     </w-panel>
 </template>
