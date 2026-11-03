@@ -209,7 +209,7 @@ export default {
                 { label: 'Встроенный чат', value: 'inline' }
             ],
             backendModes: [
-                { label: 'Мок (без модели)', value: 'mock' },
+                { label: 'Без модели (поиск по вики)', value: 'mock' },
                 { label: 'Модель из браузера', value: 'local' },
                 { label: 'Сервер (apiBase)', value: 'server' }
             ]
