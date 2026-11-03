@@ -56,17 +56,71 @@ export const descriptor = () => ({
         },
 
         // ─── Источник ответов ──────────────────────────────────────
+        backendMode: {
+            type: String,
+            default: 'mock',
+            label: 'Источник ответов',
+            options: [
+                { label: 'Мок (без модели)', value: 'mock' },
+                { label: 'Модель из браузера', value: 'local' },
+                { label: 'Сервер (apiBase)', value: 'server' }
+            ],
+            hint: 'Мок — ответы-заглушки; модель из браузера — запросы к LLM напрямую; сервер — запросы к API помощника'
+        },
         apiBase: {
             type: String,
             default: '/api/wiki-assistant/',
-            label: 'Адрес API помощника'
+            label: 'Адрес API помощника',
+            hint: 'Используется только в режиме «Сервер»'
         },
-        useMockBackend: {
+
+        // ─── Модель (режим «Модель из браузера») ───────────────────
+        llmBaseUrl: {
+            type: String,
+            default: 'https://api.openai.com/v1',
+            label: 'Адрес API модели',
+            hint: 'OpenAI-совместимый адрес; можно указать прокси на том же домене, который сам добавляет ключ'
+        },
+        llmApiKey: {
+            type: String,
+            default: '',
+            label: 'Ключ API модели',
+            hint:
+                'Ключ сохраняется в настройках проекта и виден любому зрителю. ' +
+                'Оставьте пустым, если прокси добавляет ключ сам'
+        },
+        llmModel: {
+            type: String,
+            default: '',
+            label: 'Модель'
+        },
+        llmAuthHeader: {
+            type: String,
+            default: 'Authorization',
+            label: 'Заголовок авторизации'
+        },
+        llmAuthPrefix: {
+            type: String,
+            default: 'Bearer ',
+            label: 'Префикс ключа'
+        },
+        llmTemperature: {
+            type: Number,
+            default: 0.2,
+            label: 'Температура'
+        },
+        llmMaxTokens: {
+            type: Number,
+            default: 1200,
+            label: 'Максимум токенов ответа'
+        },
+        llmSupportsStream: {
             type: Boolean,
             default: true,
-            label: 'Демо-режим (без сервера)',
-            hint: 'Ответы формируются в браузере, запросы к API не отправляются'
+            label: 'Потоковый ответ (stream)'
         },
+
+        // ─── База знаний ───────────────────────────────────────────
         projectBaseUrl: {
             type: String,
             default: '',

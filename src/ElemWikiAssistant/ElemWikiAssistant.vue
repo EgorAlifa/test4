@@ -167,13 +167,16 @@ import {
     STORE_LOOKUP_INTERVAL_MS,
     STORE_MUTATION_PATTERN,
     STORE_STALE_DEBOUNCE_MS,
-    REBUILD_DEBOUNCE_MS
+    REBUILD_DEBOUNCE_MS,
+    BACKEND_MODE,
+    INTERNAL_API_BASE
 } from './constants';
 import { resolveProjectBaseUrl, createHttpProjectSource } from './core/corpus/project-source.js';
 import { getCorpusManager } from './core/corpus/corpus-manager.js';
 import { getSearchIndex, pickSections, buildRouteCatalog } from './core/search/search-index.js';
 import { createAssistantApi } from './core/api/assistant-api.js';
 import { createMockFetch } from './core/api/mock-backend.js';
+import { createLocalBackendFetch } from './core/backend/local-backend.js';
 import { citedPageIds } from './core/chat/render.js';
 import { buildHistory } from './core/chat/history.js';
 import { matchSmallTalk } from './core/chat/small-talk.js';
@@ -330,10 +333,34 @@ export default {
     },
 
     watch: {
-        'props.apiBase'() {
+        'props.backendMode'() {
             this.rebuildApi();
         },
-        'props.useMockBackend'() {
+        'props.apiBase'() {
+            this.scheduleRebuildApi();
+        },
+        'props.llmBaseUrl'() {
+            this.scheduleRebuildApi();
+        },
+        'props.llmApiKey'() {
+            this.scheduleRebuildApi();
+        },
+        'props.llmModel'() {
+            this.scheduleRebuildApi();
+        },
+        'props.llmAuthHeader'() {
+            this.scheduleRebuildApi();
+        },
+        'props.llmAuthPrefix'() {
+            this.scheduleRebuildApi();
+        },
+        'props.llmTemperature'() {
+            this.scheduleRebuildApi();
+        },
+        'props.llmMaxTokens'() {
+            this.scheduleRebuildApi();
+        },
+        'props.llmSupportsStream'() {
             this.rebuildApi();
         },
         'props.projectBaseUrl'() {
@@ -370,7 +397,8 @@ export default {
             storeUnsubscribe: null,
             storeTimer: null,
             storeLookupTimer: null,
-            rebuildTimer: null
+            rebuildTimer: null,
+            apiRebuildTimer: null
         };
     },
 
@@ -399,6 +427,7 @@ export default {
         }
         clearTimeout(nr.storeTimer);
         clearTimeout(nr.rebuildTimer);
+        clearTimeout(nr.apiRebuildTimer);
         clearInterval(nr.storeLookupTimer);
         nr.corpus = null;
         nr.manager = null;
@@ -407,17 +436,58 @@ export default {
     methods: {
         // ─── API и статус ─────────────────────────────────────────
 
+        /** Адрес API и пропы модели меняются при наборе в панели — пересобираем API с паузой */
+        scheduleRebuildApi() {
+            const nr = this._aiw;
+            clearTimeout(nr.apiRebuildTimer);
+            nr.apiRebuildTimer = setTimeout(() => {
+                nr.apiRebuildTimer = null;
+                this.rebuildApi();
+            }, REBUILD_DEBOUNCE_MS);
+        },
+
+        /**
+         * fetch для текущего режима: mock/local — в браузере, server — настоящий fetch (undefined)
+         * @param {string} mode
+         * @return {Function|undefined}
+         */
+        createBackendFetch(mode) {
+            const p = this.props;
+            if (mode === BACKEND_MODE.MOCK) {
+                return createMockFetch();
+            }
+            if (mode === BACKEND_MODE.LOCAL) {
+                return createLocalBackendFetch({
+                    baseUrl: String(p.llmBaseUrl || '').trim(),
+                    apiKey: String(p.llmApiKey || '').trim(),
+                    model: String(p.llmModel || '').trim(),
+                    authHeader: String(p.llmAuthHeader || '').trim(),
+                    authPrefix: String(p.llmAuthPrefix ?? ''),
+                    temperature: toNumber(p.llmTemperature, 0.2),
+                    maxTokens: toNumber(p.llmMaxTokens, 1200),
+                    stream: p.llmSupportsStream !== false
+                });
+            }
+            return undefined;
+        },
+
         rebuildApi() {
+            const nr = this._aiw;
+            clearTimeout(nr.apiRebuildTimer);
+            nr.apiRebuildTimer = null;
             this.abortCurrent();
+            const mode = Object.values(BACKEND_MODE).includes(this.props.backendMode)
+                ? this.props.backendMode
+                : BACKEND_MODE.MOCK;
             const apiBase = String(this.props.apiBase || '').trim();
-            if (!this.props.useMockBackend && !apiBase) {
-                this._aiw.api = null;
+            if (mode === BACKEND_MODE.SERVER && !apiBase) {
+                nr.api = null;
                 this.assistantStatus = ASSISTANT_STATUS.DISABLED;
                 return;
             }
-            this._aiw.api = createAssistantApi({
-                apiBase: apiBase || '/api/wiki-assistant/',
-                fetchImpl: this.props.useMockBackend ? createMockFetch() : undefined,
+            nr.api = createAssistantApi({
+                apiBase: mode === BACKEND_MODE.SERVER ? apiBase : apiBase || INTERNAL_API_BASE,
+                fetchImpl: this.createBackendFetch(mode),
                 locale: 'ru'
             });
             this.checkStatus();

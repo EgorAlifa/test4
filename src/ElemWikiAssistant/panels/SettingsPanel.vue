@@ -43,14 +43,63 @@
                     <ui-panel :groups="[{ name: 'Источник ответов', slot: 'backend' }]">
                         <template #backend>
                             <ui-container>
-                                <ui-switch prop="useMockBackend">Демо-режим (без сервера)</ui-switch>
+                                <ui-select prop="backendMode" :options="options.backendModes">
+                                    Источник ответов
+                                </ui-select>
 
                                 <ui-input
-                                    v-if="!props.useMockBackend"
+                                    v-if="props.backendMode === 'server'"
                                     prop="apiBase"
                                     placeholder="/api/wiki-assistant/">
                                     Адрес API помощника
                                 </ui-input>
+
+                                <ui-has-panel v-if="props.backendMode === 'local'">
+                                    <div class="form-label form-label-small">Модель</div>
+                                    <template #panel>
+                                        <ui-panel :groups="[{ name: 'Модель', slot: 'llm' }]">
+                                            <template #llm>
+                                                <ui-container>
+                                                    <ui-input prop="llmBaseUrl" placeholder="https://api.openai.com/v1">
+                                                        Адрес API модели
+                                                    </ui-input>
+
+                                                    <ui-input prop="llmModel" placeholder="gpt-4o-mini">
+                                                        Модель
+                                                    </ui-input>
+
+                                                    <ui-input prop="llmApiKey" type="password" autocomplete="off">
+                                                        Ключ API модели
+                                                    </ui-input>
+
+                                                    <div class="form-label form-label-small text-warning">
+                                                        Ключ сохраняется в настройках проекта и виден любому зрителю.
+                                                        Для боевого стенда укажите прокси, который добавляет ключ сам,
+                                                        и оставьте поле пустым.
+                                                    </div>
+
+                                                    <ui-input prop="llmAuthHeader" placeholder="Authorization">
+                                                        Заголовок авторизации
+                                                    </ui-input>
+
+                                                    <ui-input prop="llmAuthPrefix" placeholder="Bearer ">
+                                                        Префикс ключа
+                                                    </ui-input>
+
+                                                    <ui-input prop="llmTemperature" type="number" min="0" max="2" step="0.1">
+                                                        Температура
+                                                    </ui-input>
+
+                                                    <ui-input prop="llmMaxTokens" type="number" min="1">
+                                                        Максимум токенов ответа
+                                                    </ui-input>
+
+                                                    <ui-switch prop="llmSupportsStream">Потоковый ответ (stream)</ui-switch>
+                                                </ui-container>
+                                            </template>
+                                        </ui-panel>
+                                    </template>
+                                </ui-has-panel>
                             </ui-container>
                         </template>
                     </ui-panel>
@@ -130,6 +179,11 @@ export default {
             displayModes: [
                 { label: 'Плавающая кнопка', value: 'floating' },
                 { label: 'Встроенный чат', value: 'inline' }
+            ],
+            backendModes: [
+                { label: 'Мок (без модели)', value: 'mock' },
+                { label: 'Модель из браузера', value: 'local' },
+                { label: 'Сервер (apiBase)', value: 'server' }
             ],
             positions: [
                 { label: 'Справа внизу', value: 'bottom-right' },

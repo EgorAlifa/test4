@@ -17,6 +17,16 @@ export const STORE_STALE_DEBOUNCE_MS = 1500;
 /** Пауза перед пересборкой менеджера корпуса после правки пропов источника, мс */
 export const REBUILD_DEBOUNCE_MS = 600;
 
+/** Режимы источника ответов (проп backendMode) */
+export const BACKEND_MODE = Object.freeze({
+    MOCK: 'mock',
+    LOCAL: 'local',
+    SERVER: 'server'
+});
+
+/** Внутренний apiBase для mock/local: fetchImpl маршрутизирует по суффиксу пути */
+export const INTERNAL_API_BASE = 'local://wiki-assistant/';
+
 /** Поиск Vuex store редактора: число попыток и интервал между ними */
 export const STORE_LOOKUP_ATTEMPTS = 10;
 export const STORE_LOOKUP_INTERVAL_MS = 500;
