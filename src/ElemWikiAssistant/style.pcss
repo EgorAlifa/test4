@@ -1,0 +1,557 @@
+/*
+ * ElemWikiAssistant — стили чата помощника.
+ * Подключаются без scoped: HTML ответа приходит через v-html, поэтому все классы имеют префикс aiw-.
+ * Переменные (--aiw-*) задаются на корне из пропов «Оформления».
+ */
+
+.aiw {
+    --aiw-accent: #4f46e5;
+    --aiw-bg: #ffffff;
+    --aiw-text: #1f2937;
+    --aiw-muted: color-mix(in srgb, var(--aiw-text) 55%, transparent);
+    --aiw-border: color-mix(in srgb, var(--aiw-text) 12%, transparent);
+    --aiw-soft: color-mix(in srgb, var(--aiw-text) 5%, var(--aiw-bg));
+    --aiw-accent-soft: color-mix(in srgb, var(--aiw-accent) 10%, var(--aiw-bg));
+    --aiw-width: 380px;
+    --aiw-height: 560px;
+    --aiw-font-size: 14px;
+    --aiw-radius: 16px;
+    --aiw-offset: 24px;
+    --aiw-z: 1000;
+
+    box-sizing: border-box;
+    font-size: var(--aiw-font-size);
+    line-height: 1.5;
+    color: var(--aiw-text);
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: inherit;
+    }
+
+    button {
+        font: inherit;
+    }
+}
+
+.aiw--inline {
+    width: 100%;
+    height: 100%;
+    min-height: 320px;
+}
+
+/* ─── Плавающая кнопка ─────────────────────────────────────────── */
+
+.aiw-fab {
+    position: fixed;
+    right: var(--aiw-offset);
+    bottom: var(--aiw-offset);
+    z-index: var(--aiw-z);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--aiw-accent);
+    color: #ffffff;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--aiw-accent) 40%, transparent), 0 2px 6px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px) scale(1.04);
+    }
+
+    &:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--aiw-accent) 45%, transparent);
+        outline-offset: 3px;
+    }
+}
+
+.aiw--left .aiw-fab {
+    right: auto;
+    left: var(--aiw-offset);
+}
+
+/* ─── Панель ───────────────────────────────────────────────────── */
+
+.aiw-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--aiw-border);
+    border-radius: var(--aiw-radius);
+    background: var(--aiw-bg);
+}
+
+.aiw--inline .aiw-panel {
+    width: 100%;
+    height: 100%;
+}
+
+.aiw--floating .aiw-panel {
+    position: fixed;
+    right: var(--aiw-offset);
+    bottom: var(--aiw-offset);
+    z-index: var(--aiw-z);
+    width: var(--aiw-width);
+    max-width: calc(100vw - 2 * var(--aiw-offset));
+    height: var(--aiw-height);
+    max-height: calc(100vh - 2 * var(--aiw-offset));
+    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.08);
+    transform-origin: bottom right;
+}
+
+.aiw--floating.aiw--left .aiw-panel {
+    right: auto;
+    left: var(--aiw-offset);
+    transform-origin: bottom left;
+}
+
+.aiw-pop-enter-active,
+.aiw-pop-leave-active {
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.aiw-pop-enter,
+.aiw-pop-leave-to {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+}
+
+/* ─── Шапка ────────────────────────────────────────────────────── */
+
+.aiw-header {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 12px 12px 16px;
+    border-bottom: 1px solid var(--aiw-border);
+
+    &__title {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        font-weight: 600;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    &__dot {
+        flex-shrink: 0;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--aiw-muted);
+
+        &--online {
+            background: #22c55e;
+        }
+
+        &--checking {
+            background: #f59e0b;
+        }
+
+        &--unavailable,
+        &--signed-out {
+            background: #ef4444;
+        }
+    }
+}
+
+.aiw-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--aiw-muted);
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+        background: var(--aiw-soft);
+        color: var(--aiw-text);
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
+}
+
+.aiw-link-btn {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--aiw-accent);
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* ─── Строка состояния базы знаний и баннеры ───────────────────── */
+
+.aiw-corpus {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 16px;
+    border-bottom: 1px solid var(--aiw-border);
+    background: var(--aiw-soft);
+    font-size: 0.8em;
+    color: var(--aiw-muted);
+
+    &__text {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    &--error {
+        color: #b91c1c;
+    }
+}
+
+.aiw-banner {
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    margin: 10px 12px 0;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--aiw-accent-soft);
+    font-size: 0.9em;
+
+    &--warn {
+        background: #fef3c7;
+        color: #92400e;
+    }
+}
+
+/* ─── Сообщения ────────────────────────────────────────────────── */
+
+.aiw-messages {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    padding: 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.aiw-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: auto 0;
+
+    &__greeting {
+        margin: 0;
+        color: var(--aiw-muted);
+        white-space: pre-line;
+    }
+}
+
+.aiw-suggestions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.aiw-suggestion {
+    max-width: 100%;
+    padding: 6px 12px;
+    border: 1px solid color-mix(in srgb, var(--aiw-accent) 35%, transparent);
+    border-radius: 999px;
+    background: var(--aiw-bg);
+    color: var(--aiw-accent);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:hover:not(:disabled) {
+        background: var(--aiw-accent-soft);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
+}
+
+.aiw-msg {
+    display: flex;
+    flex-direction: column;
+    max-width: 88%;
+
+    &--user {
+        align-self: flex-end;
+        align-items: flex-end;
+    }
+
+    &--assistant {
+        align-self: flex-start;
+        align-items: flex-start;
+    }
+
+    &__bubble {
+        padding: 8px 12px;
+        overflow-wrap: anywhere;
+    }
+
+    &--user &__bubble {
+        border-radius: 14px 14px 4px 14px;
+        background: var(--aiw-accent);
+        color: #ffffff;
+        white-space: pre-wrap;
+    }
+
+    &--assistant &__bubble {
+        border-radius: 14px 14px 14px 4px;
+        background: var(--aiw-soft);
+    }
+
+    &__bubble--error {
+        background: #fef2f2 !important;
+        color: #b91c1c;
+    }
+}
+
+/* HTML ответа (answerHtml) */
+.aiw-answer {
+    p,
+    ul,
+    ol {
+        margin: 0 0 0.5em;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    ul,
+    ol {
+        padding-left: 1.25em;
+    }
+
+    code {
+        padding: 1px 4px;
+        border-radius: 4px;
+        background: var(--aiw-border);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+    }
+}
+
+.aiw-cite {
+    color: var(--aiw-accent);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--aiw-accent) 40%, transparent);
+    text-underline-offset: 2px;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration-color: currentColor;
+    }
+}
+
+.aiw-sources {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+
+    &__label {
+        font-size: 0.8em;
+        color: var(--aiw-muted);
+    }
+}
+
+.aiw-source {
+    max-width: 180px;
+    padding: 2px 10px;
+    overflow: hidden;
+    border: 1px solid var(--aiw-border);
+    border-radius: 999px;
+    background: var(--aiw-bg);
+    font-size: 0.8em;
+    color: var(--aiw-text);
+    white-space: nowrap;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--aiw-accent);
+        color: var(--aiw-accent);
+    }
+
+    &--more {
+        color: var(--aiw-muted);
+    }
+}
+
+/* Индикатор набора */
+.aiw-typing {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px 0;
+
+    i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--aiw-muted);
+        animation: aiw-blink 1.2s infinite ease-in-out;
+
+        &:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        &:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+    }
+}
+
+@keyframes aiw-blink {
+    0%,
+    80%,
+    100% {
+        opacity: 0.3;
+        transform: translateY(0);
+    }
+
+    40% {
+        opacity: 1;
+        transform: translateY(-3px);
+    }
+}
+
+/* ─── Поле ввода ───────────────────────────────────────────────── */
+
+.aiw-composer {
+    display: flex;
+    flex-shrink: 0;
+    align-items: flex-end;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 12px;
+    border-top: 1px solid var(--aiw-border);
+}
+
+.aiw-input {
+    flex: 1;
+    min-height: 38px;
+    max-height: 140px;
+    padding: 8px 12px;
+    border: 1px solid var(--aiw-border);
+    border-radius: 10px;
+    background: var(--aiw-bg);
+    font: inherit;
+    color: inherit;
+    resize: none;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus {
+        border-color: var(--aiw-accent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--aiw-accent) 18%, transparent);
+    }
+
+    &:disabled {
+        background: var(--aiw-soft);
+        cursor: not-allowed;
+    }
+}
+
+.aiw-send {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background: var(--aiw-accent);
+    color: #ffffff;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
+
+    &--stop {
+        background: var(--aiw-text);
+    }
+}
+
+/* ─── Узкий экран: панель — полноэкранный лист ─────────────────── */
+
+@media (max-width: 520px) {
+    .aiw--floating .aiw-panel {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        max-width: none;
+        height: 100%;
+        max-height: none;
+        border: none;
+        border-radius: 0;
+    }
+
+    .aiw--floating.aiw--left .aiw-panel {
+        left: 0;
+    }
+
+    .aiw-msg {
+        max-width: 94%;
+    }
+}
+
+/* ─── Без анимаций ─────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .aiw-fab,
+    .aiw-input,
+    .aiw-suggestion,
+    .aiw-send,
+    .aiw-pop-enter-active,
+    .aiw-pop-leave-active {
+        transition: none;
+    }
+
+    .aiw-fab:hover {
+        transform: none;
+    }
+
+    .aiw-typing i {
+        animation: none;
+        opacity: 0.6;
+    }
+}
