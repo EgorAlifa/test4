@@ -293,7 +293,7 @@ export async function readCompletionStream(response, onText, signal) {
  * @param {object} config
  * @return {Record<string, string>}
  */
-function providerHeaders(config) {
+export function providerHeaders(config) {
     const headers = { 'Content-Type': 'application/json' };
     if (config.apiKey) {
         const name = String(config.authHeader || 'Authorization').replace(/[^A-Za-z0-9-]/g, '');
