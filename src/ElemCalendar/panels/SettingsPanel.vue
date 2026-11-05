@@ -9,7 +9,7 @@
                     <div
                         class="mode-card"
                         :class="{ 'mode-card--active': props.calMode !== 'compact' }"
-                        @click="set('calMode', 'full')">
+                        @click="setWidgetMode('full')">
                         <div class="mode-card__icon">🗓</div>
                         <div class="mode-card__title">Полный календарь</div>
                         <div class="mode-card__desc">Месяц, неделя, день, список, год. Для порталов и мониторинга.</div>
@@ -17,7 +17,7 @@
                     <div
                         class="mode-card"
                         :class="{ 'mode-card--active': props.calMode === 'compact' }"
-                        @click="set('calMode', 'compact')">
+                        @click="setWidgetMode('compact')">
                         <div class="mode-card__icon">📅</div>
                         <div class="mode-card__title">Компактный календарь</div>
                         <div class="mode-card__desc">Компактный выбор диапазона between для дашбордов и отчётов.</div>
@@ -26,7 +26,7 @@
             </div>
 
             <!-- ── Режим компактного виджета ────────────────────────── -->
-            <div v-if="props.calMode === 'compact'" class="p-section">
+            <div v-if="isCompact" class="p-section">
                 <div class="p-section__label">Режим компактного виджета</div>
                 <div class="compact-modes">
                     <div class="compact-mode" :class="{ 'compact-mode--active': compactSubMode === 'standard' }" @click="setCompactMode('standard')">
@@ -75,13 +75,14 @@
             </div>
 
             <!-- ── Вид (только полный режим) ─────────────────────────── -->
-            <div v-if="props.calMode !== 'compact'" class="p-section">
+            <div v-if="!isCompact" class="p-section">
                 <div class="p-section__label">Виды календаря</div>
                 <div class="view-list">
                     <div v-for="v in allViews" :key="v.value" class="view-row">
                         <div
                             class="view-row__toggle"
-                            :class="{ 'view-row__toggle--on': isViewAvailable(v.value) }"
+                            :class="{ 'view-row__toggle--on': isViewAvailable(v.value), 'view-row__toggle--locked': isLastView(v.value) }"
+                            :title="isLastView(v.value) ? 'Должен остаться хотя бы один вид' : ''"
                             @click="toggleView(v.value, !isViewAvailable(v.value))">
                             <div class="view-row__toggle-thumb" />
                         </div>
@@ -107,33 +108,48 @@
             <div class="p-section">
                 <div class="p-section__label">Режим выбора дат</div>
 
-                <template v-if="props.calMode === 'compact'">
-                    <div class="p-row">
-                        <span class="p-row__label">Выбор</span>
-                        <div class="seg-ctrl">
-                            <button
-                                class="seg-ctrl__btn"
-                                :class="{ 'seg-ctrl__btn--active': props.calSelectionMode === 'range' }"
-                                @click="set('calSelectionMode', 'range')">
-                                Диапазон
-                            </button>
-                            <button
-                                class="seg-ctrl__btn"
-                                :class="{ 'seg-ctrl__btn--active': props.calSelectionMode === 'single' }"
-                                @click="set('calSelectionMode', 'single')">
-                                Одиночный
-                            </button>
-                        </div>
+                <div v-if="isCompact" class="p-row">
+                    <span class="p-row__label">Выбор</span>
+                    <div class="seg-ctrl">
+                        <button
+                            class="seg-ctrl__btn"
+                            :class="{ 'seg-ctrl__btn--active': props.calSelectionMode === 'range' }"
+                            @click="set('calSelectionMode', 'range')">
+                            Диапазон
+                        </button>
+                        <button
+                            class="seg-ctrl__btn"
+                            :class="{ 'seg-ctrl__btn--active': props.calSelectionMode === 'single' }"
+                            @click="set('calSelectionMode', 'single')">
+                            Одиночный
+                        </button>
                     </div>
+                </div>
+                <div v-else class="p-row">
+                    <span class="p-row__label">Режим</span>
+                    <div class="seg-ctrl">
+                        <button
+                            v-for="m in selModes"
+                            :key="m.value"
+                            class="seg-ctrl__btn"
+                            :class="{ 'seg-ctrl__btn--active': props.calSelectionMode === m.value }"
+                            @click="set('calSelectionMode', m.value)">
+                            {{ m.label }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- timestamp: только для одиночной даты и диапазона («Несколько» передаёт JSON дат, «Нет» — ничего) -->
+                <template v-if="isTimeApplicable">
                     <label class="toggle-row" style="margin-top:4px">
                         <span class="toggle-row__label">Передавать timestamp (с временем)</span>
                         <div class="toggle" :class="{ 'toggle--on': props.calWithTime }" @click="toggleBool('calWithTime')">
                             <div class="toggle__thumb" />
                         </div>
                     </label>
-                    <template v-if="props.calWithTime">
-                        <div class="p-row" style="margin-top:4px">
-                            <span class="p-row__label">Время начала</span>
+                    <div v-if="props.calWithTime" class="sub-group">
+                        <div class="p-row">
+                            <span class="p-row__label">{{ isRangeMode ? 'Время начала' : 'Время' }}</span>
                             <input
                                 type="text"
                                 class="time-input"
@@ -141,7 +157,7 @@
                                 placeholder="00:00"
                                 @change="set('calDefaultStartTime', $event.target.value || '00:00')" />
                         </div>
-                        <div class="p-row">
+                        <div v-if="isRangeMode" class="p-row">
                             <span class="p-row__label">Время конца</span>
                             <input
                                 type="text"
@@ -150,101 +166,104 @@
                                 placeholder="23:59"
                                 @change="set('calDefaultEndTime', $event.target.value || '23:59')" />
                         </div>
-                    </template>
-                </template>
-
-                <template v-else>
-                    <div class="p-row">
-                        <span class="p-row__label">Режим</span>
-                        <div class="seg-ctrl">
-                            <button
-                                v-for="m in selModes"
-                                :key="m.value"
-                                class="seg-ctrl__btn"
-                                :class="{ 'seg-ctrl__btn--active': props.calSelectionMode === m.value }"
-                                @click="set('calSelectionMode', m.value)">
-                                {{ m.label }}
-                            </button>
-                        </div>
+                        <div v-if="!isCompact" class="p-hint">В полном календаре время не вводится — подставляется время по умолчанию.</div>
                     </div>
                 </template>
             </div>
 
             <!-- ── Отображение (компактный режим) ──────────────────── -->
-            <div v-if="props.calMode === 'compact'" class="p-section">
+            <div v-if="isCompact" class="p-section">
                 <div class="p-section__label">Элементы интерфейса</div>
 
                 <label class="toggle-row">
-                    <span class="toggle-row__label">Показывать выходные</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calShowWeekends }" @click="toggleBool('calShowWeekends')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Выделять «Сегодня»</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calHighlightToday !== false }" @click="toggleBool('calHighlightToday')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
-                <label class="toggle-row">
                     <span class="toggle-row__label">Мини-календарь</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowCalendar !== false }" @click="toggleBool('calCompactShowCalendar')">
+                    <div class="toggle" :class="{ 'toggle--on': isCalendarOn }" @click="toggleBool('calCompactShowCalendar')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Два месяца рядом</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calCompactDualMonth }" @click="toggleBool('calCompactDualMonth')">
+                <div class="sub-group">
+                    <label class="toggle-row" :class="{ 'toggle-row--disabled': !isCalendarOn }">
+                        <span class="toggle-row__text">
+                            <span class="toggle-row__label">Два месяца рядом</span>
+                            <span v-if="!isCalendarOn" class="toggle-row__hint">Нужен мини-календарь</span>
+                        </span>
+                        <div class="toggle" :class="{ 'toggle--on': isDualMonth }" @click="isCalendarOn && toggleBool('calCompactDualMonth')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
+                    <template v-if="isCalendarOn">
+                        <label class="toggle-row">
+                            <span class="toggle-row__label">Показывать выходные</span>
+                            <div class="toggle" :class="{ 'toggle--on': props.calShowWeekends }" @click="toggleBool('calShowWeekends')">
+                                <div class="toggle__thumb" />
+                            </div>
+                        </label>
+                        <label class="toggle-row">
+                            <span class="toggle-row__label">Выделять «Сегодня»</span>
+                            <div class="toggle" :class="{ 'toggle--on': props.calHighlightToday !== false }" @click="toggleBool('calHighlightToday')">
+                                <div class="toggle__thumb" />
+                            </div>
+                        </label>
+                    </template>
+                </div>
+
+                <label class="toggle-row" :class="{ 'toggle-row--disabled': isDualMonth }">
+                    <span class="toggle-row__text">
+                        <span class="toggle-row__label">{{ isCalendarOn ? 'Кнопка «Сегодня» в шапке' : 'Кнопка «Сегодня»' }}</span>
+                        <span v-if="isDualMonth" class="toggle-row__hint">Нет в режиме «Два месяца рядом»</span>
+                    </span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowToday !== false && !isDualMonth }" @click="!isDualMonth && toggleBool('calCompactShowToday')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
+
                 <label class="toggle-row">
                     <span class="toggle-row__label">Нижняя панель (ввод дат)</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowBottom !== false }" @click="toggleBool('calCompactShowBottom')">
+                    <div class="toggle" :class="{ 'toggle--on': isBottomOn }" @click="toggleBool('calCompactShowBottom')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
-                <div v-if="props.calCompactShowBottom !== false" class="p-row" style="margin-top:4px">
-                    <span class="p-row__label">Отступ между чипами</span>
-                    <div class="num-unit-ctrl">
-                        <input
-                            type="number"
-                            class="time-input num-unit-ctrl__num"
-                            min="0"
-                            step="0.5"
-                            :value="chipsGapNum"
-                            @change="setChipsGapNum($event.target.value)" />
-                        <div class="seg-ctrl">
-                            <button
-                                v-for="u in ['px', 'rem', 'em']"
-                                :key="u"
-                                class="seg-ctrl__btn"
-                                :class="{ 'seg-ctrl__btn--active': chipsGapUnit === u }"
-                                @click="setChipsGapUnit(u)">{{ u }}</button>
+                <div v-if="isBottomOn" class="sub-group">
+                    <div class="p-row">
+                        <span class="p-row__label">Отступ между чипами</span>
+                        <div class="num-unit-ctrl">
+                            <input
+                                type="number"
+                                class="time-input num-unit-ctrl__num"
+                                min="0"
+                                step="0.5"
+                                :value="chipsGapNum"
+                                @change="setChipsGapNum($event.target.value)" />
+                            <div class="seg-ctrl">
+                                <button
+                                    v-for="u in ['px', 'rem', 'em']"
+                                    :key="u"
+                                    class="seg-ctrl__btn"
+                                    :class="{ 'seg-ctrl__btn--active': chipsGapUnit === u }"
+                                    @click="setChipsGapUnit(u)">{{ u }}</button>
+                            </div>
                         </div>
                     </div>
+                </div>
+                <div v-else class="p-hint">Без нижней панели выбор применяется сразу, без кнопки «Применить».</div>
+
+                <div v-if="isCompactEmpty" class="p-warn">
+                    Мини-календарь, пресеты и нижняя панель выключены — выбрать дату в виджете нечем.
                 </div>
             </div>
 
             <!-- ── Пресеты компактного режима ─────────────────────────── -->
-            <div v-if="props.calMode === 'compact'" class="p-section">
+            <div v-if="isCompact" class="p-section">
                 <div class="p-section__label">Кнопки-пресеты дат</div>
 
-                <label class="toggle-row" style="margin-bottom:8px">
+                <label class="toggle-row" :style="{ marginBottom: isPresetsOn ? '8px' : '0' }">
                     <span class="toggle-row__label">Показывать пресеты</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowPresets !== false }" @click="toggleBool('calCompactShowPresets')">
+                    <div class="toggle" :class="{ 'toggle--on': isPresetsOn }" @click="toggleBool('calCompactShowPresets')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
 
-                <template v-if="props.calCompactShowPresets !== false">
-                    <label class="toggle-row" :class="{ 'toggle-row--disabled': props.calCompactDualMonth }" style="margin-bottom:8px">
-                        <span class="toggle-row__label">Кнопка «Сегодня» в шапке</span>
-                        <div class="toggle" :class="{ 'toggle--on': props.calCompactShowToday !== false && !props.calCompactDualMonth }" @click="!props.calCompactDualMonth && toggleBool('calCompactShowToday')">
-                            <div class="toggle__thumb" />
-                        </div>
-                    </label>
-
+                <template v-if="isPresetsOn">
                     <div class="p-row" style="margin-bottom:10px">
                         <span class="p-row__label">Колонок в ряду</span>
                         <input
@@ -257,13 +276,21 @@
                     </div>
 
                     <div class="p-section__label" style="margin-bottom:4px">Список пресетов</div>
-                    <div v-if="localPresets.length === 0" class="preset-empty">Пресеты не добавлены</div>
+                    <div v-if="!isRangeMode" class="p-hint" style="margin-bottom:4px">
+                        Режим «Одиночный»: показываются только пресеты на один день (Вчера, Сегодня, одна дата, «1 день»).
+                        Пресеты-диапазоны скрыты.
+                    </div>
+                    <div v-if="localPresets.length === 0" class="preset-empty">Пресеты не добавлены — кнопки не будут показаны</div>
+                    <div v-else-if="visiblePresetsCount === 0" class="p-warn" style="margin:0 0 6px">
+                        Ни один пресет не подходит к текущему режиму — кнопки не будут показаны.
+                    </div>
                     <div class="preset-cards">
                         <div
                             v-for="(p, idx) in localPresets"
                             :key="`${p.key}-${idx}`"
                             class="preset-card"
-                            :class="{ 'preset-card--editing': editingPresetIdx === idx }">
+                            :class="{ 'preset-card--editing': editingPresetIdx === idx, 'preset-card--hidden': !!presetHiddenReason(p) }"
+                            :title="presetHiddenReason(p)">
                             <span class="preset-badge" :class="presetBadgeClass(p)">{{ presetTypeShort(p) }}</span>
                             <input
                                 class="preset-card__input"
@@ -333,7 +360,7 @@
             </div>
 
             <!-- ── Отображение (полный режим) ──────────────────────── -->
-            <div v-if="props.calMode !== 'compact'" class="p-section">
+            <div v-if="!isCompact" class="p-section">
                 <div class="p-section__label">Элементы интерфейса</div>
 
                 <label class="toggle-row">
@@ -342,52 +369,69 @@
                         <div class="toggle__thumb" />
                     </div>
                 </label>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Переключатель видов</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calShowViewSwitcher }" @click="toggleBool('calShowViewSwitcher')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
+                <!-- переключатель видов и кнопки «Сегодня»/«Сброс» живут в шапке -->
+                <div v-if="props.calShowHeader" class="sub-group">
+                    <label class="toggle-row" :class="{ 'toggle-row--disabled': !hasSeveralViews }">
+                        <span class="toggle-row__text">
+                            <span class="toggle-row__label">Переключатель видов</span>
+                            <span v-if="!hasSeveralViews" class="toggle-row__hint">Включён только один вид</span>
+                        </span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calShowViewSwitcher && hasSeveralViews }" @click="hasSeveralViews && toggleBool('calShowViewSwitcher')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
+                    <label class="toggle-row">
+                        <span class="toggle-row__label">Кнопка «Сегодня»</span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calShowTodayBtn }" @click="toggleBool('calShowTodayBtn')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
+                    <label v-if="props.calSelectionMode !== 'none'" class="toggle-row">
+                        <span class="toggle-row__label">Кнопка «Сброс» выделения</span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calShowResetBtn !== false }" @click="toggleBool('calShowResetBtn')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
+                </div>
+                <div v-else class="p-hint" style="margin-bottom:4px">Без шапки нет навигации, переключателя видов и кнопок «Сегодня»/«Сброс».</div>
+
                 <label class="toggle-row">
                     <span class="toggle-row__label">Выделять «Сегодня»</span>
                     <div class="toggle" :class="{ 'toggle--on': props.calHighlightToday !== false }" @click="toggleBool('calHighlightToday')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Кнопка «Сегодня»</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calShowTodayBtn }" @click="toggleBool('calShowTodayBtn')">
+                <label class="toggle-row" :class="{ 'toggle-row--disabled': !hasMonthView }">
+                    <span class="toggle-row__text">
+                        <span class="toggle-row__label">Номера недель</span>
+                        <span v-if="!hasMonthView" class="toggle-row__hint">Только для вида «Месяц»</span>
+                    </span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calShowWeekNumbers && hasMonthView }" @click="hasMonthView && toggleBool('calShowWeekNumbers')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Номера недель</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calShowWeekNumbers }" @click="toggleBool('calShowWeekNumbers')">
+                <label class="toggle-row" :class="{ 'toggle-row--disabled': !hasMonthView }">
+                    <span class="toggle-row__text">
+                        <span class="toggle-row__label">Показывать выходные</span>
+                        <span v-if="!hasMonthView" class="toggle-row__hint">Только для вида «Месяц»</span>
+                    </span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calShowWeekends && hasMonthView }" @click="hasMonthView && toggleBool('calShowWeekends')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Показывать выходные</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calShowWeekends }" @click="toggleBool('calShowWeekends')">
+                <label class="toggle-row" :class="{ 'toggle-row--disabled': !hasHeatmapView }">
+                    <span class="toggle-row__text">
+                        <span class="toggle-row__label">Тепловая карта</span>
+                        <span v-if="!hasHeatmapView" class="toggle-row__hint">Только для видов «Месяц» и «Год»</span>
+                    </span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calHeatmapEnabled && hasHeatmapView }" @click="hasHeatmapView && toggleBool('calHeatmapEnabled')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Тепловая карта</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calHeatmapEnabled }" @click="toggleBool('calHeatmapEnabled')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
-                <div v-if="props.calHeatmapEnabled" class="p-hint" style="margin:0 0 6px">
+                <div v-if="props.calHeatmapEnabled && hasHeatmapView" class="p-hint" style="margin:0 0 6px">
                     Привяжите столбец метрики в панели <strong>Данные</strong> (поле «Столбец метрики»),
                     затем укажите переменную хранилища или статичный JSON с данными метрики.
                 </div>
-                <label class="toggle-row">
-                    <span class="toggle-row__label">Кнопка «Сброс» выделения</span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calShowResetBtn !== false }" @click="toggleBool('calShowResetBtn')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
             </div>
 
         </ui-container>
@@ -406,6 +450,15 @@ const DEFAULT_PRESETS = [
     { key: 'month',      label: 'Этот месяц' },
     { key: 'last_month', label: 'Пр. месяц' }
 ];
+
+const SINGLE_DAY_KEYS = ['today', 'yesterday'];
+
+// Пресет на один день: Сегодня/Вчера, фиксированная дата без конца (или конец = начало), «1 день»
+function isSingleDayPreset(p) {
+    if (SINGLE_DAY_KEYS.includes(p.key)) return true;
+    if (p.start != null) return !p.end || p.end === p.start;
+    return Number(p.daysBack) === 1;
+}
 
 export default {
     extends: Panel,
@@ -437,6 +490,52 @@ export default {
     }),
 
     computed: {
+        // ── Зависимости настроек: условия совпадают с v-if в шаблоне ElemCalendar.vue ──
+        isCompact() {
+            return this.props.calMode === 'compact';
+        },
+        isRangeMode() {
+            return this.props.calSelectionMode === 'range';
+        },
+        // timestamp передаётся только для одиночной даты и диапазона
+        isTimeApplicable() {
+            return ['single', 'range'].includes(this.props.calSelectionMode);
+        },
+        isCalendarOn() {
+            return this.props.calCompactShowCalendar !== false;
+        },
+        isBottomOn() {
+            return this.props.calCompactShowBottom !== false;
+        },
+        isPresetsOn() {
+            return this.props.calCompactShowPresets !== false;
+        },
+        // «Два месяца рядом» действует только при включённом мини-календаре
+        isDualMonth() {
+            return this.isCalendarOn && Boolean(this.props.calCompactDualMonth);
+        },
+        isCompactEmpty() {
+            return !this.isCalendarOn && !this.isPresetsOn && !this.isBottomOn;
+        },
+        // как availableViewsList в виджете: пустой/не задан — все виды
+        effectiveViews() {
+            const arr = this.props.calAvailableViews;
+            return Array.isArray(arr) && arr.length ? arr : this.allViews.map((v) => v.value);
+        },
+        hasSeveralViews() {
+            return this.effectiveViews.length > 1;
+        },
+        // номера недель и скрытие выходных работают только в сетке месяца
+        hasMonthView() {
+            return this.effectiveViews.includes('month');
+        },
+        // тепловая карта красит ячейки месяца и года
+        hasHeatmapView() {
+            return this.effectiveViews.includes('month') || this.effectiveViews.includes('year');
+        },
+        visiblePresetsCount() {
+            return this.localPresets.filter((p) => !this.presetHiddenReason(p)).length;
+        },
         storeVarNames() {
             try { return Object.keys(store.state || {}).filter(Boolean).sort(); } catch (e) { return []; }
         },
@@ -508,6 +607,14 @@ export default {
             this.set('calView', v);
         },
 
+        // Компактный режим умеет только «Диапазон» и «Одиночный» — «Нет»/«Несколько» переводим в диапазон
+        setWidgetMode(mode) {
+            this.set('calMode', mode);
+            if (mode === 'compact' && !['single', 'range'].includes(this.props.calSelectionMode)) {
+                this.set('calSelectionMode', 'range');
+            }
+        },
+
         setCompactMode(mode) {
             const base = {
                 calCompactShowBottom: true,
@@ -535,13 +642,35 @@ export default {
             return Array.isArray(arr) ? arr.includes(v) : true;
         },
 
+        isLastView(v) {
+            return this.effectiveViews.length === 1 && this.effectiveViews[0] === v;
+        },
+
         toggleView(v, checked) {
-            let arr = Array.isArray(this.props.calAvailableViews)
-                ? [...this.props.calAvailableViews]
-                : ['month', 'week', 'day', 'agenda'];
+            // пустой список виджет трактует как «все виды», поэтому последний вид не выключаем
+            if (!checked && this.isLastView(v)) return;
+            let arr = [...this.effectiveViews];
             if (checked && !arr.includes(v)) arr.push(v);
             if (!checked) arr = arr.filter((x) => x !== v);
+            // сохраняем порядок как в списке видов
+            arr = this.allViews.map((x) => x.value).filter((x) => arr.includes(x));
             this.set('calAvailableViews', arr);
+            // вид по умолчанию выключен — звёздочка переходит на первый доступный
+            if (!arr.includes(this.props.calView)) this.set('calView', arr[0]);
+        },
+
+        // Почему пресет не будет показан (логика совпадает с compactPresetsList в ElemCalendar.vue)
+        presetHiddenReason(p) {
+            const simplified = !this.props.calCompactShowCalendar && this.isPresetsOn;
+            if (this.props.calSelectionMode === 'single') {
+                if (!isSingleDayPreset(p)) return 'Диапазон — скрыт в режиме «Одиночный»';
+                if (simplified && p.key === 'today' && this.props.calCompactShowToday !== false) {
+                    return 'Дублирует кнопку «Сегодня» — скрыт';
+                }
+                return '';
+            }
+            if (simplified && SINGLE_DAY_KEYS.includes(p.key)) return 'Скрыт в режиме без мини-календаря';
+            return '';
         },
 
         _savePresets() {
@@ -795,6 +924,7 @@ export default {
     transition: background 0.18s;
 }
 .view-row__toggle--on { background: #4f6aff; }
+.view-row__toggle--locked { opacity: 0.55; cursor: not-allowed; }
 .view-row__toggle-thumb {
     position: absolute;
     top: 2px;
@@ -840,7 +970,30 @@ export default {
     gap: 8px;
 }
 .toggle-row__label { font-size: 12px; color: #334155; font-weight: 500; flex: 1; }
-.toggle-row--disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.toggle-row--disabled { cursor: not-allowed; pointer-events: none; }
+.toggle-row--disabled .toggle-row__label,
+.toggle-row--disabled .toggle { opacity: 0.4; }
+.toggle-row__text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.toggle-row__hint { font-size: 10px; color: #94a3b8; line-height: 1.3; margin-top: 1px; }
+
+/* Зависимые настройки — с отступом под «родительским» переключателем */
+.sub-group {
+    margin: 0 0 2px 6px;
+    padding-left: 10px;
+    border-left: 2px solid #eef1ff;
+}
+
+/* Предупреждение о конфликте настроек */
+.p-warn {
+    font-size: 10px;
+    line-height: 1.5;
+    color: #b45309;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+    padding: 4px 8px;
+    margin-top: 6px;
+}
 
 .toggle {
     width: 36px;
@@ -963,6 +1116,10 @@ export default {
 }
 .preset-card__del:hover { color: #ef4444; }
 .preset-card--editing { border-color: #4f6aff; background: #f5f7ff; }
+/* пресет не показывается в текущем режиме (см. presetHiddenReason) */
+.preset-card--hidden { border-style: dashed; }
+.preset-card--hidden .preset-badge,
+.preset-card--hidden .preset-card__input { opacity: 0.45; text-decoration: line-through; }
 .preset-card__edit {
     border: none;
     background: transparent;

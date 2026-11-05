@@ -50,7 +50,7 @@
 
             <!-- Preset chips -->
             <div
-                v-if="props.calCompactShowPresets !== false"
+                v-if="props.calCompactShowPresets !== false && compactPresetsList.length"
                 class="compact__presets"
                 :style="presetsGridStyle">
                 <button
@@ -63,8 +63,8 @@
                 </button>
             </div>
 
-            <!-- Сегодня: только когда календарь скрыт (упрощённый режим) -->
-            <div v-if="props.calCompactShowCalendar === false && props.calCompactShowToday !== false && !props.calCompactDualMonth" class="compact__today-row">
+            <!-- Сегодня: только когда календарь скрыт (упрощённый режим); «Два месяца» без календаря не действует -->
+            <div v-if="props.calCompactShowCalendar === false && props.calCompactShowToday !== false" class="compact__today-row">
                 <button class="compact__today-chip" @click="applyPreset({ key: 'today' })">{{ locale.today }}</button>
             </div>
 
@@ -1150,12 +1150,24 @@ export default {
         compactPresetsList() {
             const SINGLE_DAY_KEYS = ['today', 'yesterday'];
             const simplified = !this.props.calCompactShowCalendar && this.props.calCompactShowPresets !== false;
+            // Режим «Одиночный»: пресеты-диапазоны выбрали бы диапазон — оставляем только пресеты на один день
+            // (та же логика — presetHiddenReason в panels/SettingsPanel.vue)
+            const filterList = (list) => {
+                if (this.props.calSelectionMode !== 'single') {
+                    return simplified ? list.filter(p => !SINGLE_DAY_KEYS.includes(p.key)) : list;
+                }
+                const todayRow = simplified && this.props.calCompactShowToday !== false;
+                return list.filter((p) => {
+                    if (todayRow && p.key === 'today') return false;
+                    if (SINGLE_DAY_KEYS.includes(p.key)) return true;
+                    if (p.start != null) return !p.end || p.end === p.start;
+                    return Number(p.daysBack) === 1;
+                });
+            };
             if (this.props.calPresetsJson) {
                 try {
                     const parsed = JSON.parse(this.props.calPresetsJson);
-                    if (Array.isArray(parsed)) {
-                        return simplified ? parsed.filter(p => !SINGLE_DAY_KEYS.includes(p.key)) : parsed;
-                    }
+                    if (Array.isArray(parsed)) return filterList(parsed);
                 } catch (e) { /* fall through */ }
             }
             const fallback = [
@@ -1170,7 +1182,7 @@ export default {
                 { key: 'd90',        label: '90 дней' },
                 { key: 'year',       label: 'Этот год' }
             ];
-            return simplified ? fallback.filter(p => !SINGLE_DAY_KEYS.includes(p.key)) : fallback;
+            return filterList(fallback);
         },
 
         compactInnerStyle() {
