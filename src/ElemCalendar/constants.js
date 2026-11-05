@@ -69,7 +69,8 @@ export const LOCALE_DATA = {
             d90: '90 дней',
             year: 'Этот год'
         },
-        lastNDays: 'Последние {n} дней'
+        // Формы для 1 / 2–4 / 5+ (см. pluralize)
+        lastNDays: ['Последний {n} день', 'Последние {n} дня', 'Последние {n} дней']
     },
     en: {
         months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
@@ -112,7 +113,8 @@ export const LOCALE_DATA = {
             d90: '90 days',
             year: 'This year'
         },
-        lastNDays: 'Last {n} days'
+        // Формы для 1 / остальных
+        lastNDays: ['Last {n} day', 'Last {n} days']
     }
 };
 
@@ -134,7 +136,27 @@ export const AUTO_PRESET_LABELS = Object.freeze({
     year: ['Этот год']
 });
 // Автоподпись относительного пресета из панели настроек: «Последние N дней»
-export const AUTO_RELATIVE_LABEL_RE = /^Последние (\d+) дней$/;
+export const AUTO_RELATIVE_LABEL_RE = /^Последн(?:ий|ие) (\d+) (?:день|дня|дней)$/;
+// Автоподпись пресета с фиксированными датами: «2026-01-01 — 2026-01-31» (ISO)
+export const AUTO_FIXED_LABEL_RE = /^(\d{4}-\d{2}-\d{2}) — (\d{4}-\d{2}-\d{2})$/;
+
+// Выбор формы слова по числу: forms из 3 элементов — правила русского языка
+// (1 день / 2 дня / 5 дней), из 2 — английского (1 day / 2 days). {n} заменяется числом.
+export function pluralize(n, forms) {
+    if (!Array.isArray(forms)) return String(forms || '').replace('{n}', n);
+    const abs = Math.abs(Number(n)) || 0;
+    let idx;
+    if (forms.length >= 3) {
+        const m10 = abs % 10;
+        const m100 = abs % 100;
+        if (m10 === 1 && m100 !== 11) idx = 0;
+        else if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) idx = 1;
+        else idx = 2;
+    } else {
+        idx = abs === 1 ? 0 : forms.length - 1;
+    }
+    return forms[idx].replace('{n}', n);
+}
 
 // ── Visual presets ─────────────────────────────────────────────────
 export const PRESETS = Object.freeze({

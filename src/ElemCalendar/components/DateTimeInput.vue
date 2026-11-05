@@ -9,11 +9,11 @@
         :class="{ 'dt-input--invalid': invalid }"
         :value="text"
         :placeholder="placeholderText"
-        :maxlength="fullMask.length"
         :aria-label="ariaLabel || null"
         :aria-invalid="invalid ? 'true' : null"
         :title="invalid ? invalidTitle : null"
         @input="onInput"
+        @keydown="onKeydown"
         @keydown.enter.prevent="onEnter"
         @keydown.esc.prevent.stop="onEsc"
         @blur="onBlur"
@@ -29,7 +29,12 @@ import { applyMask, formatByMask, parseByMask, maskDigitCount } from '../dateFor
 //
 // События:
 //   commit({ iso: 'YYYY-MM-DD', time: 'HH:mm' }) — Enter или потеря фокуса при корректном вводе
-//   cancel() — Esc, потеря фокуса при пустом/некорректном вводе (прежнее значение сохраняется)
+//   cancel() — Esc или потеря фокуса с пустым полем (прежнее значение сохраняется)
+// Неполный/некорректный ввод при Enter или потере фокуса не теряется и не применяется:
+// текст остаётся в поле, поле подсвечивается красным, выбранная дата не меняется.
+//
+// Клавиатура: Backspace/Delete удаляют ближайшую цифру (разделители маски пропускаются),
+// ввод цифры в заполненное поле заменяет цифру справа от каретки.
 const ISO_PASTE_RE = /^\s*(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/;
 
 export default {
@@ -108,24 +113,53 @@ export default {
             } else {
                 const caret = el.selectionStart == null ? raw.length : el.selectionStart;
                 const digitsBefore = raw.slice(0, caret).replace(/\D/g, '').length;
-                const digits = raw.replace(/\D/g, '').slice(0, maskDigitCount(this.fullMask));
-                next = applyMask(digits, this.fullMask);
-                this.text = next;
-                el.value = next;
-                // Каретка — после того же количества цифр, что и до форматирования
-                let pos = 0;
-                let seen = 0;
-                while (pos < next.length && seen < digitsBefore) {
-                    if (/\d/.test(next[pos])) seen++;
-                    pos++;
-                }
-                if (document.activeElement === el) el.setSelectionRange(pos, pos);
-                this.invalid = false;
+                this.setDigits(raw.replace(/\D/g, ''), digitsBefore);
                 return;
             }
             this.text = next;
             el.value = next;
             this.invalid = false;
+        },
+
+        // Backspace/Delete и замена цифр в заполненном поле — сами, чтобы маска
+        // не возвращала удалённый разделитель и каретку на место
+        onKeydown(e) {
+            const el = e.target;
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            const start = el.selectionStart;
+            if (start == null || start !== el.selectionEnd) return; // выделение — штатно, затем onInput
+            const digits = el.value.replace(/\D/g, '');
+            const k = el.value.slice(0, start).replace(/\D/g, '').length; // цифр слева от каретки
+            if (e.key === 'Backspace') {
+                e.preventDefault();
+                if (k === 0) return;
+                this.setDigits(digits.slice(0, k - 1) + digits.slice(k), k - 1);
+            } else if (e.key === 'Delete') {
+                e.preventDefault();
+                if (k >= digits.length) return;
+                this.setDigits(digits.slice(0, k) + digits.slice(k + 1), k);
+            } else if (/^\d$/.test(e.key) && digits.length >= maskDigitCount(this.fullMask)) {
+                e.preventDefault();
+                if (k >= digits.length) return;
+                this.setDigits(digits.slice(0, k) + e.key + digits.slice(k + 1), k + 1);
+            }
+        },
+
+        // Раскладывает цифры по маске и ставит каретку после digitsBefore цифр
+        setDigits(rawDigits, digitsBefore) {
+            const el = this.$refs.input;
+            const next = applyMask(rawDigits.slice(0, maskDigitCount(this.fullMask)), this.fullMask);
+            this.text = next;
+            this.invalid = false;
+            if (!el) return;
+            el.value = next;
+            let pos = 0;
+            let seen = 0;
+            while (pos < next.length && seen < digitsBefore) {
+                if (/\d/.test(next[pos])) seen++;
+                pos++;
+            }
+            if (document.activeElement === el) el.setSelectionRange(pos, pos);
         },
 
         // Разбор текущего текста. При withTime допускается ввод только даты —
@@ -155,9 +189,11 @@ export default {
 
         onBlur() {
             if (this.done) return;
-            const parsed = this.text.trim() ? this.parse() : null;
-            if (parsed) this.finish('commit', parsed);
-            else this.finish('cancel');
+            if (!this.text.trim()) { this.finish('cancel'); return; }
+            const parsed = this.parse();
+            // некорректный ввод не применяем и не стираем: поле остаётся открытым и красным
+            if (!parsed) { this.invalid = true; return; }
+            this.finish('commit', parsed);
         },
 
         finish(event, payload) {

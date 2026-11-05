@@ -94,7 +94,7 @@
                                     :key="`cwd1-${i}`"
                                     class="compact__wd"
                                     :class="{ 'compact__wd--weekend': isWeekendCol(i) }">
-                                    {{ wd.charAt(0) }}
+                                    {{ wd }}
                                 </div>
                                 <div
                                     v-for="(c, i) in compactOffsetCells"
@@ -133,7 +133,7 @@
                                     :key="`cwd2-${i}`"
                                     class="compact__wd"
                                     :class="{ 'compact__wd--weekend': isWeekendCol(i) }">
-                                    {{ wd.charAt(0) }}
+                                    {{ wd }}
                                 </div>
                                 <div
                                     v-for="(c, i) in compactOffsetCells2"
@@ -178,7 +178,7 @@
                             :key="`cwd-${i}`"
                             class="compact__wd"
                             :class="{ 'compact__wd--weekend': isWeekendCol(i) }">
-                            {{ wd.charAt(0) }}
+                            {{ wd }}
                         </div>
                         <div
                             v-for="(c, i) in compactOffsetCells"
@@ -201,11 +201,19 @@
 
             <!-- Tap-to-edit date chips + action buttons -->
             <div v-if="props.calCompactShowBottom !== false" class="compact__bottom">
-                <div class="compact__chips" :style="props.calCompactChipsGap ? { gap: props.calCompactChipsGap } : undefined">
+                <div
+                    class="compact__chips"
+                    :class="{ 'compact__chips--time': props.calWithTime }"
+                    :style="props.calCompactChipsGap ? { gap: props.calCompactChipsGap } : undefined">
                     <div
                         class="compact__chip"
                         :class="{ 'compact__chip--active': editingStart }"
-                        @click.stop="startEditingStart">
+                        role="button"
+                        :tabindex="editingStart ? -1 : 0"
+                        :aria-label="`${compactStartAria}: ${compactStart ? compactStartDisplay : '—'}`"
+                        @click.stop="startEditingStart"
+                        @keydown.enter.self.prevent="startEditingStart"
+                        @keydown.space.self.prevent="startEditingStart">
                         <span class="compact__chip-label">{{ isCompactSingle ? locale.compactDate : locale.compactFrom }}</span>
                         <!-- Своё поле с маской вместо type="date"/"datetime-local": нативный пикер
                              рисуется в локали браузера (AM/PM, mm/dd/yyyy) и игнорирует настройки виджета -->
@@ -220,7 +228,7 @@
                             :date-placeholder="locale.datePlaceholder"
                             :time-placeholder="locale.timePlaceholder"
                             :invalid-title="locale.invalidDate"
-                            :aria-label="locale.compactStartAria"
+                            :aria-label="compactStartAria"
                             @commit="_handleCompactInputCommit($event, 'start')"
                             @cancel="editingStart = false" />
                         <span v-else class="compact__chip-value">{{ compactStart ? compactStartDisplay : '—' }}</span>
@@ -231,7 +239,12 @@
                         v-if="!isCompactSingle"
                         class="compact__chip"
                         :class="{ 'compact__chip--active': editingEnd }"
-                        @click.stop="startEditingEnd">
+                        role="button"
+                        :tabindex="editingEnd ? -1 : 0"
+                        :aria-label="`${locale.compactEndAria}: ${compactEnd ? compactEndDisplay : '—'}`"
+                        @click.stop="startEditingEnd"
+                        @keydown.enter.self.prevent="startEditingEnd"
+                        @keydown.space.self.prevent="startEditingEnd">
                         <span class="compact__chip-label">{{ locale.compactTo }}</span>
                         <date-time-input
                             v-if="editingEnd"
@@ -476,7 +489,7 @@ import { useElemDatasetMixin, ElemDatasetMixinTypes } from '@goodt-common/data';
 import { meta } from './descriptor';
 import {
     VIEWS, LOCALE_DATA, PRESETS, SELECTION_MODES, AGENDA_DAYS_AHEAD, HOUR_HEIGHT,
-    AUTO_PRESET_LABELS, AUTO_RELATIVE_LABEL_RE,
+    AUTO_PRESET_LABELS, AUTO_RELATIVE_LABEL_RE, AUTO_FIXED_LABEL_RE, pluralize,
     resolveDataSections, hasActiveMetricSource
 } from './constants';
 import {
@@ -1041,6 +1054,11 @@ export default {
             // returning it here would draw a spurious stale range on the grid.
             if (this.compactClickStep === 0) return this.props.calSelectedEnd || '';
             return '';
+        },
+
+        // aria-подпись первого чипа: в режиме «Одиночный» это просто «Дата»
+        compactStartAria() {
+            return this.isCompactSingle ? this.locale.compactDate : this.locale.compactStartAria;
         },
 
         // Подпись чипа «С»: формат даты — из локали виджета, время — всегда 24 ч
@@ -1904,8 +1922,19 @@ export default {
             if (p.daysBack != null) {
                 const m = label.match(AUTO_RELATIVE_LABEL_RE);
                 if (!label || (m && Number(m[1]) === Number(p.daysBack))) {
-                    return { ...p, label: this.locale.lastNDays.replace('{n}', p.daysBack) };
+                    return { ...p, label: pluralize(p.daysBack, this.locale.lastNDays) };
                 }
+                return p;
+            }
+            // Фиксированные даты: автоподпись панели «2026-01-01 — 2026-01-31» (ISO) → формат локали
+            const end = p.end || p.start;
+            const m = label.match(AUTO_FIXED_LABEL_RE);
+            if (!label || (m && m[1] === p.start && m[2] === end)) {
+                const mask = this.locale.dateMask;
+                const text = p.start === end
+                    ? formatByMask(p.start, mask)
+                    : `${formatByMask(p.start, mask)} — ${formatByMask(end, mask)}`;
+                return { ...p, label: text };
             }
             return p;
         },
@@ -1974,16 +2003,6 @@ export default {
 
         _isoTimeToTs(iso, time) {
             return isoTimeToTs(iso, time);
-        },
-
-        _parseDisplayDateTime(str) {
-            if (!str) return null;
-            const m = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2})$/);
-            if (!m) return null;
-            return {
-                iso: `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`,
-                time: `${m[4].padStart(2, '0')}:${m[5]}`
-            };
         },
 
         _autoHeatmap() {
@@ -3174,6 +3193,16 @@ export default {
 }
 .compact__chip:hover { border-color: var(--cal-accent); }
 .compact__chip--active { border-color: var(--cal-accent); }
+.compact__chip:focus-visible {
+    outline: none;
+    border-color: var(--cal-accent);
+    box-shadow: 0 0 0 2px var(--cal-range-bg, rgba(79,106,255,0.15));
+}
+/* С временем «ДД.ММ.ГГГГ ЧЧ:мм» два чипа в ряд не помещаются в узком виджете:
+   чипы переносятся на отдельные строки (стрелка тогда не нужна), текст не рвётся */
+.compact__chips--time { flex-wrap: wrap; }
+.compact__chips--time .compact__chip { flex: 1 1 150px; }
+.compact__chips--time .compact__chip-sep { display: none; }
 .compact__chip-label {
     font-size: 10px;
     font-weight: 700;
@@ -3186,6 +3215,10 @@ export default {
     font-weight: 600;
     color: #334155;
     min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
 }
 .compact__chip-input {
     flex: 1;
