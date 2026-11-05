@@ -83,13 +83,29 @@ export const detectPlatformMode = ({ isEditorMode, pathnames }) => {
 };
 
 /**
+ * Точки в начале относительной ссылки:
+ *  '.', './', '.?x=1'   → текущая страница ('', '?x=1')
+ *  '..', '../', '..?x'  → главная ('/', '/?x')
+ *  './page', '../page'  → 'page' (у проекта нет вложенных страниц — точки просто отбрасываем)
+ *
+ * @param {string} url
+ * @return {string}
+ */
+export const normalizeRelativeUrl = (url) => {
+    const source = String(url ?? '').trim();
+    if (/^\.\.\/?(?=$|[?#])/.test(source)) return `/${source.replace(/^\.\.\/?/, '')}`;
+    if (/^\.\/?(?=$|[?#])/.test(source)) return source.replace(/^\.\/?/, '');
+    return source.replace(DOT_SEGMENTS_RE, '');
+};
+
+/**
  * Разбирает ссылку из настроек.
  *  - 'https://…'                → absolute
  *  - '//host/…'                 → absolute со схемой текущей страницы
  *  - 'www.site.ru/…'            → absolute (https:// дописываем — частая ошибка ввода)
  *  - 'mailto:…', 'tel:…'        → scheme
  *  - 'javascript:', 'data:' и прочие схемы → invalid
- *  - остальное                  → relative (страница проекта), ведущие './' и '../' отбрасываются
+ *  - остальное                  → relative (страница проекта), см. normalizeRelativeUrl
  *
  * @param {string} url
  * @param {string} [currentProtocol] — location.protocol, для '//host'
@@ -106,23 +122,22 @@ export const classifyUrl = (url, currentProtocol = 'https:') => {
     if (/^www\./i.test(href)) return { kind: UrlKind.ABSOLUTE, href: `https://${href}` };
     if (ALLOWED_SCHEME_RE.test(href)) return { kind: UrlKind.SCHEME, href };
     if (ANY_SCHEME_RE.test(href)) return { kind: UrlKind.INVALID, href };
-    const relative = href.replace(DOT_SEGMENTS_RE, '');
-    if (relative === '') return { kind: UrlKind.RELATIVE, href: '/' };
-    return { kind: UrlKind.RELATIVE, href: relative };
+    return { kind: UrlKind.RELATIVE, href: normalizeRelativeUrl(href) };
 };
 
 /**
  * Относительная ссылка → путь страницы и её собственные параметры:
- *  '#/3?x=1' | '/3?x=1' | '3?x=1' → { path: '/3', query: { x: '1' } }
- *  '/' | '#/' | '#'               → { path: '/' } — главная страница
- *  '?x=1'                         → { path: '' } — текущая страница с параметрами
+ *  '#/3?x=1' | '/3?x=1' | '3?x=1' | '#3' → { path: '/3', query: { x: '1' } }
+ *  '/' | '#/' | '#' | '..'               → { path: '/' } — главная страница
+ *  '?x=1' | '#?x=1' | '.?x=1' | ''       → { path: '' } — текущая страница (с параметрами)
  *
  * @param {string} url
  * @return {{ path: string, query: Record<string, *> }}
  */
 export const splitRelativeUrl = (url) => {
-    const source = String(url).replace(DOT_SEGMENTS_RE, '');
-    const hasRoot = /^[#/]/.test(source);
+    const source = normalizeRelativeUrl(url);
+    // корень: '/…', '#/…' или ровно '#'; '#?x=1' — это параметры текущей страницы
+    const hasRoot = /^(\/|#\/|#$)/.test(source);
     const clean = source.replace(/^[#/]+/, '');
     const queryIdx = clean.indexOf('?');
     const pathPart = queryIdx >= 0 ? clean.substring(0, queryIdx) : clean;
@@ -133,6 +148,39 @@ export const splitRelativeUrl = (url) => {
 };
 
 /**
+ * Маршрут страницы проекта: { path, query }. Параметры кнопки перекрывают параметры самой ссылки,
+ * пустой path — текущая страница.
+ *
+ * @param {string} url — относительная ссылка
+ * @param {Record<string, *>} query — параметры кнопки
+ * @param {string} currentPath — путь текущей страницы
+ * @return {{ path: string, query: Record<string, *> }}
+ */
+export const buildRoute = (url, query, currentPath) => {
+    const { path, query: urlQuery } = splitRelativeUrl(url);
+    return { path: path || currentPath || '/', query: { ...urlQuery, ...query } };
+};
+
+/**
+ * Путь текущей страницы из hash: '#/page1?x=1' → '/page1'.
+ *
+ * @param {Location} loc
+ * @return {string}
+ */
+export const currentHashPath = (loc) => String(loc.hash || '').replace(/^#/, '').split('?')[0] || '/';
+
+/**
+ * Маршрут → строка '/slug?x=1'.
+ *
+ * @param {{ path: string, query: Record<string, *> }} route
+ * @return {string}
+ */
+export const routeToString = ({ path, query }) => {
+    const search = stringifyQuery(query || {});
+    return search ? `${path}?${search}` : path;
+};
+
+/**
  * Hash-маршрут страницы: '/slug?x=1'. Пустой path — текущая страница из hash.
  *
  * @param {Location} loc
@@ -140,13 +188,7 @@ export const splitRelativeUrl = (url) => {
  * @param {Record<string, *>} query — параметры кнопки, перекрывают параметры самой ссылки
  * @return {string}
  */
-export const buildHashRoute = (loc, url, query = {}) => {
-    const { path, query: urlQuery } = splitRelativeUrl(url);
-    const currentPath = String(loc.hash || '').replace(/^#/, '').split('?')[0] || '/';
-    const search = stringifyQuery({ ...urlQuery, ...query });
-    const routePath = path || currentPath;
-    return search ? `${routePath}?${search}` : routePath;
-};
+export const buildHashRoute = (loc, url, query = {}) => routeToString(buildRoute(url, query, currentHashPath(loc)));
 
 /**
  * Адрес текущего документа без hash — ровно как в адресной строке (без добавления слешей),
@@ -168,8 +210,21 @@ export const documentBase = (loc) => String(loc.href).split('#')[0];
 export const buildHashUrl = (loc, url, query = {}) => `${documentBase(loc)}#${buildHashRoute(loc, url, query)}`;
 
 /**
- * Адрес страницы проекта для проверки из редактора: …/editor/apps/edit/<id>/ → …/editor/player/<id>/#/slug
- * (как кнопка «Предпросмотр» редактора). Если адрес не распознан — null.
+ * Адрес плеера проекта для проверки из редактора (как кнопка «Предпросмотр» редактора):
+ * …/editor/apps/edit/<id>/ → …/editor/player/<id>/. Если адрес не распознан — null.
+ *
+ * @param {Location} loc
+ * @return {string|null}
+ */
+export const getEditorPlayerBase = (loc) => {
+    const match = EDITOR_EDIT_PATH_RE.exec(String(loc?.pathname || ''));
+    if (match == null) return null;
+    const [, editorBase, appId] = match;
+    return `${loc.origin}${editorBase}player/${appId}/`;
+};
+
+/**
+ * Адрес страницы проекта в плеере для проверки из редактора: …/editor/player/<id>/#/slug?vars, или null.
  *
  * @param {Location} loc
  * @param {string} url
@@ -177,13 +232,8 @@ export const buildHashUrl = (loc, url, query = {}) => `${documentBase(loc)}#${bu
  * @return {string|null}
  */
 export const buildEditorPreviewUrl = (loc, url, query = {}) => {
-    const match = EDITOR_EDIT_PATH_RE.exec(loc.pathname);
-    if (match == null) return null;
-    const [, editorBase, appId] = match;
-    const { path, query: urlQuery } = splitRelativeUrl(url);
-    const search = stringifyQuery({ ...urlQuery, ...query });
-    const routePath = path || '/';
-    return `${loc.origin}${editorBase}player/${appId}/#${search ? `${routePath}?${search}` : routePath}`;
+    const base = getEditorPlayerBase(loc);
+    return base == null ? null : `${base}#${routeToString(buildRoute(url, query, '/'))}`;
 };
 
 /**

@@ -72,10 +72,15 @@
                         <ui-switch v-if="props.url" prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
                         <div v-if="!props.isSaveUrlForStore" class="filter-item__hint link-hint">
                             <i class="mdi mdi-information-outline" />
-                            <span>
+                            <span v-if="isLinkPreviewable">
                                 В редакторе клик по кнопке не переходит по ссылке — он редактирует кнопку.
                                 Проверить ссылку: <strong>Ctrl/⌘ + клик</strong> или значок
                                 <i class="mdi mdi-open-in-new" /> на кнопке (страница проекта откроется в плеере).
+                                В плеере и публикации переход работает.
+                            </span>
+                            <span v-else>
+                                В редакторе клик по кнопке не переходит по ссылке — он редактирует кнопку.
+                                Страницу проекта отсюда проверить нельзя — откройте публикацию или плеер проекта.
                                 В плеере и публикации переход работает.
                             </span>
                         </div>
@@ -434,6 +439,7 @@
 <script>
 import { Panel, Managers } from 'goodt-wcore';
 import { Tooltip as UiTooltip } from 'goodteditor-ui';
+import { UrlKind, classifyUrl, getEditorPlayerBase, getTopLocation } from '../navigation';
 
 /**
  * @typedef {import('./OptionsPanel').TInstance} TInstance
@@ -463,6 +469,16 @@ export default {
         storeUnsubscribe: null
     }),
     computed: {
+        /**
+         * Ссылку можно проверить из редактора (Ctrl/⌘ + клик, «↗»): внешние ссылки — всегда,
+         * страницы проекта — если адрес плеера строится из адреса редактора (не в редакторе публикации).
+         *
+         * @return {boolean}
+         */
+        isLinkPreviewable() {
+            if (classifyUrl(this.props.url).kind !== UrlKind.RELATIVE) return true;
+            return typeof window !== 'undefined' && getEditorPlayerBase(getTopLocation(window)) !== null;
+        },
         storeVarNames() {
             try { return Object.keys(store.state || {}).filter(Boolean).sort(); } catch (e) { return []; }
         },
