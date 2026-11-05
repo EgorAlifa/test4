@@ -336,7 +336,7 @@
                         v-for="day in weekDays"
                         :key="day.key"
                         class="elem-cal__week-col-hd"
-                        :class="{ 'elem-cal__week-col-hd--today': day.isToday && todayHighlight, 'elem-cal__week-col-hd--weekend': day.isWeekend }"
+                        :class="[weekColClass(day, 'elem-cal__week-col-hd'), { 'elem-cal__week-col-hd--weekend': day.isWeekend }]"
                         @click="drillDown(day)">
                         <div class="elem-cal__week-dow">{{ locale.weekdaysShort[day.dow] }}</div>
                         <div class="elem-cal__week-num" :class="{ 'elem-cal__week-num--today': day.isToday && todayHighlight }">{{ day.d }}</div>
@@ -353,8 +353,10 @@
                             v-for="day in weekDays"
                             :key="day.key"
                             class="elem-cal__week-col"
-                            :class="{ 'elem-cal__week-col--today': day.isToday && todayHighlight }"
-                            @click="onWeekColClick(day, $event)">
+                            :class="weekColClass(day)"
+                            @click="onWeekColClick(day)"
+                            @mouseenter="onWeekColHover(day)"
+                            @mouseleave="onWeekColLeave">
                             <div v-for="h in 24" :key="h" class="elem-cal__hour-slot" />
                             <div
                                 v-for="ev in day.events"
@@ -379,7 +381,7 @@
                     <div class="elem-cal__time-gutter" />
                     <div
                         class="elem-cal__week-col-hd elem-cal__week-col-hd--single"
-                        :class="{ 'elem-cal__week-col-hd--today': dayViewDay && dayViewDay.isToday && todayHighlight }">
+                        :class="weekColClass(dayViewDay, 'elem-cal__week-col-hd')">
                         <div class="elem-cal__week-dow">{{ dayViewDay ? locale.weekdays[dayViewDay.dow] : '' }}</div>
                         <div class="elem-cal__week-num" :class="{ 'elem-cal__week-num--today': dayViewDay && dayViewDay.isToday && todayHighlight }">
                             {{ dayViewDay ? dayViewDay.d : '' }}
@@ -391,7 +393,13 @@
                         <div v-for="h in 24" :key="h" class="elem-cal__hour-label">{{ formatHour(h - 1) }}</div>
                     </div>
                     <div class="elem-cal__week-cols">
-                        <div class="elem-cal__week-col elem-cal__week-col--full" :class="{ 'elem-cal__week-col--today': dayViewDay && dayViewDay.isToday && todayHighlight }">
+                        <!-- клик по колонке дня выбирает этот день — как клик по колонке в недельном виде -->
+                        <div
+                            class="elem-cal__week-col elem-cal__week-col--full"
+                            :class="weekColClass(dayViewDay)"
+                            @click="onWeekColClick(dayViewDay)"
+                            @mouseenter="onWeekColHover(dayViewDay)"
+                            @mouseleave="onWeekColLeave">
                             <div v-for="h in 24" :key="h" class="elem-cal__hour-slot" />
                             <div
                                 v-for="ev in dayViewEvents"
@@ -804,7 +812,10 @@ export default {
 
         // ── Day view ─────────────────────────────────────────────────
         dayViewDay() {
-            return this._buildDay(this.navDate, true);
+            // полночь: navDate может нести текущее время, а выделение сравнивает даты целиком
+            const d = new Date(this.navDate);
+            d.setHours(0, 0, 0, 0);
+            return this._buildDay(d, true);
         },
 
         dayViewEvents() {
@@ -1605,7 +1616,8 @@ export default {
         },
 
         // ── Cell classes ─────────────────────────────────────────────
-        dayCellClass(day) {
+        // Состояние выделения дня — общее для сетки месяца, колонок недели и вида «День»
+        _daySelection(day) {
             const mode = this.props.calSelectionMode || SELECTION_MODES.SINGLE;
             const selDate = this.selectedDate;
             const isSelected = mode === SELECTION_MODES.SINGLE && selDate && isSameDay(day.date, selDate);
@@ -1619,17 +1631,54 @@ export default {
             const isMultiSelected = mode === SELECTION_MODES.MULTI && this.selectedDates.includes(day.iso);
 
             return {
+                selected: Boolean(isSelected || isRangeStart || isRangeEnd),
+                rangeStart: Boolean(isRangeStart),
+                rangeEnd: Boolean(isRangeEnd),
+                inRange: Boolean(isInRange),
+                multi: Boolean(isMultiSelected)
+            };
+        },
+
+        dayCellClass(day) {
+            const s = this._daySelection(day);
+            return {
                 'elem-cal__cell--other-month': !day.inMonth,
                 'elem-cal__cell--today': day.isToday && this.todayHighlight,
                 'elem-cal__cell--weekend': day.isWeekend,
-                'elem-cal__cell--selected': isSelected || isRangeStart || isRangeEnd,
-                'elem-cal__cell--range-start': isRangeStart,
-                'elem-cal__cell--range-end': isRangeEnd,
-                'elem-cal__cell--in-range': isInRange,
-                'elem-cal__cell--multi-selected': isMultiSelected,
+                'elem-cal__cell--selected': s.selected,
+                'elem-cal__cell--range-start': s.rangeStart,
+                'elem-cal__cell--range-end': s.rangeEnd,
+                'elem-cal__cell--in-range': s.inRange,
+                'elem-cal__cell--multi-selected': s.multi,
                 'elem-cal__cell--has-events': day.events.length > 0,
                 'elem-cal__cell--has-data': day.hasData
             };
+        },
+
+        // Колонка (base = 'elem-cal__week-col') или её заголовок (base = 'elem-cal__week-col-hd')
+        // в видах «Неделя» / «День»: те же состояния выделения, что и в сетке месяца
+        weekColClass(day, base = 'elem-cal__week-col') {
+            if (!day) return {};
+            const s = this._daySelection(day);
+            return {
+                [`${base}--today`]: day.isToday && this.todayHighlight,
+                [`${base}--selected`]: s.selected || s.multi,
+                [`${base}--range-start`]: s.rangeStart,
+                [`${base}--range-end`]: s.rangeEnd,
+                [`${base}--in-range`]: s.inRange
+            };
+        },
+
+        // Наведение на колонку: превью диапазона, как в месяце. Тултип дня над сеткой часов не показываем —
+        // он закрывал бы события; события колонки и так видны
+        onWeekColHover(day) {
+            if (this.props.calSelectionMode === SELECTION_MODES.RANGE && this.rangeStart && !this.rangeEnd) {
+                this.hoveredDate = day.date;
+            }
+        },
+
+        onWeekColLeave() {
+            if (this.rangeStart && !this.rangeEnd) this.hoveredDate = null;
         },
 
         isWeekendCol(colIndex) {
@@ -2722,6 +2771,23 @@ export default {
 }
 .elem-cal__week-col--today { background: var(--cal-today-bg); }
 .elem-cal__week-col--full { flex: 1; }
+
+/* ── Выделение в видах «Неделя» / «День» ─────────────────────────────
+   Колонка — лёгкая заливка (события поверх остаются читаемыми), заголовок — цвет выделения */
+.elem-cal__week-col--in-range { background: var(--cal-range-bg); }
+.elem-cal__week-col--selected::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--cal-selected-bg);
+    opacity: 0.12;
+    pointer-events: none;
+}
+.elem-cal__week-col-hd--in-range { background: var(--cal-range-bg); }
+.elem-cal__week-col-hd--selected,
+.elem-cal__week-col-hd--selected:hover { background: var(--cal-selected-bg); }
+.elem-cal__week-col-hd--selected .elem-cal__week-dow,
+.elem-cal__week-col-hd--selected .elem-cal__week-num { color: var(--cal-selected-color); }
 
 .elem-cal__hour-slot {
     height: 60px;
