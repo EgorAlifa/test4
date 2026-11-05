@@ -393,6 +393,64 @@ export const PRESETS = Object.freeze({
     }
 });
 
+// ── «Я дизайнер»: элементы и их селекторы ─────────────────────────
+// Единая таблица для панели «Я дизайнер» (что показать и куда писать) и для виджета
+// (во что превратить calDesignerCss). sel — селектор внутри корня виджета; правило
+// генерируется как «#<id корня> <sel> { … }», поэтому перебивает scoped-стили виджета.
+// important: true — у виджета для этого состояния свои правила с !important
+// (выделение должно перекрывать тепловую карту/«Сегодня»), поэтому объявления
+// пользователя получают !important автоматически, иначе они бы не применились.
+export const DESIGNER_BLOCKS = Object.freeze({
+    compact: [
+        { key: 'compactHead', label: 'Шапка (компакт)', sel: '.compact__head', hint: 'background: #4f6aff;\ncolor: #fff;\npadding: 8px 12px;' },
+        { key: 'compactWeekday', label: 'Подписи дней (компакт)', sel: '.compact__wd', hint: 'color: #4f6aff;\nfont-size: 0.75em;' },
+        { key: 'compactDay', label: 'Ячейка дня (компакт)', sel: '.compact__day:not(.compact__day--empty)', hint: 'border-radius: 0;\nborder: 1px solid #e0e7ff;' },
+        { key: 'compactDayNum', label: 'Число дня (компакт)', sel: '.compact__day-num', hint: 'font-weight: 700;\ntext-decoration: underline;' },
+        { key: 'compactRangeStart', label: 'Начало диапазона', sel: '.compact__day--range-start', hint: 'background: #16a34a;\ncolor: #fff;', important: true },
+        { key: 'compactRangeEnd', label: 'Конец диапазона', sel: '.compact__day--range-end', hint: 'background: #16a34a;\ncolor: #fff;', important: true },
+        { key: 'compactInRange', label: 'Дни в диапазоне', sel: '.compact__day--in-range', hint: 'background: var(--cal-range-bg);' },
+        { key: 'compactPreset', label: 'Пресет дат (компакт)', sel: '.compact__preset', hint: 'border-radius: 20px;\nborder: 1.5px solid currentColor;' },
+        { key: 'compactPresetActive', label: 'Активный пресет', sel: '.compact__preset--active', hint: 'background: #4f6aff;\ncolor: #fff;' }
+    ],
+    full: [
+        { key: 'header', label: 'Шапка', sel: '.elem-cal__header', hint: 'padding: 12px 20px;\nborder-bottom: 2px solid #4f6aff;' },
+        { key: 'title', label: 'Заголовок периода', sel: '.elem-cal__title', hint: 'font-size: 1.3em;\nletter-spacing: 0.05em;' },
+        { key: 'navBtn', label: 'Кнопки навигации', sel: '.elem-cal__nav-btn', hint: 'border-radius: 50%;\nbackground: rgba(255,255,255,0.25);' },
+        { key: 'viewBtn', label: 'Переключатель вида', sel: '.elem-cal__view-btn', hint: 'border-radius: 20px;\nfont-weight: 700;' },
+        { key: 'weekday', label: 'Подписи дней недели', sel: '.elem-cal__weekday', hint: 'color: #4f6aff;\nfont-size: 0.8em;' },
+        { key: 'cell', label: 'Ячейка дня', sel: '.elem-cal__cell', hint: 'border-radius: 0;\nborder: 1px solid #e0e7ff;' },
+        { key: 'dayNum', label: 'Число дня', sel: '.elem-cal__day-num', hint: 'border-radius: 4px;\nfont-weight: 700;' },
+        { key: 'todayCell', label: 'Сегодня', sel: '.elem-cal__cell--today', hint: 'outline: 2px solid var(--cal-accent);\noutline-offset: -2px;' },
+        { key: 'selectedCell', label: 'Выбранный день', sel: '.elem-cal__cell--selected', hint: 'background: #16a34a;', important: true },
+        { key: 'event', label: 'Событие (месяц)', sel: '.elem-cal__event', hint: 'border-radius: 6px;\npadding: 2px 6px;' },
+        { key: 'weekEvent', label: 'Событие (неделя/день)', sel: '.elem-cal__week-event', hint: 'border-radius: 6px;\nbox-shadow: 0 2px 6px rgba(0,0,0,0.15);' },
+        { key: 'agendaEvent', label: 'Событие (список)', sel: '.elem-cal__agenda-event', hint: 'border-radius: 10px;\nbox-shadow: 0 1px 4px rgba(0,0,0,0.08);' }
+    ]
+});
+
+// Добавляет !important к каждому объявлению, где его ещё нет.
+// Точки с запятой внутри скобок и кавычек (url(), строки) не считаются разделителями.
+export function withImportant(css) {
+    const decls = [];
+    let cur = '';
+    let depth = 0;
+    let quote = '';
+    for (const ch of String(css || '')) {
+        if (quote) { if (ch === quote) quote = ''; cur += ch; continue; }
+        if (ch === '"' || ch === "'") quote = ch;
+        else if (ch === '(') depth++;
+        else if (ch === ')') depth = Math.max(0, depth - 1);
+        else if (ch === ';' && depth === 0) { decls.push(cur); cur = ''; continue; }
+        cur += ch;
+    }
+    decls.push(cur);
+    return decls
+        .map((d) => d.trim())
+        .filter((d) => d && d.includes(':'))
+        .map((d) => (/!important$/i.test(d) ? d : `${d} !important`))
+        .join('; ');
+}
+
 export const EVENT_COLORS = [
     '#4f6aff', '#7c3aed', '#0ea5e9', '#10b981',
     '#f59e0b', '#ef4444', '#ec4899', '#14b8a6'
