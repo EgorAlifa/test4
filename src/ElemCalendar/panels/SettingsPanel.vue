@@ -20,7 +20,7 @@
                         @click="setWidgetMode('compact')">
                         <div class="mode-card__icon">📅</div>
                         <div class="mode-card__title">Компактный календарь</div>
-                        <div class="mode-card__desc">Компактный выбор диапазона between для дашбордов и отчётов.</div>
+                        <div class="mode-card__desc">Компактный выбор даты или периода для дашбордов и отчётов.</div>
                     </div>
                 </div>
             </div>
@@ -59,8 +59,12 @@
                         </button>
                     </div>
                 </div>
-                <div class="p-row">
-                    <span class="p-row__label">Первый день недели</span>
+                <!-- первый день влияет на сетку месяца и пресеты «Эта/Пр. неделя»; без календаря и пресетов — ни на что -->
+                <div class="p-row" :class="{ 'p-row--disabled': !isFirstDayUseful }">
+                    <span class="toggle-row__text">
+                        <span class="p-row__label">Первый день недели</span>
+                        <span v-if="!isFirstDayUseful" class="toggle-row__hint">Нет мини-календаря и пресетов</span>
+                    </span>
                     <div class="seg-ctrl">
                         <button
                             class="seg-ctrl__btn"
@@ -113,7 +117,7 @@
                     <div class="seg-ctrl">
                         <button
                             class="seg-ctrl__btn"
-                            :class="{ 'seg-ctrl__btn--active': props.calSelectionMode === 'range' }"
+                            :class="{ 'seg-ctrl__btn--active': selectionMode === 'range' }"
                             @click="set('calSelectionMode', 'range')">
                             Диапазон
                         </button>
@@ -139,47 +143,59 @@
                     </div>
                 </div>
 
-                <!-- timestamp: только для одиночной даты и диапазона («Несколько» передаёт JSON дат, «Нет» — ничего) -->
+                <!-- Формат значения в переменных (date / dateStart / dateEnd / datesList) -->
+                <template v-if="selectionMode !== 'none'">
+                    <div class="p-row" style="margin-top:6px">
+                        <span class="p-row__label">Формат даты в переменных</span>
+                    </div>
+                    <ui-select prop="calOutputFormat" :options="outputFormatOptions" />
+                    <div
+                        v-if="['timestamp', 'datetime'].includes(props.calOutputFormat) && !isTimeOn"
+                        class="p-hint">
+                        Без выбора времени: начало — 00:00:00, конец диапазона — 23:59:59.
+                    </div>
+                </template>
+
+                <!-- время: только для одиночной даты и диапазона («Несколько» передаёт список дат, «Нет» — ничего);
+                     формат «Дата» время отбрасывает -->
                 <template v-if="isTimeApplicable">
-                    <label class="toggle-row" style="margin-top:4px">
-                        <span class="toggle-row__label">Передавать timestamp (с временем)</span>
-                        <div class="toggle" :class="{ 'toggle--on': props.calWithTime }" @click="toggleBool('calWithTime')">
+                    <label class="toggle-row" style="margin-top:4px" :class="{ 'toggle-row--disabled': isDateOnlyFormat }">
+                        <span class="toggle-row__text">
+                            <span class="toggle-row__label">Выбор времени</span>
+                            <span v-if="isDateOnlyFormat" class="toggle-row__hint">Формат «Дата» передаёт дату без времени</span>
+                            <span v-else class="toggle-row__hint">Время попадает в переменную в форматах «Авто», «Timestamp», «Дата и время»</span>
+                        </span>
+                        <div class="toggle" :class="{ 'toggle--on': isTimeOn }" @click="!isDateOnlyFormat && toggleBool('calWithTime')">
                             <div class="toggle__thumb" />
                         </div>
                     </label>
-                    <div v-if="props.calWithTime" class="sub-group">
+                    <div v-if="isTimeOn" class="sub-group">
                         <div class="p-row">
                             <span class="p-row__label">{{ isRangeMode ? 'Время начала' : 'Время' }}</span>
                             <input
                                 type="text"
                                 class="time-input"
+                                :class="{ 'time-input--invalid': isTimeInvalid('calDefaultStartTime') }"
                                 :value="props.calDefaultStartTime"
                                 placeholder="00:00"
-                                @change="set('calDefaultStartTime', $event.target.value || '00:00')" />
+                                maxlength="5"
+                                @change="setTime('calDefaultStartTime', $event, '00:00')" />
                         </div>
                         <div v-if="isRangeMode" class="p-row">
                             <span class="p-row__label">Время конца</span>
                             <input
                                 type="text"
                                 class="time-input"
+                                :class="{ 'time-input--invalid': isTimeInvalid('calDefaultEndTime') }"
                                 :value="props.calDefaultEndTime"
                                 placeholder="23:59"
-                                @change="set('calDefaultEndTime', $event.target.value || '23:59')" />
+                                maxlength="5"
+                                @change="setTime('calDefaultEndTime', $event, '23:59')" />
+                        </div>
+                        <div v-if="isTimeInvalid('calDefaultStartTime') || isTimeInvalid('calDefaultEndTime')" class="p-warn" style="margin:0 0 4px">
+                            Время — в формате ЧЧ:мм (24 часа), от 00:00 до 23:59. Неверное значение не применяется.
                         </div>
                         <div v-if="!isCompact" class="p-hint">В полном календаре время не вводится — подставляется время по умолчанию.</div>
-                    </div>
-                </template>
-
-                <!-- Формат значения в переменных (date / dateStart / dateEnd / datesList) -->
-                <template v-if="props.calSelectionMode !== 'none'">
-                    <div class="p-row" style="margin-top:6px">
-                        <span class="p-row__label">Формат даты в переменных</span>
-                    </div>
-                    <ui-select prop="calOutputFormat" :options="outputFormatOptions" />
-                    <div
-                        v-if="['timestamp', 'datetime'].includes(props.calOutputFormat) && !props.calWithTime"
-                        class="p-hint">
-                        Без выбора времени: начало — 00:00:00, конец диапазона — 23:59:59.
                     </div>
                 </template>
             </div>
@@ -346,13 +362,33 @@
                         </template>
                         <template v-if="newPreset.type === 'fixed'">
                             <div class="p-hint" style="margin-bottom:4px">Фиксированный диапазон — даты не меняются.</div>
+                            <!-- текстовые поля с маской ДД.ММ.ГГГГ: нативный type="date" рисуется в локали браузера -->
                             <div class="p-row">
                                 <span class="p-row__label">Начало</span>
-                                <input type="date" class="date-input" v-model="newPreset.start" />
+                                <input
+                                    type="text"
+                                    class="date-input"
+                                    :class="{ 'date-input--invalid': presetDateError.start }"
+                                    :value="newPreset.start"
+                                    placeholder="ДД.ММ.ГГГГ"
+                                    inputmode="numeric"
+                                    maxlength="10"
+                                    @input="onPresetDateInput('start', $event)" />
                             </div>
                             <div class="p-row">
                                 <span class="p-row__label">Конец</span>
-                                <input type="date" class="date-input" v-model="newPreset.end" />
+                                <input
+                                    type="text"
+                                    class="date-input"
+                                    :class="{ 'date-input--invalid': presetDateError.end }"
+                                    :value="newPreset.end"
+                                    placeholder="ДД.ММ.ГГГГ"
+                                    inputmode="numeric"
+                                    maxlength="10"
+                                    @input="onPresetDateInput('end', $event)" />
+                            </div>
+                            <div v-if="presetDateError.start || presetDateError.end" class="p-warn" style="margin:0 0 4px">
+                                Дата — в формате ДД.ММ.ГГГГ. Конец можно не указывать — будет равен началу.
                             </div>
                         </template>
                         <template v-if="newPreset.type === 'relative'">
@@ -453,6 +489,7 @@
 
 <script>
 import { Panel, Managers } from 'goodt-wcore';
+import { applyMask, formatByMask, parseByMask } from '../dateFormat';
 
 const { store } = Managers.StoreManager;
 
@@ -465,6 +502,19 @@ const DEFAULT_PRESETS = [
 ];
 
 const SINGLE_DAY_KEYS = ['today', 'yesterday'];
+
+// Маска дат фиксированного пресета в форме панели
+const PRESET_DATE_MASK = 'DD.MM.YYYY';
+
+// 'H:mm' / 'HH:mm' / 'HHmm' / 'H.mm' (24 ч) → 'HH:mm'; иначе null
+function normalizeTime(val) {
+    const m = /^(\d{1,2})[:.]?(\d{2})$/.exec(String(val || '').trim());
+    if (!m) return null;
+    const h = Number(m[1]);
+    const mi = Number(m[2]);
+    if (h > 23 || mi > 59) return null;
+    return `${String(h).padStart(2, '0')}:${m[2]}`;
+}
 
 // Пресет на один день: Сегодня/Вчера, фиксированная дата без конца (или конец = начало), «1 день»
 function isSingleDayPreset(p) {
@@ -499,7 +549,11 @@ export default {
         addingPreset: false,
         // индекс пресета, который редактируется в форме (null — форма добавляет новый)
         editingPresetIdx: null,
-        newPreset: { label: '', type: 'builtin', builtinKey: 'today', start: '', end: '', daysBack: 7 }
+        // start / end фиксированного пресета в форме — текст ДД.ММ.ГГГГ (в пресет пишется ISO)
+        newPreset: { label: '', type: 'builtin', builtinKey: 'today', start: '', end: '', daysBack: 7 },
+        presetDateError: { start: false, end: false },
+        // время, введённое в неверном формате (значение не сохранено)
+        timeError: { calDefaultStartTime: false, calDefaultEndTime: false }
     }),
 
     computed: {
@@ -516,12 +570,26 @@ export default {
         isCompact() {
             return this.props.calMode === 'compact';
         },
-        isRangeMode() {
-            return this.props.calSelectionMode === 'range';
+        // Действующий режим выбора (как selectionMode в ElemCalendar.vue): компактный режим знает
+        // только «Одиночный» и «Диапазон» — всё, кроме 'single', там считается диапазоном
+        selectionMode() {
+            if (this.isCompact) return this.props.calSelectionMode === 'single' ? 'single' : 'range';
+            return this.props.calSelectionMode || 'single';
         },
-        // timestamp передаётся только для одиночной даты и диапазона
+        isRangeMode() {
+            return this.selectionMode === 'range';
+        },
+        // время выбирается только для одиночной даты и диапазона
         isTimeApplicable() {
-            return ['single', 'range'].includes(this.props.calSelectionMode);
+            return ['single', 'range'].includes(this.selectionMode);
+        },
+        // формат «Дата» отбрасывает время
+        isDateOnlyFormat() {
+            return this.props.calOutputFormat === 'date';
+        },
+        // то же условие, что isTimeUiOn в ElemCalendar.vue
+        isTimeOn() {
+            return this.isTimeApplicable && Boolean(this.props.calWithTime) && !this.isDateOnlyFormat;
         },
         isCalendarOn() {
             return this.props.calCompactShowCalendar !== false;
@@ -535,6 +603,9 @@ export default {
         // «Два месяца рядом» действует только при включённом мини-календаре
         isDualMonth() {
             return this.isCalendarOn && Boolean(this.props.calCompactDualMonth);
+        },
+        isFirstDayUseful() {
+            return !this.isCompact || this.isCalendarOn || this.isPresetsOn;
         },
         isCompactEmpty() {
             return !this.isCalendarOn && !this.isPresetsOn && !this.isBottomOn;
@@ -598,6 +669,14 @@ export default {
         chipsGapUnit() {
             const m = (this.props.calCompactChipsGap || '').match(/(px|rem|em)$/);
             return m ? m[1] : 'px';
+        }
+    },
+
+    created() {
+        // Старые компактные конфиги с режимом «Нет»/«Несколько»: виджет работает с ними как с диапазоном —
+        // записываем это явно, чтобы панель и переменные не расходились
+        if (this.isCompact && !['single', 'range'].includes(this.props.calSelectionMode)) {
+            this.set('calSelectionMode', 'range');
         }
     },
 
@@ -729,10 +808,11 @@ export default {
                 label: p.label || '',
                 type,
                 builtinKey: type === 'builtin' ? p.key : 'today',
-                start: p.start || '',
-                end: p.end || '',
+                start: p.start ? formatByMask(p.start, PRESET_DATE_MASK) : '',
+                end: p.end ? formatByMask(p.end, PRESET_DATE_MASK) : '',
                 daysBack: p.daysBack || 7
             };
+            this.presetDateError = { start: false, end: false };
             this.editingPresetIdx = idx;
             this.addingPreset = true;
             this.$nextTick(() => {
@@ -743,6 +823,7 @@ export default {
         startAddPreset() {
             this.editingPresetIdx = null;
             this.newPreset = { label: '', type: 'builtin', builtinKey: 'today', start: '', end: '', daysBack: 7 };
+            this.presetDateError = { start: false, end: false };
             this.addingPreset = true;
             this.$nextTick(() => {
                 if (this.$refs.presetForm) this.$refs.presetForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -757,10 +838,15 @@ export default {
                 const label = this.newPreset.label.trim() || (def ? def.label : this.newPreset.builtinKey);
                 preset = { key: this.newPreset.builtinKey, label };
             } else if (type === 'fixed') {
-                const start = this.newPreset.start;
-                if (!start) return;
-                const label = this.newPreset.label.trim() || `${start} — ${this.newPreset.end || start}`;
-                preset = { key: `fixed_${Date.now()}`, label, start, end: this.newPreset.end || start };
+                // в форме — ДД.ММ.ГГГГ, в пресете хранится ISO (как раньше)
+                const s = parseByMask(this.newPreset.start, PRESET_DATE_MASK);
+                const e = this.newPreset.end ? parseByMask(this.newPreset.end, PRESET_DATE_MASK) : s;
+                this.presetDateError = { start: !s, end: Boolean(s) && !e };
+                if (!s || !e) return;
+                const [start, end] = s.iso <= e.iso ? [s.iso, e.iso] : [e.iso, s.iso];
+                const fmt = (iso) => formatByMask(iso, PRESET_DATE_MASK);
+                const label = this.newPreset.label.trim() || (start === end ? fmt(start) : `${fmt(start)} — ${fmt(end)}`);
+                preset = { key: `fixed_${Date.now()}`, label, start, end };
             } else {
                 const days = Math.max(1, this.newPreset.daysBack || 7);
                 const label = this.newPreset.label.trim() || `Последние ${days} дней`;
@@ -806,6 +892,31 @@ export default {
             const num = parseFloat(val);
             if (isNaN(num) || num < 0) return;
             this.set('calCompactChipsGap', `${num}${this.chipsGapUnit}`);
+        },
+
+        // Время по умолчанию: только ЧЧ:мм (24 ч). Пусто — значение по умолчанию; неверное — не сохраняем,
+        // оставляем введённый текст и подсвечиваем поле
+        setTime(key, event, fallback) {
+            const raw = event.target.value.trim();
+            const time = raw ? normalizeTime(raw) : fallback;
+            this.timeError = { ...this.timeError, [key]: !time };
+            if (!time) return;
+            event.target.value = time;
+            if (time !== this.props[key]) this.set(key, time);
+        },
+
+        // неверный ввод или уже сохранённое (старыми версиями) неверное значение
+        isTimeInvalid(key) {
+            const val = this.props[key];
+            return this.timeError[key] || (val != null && val !== '' && normalizeTime(val) !== val);
+        },
+
+        // Маска ДД.ММ.ГГГГ: точки подставляются сами, лишние символы отбрасываются
+        onPresetDateInput(side, event) {
+            const masked = applyMask(event.target.value.replace(/\D/g, '').slice(0, 8), PRESET_DATE_MASK);
+            event.target.value = masked;
+            this.newPreset[side] = masked;
+            this.presetDateError = { ...this.presetDateError, [side]: false };
         },
 
         setChipsGapUnit(unit) {
@@ -895,6 +1006,9 @@ export default {
 }
 .p-row--col { flex-direction: column; align-items: flex-start; }
 .p-row__label { font-size: 12px; font-weight: 500; color: #334155; }
+.p-row--disabled .p-row__label,
+.p-row--disabled .seg-ctrl { opacity: 0.4; }
+.p-row--disabled .seg-ctrl { pointer-events: none; }
 
 /* ── Segmented control ────────────────────────────────────────── */
 .seg-ctrl {
@@ -1276,6 +1390,10 @@ export default {
     transition: border-color 0.12s;
 }
 .time-input:focus { border-color: #4f6aff; }
+.time-input--invalid,
+.time-input--invalid:focus,
+.date-input--invalid,
+.date-input--invalid:focus { border-color: #ef4444; background: #fef2f2; color: #b91c1c; }
 
 /* ── Var select ───────────────────────────────────────────────── */
 .p-var-select {

@@ -329,7 +329,7 @@
             <div class="p-section">
                 <div class="p-section__label">Форма и тень</div>
 
-                <div class="p-field-label">Скруглeние виджета</div>
+                <div class="p-field-label">Скругление виджета</div>
                 <div class="slider-row">
                     <input type="range" class="slider" min="0" max="32"
                         :value="parseRadius(props.calRadius)"
@@ -337,13 +337,16 @@
                     <span class="slider-val">{{ props.calRadius }}</span>
                 </div>
 
-                <div class="p-field-label" style="margin-top:10px">Скруглeние событий</div>
-                <div class="slider-row">
-                    <input type="range" class="slider" min="0" max="20"
-                        :value="parseRadius(props.calEventRadius)"
-                        @input="set('calEventRadius', $event.target.value + 'px')" />
-                    <span class="slider-val">{{ props.calEventRadius }}</span>
-                </div>
+                <!-- событий в компактном режиме нет -->
+                <template v-if="!isCompact">
+                    <div class="p-field-label" style="margin-top:10px">Скругление событий</div>
+                    <div class="slider-row">
+                        <input type="range" class="slider" min="0" max="20"
+                            :value="parseRadius(props.calEventRadius)"
+                            @input="set('calEventRadius', $event.target.value + 'px')" />
+                        <span class="slider-val">{{ props.calEventRadius }}</span>
+                    </div>
+                </template>
 
                 <div class="p-field-label" style="margin-top:10px">Тень</div>
                 <div class="shadow-chips">

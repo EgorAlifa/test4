@@ -223,7 +223,7 @@
                             class="compact__chip-input"
                             :value="compactStart"
                             :time="rangeStartTime || '00:00'"
-                            :with-time="Boolean(props.calWithTime)"
+                            :with-time="isTimeUiOn"
                             :date-mask="locale.dateMask"
                             :date-placeholder="locale.datePlaceholder"
                             :time-placeholder="locale.timePlaceholder"
@@ -252,7 +252,7 @@
                             class="compact__chip-input"
                             :value="compactEnd"
                             :time="rangeEndTime || '23:59'"
-                            :with-time="Boolean(props.calWithTime)"
+                            :with-time="isTimeUiOn"
                             :date-mask="locale.dateMask"
                             :date-placeholder="locale.datePlaceholder"
                             :time-placeholder="locale.timePlaceholder"
@@ -596,7 +596,7 @@ export default {
             vars: ['date', 'dateStart', 'dateEnd', 'datesList'],
             handler([date, dateStart, dateEnd, datesList]) {
                 if (this.isEditorMode) return;
-                const selMode = this.props.calSelectionMode || 'single';
+                const selMode = this.selectionMode;
                 if (selMode === 'multi') {
                     if (datesList !== undefined) this._applyStoreDatesList(datesList);
                 } else if (selMode === 'range') {
@@ -1069,14 +1069,14 @@ export default {
         compactStartDisplay() {
             const iso = this.compactStart;
             if (!iso) return '—';
-            if (!this.props.calWithTime) return formatByMask(iso, this.locale.dateShortMask);
+            if (!this.isTimeUiOn) return formatByMask(iso, this.locale.dateShortMask);
             return formatByMask(iso, `${this.locale.dateMask} HH:mm`, this.rangeStartTime || '00:00');
         },
 
         compactEndDisplay() {
             const iso = this.compactEnd;
             if (!iso) return '—';
-            if (!this.props.calWithTime) return formatByMask(iso, this.locale.dateShortMask);
+            if (!this.isTimeUiOn) return formatByMask(iso, this.locale.dateShortMask);
             return formatByMask(iso, `${this.locale.dateMask} HH:mm`, this.rangeEndTime || '23:59');
         },
 
@@ -1163,9 +1163,28 @@ export default {
             return cells;
         },
 
+        /**
+         * Действующий режим выбора. Компактный режим знает только «Одиночный» и «Диапазон»:
+         * всё, кроме 'single' (в т.ч. 'multi'/'none' из старых конфигов), — диапазон.
+         */
+        selectionMode() {
+            if (this.compactMode) return this.props.calSelectionMode === 'single' ? 'single' : 'range';
+            return this.props.calSelectionMode || 'single';
+        },
+
         /** Компактный режим «Одиночный»: один чип «Дата» вместо «С / По» */
         isCompactSingle() {
-            return (this.props.calSelectionMode || 'single') !== 'range';
+            return this.props.calSelectionMode === 'single';
+        },
+
+        /**
+         * Время выбирается в чипах только при calWithTime, если формат переменных не 'date'
+         * (в нём время отбрасывается) и режим выбора — дата или диапазон
+         */
+        isTimeUiOn() {
+            return Boolean(this.props.calWithTime)
+                && this.props.calOutputFormat !== 'date'
+                && ['single', 'range'].includes(this.selectionMode);
         },
 
         compactPresetsList() {
@@ -1250,7 +1269,7 @@ export default {
             immediate: true,
             handler(val) {
                 if (this.isEditorMode || val === undefined) return;
-                const selMode = this.props.calSelectionMode || 'single';
+                const selMode = this.selectionMode;
                 if (selMode !== 'range' && selMode !== 'multi') this._applyStoreDate(val);
             }
         },
@@ -1258,7 +1277,7 @@ export default {
             immediate: true,
             handler(val) {
                 if (this.isEditorMode || val === undefined) return;
-                const selMode = this.props.calSelectionMode || 'single';
+                const selMode = this.selectionMode;
                 if (selMode === 'range') this._applyStoreDateRange(val, this._storeInDateEnd);
             }
         },
@@ -1266,7 +1285,7 @@ export default {
             immediate: true,
             handler(val) {
                 if (this.isEditorMode || val === undefined) return;
-                const selMode = this.props.calSelectionMode || 'single';
+                const selMode = this.selectionMode;
                 if (selMode === 'range') this._applyStoreDateRange(this._storeInDateStart, val);
             }
         },
@@ -1274,7 +1293,7 @@ export default {
             immediate: true,
             handler(val) {
                 if (this.isEditorMode || val === undefined) return;
-                const selMode = this.props.calSelectionMode || 'single';
+                const selMode = this.selectionMode;
                 if (selMode === 'multi') this._applyStoreDatesList(val);
             }
         },
@@ -1772,7 +1791,8 @@ export default {
             this.compactClickStep = 0;
             this.compactHoverCell = null;
             // Single day (presets Today/Yesterday, double-click same date)
-            const isRange = (this.props.calSelectionMode || 'single') === 'range';
+            // компактный режим: всё, кроме «Одиночный», — диапазон (см. selectionMode)
+            const isRange = !this.isCompactSingle;
             if (start && start === end) {
                 // Диапазон — однодневный (чип «По» показывает ту же дату, что уйдёт в dateEnd);
                 // одиночный режим — только дата
@@ -1811,7 +1831,7 @@ export default {
         // Two-click range selection on the mini calendar
         onCompactDayClick(cell) {
             this.activePreset = null;
-            const isSingle = this.props.calSelectionMode === SELECTION_MODES.SINGLE;
+            const isSingle = this.isCompactSingle;
 
             if (isSingle) {
                 // Single mode: one click commits the date and finishes
@@ -1863,7 +1883,7 @@ export default {
         },
 
         onCompactReset() {
-            const isRange = (this.props.calSelectionMode || 'single') === 'range';
+            const isRange = !this.isCompactSingle;
             this.rangeStart = null;
             this.rangeEnd = null;
             this.compactClickStep = 0;
@@ -1879,7 +1899,7 @@ export default {
         },
 
         onCompactApply() {
-            const isRange = (this.props.calSelectionMode || 'single') === 'range';
+            const isRange = !this.isCompactSingle;
             if (this.compactClickStep === 1 && this.rangeStart) {
                 // User clicked Apply mid-selection (only start chosen) — commit as one-day range/date
                 const iso = isoDate(this.rangeStart);
@@ -1961,7 +1981,7 @@ export default {
             const isEditing = side === 'start' ? this.editingStart : this.editingEnd;
             if (!isEditing || !parsed || !parsed.iso) return;
             this.activePreset = null;
-            if ((this.props.calSelectionMode || 'single') === 'range') this._applyCompactRangeInput(parsed, side);
+            if (!this.isCompactSingle) this._applyCompactRangeInput(parsed, side);
             else this._applyCompactSingleInput(parsed);
             if (side === 'start') this.editingStart = false;
             else                  this.editingEnd   = false;
@@ -3152,8 +3172,9 @@ export default {
 .compact__day--weekend { color: var(--cal-weekend-color); }
 .compact__day--range-start,
 .compact__day--range-end {
-    background: var(--cal-accent) !important;
-    color: #fff !important;
+    /* как в полном режиме — цвета «Фон / Текст выделения» из панели «Оформление» */
+    background: var(--cal-selected-bg) !important;
+    color: var(--cal-selected-color) !important;
     font-weight: 700;
     border-radius: 4px;
 }
