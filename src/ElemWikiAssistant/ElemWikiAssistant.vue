@@ -238,12 +238,29 @@ const findKeycloak = () => {
     return pick(window) || (window.parent !== window ? pick(window.parent) : null);
 };
 
-/** Адрес на другом origin, чем страница? */
-const isCrossOrigin = (url) => {
+const WIDGET_API_PATH = 'api/assistant-widget/v1/';
+
+/**
+ * Адрес API помощника: если указан только сервер (https://host:port), дописываем путь виджетов.
+ *
+ * @param {string} value
+ * @return {string}
+ */
+const resolveServerApiBase = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) {
+        return '';
+    }
     try {
-        return new URL(url, window.location.href).origin !== window.location.origin;
+        const url = new URL(raw, window.location.href);
+        if (url.pathname === '/' || url.pathname === '') {
+            url.pathname = `/${WIDGET_API_PATH}`;
+        } else if (!url.pathname.endsWith('/')) {
+            url.pathname += '/';
+        }
+        return url.href;
     } catch (e) {
-        return false;
+        return raw;
     }
 };
 
@@ -266,7 +283,8 @@ export default {
         assistantStatus: ASSISTANT_STATUS.CHECKING,
         isOpen: false,
         isFabSeen: readFabSeen(),
-        serverWarning: '',
+        /** сервер недоступен без входа — отвечаем поиском по вики (без модели) */
+        isSearchOnly: false,
         messages: [],
         draft: '',
         isBusy: false,
@@ -345,11 +363,8 @@ export default {
             if (s.phase === CORPUS_PHASE.LOADING) {
                 return s.total ? `Читаю вики: ${s.loaded}/${s.total}` : 'Читаю вики…';
             }
-            if (this.serverWarning) {
-                return this.serverWarning;
-            }
             if (s.phase === CORPUS_PHASE.READY) {
-                return `База знаний: ${s.pages} страниц`;
+                return `База знаний: ${s.pages} страниц${this.isSearchOnly ? ' · без входа — только поиск' : ''}`;
             }
             if (s.phase === CORPUS_PHASE.ERROR) {
                 return s.error || 'Не удалось прочитать вики';
@@ -380,7 +395,7 @@ export default {
         'props.apiBase'() {
             this.scheduleRebuildApi();
         },
-        'props.serverAuth'() {
+        'props.anonymousFallback'() {
             this.rebuildApi();
         },
         'props.llmBaseUrl'() {
@@ -516,31 +531,22 @@ export default {
         },
 
         /**
-         * Как входить на сервер помощника (режим «Сервер»).
-         * Bearer-токен Keycloak платформы не зависит от домена стенда: сервер может пускать любой origin
-         * с валидным токеном. Cookie-сессия на чужом домене требует credentials: 'include'
-         * и явного списка разрешённых доменов на сервере.
+         * Вход на сервер помощника (режим «Сервер»): только Bearer-токен Keycloak платформы, без cookie.
+         * Сервер открыт для любого origin (CORS *), доступ даёт токен — поэтому виджет работает на любом стенде.
          *
          * @param {string} mode
-         * @param {string} apiBase
          * @return {{ credentials: RequestCredentials, getHeaders?: Function }}
          */
-        serverAuthOptions(mode, apiBase) {
+        serverAuthOptions(mode) {
             if (mode !== BACKEND_MODE.SERVER) {
                 return { credentials: 'same-origin' };
             }
-            const isCross = isCrossOrigin(apiBase);
-            const auth = this.props.serverAuth || 'auto';
-            const useBearer = auth === 'keycloak' || (auth === 'auto' && findKeycloak() != null);
-            if (!useBearer) {
-                return { credentials: isCross ? 'include' : 'same-origin' };
-            }
             return {
-                credentials: isCross ? 'omit' : 'same-origin',
+                credentials: 'omit',
                 getHeaders: async () => {
                     const kc = findKeycloak();
                     if (!kc) {
-                        return null;
+                        return null; // без токена сервер ответит 401 → «Нужно войти»
                     }
                     try {
                         // продлить токен, если истекает в ближайшие 30 секунд
@@ -554,7 +560,7 @@ export default {
         },
 
         rebuildApi() {
-            this.serverWarning = '';
+            this.isSearchOnly = false;
             const nr = this._aiw;
             clearTimeout(nr.apiRebuildTimer);
             nr.apiRebuildTimer = null;
@@ -569,12 +575,34 @@ export default {
                 return;
             }
             nr.api = createAssistantApi({
-                apiBase: mode === BACKEND_MODE.SERVER ? apiBase : apiBase || INTERNAL_API_BASE,
+                apiBase: mode === BACKEND_MODE.SERVER ? resolveServerApiBase(apiBase) : INTERNAL_API_BASE,
                 fetchImpl: this.createBackendFetch(mode),
                 locale: 'ru',
-                ...this.serverAuthOptions(mode, apiBase)
+                ...this.serverAuthOptions(mode)
             });
             this.checkStatus();
+        },
+
+        /**
+         * Режим «Сервер» без входа: переключаемся на ответы выборкой из вики прямо в браузере.
+         * Модель не вызывается, бюджет не тратится, токен не нужен.
+         *
+         * @return {boolean} переключились ли
+         */
+        enableSearchFallback() {
+            if (this.props.backendMode !== BACKEND_MODE.SERVER || this.props.anonymousFallback === false) {
+                return false;
+            }
+            const nr = this._aiw;
+            nr.api = createAssistantApi({
+                apiBase: INTERNAL_API_BASE,
+                fetchImpl: createMockFetch({ latencyMs: 150 }),
+                locale: 'ru'
+            });
+            nr.statusInfo = { isAvailable: true, isFullGuide: false };
+            this.isSearchOnly = true;
+            this.assistantStatus = ASSISTANT_STATUS.ONLINE;
+            return true;
         },
 
         async checkStatus() {
@@ -596,15 +624,13 @@ export default {
                     return;
                 }
                 nr.statusInfo = info;
-                // сервер в режиме «полное руководство» отвечает по своей вики и игнорирует наши разделы
-                this.serverWarning =
-                    this.props.backendMode === BACKEND_MODE.SERVER && info.isFullGuide
-                        ? 'Сервер отвечает по своему руководству: выключите на нём режим «полное руководство»'
-                        : '';
                 if (info.isAvailable) {
                     this.assistantStatus = ASSISTANT_STATUS.ONLINE;
                 } else if (info.reason === 'signed-out') {
-                    this.assistantStatus = ASSISTANT_STATUS.SIGNED_OUT;
+                    // пользователь без входа (публичная страница): вместо «Нужно войти» — поиск по вики
+                    if (!this.enableSearchFallback()) {
+                        this.assistantStatus = ASSISTANT_STATUS.SIGNED_OUT;
+                    }
                 } else if (info.reason === 'disabled') {
                     this.assistantStatus = ASSISTANT_STATUS.DISABLED;
                 } else {
@@ -983,7 +1009,10 @@ export default {
                     msg.status = 'error';
                     msg.error = errorText(error);
                     const status = error && typeof error.status === 'number' ? error.status : -1;
-                    if (status === 401) {
+                    if (status === 401 && this.enableSearchFallback()) {
+                        // сессия пропала посреди диалога — дальше отвечаем поиском по вики
+                        msg.error = 'Вход не найден — дальше отвечаю поиском по вики, без ИИ. Повторите вопрос.';
+                    } else if (status === 401) {
                         this.assistantStatus = ASSISTANT_STATUS.SIGNED_OUT;
                     } else if (status === 0 || status === 503) {
                         this.assistantStatus = ASSISTANT_STATUS.UNAVAILABLE;

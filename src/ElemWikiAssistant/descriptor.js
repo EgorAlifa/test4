@@ -9,7 +9,7 @@ export const descriptor = () => ({
         // ─── Поведение ─────────────────────────────────────────────
         title: {
             type: String,
-            default: 'Помощник по вики',
+            default: 'AI-помощник',
             label: 'Заголовок'
         },
         displayMode: {
@@ -69,20 +69,20 @@ export const descriptor = () => ({
         },
         apiBase: {
             type: String,
-            default: '/api/wiki-assistant/',
-            label: 'Адрес API помощника',
-            hint: 'Используется только в режиме «Сервер»'
+            default: '',
+            label: 'Адрес сервера помощника',
+            hint:
+                'Режим «Сервер». Можно указать только адрес сервера (https://host:port) — путь ' +
+                '/api/assistant-widget/v1/ добавится сам. Вход — по токену Keycloak платформы.'
         },
-        serverAuth: {
-            type: String,
-            default: 'auto',
-            label: 'Вход на сервер помощника',
-            options: [
-                { label: 'Автоматически', value: 'auto' },
-                { label: 'Токен Keycloak (Bearer)', value: 'keycloak' },
-                { label: 'Cookie-сессия сервера', value: 'cookie' }
-            ],
-            hint: 'Автоматически: токен Keycloak платформы, если он есть, иначе cookie'
+
+        anonymousFallback: {
+            type: Boolean,
+            default: true,
+            label: 'Без входа — поиск по вики',
+            hint:
+                'Режим «Сервер»: если пользователь не вошёл (публичная страница, нет токена), ' +
+                'отвечать выборкой из вики без модели вместо «Нужно войти»'
         },
 
         // ─── Модель (режим «Модель из браузера») ───────────────────

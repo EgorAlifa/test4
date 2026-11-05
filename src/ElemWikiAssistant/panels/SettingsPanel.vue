@@ -1,7 +1,7 @@
 <template>
     <w-panel>
         <ui-container>
-            <ui-input prop="title" placeholder="Помощник по вики">Заголовок</ui-input>
+            <ui-input prop="title" placeholder="AI-помощник">Заголовок</ui-input>
 
             <ui-select prop="displayMode" :options="options.displayModes">Режим отображения</ui-select>
 
@@ -46,15 +46,15 @@
                                 <ui-input
                                     v-if="props.backendMode === 'server'"
                                     prop="apiBase"
-                                    placeholder="/api/wiki-assistant/">
-                                    Адрес API помощника
+                                    placeholder="https://host:port">
+                                    Адрес сервера помощника
                                 </ui-input>
-                                <ui-select
-                                    v-if="props.backendMode === 'server'"
-                                    prop="serverAuth"
-                                    :options="options.serverAuth">
-                                    Вход на сервер помощника
-                                </ui-select>
+                                <div v-if="props.backendMode === 'server'" class="form-label form-label-small">
+                                    Запросы идут на /api/assistant-widget/v1/ по токену Keycloak платформы.
+                                </div>
+                                <ui-switch v-if="props.backendMode === 'server'" prop="anonymousFallback">
+                                    Без входа — отвечать поиском по вики
+                                </ui-switch>
 
                                 <ui-has-panel v-if="props.backendMode === 'local'">
                                     <div class="form-label form-label-small">Модель</div>
@@ -213,11 +213,6 @@ export default {
             displayModes: [
                 { label: 'Плавающая кнопка', value: 'floating' },
                 { label: 'Встроенный чат', value: 'inline' }
-            ],
-            serverAuth: [
-                { label: 'Автоматически', value: 'auto' },
-                { label: 'Токен Keycloak (Bearer)', value: 'keycloak' },
-                { label: 'Cookie-сессия сервера', value: 'cookie' }
             ],
             backendModes: [
                 { label: 'Без модели (поиск по вики)', value: 'mock' },
