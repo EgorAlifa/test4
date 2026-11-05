@@ -349,7 +349,7 @@ export const descriptor = () => ({
         calWithTime: {
             type: Boolean,
             default: false,
-            label: 'Режим с временем (формат ДД.ММ.ГГГГ ЧЧ:мм, передаёт timestamp)'
+            label: 'Выбор времени'
         },
         calDefaultStartTime: {
             type: String,

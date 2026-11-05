@@ -24,7 +24,7 @@
                 </label>
                 <template v-if="sections.eventFields">
                     <div v-if="!isCompact" class="p-hint" style="margin-bottom:8px">
-                        Необязательны: без столбца названия событием будет дата.
+                        Необязательны: если столбец названия не выбран, названием события станет дата.
                     </div>
                     <div v-else class="p-hint" style="margin-bottom:8px">
                         В тултипе видно только название события.

@@ -59,7 +59,7 @@
                         </button>
                     </div>
                 </div>
-                <!-- первый день влияет на сетку месяца и пресеты «Эта/Пр. неделя»; без календаря и пресетов — ни на что -->
+                <!-- первый день: сетка мини-календаря, всплывающий календарь чипов, пресеты «Эта / Пр. неделя» (isFirstDayUseful) -->
                 <div v-if="isFirstDayUseful" class="p-row">
                     <span class="p-row__label">Первый день недели</span>
                     <div class="seg-ctrl">
@@ -150,21 +150,23 @@
                             :key="f.value"
                             class="seg-ctrl__btn"
                             :class="{ 'seg-ctrl__btn--active': effectiveFormat === f.value }"
-                            @click="set('calOutputFormat', f.value)">
+                            @click="setOutputFormat(f.value)">
                             {{ f.label }}
                         </button>
                     </div>
                 </div>
+                <div v-if="formatShapeHint && selectionMode !== 'none'" class="p-hint" style="margin-bottom:4px">{{ formatShapeHint }}</div>
 
-                <!-- время: только для одиночной даты и диапазона; формат «Дата» время отбрасывает -->
-                <template v-if="isTimeApplicable && effectiveFormat !== 'date'">
+                <!-- время: только для одиночной даты и диапазона; явный формат «Дата» время отбрасывает
+                     ('auto' с временем виджет сам передаёт как timestamp) -->
+                <template v-if="isTimeApplicable && props.calOutputFormat !== 'date'">
                     <label class="toggle-row">
                         <span class="toggle-row__label">Выбор времени</span>
                         <div class="toggle" :class="{ 'toggle--on': isTimeOn }" @click="toggleBool('calWithTime')">
                             <div class="toggle__thumb" />
                         </div>
                     </label>
-                    <div v-if="!isTimeOn" class="p-hint" style="margin-bottom:4px">Без времени: начало — 00:00:00, конец — 23:59:59.</div>
+                    <div v-if="!isTimeOn && ['timestamp', 'datetime'].includes(props.calOutputFormat)" class="p-hint" style="margin-bottom:4px">Без времени: начало — 00:00:00, конец — 23:59:59.</div>
                     <div v-if="isTimeOn" class="sub-group">
                         <div class="p-row">
                             <span class="p-row__label">{{ isRangeMode ? 'Время начала' : 'Время' }}</span>
@@ -191,7 +193,8 @@
                         <div v-if="isTimeInvalid('calDefaultStartTime') || isTimeInvalid('calDefaultEndTime')" class="p-warn" style="margin:0 0 4px">
                             Формат ЧЧ:мм, 00:00–23:59. Неверное значение не применяется.
                         </div>
-                                            </div>
+                        <div v-if="!isCompact" class="p-hint">В полном календаре это время подставляется по умолчанию.</div>
+                    </div>
                 </template>
             </div>
 
@@ -470,6 +473,7 @@
 import { Panel, Managers } from 'goodt-wcore';
 import { applyMask, formatByMask, parseByMask } from '../dateFormat';
 import { LOCALE_DATA, pluralize } from '../constants';
+import { DATES_LIST_SHAPES, datesListShape, isAutoFormat } from '../utils/date-output';
 
 const { store } = Managers.StoreManager;
 
@@ -535,11 +539,12 @@ export default {
         // время, введённое в неверном формате (значение не сохранено)
         timeError: { calDefaultStartTime: false, calDefaultEndTime: false },
         // отклонённый ввод времени — показываем его в поле (с красной рамкой), пока пользователь не исправит
-        timeDraft: { calDefaultStartTime: null, calDefaultEndTime: null }
+        timeDraft: { calDefaultStartTime: null, calDefaultEndTime: null },
+        // подсказка после смены формата: как изменится datesList у существующего виджета
+        formatShapeHint: ''
     }),
 
     computed: {
-        /** Варианты calOutputFormat (utils/date-output.js) */
         /** Явные варианты calOutputFormat (utils/date-output.js); 'auto' — только значение по умолчанию */
         outputFormatOptions() {
             return [
@@ -593,8 +598,10 @@ export default {
         isDualMonth() {
             return this.isCalendarOn && Boolean(this.props.calCompactDualMonth);
         },
+        // первый день недели — сетка мини-календаря, всплывающий календарь чипов (нижняя панель)
+        // и пресеты «Эта / Пр. неделя»; без всех трёх ни на что не влияет
         isFirstDayUseful() {
-            return !this.isCompact || this.isCalendarOn || this.isPresetsOn;
+            return !this.isCompact || this.isCalendarOn || this.isPresetsOn || this.isBottomOn;
         },
         isCompactEmpty() {
             return !this.isCalendarOn && !this.isPresetsOn && !this.isBottomOn;
@@ -915,6 +922,28 @@ export default {
             event.target.value = masked;
             this.newPreset[side] = masked;
             this.presetDateError = { ...this.presetDateError, [side]: false };
+        },
+
+        // «В переменную». Пока хранится 'auto', клик по уже подсвеченному (действующему) варианту ничего
+        // не меняет: явное значение сменило бы форму datesList у существующих виджетов
+        setOutputFormat(format) {
+            const stored = this.props.calOutputFormat;
+            if (isAutoFormat(stored) && format === this.effectiveFormat) return;
+            if (format === stored) return;
+            const mode = this.selectionMode;
+            const withTime = Boolean(this.props.calWithTime);
+            let hint = '';
+            if (mode === 'range' || mode === 'multi') {
+                const before = datesListShape(mode, stored, withTime);
+                const after = datesListShape(mode, format, withTime);
+                if (before !== after) {
+                    if (before === DATES_LIST_SHAPES.PAIR) hint = 'datesList: значение за каждый день вместо пары [начало, конец].';
+                    else if (after === DATES_LIST_SHAPES.ARRAY) hint = 'datesList: массив значений вместо JSON-строки.';
+                    else hint = 'datesList: JSON-строка дат вместо массива.';
+                }
+            }
+            this.formatShapeHint = hint;
+            this.set('calOutputFormat', format);
         },
 
         setChipsGapUnit(unit) {
