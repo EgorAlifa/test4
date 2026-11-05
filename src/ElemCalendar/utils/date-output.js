@@ -106,30 +106,69 @@ export function toOutputValue(iso, { format, withTime = false, time = null, isEn
     return `${isoOf(d)} ${hhmmOf(d)}:${pad(d.getSeconds())}`;
 }
 
-// Значение переменной (ISO, timestamp, числовая строка, Date, ISO с временем/поясом)
-// → { iso: 'YYYY-MM-DD', time: 'HH:mm' | null } в локальном поясе, либо null.
-export function parseInputDate(val) {
-    if (val == null || val === '') return null;
+// Пустое значение переменной (сбрасывает выбор). Нераспознанное непустое
+// значение выбор НЕ сбрасывает — его просто игнорируем.
+export function isEmptyInput(val) {
+    return val == null || val === '';
+}
+
+// Числа с модулем меньше этого порога — не timestamp (8 цифр и меньше)
+const MIN_TIMESTAMP = 1e8;
+
+// '+03' | '+0300' | '+03:00' | 'Z' | 'UTC' | 'GMT' → '+03:00' / 'Z' (для new Date)
+function normalizeZone(z) {
+    const up = z.toUpperCase();
+    if (up === 'Z' || up === 'UTC' || up === 'GMT') return 'Z';
+    const m = /^([+-]\d{2}):?(\d{2})?$/.exec(up);
+    return m ? `${m[1]}:${m[2] || '00'}` : null;
+}
+
+// Литеральные дата и время → { iso, time } (время как есть, без пересчёта пояса)
+function literal(iso, timeStr) {
+    if (!splitIso(iso)) return null;
+    if (!timeStr) return { iso, time: null };
+    const t = parseTime(timeStr.replace(/(\.\d{3})\d+$/, '$1'));
+    return t ? { iso, time: `${pad(t.h)}:${pad(t.m)}` } : { iso, time: null };
+}
+
+// Значение переменной → { iso: 'YYYY-MM-DD', time: 'HH:mm' | null } или null (не распознано).
+// Понимает:
+//   - timestamp: число или числовая строка от 9 цифр (меньше 1e11 — секунды, иначе мс), Date;
+//   - 'YYYYMMDD' (8 цифр, строка или число);
+//   - 'YYYY-MM-DD', 'YYYY-MM-DD[T ]HH:mm[:ss[.SSS]]' — локальное время;
+//   - то же с поясом: Z, UTC, GMT, ±HH, ±HHMM, ±HH:MM, хвост '[Europe/Moscow]';
+//   - 'DD.MM.YYYY' и 'DD.MM.YYYY HH:mm[:ss]' — локальное время;
+//   - любая другая строка, начинающаяся с корректной 'YYYY-MM-DD', — берётся только дата.
+// options.convertZone (по умолчанию true): строку с явным поясом переводить в локальное
+// время браузера (дата может сместиться). false — брать дату и время из строки буквально
+// (режим «только дата»: '2026-11-05T00:00:00Z' остаётся 5 ноября в любом поясе).
+export function parseInputDate(val, { convertZone = true } = {}) {
+    if (isEmptyInput(val)) return null;
     let d = null;
     if (val instanceof Date) {
         d = val;
     } else if (typeof val === 'number' || (typeof val === 'string' && /^\s*-?\d+(\.\d+)?\s*$/.test(val))) {
-        const n = Number(val);
-        if (!isFinite(n)) return null;
+        const str = String(val).trim();
+        if (/^\d{8}$/.test(str)) {
+            return literal(`${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`, null);
+        }
+        const n = Number(str);
+        if (!isFinite(n) || Math.abs(n) < MIN_TIMESTAMP) return null;
         d = new Date(Math.abs(n) < SECONDS_THRESHOLD ? n * 1000 : n);
     } else if (typeof val === 'string') {
         const s = val.trim();
-        const m = /^(\d{4}-\d{2}-\d{2})(?:[T\s](\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?)\s*(Z|[+-]\d{2}:?\d{2})?)?$/i.exec(s);
-        if (!m) return null;
-        if (!m[2]) return splitIso(m[1]) ? { iso: m[1], time: null } : null;
-        if (!m[3]) {
-            // Время без пояса — считаем локальным
-            const t = parseTime(m[2].replace(/(\.\d{3})\d+$/, '$1'));
-            if (!t || !splitIso(m[1])) return null;
-            return { iso: m[1], time: `${pad(t.h)}:${pad(t.m)}` };
+        const ru = /^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}:\d{2}(?::\d{2})?))?$/.exec(s);
+        if (ru) return literal(`${ru[3]}-${pad(ru[2])}-${pad(ru[1])}`, ru[4]);
+        const m = /^(\d{4}-\d{2}-\d{2})(?:[T\s](\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?)\s*(Z|UTC|GMT|[+-]\d{2}(?::?\d{2})?)?)?\s*(?:\[[^\]]*\])?$/i.exec(s);
+        if (!m) {
+            // Неизвестный хвост — как раньше, берём только дату из первых 10 символов
+            const head = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+            return head ? literal(head[1], null) : null;
         }
-        // Явный пояс (Z / +03:00) — переводим в локальное время браузера
-        d = new Date(`${m[1]}T${m[2].length === 4 ? '0' + m[2] : m[2]}${m[3].toUpperCase().replace(/^([+-]\d{2})(\d{2})$/, '$1:$2')}`);
+        const zone = m[3] ? normalizeZone(m[3]) : null;
+        if (!m[2] || !zone || !convertZone) return literal(m[1], m[2]);
+        const time = m[2].length === 4 ? `0${m[2]}` : m[2];
+        d = new Date(`${m[1]}T${time}${zone}`);
     } else {
         return null;
     }
@@ -140,7 +179,8 @@ export function parseInputDate(val) {
 // Список дат из переменной (массив или JSON-строка массива; элементы — в любом
 // формате, который понимает parseInputDate) → отсортированные уникальные ISO-даты.
 // Пустое значение → []; не массив / битый JSON → null (выбор не трогаем).
-export function parseInputDateList(val) {
+// Нераспознанные элементы пропускаются. options — как у parseInputDate.
+export function parseInputDateList(val, options) {
     if (val == null || val === '') return [];
     let arr = val;
     if (typeof val === 'string') {
@@ -149,7 +189,7 @@ export function parseInputDateList(val) {
     if (!Array.isArray(arr)) return null;
     const set = new Set();
     arr.forEach((v) => {
-        const p = parseInputDate(v);
+        const p = parseInputDate(v, options);
         if (p) set.add(p.iso);
     });
     return Array.from(set).sort();
