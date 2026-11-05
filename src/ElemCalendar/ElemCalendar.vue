@@ -4,7 +4,7 @@
         <!-- ── Header (full mode only) ─────────────────────────────── -->
         <div v-if="props.calShowHeader && !compactMode" class="elem-cal__header">
             <div class="elem-cal__nav">
-                <button class="elem-cal__nav-btn" title="Назад" @click="prevPeriod">
+                <button class="elem-cal__nav-btn" :title="locale.prev" :aria-label="locale.prev" @click="prevPeriod">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -15,7 +15,7 @@
                     @click="goToday">
                     {{ locale.today }}
                 </button>
-                <button class="elem-cal__nav-btn" title="Вперёд" @click="nextPeriod">
+                <button class="elem-cal__nav-btn" :title="locale.next" :aria-label="locale.next" @click="nextPeriod">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -40,7 +40,7 @@
                 v-if="props.calShowResetBtn !== false && props.calSelectionMode !== 'none'"
                 class="elem-cal__reset-btn"
                 @click="onFullReset">
-                Сброс
+                {{ locale.reset }}
             </button>
         </div>
 
@@ -76,13 +76,13 @@
                     <div class="compact__dual-grids">
                         <div class="compact__dual-col">
                             <div class="compact__head">
-                                <button class="compact__nav" @click="prevPeriod">
+                                <button class="compact__nav" :title="locale.prev" :aria-label="locale.prev" @click="prevPeriod">
                                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                                         <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
                                 </button>
                                 <span class="compact__month-label">{{ currentTitle }}</span>
-                                <button class="compact__nav" @click="nextPeriod">
+                                <button class="compact__nav" :title="locale.next" :aria-label="locale.next" @click="nextPeriod">
                                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                                         <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
@@ -115,13 +115,13 @@
                         </div>
                         <div class="compact__dual-col">
                             <div class="compact__head">
-                                <button class="compact__nav" @click="prevPeriod2">
+                                <button class="compact__nav" :title="locale.prev" :aria-label="locale.prev" @click="prevPeriod2">
                                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                                         <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
                                 </button>
                                 <span class="compact__month-label">{{ compactTitle2 }}</span>
-                                <button class="compact__nav" @click="nextPeriod2">
+                                <button class="compact__nav" :title="locale.next" :aria-label="locale.next" @click="nextPeriod2">
                                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                                         <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
@@ -158,14 +158,14 @@
                 <!-- SINGLE-MONTH MODE -->
                 <template v-if="!props.calCompactDualMonth">
                     <div class="compact__head">
-                        <button class="compact__nav" @click="prevPeriod">
+                        <button class="compact__nav" :title="locale.prev" :aria-label="locale.prev" @click="prevPeriod">
                             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                                 <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </button>
                         <span class="compact__month-label">{{ currentTitle }}</span>
                         <button v-if="props.calCompactShowToday !== false" class="compact__today-chip" @click="applyPreset({ key: 'today' })">{{ locale.today }}</button>
-                        <button class="compact__nav" @click="nextPeriod">
+                        <button class="compact__nav" :title="locale.next" :aria-label="locale.next" @click="nextPeriod">
                             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                                 <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
@@ -206,29 +206,23 @@
                         class="compact__chip"
                         :class="{ 'compact__chip--active': editingStart }"
                         @click.stop="startEditingStart">
-                        <span class="compact__chip-label">С</span>
-                        <input
-                            v-if="editingStart && !props.calWithTime"
+                        <span class="compact__chip-label">{{ locale.compactFrom }}</span>
+                        <!-- Своё поле с маской вместо type="date"/"datetime-local": нативный пикер
+                             рисуется в локали браузера (AM/PM, mm/dd/yyyy) и игнорирует настройки виджета -->
+                        <date-time-input
+                            v-if="editingStart"
                             ref="inputStart"
-                            type="date"
                             class="compact__chip-input"
                             :value="compactStart"
-                            @change="_handleCompactDateChange($event.target.value, 'start')"
-                            @blur="_handleCompactDateBlur('start')"
-                            @keydown.enter.prevent="_handleCompactDateEnter('start')"
-                            @keydown.esc="editingStart = false"
-                            @click.stop />
-                        <input
-                            v-else-if="editingStart && props.calWithTime"
-                            ref="inputStart"
-                            type="datetime-local"
-                            class="compact__chip-input compact__chip-input--datetime"
-                            :value="compactStartDatetimeLocal"
-                            @change="_handleCompactDatetimeChange($event.target.value, 'start')"
-                            @blur="_handleCompactDatetimeBlur('start')"
-                            @keydown.enter.prevent="_handleCompactDatetimeEnter('start')"
-                            @keydown.esc="editingStart = false"
-                            @click.stop />
+                            :time="rangeStartTime || '00:00'"
+                            :with-time="Boolean(props.calWithTime)"
+                            :date-mask="locale.dateMask"
+                            :date-placeholder="locale.datePlaceholder"
+                            :time-placeholder="locale.timePlaceholder"
+                            :invalid-title="locale.invalidDate"
+                            :aria-label="locale.compactStartAria"
+                            @commit="_handleCompactInputCommit($event, 'start')"
+                            @cancel="editingStart = false" />
                         <span v-else class="compact__chip-value">{{ compactStart ? compactStartDisplay : '—' }}</span>
                     </div>
                     <span class="compact__chip-sep">→</span>
@@ -236,35 +230,27 @@
                         class="compact__chip"
                         :class="{ 'compact__chip--active': editingEnd }"
                         @click.stop="startEditingEnd">
-                        <span class="compact__chip-label">По</span>
-                        <input
-                            v-if="editingEnd && !props.calWithTime"
+                        <span class="compact__chip-label">{{ locale.compactTo }}</span>
+                        <date-time-input
+                            v-if="editingEnd"
                             ref="inputEnd"
-                            type="date"
                             class="compact__chip-input"
                             :value="compactEnd"
-                            @change="_handleCompactDateChange($event.target.value, 'end')"
-                            @blur="_handleCompactDateBlur('end')"
-                            @keydown.enter.prevent="_handleCompactDateEnter('end')"
-                            @keydown.esc="editingEnd = false"
-                            @click.stop />
-                        <input
-                            v-else-if="editingEnd && props.calWithTime"
-                            ref="inputEnd"
-                            type="datetime-local"
-                            class="compact__chip-input compact__chip-input--datetime"
-                            :value="compactEndDatetimeLocal"
-                            @change="_handleCompactDatetimeChange($event.target.value, 'end')"
-                            @blur="_handleCompactDatetimeBlur('end')"
-                            @keydown.enter.prevent="_handleCompactDatetimeEnter('end')"
-                            @keydown.esc="editingEnd = false"
-                            @click.stop />
+                            :time="rangeEndTime || '23:59'"
+                            :with-time="Boolean(props.calWithTime)"
+                            :date-mask="locale.dateMask"
+                            :date-placeholder="locale.datePlaceholder"
+                            :time-placeholder="locale.timePlaceholder"
+                            :invalid-title="locale.invalidDate"
+                            :aria-label="locale.compactEndAria"
+                            @commit="_handleCompactInputCommit($event, 'end')"
+                            @cancel="editingEnd = false" />
                         <span v-else class="compact__chip-value">{{ compactEnd ? compactEndDisplay : '—' }}</span>
                     </div>
                 </div>
                 <div class="compact__actions">
-                    <button class="compact__btn compact__btn--reset" @click="onCompactReset">Сбросить</button>
-                    <button class="compact__btn compact__btn--apply" :disabled="!compactStart" @click="onCompactApply">Применить</button>
+                    <button class="compact__btn compact__btn--reset" @click="onCompactReset">{{ locale.compactReset }}</button>
+                    <button class="compact__btn compact__btn--apply" :disabled="!compactStart" @click="onCompactApply">{{ locale.apply }}</button>
                 </div>
             </div>
 
@@ -471,9 +457,9 @@
                     <span class="elem-cal__tooltip-ev-dot" :style="{ background: ev.color || props.calAccentColor }" />
                     <span class="elem-cal__tooltip-ev-title">{{ ev.title }}</span>
                 </div>
-                <div v-if="tooltipDay.events.length > 5" class="elem-cal__tooltip-more">+{{ tooltipDay.events.length - 5 }} ещё</div>
+                <div v-if="tooltipDay.events.length > 5" class="elem-cal__tooltip-more">+{{ tooltipDay.events.length - 5 }} {{ locale.more }}</div>
             </div>
-            <div v-else class="elem-cal__tooltip-empty">Нет событий</div>
+            <div v-else class="elem-cal__tooltip-empty">{{ locale.noEvents }}</div>
         </div>
 
         <!-- ── Custom CSS injection ────────────────────────────────── -->
@@ -488,12 +474,15 @@ import { useElemDatasetMixin, ElemDatasetMixinTypes } from '@goodt-common/data';
 import { meta } from './descriptor';
 import {
     VIEWS, LOCALE_DATA, PRESETS, SELECTION_MODES, AGENDA_DAYS_AHEAD, HOUR_HEIGHT,
+    AUTO_PRESET_LABELS, AUTO_RELATIVE_LABEL_RE,
     resolveDataSections, hasActiveMetricSource
 } from './constants';
 import {
     DATES_LIST_SHAPES, datesListShape, resolveOutputFormat, toOutputValue, isoTimeToTs,
     parseInputDate, parseInputDateList
 } from './utils/date-output';
+import { formatByMask } from './dateFormat';
+import DateTimeInput from './components/DateTimeInput.vue';
 
 const { store, ValueObject } = Managers.StoreManager;
 
@@ -565,6 +554,7 @@ function lerpColor(lowHex, highHex, t) {
 export default {
     extends: Elem,
     meta,
+    components: { DateTimeInput },
     mixins: [useElemDatasetMixin()],
     hooks: {
         then() {
@@ -872,7 +862,7 @@ export default {
 
             return raw.map((ev, i) => ({
                 id: ev.id || `ev-${i}`,
-                title: ev.title || ev.name || '(без названия)',
+                title: ev.title || ev.name || this.locale.untitled,
                 date: ev.date || ev.start || '',
                 endDate: ev.endDate || ev.end || ev.date || ev.start || '',
                 startTime: ev.startTime || ev.time || '',
@@ -888,13 +878,15 @@ export default {
             const m = this.navDate.getMonth();
             const d = this.navDate.getDate();
             const months = this.locale.months;
+            // после числа — родительный падеж («5 ноября»), в en совпадает с months
+            const monthsGen = this.locale.monthsGenitive || months;
             if (this.currentView === 'month') return `${months[m]} ${y}`;
             if (this.currentView === 'week') {
                 const ws = startOfWeek(this.navDate, this.firstDay);
                 const we = addDays(ws, 6);
                 const wy = ws.getFullYear();
                 if (ws.getMonth() === we.getMonth()) {
-                    return `${ws.getDate()}–${we.getDate()} ${months[ws.getMonth()]} ${wy}`;
+                    return `${ws.getDate()}–${we.getDate()} ${monthsGen[ws.getMonth()]} ${wy}`;
                 }
                 if (wy === we.getFullYear()) {
                     return `${ws.getDate()} ${this.locale.monthsShort[ws.getMonth()]} – ${we.getDate()} ${this.locale.monthsShort[we.getMonth()]} ${wy}`;
@@ -902,7 +894,7 @@ export default {
                 return `${ws.getDate()} ${this.locale.monthsShort[ws.getMonth()]} ${wy} – ${we.getDate()} ${this.locale.monthsShort[we.getMonth()]} ${we.getFullYear()}`;
             }
             if (this.currentView === 'day') {
-                return `${d} ${months[m]} ${y}`;
+                return `${d} ${monthsGen[m]} ${y}`;
             }
             if (this.currentView === 'year') return `${y}`;
             return `${months[m]} ${y}`;
@@ -1018,7 +1010,8 @@ export default {
             if (!this.tooltipDay) return '';
             const d = this.tooltipDay.date;
             if (!d) return '';
-            return `${this.locale.weekdays[d.getDay()]}, ${d.getDate()} ${this.locale.months[d.getMonth()]} ${d.getFullYear()}`;
+            const monthsGen = this.locale.monthsGenitive || this.locale.months;
+            return `${this.locale.weekdays[d.getDay()]}, ${d.getDate()} ${monthsGen[d.getMonth()]} ${d.getFullYear()}`;
         },
 
         tooltipMetricVal() {
@@ -1048,32 +1041,19 @@ export default {
             return '';
         },
 
+        // Подпись чипа «С»: формат даты — из локали виджета, время — всегда 24 ч
         compactStartDisplay() {
             const iso = this.compactStart;
             if (!iso) return '—';
-            const [y, m, d] = iso.split('-');
-            if (!this.props.calWithTime) return `${d}.${m}.${y.slice(2)}`;
-            return `${d}.${m}.${y} ${this.rangeStartTime || '00:00'}`;
+            if (!this.props.calWithTime) return formatByMask(iso, this.locale.dateShortMask);
+            return formatByMask(iso, `${this.locale.dateMask} HH:mm`, this.rangeStartTime || '00:00');
         },
 
         compactEndDisplay() {
             const iso = this.compactEnd;
             if (!iso) return '—';
-            const [y, m, d] = iso.split('-');
-            if (!this.props.calWithTime) return `${d}.${m}.${y.slice(2)}`;
-            return `${d}.${m}.${y} ${this.rangeEndTime || '23:59'}`;
-        },
-
-        // Values for type="datetime-local" inputs (format: YYYY-MM-DDTHH:mm)
-        compactStartDatetimeLocal() {
-            const iso = this.compactStart;
-            if (!iso) return '';
-            return `${iso}T${this.rangeStartTime || '00:00'}`;
-        },
-        compactEndDatetimeLocal() {
-            const iso = this.compactEnd;
-            if (!iso) return '';
-            return `${iso}T${this.rangeEndTime || '23:59'}`;
+            if (!this.props.calWithTime) return formatByMask(iso, this.locale.dateShortMask);
+            return formatByMask(iso, `${this.locale.dateMask} HH:mm`, this.rangeEndTime || '23:59');
         },
 
         compactOffsetCells() {
@@ -1166,22 +1146,14 @@ export default {
                 try {
                     const parsed = JSON.parse(this.props.calPresetsJson);
                     if (Array.isArray(parsed)) {
-                        return simplified ? parsed.filter(p => !SINGLE_DAY_KEYS.includes(p.key)) : parsed;
+                        const list = parsed.map(p => this._localizePreset(p));
+                        return simplified ? list.filter(p => !SINGLE_DAY_KEYS.includes(p.key)) : list;
                     }
                 } catch (e) { /* fall through */ }
             }
-            const fallback = [
-                { key: 'today',      label: 'Сегодня' },
-                { key: 'yesterday',  label: 'Вчера' },
-                { key: 'week',       label: 'Эта неделя' },
-                { key: 'last_week',  label: 'Пр. неделя' },
-                { key: 'month',      label: 'Этот месяц' },
-                { key: 'last_month', label: 'Пр. месяц' },
-                { key: 'd7',         label: '7 дней' },
-                { key: 'd30',        label: '30 дней' },
-                { key: 'd90',        label: '90 дней' },
-                { key: 'year',       label: 'Этот год' }
-            ];
+            const labels = this.locale.presets;
+            const fallback = ['today', 'yesterday', 'week', 'last_week', 'month', 'last_month', 'd7', 'd30', 'd90', 'year']
+                .map(key => ({ key, label: labels[key] }));
             return simplified ? fallback.filter(p => !SINGLE_DAY_KEYS.includes(p.key)) : fallback;
         },
 
@@ -1897,15 +1869,34 @@ export default {
 
         formatChipDate(iso) {
             if (!iso) return '—';
-            const [y, m, d] = iso.split('-');
-            return `${d}.${m}.${y.slice(2)}`;
+            return formatByMask(iso, this.locale.dateShortMask);
+        },
+
+        // Подпись пресета на языке виджета. Пользовательская подпись не трогается;
+        // автоподписи панели настроек (по-русски) и пустые заменяются на LOCALE_DATA.
+        _localizePreset(p) {
+            if (!p || typeof p !== 'object') return p;
+            const label = typeof p.label === 'string' ? p.label.trim() : '';
+            if (p.start == null && p.daysBack == null) {
+                const builtin = this.locale.presets[p.key];
+                const auto = AUTO_PRESET_LABELS[p.key] || [];
+                if (builtin && (!label || auto.includes(label))) return { ...p, label: builtin };
+                return p;
+            }
+            if (p.daysBack != null) {
+                const m = label.match(AUTO_RELATIVE_LABEL_RE);
+                if (!label || (m && Number(m[1]) === Number(p.daysBack))) {
+                    return { ...p, label: this.locale.lastNDays.replace('{n}', p.daysBack) };
+                }
+            }
+            return p;
         },
 
         onCompactInputStart(val) {
             if (!val) return;
             this.activePreset = null;
             if (this.props.calWithTime) {
-                // val from <input type="date"> is YYYY-MM-DD; time is managed separately
+                // val — YYYY-MM-DD из поля ввода чипа; время хранится отдельно
                 const iso = val.slice(0, 10);
                 if (iso.length < 10) return;
                 const endIso = this.compactEnd && this.compactEnd >= iso ? this.compactEnd : iso;
@@ -1919,7 +1910,7 @@ export default {
             if (!val) return;
             this.activePreset = null;
             if (this.props.calWithTime) {
-                // val from <input type="date"> is YYYY-MM-DD; time is managed separately
+                // val — YYYY-MM-DD из поля ввода чипа; время хранится отдельно
                 const iso = val.slice(0, 10);
                 if (iso.length < 10) return;
                 const startIso = this.compactStart && this.compactStart <= iso ? this.compactStart : iso;
@@ -1929,53 +1920,21 @@ export default {
             }
         },
 
-        // ── type="date" chip input handlers ──────────────────────────
-        // Chrome auto-pads the year field on the first keystroke (e.g. "2" → "0002"),
-        // making the date immediately "valid" and firing `change` before the user has
-        // finished typing.  We guard against this by requiring year >= 1000.
-        _isCompactDateReady(val) {
-            return Boolean(val) && parseInt(val.split('-')[0], 10) >= 1000;
-        },
-
-        _handleCompactDateChange(val, side) {
-            // Ignore premature change events triggered by Chrome's year auto-padding.
-            if (!this._isCompactDateReady(val)) return;
-            // Guard: if the editing state was already closed by a prior event, skip.
+        // ── Поля ввода в чипах «С / По» (DateTimeInput) ──────────────
+        // parsed = { iso: 'YYYY-MM-DD', time: 'HH:mm' } — уже проверенное значение.
+        // Некорректный ввод сюда не попадает (компонент шлёт cancel, прежнее значение сохраняется).
+        _handleCompactInputCommit(parsed, side) {
             const isEditing = side === 'start' ? this.editingStart : this.editingEnd;
-            if (!isEditing) return;
-            if (side === 'start') { this.onCompactInputStart(val); this.editingStart = false; }
-            else                  { this.onCompactInputEnd(val);   this.editingEnd   = false; }
-        },
-
-        _handleCompactDateBlur(side) {
-            // If change already processed + closed the input, skip (editingX is already false).
-            const isEditing = side === 'start' ? this.editingStart : this.editingEnd;
-            if (!isEditing) return;
-            const ref = side === 'start' ? this.$refs.inputStart : this.$refs.inputEnd;
-            const val = ref ? ref.value : '';
-            if (this._isCompactDateReady(val)) {
-                if (side === 'start') this.onCompactInputStart(val);
-                else                  this.onCompactInputEnd(val);
+            if (!isEditing || !parsed || !parsed.iso) return;
+            if (this.props.calWithTime) {
+                this._applyCompactDatetime(parsed, side);
+            } else if (side === 'start') {
+                this.onCompactInputStart(parsed.iso);
+            } else {
+                this.onCompactInputEnd(parsed.iso);
             }
             if (side === 'start') this.editingStart = false;
             else                  this.editingEnd   = false;
-        },
-
-        _handleCompactDateEnter(side) {
-            this._handleCompactDateBlur(side);
-        },
-
-        // ── type="datetime-local" chip input handlers ─────────────────
-        // Parses the browser's YYYY-MM-DDTHH:mm value. Returns null on
-        // incomplete/invalid input (including Chrome's auto-padded year < 1000).
-        _parseDatetimeLocal(val) {
-            if (!val) return null;
-            const tIdx = val.indexOf('T');
-            if (tIdx < 0) return null;
-            const iso = val.slice(0, tIdx);
-            const time = val.slice(tIdx + 1) || '00:00';
-            if (parseInt(iso.split('-')[0], 10) < 1000) return null;
-            return { iso, time };
         },
 
         _applyCompactDatetime(parsed, side) {
@@ -1988,30 +1947,6 @@ export default {
                 const startIso = this.compactStart && this.compactStart <= parsed.iso ? this.compactStart : parsed.iso;
                 this._setCompactRange(startIso, parsed.iso);
             }
-        },
-
-        _handleCompactDatetimeChange(val, side) {
-            const parsed = this._parseDatetimeLocal(val);
-            if (!parsed) return;
-            const isEditing = side === 'start' ? this.editingStart : this.editingEnd;
-            if (!isEditing) return;
-            this._applyCompactDatetime(parsed, side);
-            if (side === 'start') this.editingStart = false;
-            else                  this.editingEnd   = false;
-        },
-
-        _handleCompactDatetimeBlur(side) {
-            const isEditing = side === 'start' ? this.editingStart : this.editingEnd;
-            if (!isEditing) return;
-            const ref = side === 'start' ? this.$refs.inputStart : this.$refs.inputEnd;
-            const parsed = this._parseDatetimeLocal(ref ? ref.value : '');
-            if (parsed) this._applyCompactDatetime(parsed, side);
-            if (side === 'start') this.editingStart = false;
-            else                  this.editingEnd   = false;
-        },
-
-        _handleCompactDatetimeEnter(side) {
-            this._handleCompactDatetimeBlur(side);
         },
 
         // ── Helpers ──────────────────────────────────────────────────
@@ -3245,11 +3180,6 @@ export default {
     min-width: 0;
     width: 100%;
     cursor: text;
-}
-.compact__chip-input--datetime {
-    /* datetime-local uses a wider native widget; constrain it to the chip */
-    min-width: 0;
-    max-width: 100%;
 }
 .compact__chip-sep {
     font-size: 13px;
