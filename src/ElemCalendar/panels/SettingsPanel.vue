@@ -176,7 +176,7 @@
                                 type="text"
                                 class="time-input"
                                 :class="{ 'time-input--invalid': isTimeInvalid('calDefaultStartTime') }"
-                                :value="props.calDefaultStartTime"
+                                :value="timeDisplay('calDefaultStartTime')"
                                 placeholder="00:00"
                                 maxlength="5"
                                 @change="setTime('calDefaultStartTime', $event, '00:00')" />
@@ -187,7 +187,7 @@
                                 type="text"
                                 class="time-input"
                                 :class="{ 'time-input--invalid': isTimeInvalid('calDefaultEndTime') }"
-                                :value="props.calDefaultEndTime"
+                                :value="timeDisplay('calDefaultEndTime')"
                                 placeholder="23:59"
                                 maxlength="5"
                                 @change="setTime('calDefaultEndTime', $event, '23:59')" />
@@ -490,6 +490,7 @@
 <script>
 import { Panel, Managers } from 'goodt-wcore';
 import { applyMask, formatByMask, parseByMask } from '../dateFormat';
+import { LOCALE_DATA, pluralize } from '../constants';
 
 const { store } = Managers.StoreManager;
 
@@ -553,7 +554,9 @@ export default {
         newPreset: { label: '', type: 'builtin', builtinKey: 'today', start: '', end: '', daysBack: 7 },
         presetDateError: { start: false, end: false },
         // время, введённое в неверном формате (значение не сохранено)
-        timeError: { calDefaultStartTime: false, calDefaultEndTime: false }
+        timeError: { calDefaultStartTime: false, calDefaultEndTime: false },
+        // отклонённый ввод времени — показываем его в поле (с красной рамкой), пока пользователь не исправит
+        timeDraft: { calDefaultStartTime: null, calDefaultEndTime: null }
     }),
 
     computed: {
@@ -849,7 +852,9 @@ export default {
                 preset = { key: `fixed_${Date.now()}`, label, start, end };
             } else {
                 const days = Math.max(1, this.newPreset.daysBack || 7);
-                const label = this.newPreset.label.trim() || `Последние ${days} дней`;
+                // «Последний 1 день» / «Последние 2 дня» / «Последние 5 дней» — эти формы узнаёт
+                // AUTO_RELATIVE_LABEL_RE, и виджет переводит подпись на язык виджета
+                const label = this.newPreset.label.trim() || pluralize(days, LOCALE_DATA.ru.lastNDays);
                 preset = { key: `rel_${Date.now()}`, label, daysBack: days };
             }
             const idx = this.editingPresetIdx;
@@ -895,14 +900,21 @@ export default {
         },
 
         // Время по умолчанию: только ЧЧ:мм (24 ч). Пусто — значение по умолчанию; неверное — не сохраняем,
-        // оставляем введённый текст и подсвечиваем поле
+        // а оставляем введённый текст в поле (timeDraft) с красной рамкой, пока пользователь его не исправит
         setTime(key, event, fallback) {
             const raw = event.target.value.trim();
             const time = raw ? normalizeTime(raw) : fallback;
             this.timeError = { ...this.timeError, [key]: !time };
+            this.timeDraft = { ...this.timeDraft, [key]: time ? null : raw };
             if (!time) return;
             event.target.value = time;
             if (time !== this.props[key]) this.set(key, time);
+        },
+
+        // в поле — отклонённый ввод (если есть), иначе сохранённое значение
+        timeDisplay(key) {
+            const draft = this.timeDraft[key];
+            return draft != null ? draft : this.props[key];
         },
 
         // неверный ввод или уже сохранённое (старыми версиями) неверное значение
