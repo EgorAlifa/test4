@@ -438,6 +438,8 @@ const COMPACT_WHEN = Object.freeze({
     rangeCal: (p) => p.calCompactShowCalendar !== false && p.calSelectionMode !== 'single',
     // всплывающий календарь чипов — без мини-календаря, при нижней панели
     popup: (p) => p.calCompactShowCalendar === false && p.calCompactShowBottom !== false,
+    // подсветка диапазона во всплывающем календаре — только у диапазона
+    popupRange: (p) => p.calCompactShowCalendar === false && p.calCompactShowBottom !== false && p.calSelectionMode !== 'single',
     popupTime: (p) => p.calCompactShowCalendar === false && p.calCompactShowBottom !== false && compactTimeOn(p)
 });
 // Виды, в которые можно попасть: выбранный (calView), из переключателя видов и переходами
@@ -465,9 +467,13 @@ const FULL_WHEN = Object.freeze({
     inRange: (p) => viewOn(p, 'month') && fullSel(p) === 'range',
     multi: (p) => viewOn(p, 'month') && fullSel(p) === 'multi',
     weekDay: (p) => viewOn(p, 'week') || viewOn(p, 'day'),
+    weekToday: (p) => (viewOn(p, 'week') || viewOn(p, 'day')) && p.calHighlightToday !== false,
+    weekSelected: (p) => (viewOn(p, 'week') || viewOn(p, 'day')) && fullSel(p) !== 'none',
+    weekRange: (p) => (viewOn(p, 'week') || viewOn(p, 'day')) && fullSel(p) === 'range',
     agenda: (p) => viewOn(p, 'agenda'),
     year: (p) => viewOn(p, 'year'),
     yearToday: (p) => viewOn(p, 'year') && p.calHighlightToday !== false,
+    yearMulti: (p) => viewOn(p, 'year') && fullSel(p) === 'multi',
     tooltip: (p) => p.calShowTooltip !== false && (viewOn(p, 'month') || viewOn(p, 'year'))
 });
 
@@ -518,7 +524,10 @@ export const DESIGNER_BLOCKS = Object.freeze({
         { key: 'compactPopup', group: G.popup, when: COMPACT_WHEN.popup, label: 'Всплывающий календарь (окно)', sel: '.compact__popup', hint: 'border-radius: 16px;\nbox-shadow: 0 8px 24px rgba(0,0,0,0.2);', portal: 'self' },
         { key: 'compactPopupTitle', group: G.popup, when: COMPACT_WHEN.popup, label: 'Месяц и год', sel: '.compact__popup-title', hint: 'color: #4f6aff;\nfont-size: 14px;', portal: 'inside' },
         { key: 'compactPopupWeekday', group: G.popup, when: COMPACT_WHEN.popup, label: 'Подписи дней недели', sel: '.compact__popup-wd', hint: 'color: #4f6aff;\nfont-size: 11px;', portal: 'inside' },
-        { key: 'compactPopupDay', group: G.popup, when: COMPACT_WHEN.popup, label: 'День', sel: '.compact__popup-day', hint: '/* фон здесь перекрывает отметку сегодняшнего дня и диапазона; «Выбранный день» задаётся отдельно; для них есть свои блоки ниже */\nborder-radius: 50%;', portal: 'inside' },
+        { key: 'compactPopupDay', group: G.popup, when: COMPACT_WHEN.popup, label: 'День', sel: '.compact__popup-day', hint: '/* фон здесь перекрывает «Сегодня», «Дни в диапазоне» и «Другой край диапазона»; для них есть свои блоки ниже */\nborder-radius: 50%;', portal: 'inside' },
+        { key: 'compactPopupToday', group: G.popup, when: COMPACT_WHEN.popup, label: 'Сегодня', sel: '.compact__popup-day--today', hint: 'box-shadow: inset 0 0 0 2px #16a34a;', portal: 'inside' },
+        { key: 'compactPopupInRange', group: G.popup, when: COMPACT_WHEN.popupRange, label: 'Дни в диапазоне', sel: '.compact__popup-day--in-range', hint: 'background: rgba(22,163,74,0.12);', portal: 'inside' },
+        { key: 'compactPopupEdge', group: G.popup, when: COMPACT_WHEN.popupRange, label: 'Другой край диапазона', sel: '.compact__popup-day--edge', hint: 'background: rgba(22,163,74,0.25);\nfont-weight: 700;', portal: 'inside' },
         { key: 'compactPopupSelected', group: G.popup, when: COMPACT_WHEN.popup, label: 'Выбранный день', sel: '.compact__popup-day--selected', hint: 'background: #16a34a;\ncolor: #fff;', portal: 'inside' },
         { key: 'compactPopupTime', group: G.popup, when: COMPACT_WHEN.popupTime, label: 'Выбранные часы и минуты', sel: '.compact__popup-tm--active', hint: 'background: #16a34a;\ncolor: #fff;', portal: 'inside' },
         { key: 'compactPopupTimeHead', group: G.popup, when: COMPACT_WHEN.popupTime, label: 'Заголовки «ЧЧ / мм»', sel: '.compact__popup-th', hint: 'color: #4f6aff;\nfont-size: 11px;', portal: 'inside' },
@@ -550,10 +559,17 @@ export const DESIGNER_BLOCKS = Object.freeze({
         { key: 'moreEvents', group: G.month, when: FULL_WHEN.month, label: '«+N» событий', sel: '.elem-cal__more', hint: 'color: #4f6aff;\nfont-weight: 700;' },
         // ── Неделя и день ──
         { key: 'weekColHd', group: G.weekDay, when: FULL_WHEN.weekDay, label: 'Заголовок колонки дня', sel: '.elem-cal__week-col-hd', hint: 'background: #f8fafc;\nborder-bottom: 2px solid #4f6aff;' },
+        { key: 'weekColHdToday', group: G.weekDay, when: FULL_WHEN.weekToday, label: 'Заголовок колонки «Сегодня»', sel: '.elem-cal__week-col-hd--today', hint: 'background: #fef9c3;' },
+        { key: 'weekColHdSelected', group: G.weekDay, when: FULL_WHEN.weekSelected, label: 'Выбранный заголовок колонки', sel: '.elem-cal__week-col-hd--selected', hint: 'background: #16a34a;\ncolor: #fff;' },
+        { key: 'weekColHdInRange', group: G.weekDay, when: FULL_WHEN.weekRange, label: 'Заголовок колонки в диапазоне', sel: '.elem-cal__week-col-hd--in-range', hint: 'background: rgba(22,163,74,0.15);' },
         { key: 'weekDow', group: G.weekDay, when: FULL_WHEN.weekDay, label: 'День недели в заголовке колонки', sel: '.elem-cal__week-dow', hint: 'color: #4f6aff;\ntext-transform: uppercase;' },
         { key: 'weekColNum', group: G.weekDay, when: FULL_WHEN.weekDay, label: 'Число в заголовке колонки', sel: '.elem-cal__week-num', hint: 'font-size: 18px;\nfont-weight: 700;' },
         { key: 'hourLabel', group: G.weekDay, when: FULL_WHEN.weekDay, label: 'Подписи часов', sel: '.elem-cal__hour-label', hint: 'color: #94a3b8;\nfont-size: 10px;' },
-        { key: 'weekCol', group: G.weekDay, when: FULL_WHEN.weekDay, label: 'Колонка дня', sel: '.elem-cal__week-col', hint: '/* фон здесь перекрывает подсветку сегодняшней и выбранной колонки; для них есть свои блоки ниже */\nbackground: #fcfcff;' },
+        { key: 'weekCol', group: G.weekDay, when: FULL_WHEN.weekDay, label: 'Колонка дня', sel: '.elem-cal__week-col', hint: '/* фон здесь перекрывает подсветку «Сегодня» и диапазона; для них и для выбранной колонки есть свои блоки ниже */\nbackground: #fcfcff;' },
+        { key: 'weekColToday', group: G.weekDay, when: FULL_WHEN.weekToday, label: 'Колонка «Сегодня»', sel: '.elem-cal__week-col--today', hint: 'background: #fefce8;' },
+        { key: 'weekColInRange', group: G.weekDay, when: FULL_WHEN.weekRange, label: 'Колонка в диапазоне', sel: '.elem-cal__week-col--in-range', hint: 'background: rgba(22,163,74,0.08);' },
+        { key: 'weekColEdge', group: G.weekDay, when: FULL_WHEN.weekRange, label: 'Колонка — начало / конец диапазона', sel: ':is(.elem-cal__week-col--range-start, .elem-cal__week-col--range-end)', hint: 'background: rgba(22,163,74,0.12);\nborder-left: 2px solid #16a34a;' },
+        { key: 'weekColSelected', group: G.weekDay, when: FULL_WHEN.weekSelected, label: 'Выбранная колонка (полупрозрачный слой поверх)', sel: '.elem-cal__week-col--selected::before', hint: '/* слой поверх колонки: цвет и прозрачность */\nbackground: #16a34a;\nopacity: 0.2;' },
         { key: 'nowLine', group: G.weekDay, when: FULL_WHEN.weekDay, label: 'Линия «сейчас»', sel: '.elem-cal__now-line', hint: 'background: #16a34a;\nheight: 2px;' },
         { key: 'weekEvent', group: G.weekDay, when: FULL_WHEN.weekDay, label: 'Событие', sel: '.elem-cal__week-event', hint: 'border-radius: 6px;\nbox-shadow: 0 2px 6px rgba(0,0,0,0.15);' },
         // ── Список ──
@@ -568,7 +584,9 @@ export const DESIGNER_BLOCKS = Object.freeze({
         // ── Год ──
         { key: 'yearMonthHd', group: G.year, when: FULL_WHEN.year, label: 'Название месяца', sel: '.elem-cal__year-month-hd', hint: 'color: #4f6aff;\nfont-weight: 700;' },
         { key: 'yearWeekday', group: G.year, when: FULL_WHEN.year, label: 'Подписи дней недели', sel: '.elem-cal__year-wd', hint: 'color: #4f6aff;\nfont-size: 9px;' },
-        { key: 'yearDay', group: G.year, when: FULL_WHEN.year, label: 'День', sel: '.elem-cal__year-day:not(.elem-cal__year-day--empty)', hint: '/* фон здесь перекрывает отметку дней с событиями; для них есть свои блоки ниже */\nborder-radius: 50%;' },
+        { key: 'yearDay', group: G.year, when: FULL_WHEN.year, label: 'День', sel: '.elem-cal__year-day:not(.elem-cal__year-day--empty)', hint: '/* «Сегодня» и «Отмеченный день» виджет выделяет поверх этого фона; для них и для «Дня с событиями» есть свои блоки ниже */\nborder-radius: 50%;' },
+        { key: 'yearHasEvents', group: G.year, when: FULL_WHEN.year, label: 'День с событиями', sel: '.elem-cal__year-day--has-events', hint: 'font-weight: 700;\ncolor: #4f6aff;' },
+        { key: 'yearMulti', group: G.year, when: FULL_WHEN.yearMulti, label: 'Отмеченный день (несколько дат)', sel: '.elem-cal__year-day--multi-selected', hint: 'background: #16a34a;\ncolor: #fff;', important: true },
         { key: 'yearToday', group: G.year, when: FULL_WHEN.yearToday, label: 'Сегодня', sel: '.elem-cal__year-day--today', hint: 'background: #16a34a;\ncolor: #fff;', important: true },
         // ── Подсказка ──
         { key: 'tooltip', group: G.tooltip, when: FULL_WHEN.tooltip, label: 'Подсказка над днём', sel: '.elem-cal__tooltip', hint: 'border-radius: 6px;\nfont-size: 12px;' }
