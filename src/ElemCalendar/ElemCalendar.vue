@@ -1,6 +1,6 @@
 <template>
     <w-elem :style="compactMode ? (props.calCompactShowCalendar === false ? 'display:block;width:100%' : 'display:inline-block') : 'height:100%;display:block'">
-    <div class="elem-cal" :class="calDynamicClass" :style="[cssStyle, calCssVars]">
+    <div :id="calRootId" class="elem-cal" :class="calDynamicClass" :style="[cssStyle, calCssVars]">
         <!-- ── Header (full mode only) ─────────────────────────────── -->
         <div v-if="props.calShowHeader && !compactMode" class="elem-cal__header">
             <div class="elem-cal__nav">
@@ -109,7 +109,7 @@
                                     @click="onCompactDayClick(cell)"
                                     @mouseenter="onCompactDayHover(cell, $event)"
                                     @mouseleave="onCompactDayLeave">
-                                    {{ cell.d }}
+                                    <span class="compact__day-num">{{ cell.d }}</span>
                                 </div>
                             </div>
                         </div>
@@ -148,7 +148,7 @@
                                     @click="onCompactDayClick(cell)"
                                     @mouseenter="onCompactDayHover(cell, $event)"
                                     @mouseleave="onCompactDayLeave">
-                                    {{ cell.d }}
+                                    <span class="compact__day-num">{{ cell.d }}</span>
                                 </div>
                             </div>
                         </div>
@@ -193,7 +193,7 @@
                             @click="onCompactDayClick(cell)"
                             @mouseenter="onCompactDayHover(cell, $event)"
                             @mouseleave="onCompactDayLeave">
-                            {{ cell.d }}
+                            <span class="compact__day-num">{{ cell.d }}</span>
                         </div>
                     </div>
                 </template>
@@ -502,6 +502,7 @@ import { meta } from './descriptor';
 import {
     VIEWS, LOCALE_DATA, PRESETS, SELECTION_MODES, AGENDA_DAYS_AHEAD, HOUR_HEIGHT,
     AUTO_PRESET_LABELS, AUTO_RELATIVE_LABEL_RE, AUTO_FIXED_LABEL_RE, pluralize,
+    DESIGNER_BLOCKS, withImportant,
     resolveDataSections, hasActiveMetricSource
 } from './constants';
 import {
@@ -964,23 +965,22 @@ export default {
             return { top: `${top}px` };
         },
 
+        // id корня: CSS «Я дизайнер» пишется как «#id .селектор» — специфичность id
+        // перебивает scoped-правила виджета (.x[data-v-…]) и не задевает другие календари
+        calRootId() {
+            return `elem-cal-${this._uid}`;
+        },
+
         customCssContent() {
-            const SELS = {
-                header: '.elem-cal__header', title: '.elem-cal__title',
-                navBtn: '.elem-cal__nav-btn', viewBtn: '.elem-cal__view-btn',
-                weekday: '.elem-cal__weekday', cell: '.elem-cal__cell',
-                dayNum: '.elem-cal__day-num', todayCell: '.elem-cal__cell--today',
-                selectedCell: '.elem-cal__cell--selected', event: '.elem-cal__event',
-                weekEvent: '.elem-cal__week-event', agendaEvent: '.elem-cal__agenda-event',
-                compactPreset: '.compact__preset',
-                compactPresetActive: '.compact__preset--active'
-            };
+            const root = `#${this.calRootId}`;
             const parts = [];
-            if (this.props.calCustomCss) parts.push(`.elem-cal { ${this.props.calCustomCss} }`);
+            if (this.props.calCustomCss) parts.push(`${root}.elem-cal { ${this.props.calCustomCss} }`);
             try {
-                const blocks = JSON.parse(this.props.calDesignerCss || '{}');
-                Object.entries(blocks).forEach(([k, css]) => {
-                    if (css && SELS[k]) parts.push(`${SELS[k]} { ${css} }`);
+                const values = JSON.parse(this.props.calDesignerCss || '{}');
+                [...DESIGNER_BLOCKS.full, ...DESIGNER_BLOCKS.compact].forEach((block) => {
+                    const css = values && values[block.key];
+                    if (!css) return;
+                    parts.push(`${root} ${block.sel} { ${block.important ? withImportant(css) : css} }`);
                 });
             } catch (e) { /* noop */ }
             return parts.length ? parts.join('\n') : null;
