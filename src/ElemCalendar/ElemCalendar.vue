@@ -480,8 +480,8 @@ import {
     resolveDataSections, hasActiveMetricSource
 } from './constants';
 import {
-    DATES_LIST_SHAPES, datesListShape, resolveOutputFormat, toOutputValue, isoTimeToTs,
-    parseInputDate, parseInputDateList
+    DATES_LIST_SHAPES, datesListShape, resolveOutputFormat, toOutputValue,
+    isEmptyInput, parseInputDate, parseInputDateList
 } from './utils/date-output';
 import { formatByMask } from './dateFormat';
 import DateTimeInput from './components/DateTimeInput.vue';
@@ -624,9 +624,10 @@ export default {
         editingEnd: false,
         rangeStartTime: '00:00',
         rangeEndTime: '23:59',
-        // true, если время уже пришло из переменной до mounted (immediate-вотчеры) —
-        // тогда mounted не затирает его значениями по умолчанию
-        timeFromStore: false,
+        // true, если время начала / конца уже пришло из переменной до mounted
+        // (immediate-вотчеры) — тогда mounted не затирает его значением по умолчанию
+        startTimeFromStore: false,
+        endTimeFromStore: false,
         // ── Multi mode state ─────────────────────────────────────────
         selectedDates: [],         // Array of ISO date strings for 'multi' mode
         // ── Store-sourced data (reactive cache) ───────────────────────
@@ -1030,10 +1031,13 @@ export default {
 
         compactStart() {
             if (this.rangeStart) return isoDate(this.rangeStart);
+            // «Одиночный»: зафиксированная дата хранится в calSelectedDate (переменная date)
+            if (this.isCompactSingle) return this.props.calSelectedDate || '';
             return this.props.calSelectedStart || '';
         },
 
         compactEnd() {
+            if (this.isCompactSingle) return '';
             if (this.rangeEnd) return isoDate(this.rangeEnd);
             // Only fall back to the committed prop value when NOT mid-selection.
             // During step 1 (start chosen, awaiting end click) rangeEnd is null
@@ -1296,9 +1300,9 @@ export default {
         // Restore time defaults from props when calWithTime is enabled.
         // Время, уже пришедшее из переменной (immediate-вотчеры срабатывают до mounted),
         // не затираем значениями по умолчанию.
-        if (this.props.calWithTime && !this.timeFromStore) {
-            this.rangeStartTime = this.props.calDefaultStartTime || '00:00';
-            this.rangeEndTime = this.props.calDefaultEndTime || '23:59';
+        if (this.props.calWithTime) {
+            if (!this.startTimeFromStore) this.rangeStartTime = this.props.calDefaultStartTime || '00:00';
+            if (!this.endTimeFromStore) this.rangeEndTime = this.props.calDefaultEndTime || '23:59';
         }
     },
 
@@ -1489,7 +1493,11 @@ export default {
         // Значение для переменной по выбранному формату (calOutputFormat).
         // Без выбора времени: начало — 00:00:00.000, конец диапазона — 23:59:59.999.
         _outValue(iso, isEnd = false) {
-            const withTime = Boolean(this.props.calWithTime);
+            // Время учитывается только там, где его можно выбрать (одиночный / диапазон);
+            // оставшийся calWithTime в режиме multi не должен подмешивать время в даты
+            const mode = this.props.calSelectionMode || SELECTION_MODES.SINGLE;
+            const withTime = Boolean(this.props.calWithTime)
+                && (mode === SELECTION_MODES.SINGLE || mode === SELECTION_MODES.RANGE);
             const time = isEnd
                 ? (this.rangeEndTime || this.props.calDefaultEndTime || '23:59')
                 : (this.rangeStartTime || this.props.calDefaultStartTime || '00:00');
@@ -1745,14 +1753,15 @@ export default {
             this.rangeStart = parseIso(start);
             this.compactClickStep = 0;
             this.compactHoverCell = null;
-            // Single day (presets Today/Yesterday, double-click same date):
-            // commit only `date` — no range variables written
+            // Single day (presets Today/Yesterday, double-click same date)
+            const isRange = (this.props.calSelectionMode || 'single') === 'range';
             if (start && start === end) {
-                this.rangeEnd = null;
-                this.props.calSelectedEnd = '';  // clear stale end so compactEnd returns ''
+                // Диапазон — однодневный (чип «По» показывает ту же дату, что уйдёт в dateEnd);
+                // одиночный режим — только дата
+                this.rangeEnd = isRange ? parseIso(end) : null;
                 // Auto-commit only when there is no Apply button to confirm
                 if (!this.props.calCompactShowBottom) {
-                    if ((this.props.calSelectionMode || 'single') === 'range') {
+                    if (isRange) {
                         this._commitRange(start, start);
                     } else {
                         this._commitDate(start);
@@ -1836,6 +1845,7 @@ export default {
         },
 
         onCompactReset() {
+            const isRange = (this.props.calSelectionMode || 'single') === 'range';
             this.rangeStart = null;
             this.rangeEnd = null;
             this.compactClickStep = 0;
@@ -1845,7 +1855,9 @@ export default {
                 this.rangeStartTime = this.props.calDefaultStartTime || '00:00';
                 this.rangeEndTime = this.props.calDefaultEndTime || '23:59';
             }
-            this._commitRange('', '');
+            // Одиночный режим сбрасывает только дату — как полный режим (onFullReset)
+            if (isRange) this._commitRange('', '');
+            else         this._commitDate('');
         },
 
         onCompactApply() {
@@ -1861,8 +1873,11 @@ export default {
                 } else {
                     this._commitDate(iso);
                 }
+            } else if (!isRange && this.compactStart) {
+                // Одиночный режим: дата могла прийти из переменной / сохранённого calSelectedDate
+                this._commitDate(this.compactStart);
             } else if (this.rangeStart) {
-                // Step 0: range (or single date) already set locally — now commit it
+                // Step 0: range already set locally — now commit it
                 const start = isoDate(this.rangeStart);
                 if (this.rangeEnd) {
                     this._commitRange(start, isoDate(this.rangeEnd));
@@ -1910,70 +1925,53 @@ export default {
             return p;
         },
 
-        onCompactInputStart(val) {
-            if (!val) return;
-            this.activePreset = null;
-            if (this.props.calWithTime) {
-                // val — YYYY-MM-DD из поля ввода чипа; время хранится отдельно
-                const iso = val.slice(0, 10);
-                if (iso.length < 10) return;
-                const endIso = this.compactEnd && this.compactEnd >= iso ? this.compactEnd : iso;
-                this._setCompactRange(iso, endIso);
-            } else {
-                this._setCompactRange(val, this.compactEnd && this.compactEnd >= val ? this.compactEnd : val);
-            }
-        },
-
-        onCompactInputEnd(val) {
-            if (!val) return;
-            this.activePreset = null;
-            if (this.props.calWithTime) {
-                // val — YYYY-MM-DD из поля ввода чипа; время хранится отдельно
-                const iso = val.slice(0, 10);
-                if (iso.length < 10) return;
-                const startIso = this.compactStart && this.compactStart <= iso ? this.compactStart : iso;
-                this._setCompactRange(startIso, iso);
-            } else {
-                this._setCompactRange(this.compactStart && this.compactStart <= val ? this.compactStart : val, val);
-            }
-        },
-
         // ── Поля ввода в чипах «С / По» (DateTimeInput) ──────────────
         // parsed = { iso: 'YYYY-MM-DD', time: 'HH:mm' } — уже проверенное значение.
         // Некорректный ввод сюда не попадает (компонент шлёт cancel, прежнее значение сохраняется).
         _handleCompactInputCommit(parsed, side) {
             const isEditing = side === 'start' ? this.editingStart : this.editingEnd;
             if (!isEditing || !parsed || !parsed.iso) return;
-            if (this.props.calWithTime) {
-                this._applyCompactDatetime(parsed, side);
-            } else if (side === 'start') {
-                this.onCompactInputStart(parsed.iso);
-            } else {
-                this.onCompactInputEnd(parsed.iso);
-            }
+            this.activePreset = null;
+            if ((this.props.calSelectionMode || 'single') === 'range') this._applyCompactRangeInput(parsed, side);
+            else this._applyCompactSingleInput(parsed);
             if (side === 'start') this.editingStart = false;
             else                  this.editingEnd   = false;
         },
 
-        _applyCompactDatetime(parsed, side) {
-            if (side === 'start') {
-                this.rangeStartTime = parsed.time;
-                const endIso = this.compactEnd && this.compactEnd >= parsed.iso ? this.compactEnd : parsed.iso;
-                this._setCompactRange(parsed.iso, endIso);
-            } else {
-                this.rangeEndTime = parsed.time;
-                const startIso = this.compactStart && this.compactStart <= parsed.iso ? this.compactStart : parsed.iso;
-                this._setCompactRange(startIso, parsed.iso);
+        // Одиночный режим: введённая дата фиксируется сразу, как клик по дню
+        _applyCompactSingleInput(parsed) {
+            if (this.props.calWithTime && parsed.time) this.rangeStartTime = parsed.time;
+            this.rangeStart = parseIso(parsed.iso);
+            this.rangeEnd = null;
+            this.compactClickStep = 0;
+            this.compactHoverCell = null;
+            this._navigateTo(parsed.iso);
+            this._commitDate(parsed.iso);
+        },
+
+        // Диапазон: введённая дата ставится на свой край; если края оказались в обратном
+        // порядке (конец раньше начала), они меняются местами вместе со временем — как при
+        // выборе двух дней в мини-календаре. Без второй даты получается однодневный диапазон.
+        _applyCompactRangeInput(parsed, side) {
+            const withTime = Boolean(this.props.calWithTime);
+            const typed = { iso: parsed.iso, time: withTime && parsed.time ? parsed.time : null };
+            const otherIso = side === 'start' ? this.compactEnd : this.compactStart;
+            const other = {
+                iso: otherIso || parsed.iso,
+                time: side === 'start' ? this.rangeEndTime : this.rangeStartTime
+            };
+            let [s, e] = side === 'start' ? [typed, other] : [other, typed];
+            if (s.iso > e.iso) [s, e] = [e, s];
+            if (withTime) {
+                if (s.time) this.rangeStartTime = s.time;
+                if (e.time) this.rangeEndTime = e.time;
             }
+            this._setCompactRange(s.iso, e.iso);
         },
 
         // ── Helpers ──────────────────────────────────────────────────
         formatHour(h) {
             return `${String(h).padStart(2, '0')}:00`;
-        },
-
-        _isoTimeToTs(iso, time) {
-            return isoTimeToTs(iso, time);
         },
 
         _parseDisplayDateTime(str) {
@@ -2020,17 +2018,20 @@ export default {
 
         // ── Store → local state sync helpers ─────────────────────────
         // Converts an incoming store value (ISO date / datetime, timestamp ms or s,
-        // numeric string, Date) into { iso: 'YYYY-MM-DD', time: 'HH:mm' | null }
-        // in local time. Returns null on empty / unparseable.
+        // YYYYMMDD, DD.MM.YYYY, Date) into { iso: 'YYYY-MM-DD', time: 'HH:mm' | null }.
+        // Returns null on empty / unparseable (see isEmptyInput to tell them apart).
+        // Без выбора времени дата строки с поясом берётся буквально, без пересчёта в
+        // пояс браузера — иначе '…T00:00:00Z' в Нью-Йорке стал бы предыдущим днём.
         _parseStoreDate(val) {
-            return parseInputDate(val);
+            return parseInputDate(val, { convertZone: Boolean(this.props.calWithTime) });
         },
 
         // Применить время из переменной к полю времени (только в режиме с временем)
         _applyStoreTime(parsed, side) {
             if (!parsed || !parsed.time || !this.props.calWithTime) return false;
             const key = side === 'end' ? 'rangeEndTime' : 'rangeStartTime';
-            this.timeFromStore = true;
+            if (side === 'end') this.endTimeFromStore = true;
+            else                this.startTimeFromStore = true;
             if (this[key] === parsed.time) return false;
             this[key] = parsed.time;
             return true;
@@ -2059,6 +2060,8 @@ export default {
         // Apply an incoming store value for the `date` var (single mode).
         _applyStoreDate(val) {
             const parsed = this._parseStoreDate(val);
+            // Нераспознанное непустое значение выбор не сбрасывает
+            if (!parsed && !isEmptyInput(val)) return;
             const iso = parsed ? parsed.iso : null;
             // Use ?? '' so that null and '' both normalise to '' — prevents the
             // early-return from firing when the prop is '' and iso is null
@@ -2067,6 +2070,12 @@ export default {
             // Время применяем и при той же дате — иначе смена только времени теряется
             this._applyStoreTime(parsed, 'start');
             if ((iso ?? '') === curIso) return;
+            // Компактный режим «Одиночный» показывает rangeStart — держим его в синхроне
+            this.rangeStart = iso ? parseIso(iso) : null;
+            this.rangeEnd = null;
+            this.compactClickStep = 0;
+            this.compactHoverCell = null;
+            this.activePreset = null;
             if (!iso) {
                 this.props.calSelectedDate = '';
             } else {
@@ -2079,6 +2088,8 @@ export default {
         _applyStoreDateRange(startVal, endVal) {
             const startParsed = this._parseStoreDate(startVal);
             const endParsed   = this._parseStoreDate(endVal);
+            // Нераспознанное непустое значение — игнорируем обновление целиком
+            if ((!startParsed && !isEmptyInput(startVal)) || (!endParsed && !isEmptyInput(endVal))) return;
             const startIso = startParsed ? startParsed.iso : null;
             const endIso   = endParsed   ? endParsed.iso   : null;
             // Use ?? '' so that null and '' both normalise to '' — prevents the
@@ -2126,9 +2137,10 @@ export default {
                 this.props.calSelectedDates = '';
                 return;
             }
-            // Элементы — ISO-даты, timestamp'ы или числовые строки; массив или JSON-строка
-            const newDates = parseInputDateList(val);
-            if (!newDates) return;
+            // Элементы — ISO-даты, timestamp'ы или числовые строки; массив или JSON-строка.
+            // Не массив, или ни один элемент не распознан — выбор не трогаем.
+            const newDates = parseInputDateList(val, { convertZone: Boolean(this.props.calWithTime) });
+            if (!newDates || !newDates.length) return;
             if (JSON.stringify(newDates) === JSON.stringify(this.selectedDates.slice().sort())) return;
             this.selectedDates = newDates;
             this.props.calSelectedDates = JSON.stringify(newDates);
