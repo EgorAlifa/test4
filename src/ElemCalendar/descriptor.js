@@ -361,6 +361,14 @@ export const descriptor = () => ({
             default: '23:59',
             label: 'Время конца диапазона по умолчанию'
         },
+        // Формат значений в переменных date / dateStart / dateEnd / datesList.
+        // 'auto' — как раньше: timestamp (мс) при calWithTime, иначе ISO-дата.
+        // Без calWithTime начало берётся в 00:00:00.000, конец диапазона — 23:59:59.999.
+        calOutputFormat: {
+            type: String,
+            default: 'auto',
+            label: 'Формат даты в переменных (auto/date/timestamp/datetime)'
+        },
         // ── Tooltip appearance ────────────────────────────────────────
         calTooltipBg: {
             type: String,
@@ -477,10 +485,10 @@ export const descriptor = () => ({
         }
     },
     vars: {
-        date: { description: 'Выбранная дата (ISO или timestamp мс при calWithTime)' },
-        dateStart: { description: 'Начало диапазона (ISO или timestamp мс при calWithTime)' },
-        dateEnd: { description: 'Конец диапазона (ISO или timestamp мс при calWithTime)' },
-        datesList: { description: 'Массив выбранных дат (JSON, режим "multi")' }
+        date: { description: 'Выбранная дата (в режиме диапазона — начало). Формат — calOutputFormat: ISO YYYY-MM-DD, timestamp (мс, локальное время) или "YYYY-MM-DD HH:mm:ss"' },
+        dateStart: { description: 'Начало диапазона: ISO-дата, timestamp мс (время начала или 00:00) или "YYYY-MM-DD HH:mm:ss" — см. calOutputFormat' },
+        dateEnd: { description: 'Конец диапазона: ISO-дата, timestamp мс (время конца или 23:59:59.999) или "YYYY-MM-DD HH:mm:ss" — см. calOutputFormat' },
+        datesList: { description: 'Список дат (режим "multi" — выбранные, "range" — все дни диапазона): JSON-строка ISO-дат или массив timestamp / "YYYY-MM-DD HH:mm:ss" — см. calOutputFormat' }
     },
     cssVars: {}
 });

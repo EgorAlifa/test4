@@ -490,6 +490,9 @@ import {
     VIEWS, LOCALE_DATA, PRESETS, SELECTION_MODES, AGENDA_DAYS_AHEAD, HOUR_HEIGHT,
     resolveDataSections, hasActiveMetricSource
 } from './constants';
+import {
+    OUTPUT_FORMATS, resolveOutputFormat, toOutputValue, isoTimeToTs, parseInputDate, parseInputDateList
+} from './utils/date-output';
 
 const { store, ValueObject } = Managers.StoreManager;
 
@@ -628,6 +631,9 @@ export default {
         editingEnd: false,
         rangeStartTime: '00:00',
         rangeEndTime: '23:59',
+        // true, если время уже пришло из переменной до mounted (immediate-вотчеры) —
+        // тогда mounted не затирает его значениями по умолчанию
+        timeFromStore: false,
         // ── Multi mode state ─────────────────────────────────────────
         selectedDates: [],         // Array of ISO date strings for 'multi' mode
         // ── Store-sourced data (reactive cache) ───────────────────────
@@ -899,6 +905,11 @@ export default {
             }
             if (this.currentView === 'year') return `${y}`;
             return `${months[m]} ${y}`;
+        },
+
+        // ── Формат значений, которые пишутся в переменные ────────────
+        outputFormat() {
+            return resolveOutputFormat(this.props.calOutputFormat, this.props.calWithTime);
         },
 
         // ── Selection parsed ─────────────────────────────────────────
@@ -1292,8 +1303,9 @@ export default {
         this.nowTimer = setInterval(() => this._tickNow(), 60000);
 
         // Restore time defaults from props when calWithTime is enabled.
-        // Store-based values (actual user-edited times) will override via watchStore.
-        if (this.props.calWithTime) {
+        // Время, уже пришедшее из переменной (immediate-вотчеры срабатывают до mounted),
+        // не затираем значениями по умолчанию.
+        if (this.props.calWithTime && !this.timeFromStore) {
             this.rangeStartTime = this.props.calDefaultStartTime || '00:00';
             this.rangeEndTime = this.props.calDefaultEndTime || '23:59';
         }
@@ -1483,16 +1495,25 @@ export default {
             }
         },
 
+        // Значение для переменной по выбранному формату (calOutputFormat).
+        // Без выбора времени: начало — 00:00:00.000, конец диапазона — 23:59:59.999.
+        _outValue(iso, isEnd = false) {
+            const withTime = Boolean(this.props.calWithTime);
+            const time = isEnd
+                ? (this.rangeEndTime || this.props.calDefaultEndTime || '23:59')
+                : (this.rangeStartTime || this.props.calDefaultStartTime || '00:00');
+            return toOutputValue(iso, { format: this.outputFormat, withTime, time, isEnd });
+        },
+
+        // Каждая дата списка — начало её дня (или время начала при calWithTime)
+        _outList(isoList) {
+            return isoList.map((iso) => this._outValue(iso)).filter((v) => v != null && v !== '');
+        },
+
         _commitDate(iso) {
             this.props.calSelectedDate = iso;
             if (!this.isEditorMode) this.propChanged('calSelectedDate');
-            if (this.props.calWithTime) {
-                const time = this.rangeStartTime || this.props.calDefaultStartTime || '00:00';
-                const ts = this._isoTimeToTs(iso, time);
-                this.$storeCommit({ date: ts });
-            } else {
-                this.$storeCommit({ date: iso });
-            }
+            this.$storeCommit({ date: this._outValue(iso) });
         },
 
         _commitRange(start, end) {
@@ -1502,17 +1523,14 @@ export default {
                 this.propChanged('calSelectedStart');
                 this.propChanged('calSelectedEnd');
             }
-
-            if (this.props.calWithTime) {
-                const startTime = this.rangeStartTime || this.props.calDefaultStartTime || '00:00';
-                const endTime = this.rangeEndTime || this.props.calDefaultEndTime || '23:59';
-                const tsStart = start ? this._isoTimeToTs(start, startTime) : null;
-                const tsEnd = end ? this._isoTimeToTs(end, endTime) : null;
-                this.$storeCommit({ date: tsStart, dateStart: tsStart, dateEnd: tsEnd, datesList: (tsStart != null || tsEnd != null) ? [tsStart, tsEnd].filter((v) => v != null) : null });
-            } else {
-                const allDates = start && end ? expandDateRange(start, end) : null;
-                this.$storeCommit({ date: start || null, dateStart: start || null, dateEnd: end || null, datesList: allDates });
-            }
+            // datesList в режиме диапазона — все дни диапазона в выбранном формате
+            const allDates = start && end ? this._outList(expandDateRange(start, end)) : null;
+            this.$storeCommit({
+                date: start ? this._outValue(start) : null,
+                dateStart: start ? this._outValue(start) : null,
+                dateEnd: end ? this._outValue(end, true) : null,
+                datesList: allDates
+            });
         },
 
         _commitMultiple(dates) {
@@ -1525,7 +1543,9 @@ export default {
             const json = JSON.stringify(dates);
             this.props.calSelectedDates = json;
             if (!this.isEditorMode) this.propChanged('calSelectedDates');
-            this.$storeCommit({ datesList: json });
+            // ISO-даты — JSON-строкой (как раньше); timestamp / дата-время — массивом
+            const value = this.outputFormat === OUTPUT_FORMATS.DATE ? json : this._outList(dates);
+            this.$storeCommit({ datesList: value });
         },
 
         // ── Cell classes ─────────────────────────────────────────────
@@ -1994,10 +2014,7 @@ export default {
         },
 
         _isoTimeToTs(iso, time) {
-            if (!iso) return null;
-            const [h, min] = (time || '00:00').split(':').map(Number);
-            const [y, mo, d] = iso.split('-').map(Number);
-            return new Date(y, mo - 1, d, h, min, 0, 0).getTime();
+            return isoTimeToTs(iso, time);
         },
 
         _parseDisplayDateTime(str) {
@@ -2043,20 +2060,21 @@ export default {
         },
 
         // ── Store → local state sync helpers ─────────────────────────
-        // Converts an incoming store value (ISO string OR timestamp ms) into
-        // { iso: 'YYYY-MM-DD', time: 'HH:mm' | null }. Returns null on empty.
+        // Converts an incoming store value (ISO date / datetime, timestamp ms or s,
+        // numeric string, Date) into { iso: 'YYYY-MM-DD', time: 'HH:mm' | null }
+        // in local time. Returns null on empty / unparseable.
         _parseStoreDate(val) {
-            if (val == null || val === '') return null;
-            if (typeof val === 'number') {
-                const d = new Date(val);
-                const h = String(d.getHours()).padStart(2, '0');
-                const m = String(d.getMinutes()).padStart(2, '0');
-                return { iso: isoDate(d), time: `${h}:${m}` };
-            }
-            if (typeof val === 'string' && val.length >= 10) {
-                return { iso: val.slice(0, 10), time: null };
-            }
-            return null;
+            return parseInputDate(val);
+        },
+
+        // Применить время из переменной к полю времени (только в режиме с временем)
+        _applyStoreTime(parsed, side) {
+            if (!parsed || !parsed.time || !this.props.calWithTime) return false;
+            const key = side === 'end' ? 'rangeEndTime' : 'rangeStartTime';
+            this.timeFromStore = true;
+            if (this[key] === parsed.time) return false;
+            this[key] = parsed.time;
+            return true;
         },
 
         // Navigate the visible month/year to the given ISO date. When an end date is
@@ -2087,12 +2105,13 @@ export default {
             // early-return from firing when the prop is '' and iso is null
             // (both would have become null with || null, hiding the clear).
             const curIso = this.props.calSelectedDate ?? '';
+            // Время применяем и при той же дате — иначе смена только времени теряется
+            this._applyStoreTime(parsed, 'start');
             if ((iso ?? '') === curIso) return;
             if (!iso) {
                 this.props.calSelectedDate = '';
             } else {
                 this.props.calSelectedDate = iso;
-                if (parsed.time && this.props.calWithTime) this.rangeStartTime = parsed.time;
                 this._navigateTo(iso);
             }
         },
@@ -2108,6 +2127,9 @@ export default {
             // are null (both would have become null with || null, hiding the clear).
             const curStart = this.props.calSelectedStart ?? '';
             const curEnd   = this.props.calSelectedEnd   ?? '';
+            // Время применяем и при тех же датах — иначе смена только времени теряется
+            this._applyStoreTime(startParsed, 'start');
+            this._applyStoreTime(endParsed, 'end');
             if ((startIso ?? '') === curStart && (endIso ?? '') === curEnd) return;
 
             if (!startIso) {
@@ -2129,8 +2151,6 @@ export default {
             this.activePreset = null;
             this.compactClickStep = 0;
             this.compactHoverCell = null;
-            if (startParsed && startParsed.time) this.rangeStartTime = startParsed.time;
-            if (endParsed   && endParsed.time)   this.rangeEndTime   = endParsed.time;
             this._navigateTo(startIso, endIso);
         },
 
@@ -2147,18 +2167,13 @@ export default {
                 this.props.calSelectedDates = '';
                 return;
             }
-            try {
-                const parsed = Array.isArray(val) ? val : JSON.parse(val);
-                if (!Array.isArray(parsed)) return;
-                const newDates = parsed
-                    .filter(v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v))
-                    .map(v => v.slice(0, 10))
-                    .sort();
-                if (JSON.stringify(newDates) === JSON.stringify(this.selectedDates.slice().sort())) return;
-                this.selectedDates = newDates;
-                this.props.calSelectedDates = JSON.stringify(newDates);
-                if (newDates.length) this._navigateTo(newDates[0]);
-            } catch (e) { /* noop */ }
+            // Элементы — ISO-даты, timestamp'ы или числовые строки; массив или JSON-строка
+            const newDates = parseInputDateList(val);
+            if (!newDates) return;
+            if (JSON.stringify(newDates) === JSON.stringify(this.selectedDates.slice().sort())) return;
+            this.selectedDates = newDates;
+            this.props.calSelectedDates = JSON.stringify(newDates);
+            if (newDates.length) this._navigateTo(newDates[0]);
         }
     }
 };
