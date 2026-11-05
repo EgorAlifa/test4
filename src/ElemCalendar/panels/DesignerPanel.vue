@@ -14,8 +14,10 @@
 
             <!-- Элементы для текущего режима (полный ИЛИ компактный) -->
             <div class="dp-list">
+                <template v-for="block in activeBlocks">
+                <!-- заголовок раздела — перед первым блоком группы -->
+                <div v-if="block.groupStart" :key="`g-${block.key}`" class="dp-group">{{ block.group }}</div>
                 <div
-                    v-for="block in activeBlocks"
                     :key="block.key"
                     class="dp-block">
                     <div
@@ -38,6 +40,7 @@
                         </div>
                     </div>
                 </div>
+                </template>
             </div>
 
             <!-- Свободный CSS на весь виджет -->
@@ -90,7 +93,9 @@ export default {
             const list = this.props.calMode === 'compact' ? this.compactBlocks : this.blocks;
             // блоки, которых нет на экране в текущей конфигурации (when(props) в DESIGNER_BLOCKS), скрыты;
             // их уже заданный CSS виджет применяет как раньше
-            return list.filter((b) => !b.when || b.when(this.props));
+            const visible = list.filter((b) => !b.when || b.when(this.props));
+            // groupStart — первый блок своей группы (перед ним выводится заголовок раздела)
+            return visible.map((b, i) => ({ ...b, groupStart: Boolean(b.group) && (i === 0 || visible[i - 1].group !== b.group) }));
         },
 
         cssVarsList() {
@@ -202,6 +207,17 @@ export default {
     gap: 4px;
     margin-bottom: 4px;
 }
+
+.dp-group {
+    margin: 8px 0 0;
+    padding: 0 2px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+.dp-group:first-child { margin-top: 0; }
 
 .dp-block {
     margin: 0;
