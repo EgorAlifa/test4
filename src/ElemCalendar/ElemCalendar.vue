@@ -50,7 +50,7 @@
 
             <!-- Preset chips -->
             <div
-                v-if="props.calCompactShowPresets !== false"
+                v-if="props.calCompactShowPresets !== false && compactPresetsList.length"
                 class="compact__presets"
                 :style="presetsGridStyle">
                 <button
@@ -63,8 +63,8 @@
                 </button>
             </div>
 
-            <!-- Сегодня: только когда календарь скрыт (упрощённый режим) -->
-            <div v-if="props.calCompactShowCalendar === false && props.calCompactShowToday !== false && !props.calCompactDualMonth" class="compact__today-row">
+            <!-- Сегодня: только когда календарь скрыт (упрощённый режим); «Два месяца» без календаря не действует -->
+            <div v-if="props.calCompactShowCalendar === false && props.calCompactShowToday !== false" class="compact__today-row">
                 <button class="compact__today-chip" @click="applyPreset({ key: 'today' })">{{ locale.today }}</button>
             </div>
 
@@ -206,7 +206,7 @@
                         class="compact__chip"
                         :class="{ 'compact__chip--active': editingStart }"
                         @click.stop="startEditingStart">
-                        <span class="compact__chip-label">{{ locale.compactFrom }}</span>
+                        <span class="compact__chip-label">{{ isCompactSingle ? locale.compactDate : locale.compactFrom }}</span>
                         <!-- Своё поле с маской вместо type="date"/"datetime-local": нативный пикер
                              рисуется в локали браузера (AM/PM, mm/dd/yyyy) и игнорирует настройки виджета -->
                         <date-time-input
@@ -225,8 +225,10 @@
                             @cancel="editingStart = false" />
                         <span v-else class="compact__chip-value">{{ compactStart ? compactStartDisplay : '—' }}</span>
                     </div>
-                    <span class="compact__chip-sep">→</span>
+                    <!-- «По» нужен только диапазону: в режиме «Одиночный» второй чип скрыт -->
+                    <span v-if="!isCompactSingle" class="compact__chip-sep">→</span>
                     <div
+                        v-if="!isCompactSingle"
                         class="compact__chip"
                         :class="{ 'compact__chip--active': editingEnd }"
                         @click.stop="startEditingEnd">
@@ -1139,22 +1141,38 @@ export default {
             return cells;
         },
 
+        /** Компактный режим «Одиночный»: один чип «Дата» вместо «С / По» */
+        isCompactSingle() {
+            return (this.props.calSelectionMode || 'single') !== 'range';
+        },
+
         compactPresetsList() {
             const SINGLE_DAY_KEYS = ['today', 'yesterday'];
             const simplified = !this.props.calCompactShowCalendar && this.props.calCompactShowPresets !== false;
+            // Режим «Одиночный»: пресеты-диапазоны выбрали бы диапазон — оставляем только пресеты на один день
+            // (та же логика — presetHiddenReason в panels/SettingsPanel.vue)
+            const filterList = (list) => {
+                if (this.props.calSelectionMode !== 'single') {
+                    return simplified ? list.filter(p => !SINGLE_DAY_KEYS.includes(p.key)) : list;
+                }
+                const todayRow = simplified && this.props.calCompactShowToday !== false;
+                return list.filter((p) => {
+                    if (todayRow && p.key === 'today') return false;
+                    if (SINGLE_DAY_KEYS.includes(p.key)) return true;
+                    if (p.start != null) return !p.end || p.end === p.start;
+                    return Number(p.daysBack) === 1;
+                });
+            };
             if (this.props.calPresetsJson) {
                 try {
                     const parsed = JSON.parse(this.props.calPresetsJson);
-                    if (Array.isArray(parsed)) {
-                        const list = parsed.map(p => this._localizePreset(p));
-                        return simplified ? list.filter(p => !SINGLE_DAY_KEYS.includes(p.key)) : list;
-                    }
+                    if (Array.isArray(parsed)) return filterList(parsed.map(p => this._localizePreset(p)));
                 } catch (e) { /* fall through */ }
             }
             const labels = this.locale.presets;
             const fallback = ['today', 'yesterday', 'week', 'last_week', 'month', 'last_month', 'd7', 'd30', 'd90', 'year']
                 .map(key => ({ key, label: labels[key] }));
-            return simplified ? fallback.filter(p => !SINGLE_DAY_KEYS.includes(p.key)) : fallback;
+            return filterList(fallback);
         },
 
         compactInnerStyle() {

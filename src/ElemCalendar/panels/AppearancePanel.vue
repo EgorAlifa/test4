@@ -33,11 +33,29 @@
             <div class="p-section">
                 <div class="p-section__label">Тултип</div>
 
+                <!-- Видимость: показываем только свитч текущего режима виджета -->
+                <label v-if="!isCompact" class="toggle-row">
+                    <span class="toggle-row__label">Показывать тултип</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calShowTooltip !== false }" @click="toggleBool('calShowTooltip')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+                <label v-else class="toggle-row" :class="{ 'toggle-row--disabled': !isCompactCalendarOn }">
+                    <span class="toggle-row__text">
+                        <span class="toggle-row__label">Показывать тултип</span>
+                        <span v-if="!isCompactCalendarOn" class="toggle-row__hint">Тултип появляется над днями мини-календаря — он выключен</span>
+                    </span>
+                    <div class="toggle" :class="{ 'toggle--on': isTooltipOn }" @click="isCompactCalendarOn && toggleBool('calCompactShowTooltip')">
+                        <div class="toggle__thumb" />
+                    </div>
+                </label>
+
+                <template v-if="isTooltipOn">
                 <!-- Live preview -->
                 <div class="tooltip-preview-wrap">
                     <div class="tooltip-preview" :style="tooltipPreviewStyle">
                         <div class="tooltip-preview__date">Понедельник, 9 июня 2025</div>
-                        <div v-if="props.calTooltipShowMetric !== false" class="tooltip-preview__metric">◉ 42</div>
+                        <div v-if="props.calTooltipShowMetric !== false && props.calHeatmapEnabled" class="tooltip-preview__metric">◉ 42</div>
                         <div class="tooltip-preview__events">
                             <div class="tooltip-preview__ev">
                                 <span class="tooltip-preview__dot" :style="{ background: props.calAccentColor || '#4f6aff' }" />
@@ -52,23 +70,13 @@
                 </div>
 
                 <div class="tooltip-controls">
-                    <!-- Видимость -->
-                    <div class="p-field-label">Показывать тултип</div>
-                    <label class="toggle-row">
-                        <span class="toggle-row__label">В полном календаре</span>
-                        <div class="toggle" :class="{ 'toggle--on': props.calShowTooltip !== false }" @click="toggleBool('calShowTooltip')">
-                            <div class="toggle__thumb" />
-                        </div>
-                    </label>
-                    <label class="toggle-row">
-                        <span class="toggle-row__label">В компактном виджете</span>
-                        <div class="toggle" :class="{ 'toggle--on': props.calCompactShowTooltip }" @click="toggleBool('calCompactShowTooltip')">
-                            <div class="toggle__thumb" />
-                        </div>
-                    </label>
-                    <label class="toggle-row">
-                        <span class="toggle-row__label">Доп. метрика в тултипе</span>
-                        <div class="toggle" :class="{ 'toggle--on': props.calTooltipShowMetric !== false }" @click="toggleBool('calTooltipShowMetric')">
+                    <!-- значение метрики в тултипе берётся только при включённой тепловой карте -->
+                    <label class="toggle-row" :class="{ 'toggle-row--disabled': !props.calHeatmapEnabled }">
+                        <span class="toggle-row__text">
+                            <span class="toggle-row__label">Доп. метрика в тултипе</span>
+                            <span v-if="!props.calHeatmapEnabled" class="toggle-row__hint">Нужна метрика — панель «Данные»</span>
+                        </span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calTooltipShowMetric !== false && props.calHeatmapEnabled }" @click="props.calHeatmapEnabled && toggleBool('calTooltipShowMetric')">
                             <div class="toggle__thumb" />
                         </div>
                     </label>
@@ -184,6 +192,7 @@
                             @change="set('calTooltipMaxHeight', $event.target.value)" />
                     </div>
                 </div>
+                </template>
             </div>
 
             <!-- ── Цвета ───────────────────────────────────────────── -->
@@ -193,7 +202,7 @@
                 <!-- Визуальная сетка свотчей — быстрый обзор всех цветов -->
                 <div class="swatch-grid">
                     <div
-                        v-for="c in colorFields"
+                        v-for="c in visibleColorFields"
                         :key="c.key"
                         class="swatch-item"
                         :title="c.label">
@@ -204,8 +213,11 @@
 
                 <!-- ui-input-cp для редактирования -->
                 <div class="cp-list">
-                    <ui-input-cp prop="calHeaderBg">Фон шапки</ui-input-cp>
-                    <ui-input-cp prop="calHeaderColor">Текст шапки</ui-input-cp>
+                    <!-- шапка есть только в полном режиме -->
+                    <template v-if="hasHeader">
+                        <ui-input-cp prop="calHeaderBg">Фон шапки</ui-input-cp>
+                        <ui-input-cp prop="calHeaderColor">Текст шапки</ui-input-cp>
+                    </template>
                     <ui-input-cp prop="calBg">Фон виджета</ui-input-cp>
                     <ui-input-cp prop="calCellBg">Фон ячейки</ui-input-cp>
                     <ui-input-cp prop="calAccentColor">Акцент</ui-input-cp>
@@ -217,12 +229,14 @@
                     <ui-input-cp prop="calCellBorderColor">Границы ячеек</ui-input-cp>
                 </div>
 
-                <!-- Heatmap colors — visible always for easy access -->
-                <div class="p-field-label" style="margin-top:10px">Тепловая карта</div>
-                <div class="cp-list">
-                    <ui-input-cp prop="calHeatmapColorLow">Цвет минимума</ui-input-cp>
-                    <ui-input-cp prop="calHeatmapColorHigh">Цвет максимума</ui-input-cp>
-                </div>
+                <!-- Цвета тепловой карты — только когда она красит ячейки (полный режим, карта включена) -->
+                <template v-if="hasHeatmap">
+                    <div class="p-field-label" style="margin-top:10px">Тепловая карта</div>
+                    <div class="cp-list">
+                        <ui-input-cp prop="calHeatmapColorLow">Цвет минимума</ui-input-cp>
+                        <ui-input-cp prop="calHeatmapColorHigh">Цвет максимума</ui-input-cp>
+                    </div>
+                </template>
             </div>
 
             <!-- ── Шрифт ───────────────────────────────────────────── -->
@@ -427,6 +441,28 @@ export default {
     }),
 
     computed: {
+        isCompact() {
+            return this.props.calMode === 'compact';
+        },
+        isCompactCalendarOn() {
+            return this.props.calCompactShowCalendar !== false;
+        },
+        // тултип текущего режима: полный — calShowTooltip, компактный — calCompactShowTooltip
+        // (в компактном он появляется только над днями мини-календаря)
+        isTooltipOn() {
+            if (!this.isCompact) return this.props.calShowTooltip !== false;
+            return this.isCompactCalendarOn && this.props.calCompactShowTooltip === true;
+        },
+        hasHeader() {
+            return !this.isCompact && Boolean(this.props.calShowHeader);
+        },
+        hasHeatmap() {
+            return !this.isCompact && Boolean(this.props.calHeatmapEnabled);
+        },
+        visibleColorFields() {
+            if (this.hasHeader) return this.colorFields;
+            return this.colorFields.filter((c) => c.key !== 'calHeaderBg' && c.key !== 'calHeaderColor');
+        },
         letterSpacingVal() {
             const v = parseFloat(this.props.calLetterSpacing || '0');
             return isNaN(v) ? 0 : v;
@@ -829,6 +865,11 @@ export default {
     gap: 8px;
 }
 .toggle-row__label { font-size: 12px; color: #334155; font-weight: 500; flex: 1; }
+.toggle-row--disabled { cursor: not-allowed; pointer-events: none; }
+.toggle-row--disabled .toggle-row__label,
+.toggle-row--disabled .toggle { opacity: 0.4; }
+.toggle-row__text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.toggle-row__hint { font-size: 10px; color: #94a3b8; line-height: 1.3; margin-top: 1px; }
 .toggle {
     width: 36px; height: 20px; border-radius: 10px;
     background: #e2e8f0; position: relative; flex-shrink: 0;
