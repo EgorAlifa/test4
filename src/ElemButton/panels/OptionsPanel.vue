@@ -156,6 +156,7 @@
                     <div class="adv-label">
                         <i class="mdi mdi-database-edit-outline" /> Установить переменные
                     </div>
+                    <div class="adv-desc">Значения для текущей страницы (в хранилище)</div>
                     <div
                         v-for="(filter, i) in props.filters"
                         :key="i"
@@ -173,7 +174,7 @@
                                 <ui-input
                                     v-else
                                     v-model="filter.name"
-                                    :list="`store-vars-${_uid}`"
+                                    :list="storeVarsListId"
                                     @change="onFilterChange(filter, i)">
                                     Переменная
                                 </ui-input>
@@ -186,15 +187,41 @@
                                     <i :class="['mdi', isFilterManual(i) ? 'mdi-database-search-outline' : 'mdi-pencil-outline']" />
                                 </button>
                             </div>
-                            <!-- Value -->
+                            <!-- Value: literal (JSON) OR current value of another store variable -->
                             <div class="filter-item__val">
+                                <template v-if="isFilterFromVar(filter)">
+                                    <ui-select
+                                        v-if="storeVarOptions.length > 0 && !isFilterManual(i)"
+                                        :value="filter.fromVar || ''"
+                                        :options="fromVarOptions"
+                                        @input="(val) => setFilterFromVar(filter, val)"
+                                        @change="onFilterChange(filter, i)">
+                                        Из переменной
+                                    </ui-select>
+                                    <ui-input
+                                        v-else
+                                        :value="filter.fromVar || ''"
+                                        :list="storeVarsListId"
+                                        @input="(val) => setFilterFromVar(filter, val)"
+                                        @change="onFilterChange(filter, i)">
+                                        Из переменной
+                                    </ui-input>
+                                </template>
                                 <ui-input
+                                    v-else
                                     :value="getFilterData(filter)"
                                     @input="(val) => setFilterData(filter, val)"
                                     @change="onFilterChange(filter, i)">
                                     Значение
                                 </ui-input>
                             </div>
+                            <button
+                                class="mode-btn"
+                                :class="{ 'mode-btn--manual': isFilterFromVar(filter) }"
+                                :title="isFilterFromVar(filter) ? 'Задать значение вручную' : 'Взять значение из переменной'"
+                                @click="toggleFilterValueSource(filter)">
+                                <i :class="['mdi', isFilterFromVar(filter) ? 'mdi-form-textbox' : 'mdi-variable']" />
+                            </button>
                             <button class="del-btn" @click="onFilterDelete(filter)">
                                 <i class="mdi mdi-close" />
                             </button>
@@ -205,7 +232,7 @@
                             Сейчас в хранилище: <strong>{{ getStoreVal(filter.name) }}</strong>
                         </div>
                     </div>
-                    <datalist :id="`store-vars-${_uid}`">
+                    <datalist :id="storeVarsListId">
                         <option v-for="v in storeVarNames" :key="v" :value="v" />
                     </datalist>
                     <ui-button type="ghost" @click="onFilterAdd">+ Добавить</ui-button>
@@ -224,26 +251,100 @@
                     <ui-input-tags v-else v-model="cutParams">Переменные для очистки</ui-input-tags>
 
                     <!-- Передать в URL -->
-                    <template v-if="props.url && storeVarOptions.length">
+                    <template v-if="props.url">
                         <div class="adv-label">
-                            <i class="mdi mdi-link-plus" /> Передать переменные в ссылку
+                            <i class="mdi mdi-link-plus" /> Фильтрация в URL
+                        </div>
+                        <div class="adv-desc">
+                            Переменные уйдут в ссылку перехода и отфильтруют открываемую страницу.
+                            Значения из «Установить переменные» сюда не попадают — добавьте переменную и здесь.
                         </div>
                         <div
                             v-for="(filter, i) in props.urlFilters"
                             :key="i"
                             class="filter-item">
                             <div class="filter-item__row">
-                                <div class="mode-field">
+                                <!-- Source «хранилище»: store variable, select OR manual input -->
+                                <div v-if="isUrlFilterFromStore(filter)" class="mode-field">
                                     <ui-select
-                                        v-model="filter.name"
+                                        v-if="storeVarOptions.length > 0 && !isUrlFilterManual(i)"
+                                        :value="getUrlFilterVarField(filter)"
                                         :options="storeVarOptions"
+                                        @input="(val) => setUrlFilterVar(filter, val)"
                                         @change="onUrlFilterChange">
                                         Переменная
                                     </ui-select>
+                                    <ui-input
+                                        v-else
+                                        :value="getUrlFilterVarField(filter)"
+                                        :placeholder="filter.name || ''"
+                                        :list="storeVarsListId"
+                                        @input="(val) => setUrlFilterVar(filter, val)"
+                                        @change="onUrlFilterChange">
+                                        Переменная
+                                    </ui-input>
+                                    <button
+                                        v-if="storeVarOptions.length > 0"
+                                        class="mode-btn"
+                                        :class="{ 'mode-btn--manual': isUrlFilterManual(i) }"
+                                        :title="isUrlFilterManual(i) ? 'Выбрать из хранилища' : 'Ввести вручную'"
+                                        @click="toggleUrlFilterMode(i)">
+                                        <i :class="['mdi', isUrlFilterManual(i) ? 'mdi-database-search-outline' : 'mdi-pencil-outline']" />
+                                    </button>
                                 </div>
+                                <!-- Source «значение»: the key goes first, value below -->
+                                <div v-else class="filter-item__val">
+                                    <ui-input
+                                        :value="filter.name || ''"
+                                        @input="(val) => setUrlFilterName(filter, val)"
+                                        @change="onUrlFilterChange">
+                                        Имя параметра в ссылке
+                                    </ui-input>
+                                </div>
+                                <button
+                                    class="mode-btn"
+                                    :class="{ 'mode-btn--manual': !isUrlFilterFromStore(filter) }"
+                                    :title="isUrlFilterFromStore(filter) ? 'Задать значение вручную' : 'Взять значение из хранилища'"
+                                    @click="toggleUrlFilterSource(filter)">
+                                    <i :class="['mdi', isUrlFilterFromStore(filter) ? 'mdi-form-textbox' : 'mdi-database-outline']" />
+                                </button>
                                 <button class="del-btn" @click="onUrlFilterDelete(i)">
                                     <i class="mdi mdi-close" />
                                 </button>
+                            </div>
+                            <div class="filter-item__row filter-item__row--sub">
+                                <div class="filter-item__val">
+                                    <ui-input
+                                        v-if="isUrlFilterFromStore(filter)"
+                                        :value="filter.name || ''"
+                                        :placeholder="getUrlFilterVar(filter)"
+                                        @input="(val) => setUrlFilterName(filter, val)"
+                                        @change="onUrlFilterChange">
+                                        Имя параметра в ссылке
+                                    </ui-input>
+                                    <!-- «значение»: plain string, no JSON parsing -->
+                                    <ui-input
+                                        v-else
+                                        :value="getUrlFilterData(filter)"
+                                        @input="(val) => setUrlFilterField(filter, 'data', val)"
+                                        @change="onUrlFilterChange">
+                                        Значение
+                                    </ui-input>
+                                </div>
+                            </div>
+                            <!-- Same query key on several rows: only the last non-empty one reaches the link -->
+                            <div
+                                v-if="isUrlFilterKeyDuplicated(filter)"
+                                class="filter-item__hint filter-item__hint--warn">
+                                <i class="mdi mdi-alert-outline" />
+                                Параметр «{{ getUrlFilterKey(filter) }}» задан несколько раз — в ссылку уйдёт последний
+                            </div>
+                            <!-- Current store value hint -->
+                            <div
+                                v-if="isUrlFilterFromStore(filter) && storeHasVar(getUrlFilterVar(filter))"
+                                class="filter-item__hint">
+                                <i class="mdi mdi-arrow-right-thin" />
+                                Сейчас в хранилище: <strong>{{ getStoreVal(getUrlFilterVar(filter)) }}</strong>
                             </div>
                         </div>
                         <ui-button type="ghost" @click="onUrlFilterAdd">+ Добавить</ui-button>
@@ -345,6 +446,8 @@ export default {
         openAdv: false,
         /** per-row mode: true = manual input, false = store select */
         filterManualModes: {},
+        /** same for «Передать переменные в ссылку» rows */
+        urlFilterManualModes: {},
         availableRoutes: [],
         routeDdOpen: false,
         /** Vuex unsubscribe fn — cleaned up in beforeDestroy */
@@ -362,7 +465,9 @@ export default {
                 return Object.entries(store.state || {})
                     .filter(([k]) => k)
                     .sort(([a], [b]) => a.localeCompare(b))
-                    .map(([name, val]) => {
+                    .map(([name, valueObject]) => {
+                        // store.state entries are ValueObject { value, meta } — show the value itself
+                        const val = valueObject?.value;
                         const isNull = val === null || val === undefined;
                         const isArray = Array.isArray(val);
                         const isObject = !isNull && !isArray && typeof val === 'object';
@@ -379,6 +484,20 @@ export default {
                 }))
             ];
         },
+        /** id of the shared <datalist> with store variable names (manual input suggestions) */
+        storeVarsListId() {
+            return ['store-vars', this._uid].join('-');
+        },
+        /** Query key → number of «Передать в ссылку» rows using it */
+        urlFilterKeyCounts() {
+            return this.props.urlFilters.reduce((acc, row) => {
+                const key = this.getUrlFilterKey(row);
+                return key === '' ? acc : { ...acc, [key]: (acc[key] || 0) + 1 };
+            }, {});
+        },
+        fromVarOptions() {
+            return [{ label: '— выбрать переменную —', value: '' }, ...this.storeVarOptions];
+        },
         toggleVarOptions() {
             return [{ label: '—', value: '' }, ...this.storeVarOptions];
         },
@@ -391,7 +510,10 @@ export default {
             return r ? `${r.title || r.name || r.slug}  (${r.slug})` : this.props.url;
         },
         routeQueryParamOptions() {
-            return this.props.filters.map(({ name, data }) => ({ label: name, value: String(data) }));
+            // «из переменной» rows have no static value to put into the page URL
+            return this.props.filters
+                .filter(({ valueSource }) => valueSource !== 'var')
+                .map(({ name, data }) => ({ label: name, value: String(data) }));
         },
         hasAdvancedActions() {
             return this.props.filters.length > 0 ||
@@ -539,7 +661,7 @@ export default {
             return s.length > 22 ? `${s.slice(0, 22)}…` : s || '—';
         },
         getStoreVal(name) {
-            try { return this.formatStoreVal(store.state[name]); } catch (e) { return '—'; }
+            try { return this.formatStoreVal(store.state[name]?.value); } catch (e) { return '—'; }
         },
         copyToClipboard(text) {
             try { navigator.clipboard.writeText(text); } catch (e) { /* noop */ }
@@ -632,8 +754,94 @@ export default {
         onFilterAdd() {
             this.props.filters.push(this.descriptor.props.filters.factory());
         },
+        /** Old configs have no valueSource ⇒ literal */
+        isFilterFromVar({ valueSource }) {
+            return valueSource === 'var';
+        },
+        setFilterFromVar(filter, val) {
+            // $set: old-config rows have no `fromVar` key yet
+            this.$set(filter, 'fromVar', val);
+        },
+        toggleFilterValueSource(filter) {
+            if (this.isFilterFromVar(filter)) {
+                this.$set(filter, 'valueSource', 'literal');
+                this.$set(filter, 'fromVar', '');
+            } else {
+                this.$set(filter, 'valueSource', 'var');
+            }
+            // saveFilters() drops rows without a name — don't lose a row that is still being filled in
+            if (filter.name) {
+                this.saveFilters();
+            }
+        },
+        isUrlFilterManual(i) {
+            return !!this.urlFilterManualModes[i];
+        },
+        toggleUrlFilterMode(i) {
+            this.urlFilterManualModes = { ...this.urlFilterManualModes, [i]: !this.urlFilterManualModes[i] };
+        },
+        /** Old configs have no source ⇒ store */
+        isUrlFilterFromStore({ source }) {
+            return source !== 'value';
+        },
+        /** Effective store variable of the row (as read at runtime): empty `var` ⇒ name */
+        getUrlFilterVar({ name, var: varName }) {
+            return varName || name || '';
+        },
+        /** Old `{ name }` rows have no `var` key at all — there name IS the variable */
+        isUrlFilterLegacy(filter) {
+            return Object.prototype.hasOwnProperty.call(filter, 'var') === false;
+        },
+        /** Value shown in the «Переменная» field: raw `var` (so it can be cleared), legacy rows ⇒ name */
+        getUrlFilterVarField(filter) {
+            return this.isUrlFilterLegacy(filter) ? filter.name || '' : filter.var || '';
+        },
+        /** Query key of the row (as used at runtime) */
+        getUrlFilterKey({ name, var: varName }) {
+            return name || varName || '';
+        },
+        isUrlFilterKeyDuplicated(filter) {
+            const key = this.getUrlFilterKey(filter);
+            return key !== '' && (this.urlFilterKeyCounts[key] || 0) > 1;
+        },
+        getUrlFilterData({ data }) {
+            return data == null ? '' : String(data);
+        },
+        setUrlFilterField(filter, key, val) {
+            // $set: old-config rows have no `var` / `source` / `data` keys yet
+            this.$set(filter, key, val);
+        },
+        setUrlFilterName(filter, val) {
+            // Legacy `{ name }` row: freeze the variable it reads before the key is renamed,
+            // otherwise renaming/clearing the key would silently switch (or drop) the variable
+            if (this.isUrlFilterLegacy(filter)) {
+                this.$set(filter, 'var', filter.name || '');
+            }
+            this.$set(filter, 'name', val);
+        },
+        setUrlFilterVar(filter, val) {
+            // Query key follows the variable only while it is not set on its own:
+            // empty key, legacy row (name IS the var) or key still equal to a non-empty previous var
+            const name = filter.name || '';
+            const prevVar = filter.var || '';
+            const isKeyFollowing = name === '' || this.isUrlFilterLegacy(filter) || (prevVar !== '' && name === prevVar);
+            if (isKeyFollowing) {
+                this.$set(filter, 'name', val);
+            }
+            this.$set(filter, 'var', val);
+        },
+        isUrlFilterEmpty({ name, var: varName, data }) {
+            return [name, varName, data].every((val) => val == null || val === '');
+        },
+        toggleUrlFilterSource(filter) {
+            this.$set(filter, 'source', this.isUrlFilterFromStore(filter) ? 'value' : 'store');
+            // saveUrlFilters() drops empty rows — don't lose a row that is still being filled in
+            if (this.isUrlFilterEmpty(filter) === false) {
+                this.saveUrlFilters();
+            }
+        },
         saveUrlFilters() {
-            this.props.urlFilters = this.props.urlFilters.filter(({ name }) => name.length > 0);
+            this.props.urlFilters = this.props.urlFilters.filter((row) => this.isUrlFilterEmpty(row) === false);
             this.propChanged('urlFilters');
         },
         onUrlFilterAdd() {
@@ -643,6 +851,7 @@ export default {
             this.props.urlFilters = this.props.urlFilters.filter((_, i) => i !== index);
             this.saveUrlFilters();
         },
+        // No dedup here: duplicate keys are only flagged in the UI (isUrlFilterKeyDuplicated)
         onUrlFilterChange() {
             this.saveUrlFilters();
         }
@@ -812,6 +1021,12 @@ export default {
     border-bottom: 1px solid #f1f5f9;
 }
 .adv-label .mdi { font-size: 14px; }
+.adv-desc {
+    font-size: 11px;
+    line-height: 1.35;
+    color: #94a3b8;
+    margin-bottom: 6px;
+}
 
 /* ── Filter items ───────────────────────────────────────────────── */
 .filter-item { margin-bottom: 6px; }
@@ -820,6 +1035,7 @@ export default {
     align-items: flex-end;
     gap: 5px;
 }
+.filter-item__row--sub { margin-top: 4px; }
 .filter-item__val { flex: 1; min-width: 0; }
 
 /* mode-field: input/select + toggle button side by side */
@@ -887,6 +1103,8 @@ export default {
 }
 .filter-item__hint .mdi { font-size: 12px; color: #94a3b8; }
 .filter-item__hint strong { color: #1e293b; font-weight: 600; }
+.filter-item__hint--warn,
+.filter-item__hint--warn .mdi { color: #b45309; }
 
 /* ── Store explorer ─────────────────────────────────────────────── */
 .store-table {

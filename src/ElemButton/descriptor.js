@@ -10,9 +10,25 @@ export const Vars = Object.freeze({
 });
 
 /**
+ * «Установить переменные» row.
+ * Missing `valueSource` (old configs) ⇒ 'literal'.
+ *
  * @typedef {object} FilterItem
- * @property {string} name
- * @property {string} data
+ * @property {string} name — target store variable
+ * @property {*} data — literal value (used when valueSource === 'literal')
+ * @property {'literal'|'var'} [valueSource] — where the value comes from
+ * @property {string} [fromVar] — source store variable (used when valueSource === 'var')
+ */
+
+/**
+ * «Передать переменные в ссылку» row.
+ * Old configs are `{ name }` only: name is both the query key and the store variable.
+ *
+ * @typedef {object} UrlFilterItem
+ * @property {string} name — ALWAYS the query key in the link
+ * @property {string} [var] — store variable to read (empty ⇒ name)
+ * @property {'store'|'value'} [source] — 'store' (default, also when missing) | 'value'
+ * @property {string} [data] — literal value (used when source === 'value')
  */
 export const descriptor = () => ({
     props: {
@@ -40,9 +56,9 @@ export const descriptor = () => ({
             default() {
                 return [];
             },
-            /** @return {FilterItem[]} */
+            /** @return {FilterItem} */
             factory() {
-                return { name: '', data: '' };
+                return { name: '', data: '', valueSource: 'literal', fromVar: '' };
             }
         },
         urlFilters: {
@@ -50,9 +66,9 @@ export const descriptor = () => ({
             default() {
                 return [];
             },
-            /** @return {FilterItem[]} */
+            /** @return {UrlFilterItem} */
             factory() {
-                return { name: '' };
+                return { name: '', var: '', source: 'store', data: '' };
             }
         },
         isClickSelf: {

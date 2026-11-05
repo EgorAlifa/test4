@@ -73,10 +73,11 @@
  */
 import { Elem, Managers } from 'goodt-wcore';
 import { Url } from '@goodt-common/utils';
+import { cloneDeep } from 'lodash';
 import { useRouteQueryManager } from '@goodt-wcore/utils';
 import { Popover } from 'goodteditor-ui';
 import { POPUP_LIFETIME } from './constants';
-import { buildSerializedStoreUrl } from './utils';
+import { buildSerializedStoreUrl, stringifyQuery, toQueryValue } from './utils';
 import { meta, Vars } from './descriptor';
 import TiptapEditor from './components/TiptapEditor.vue';
 
@@ -232,10 +233,24 @@ export default {
             this.onClick();
         },
         buildStateFromFilters(filters) {
-            return filters.reduce(
-                (acc, { name, data }) => ({ ...acc, [name]: new ValueObject(data, store.state[name]?.meta) }),
-                {}
-            );
+            return filters.reduce((acc, { name, data, valueSource, fromVar }) => {
+                if (valueSource !== 'var') {
+                    return { ...acc, [name]: new ValueObject(data, store.state[name]?.meta) };
+                }
+                // «A = текущее значение B», source var not chosen yet — leave the target untouched
+                if (fromVar == null || fromVar === '') {
+                    return acc;
+                }
+                // B may be set earlier in the same list — its new value wins over the store
+                const isSetInBatch = Object.prototype.hasOwnProperty.call(acc, fromVar);
+                const value = (isSetInBatch ? acc[fromVar] : store.state[fromVar])?.value;
+                // empty/cleared source clears the target (bare undefined, as applyCutParams)
+                const isEmpty = [null, undefined, ''].includes(value) || (Array.isArray(value) && value.length === 0);
+                if (isEmpty) {
+                    return { ...acc, [name]: undefined };
+                }
+                return { ...acc, [name]: new ValueObject(cloneDeep(value), store.state[name]?.meta) };
+            }, {});
         },
         applyCutParams() {
             const { cutParams } = this;
@@ -274,28 +289,52 @@ export default {
             this.eventName.forEach(this.$eventTrigger);
         },
         // ── Platform helpers (mirrors ElemRoutesNavigator logic) ─────────
+        // Режим берётся из флага платформы isEditorMode. Разбор адреса — только запасной вариант:
+        // публикация по ссылке открывается по адресу /editor/public/<имя>-<хеш>/ — в нём есть «/editor/»,
+        // но это просмотр, а не редактор (раньше из-за этого переходы в публикациях не работали).
         _detectPlatformMode() {
+            if (typeof this.isEditorMode === 'boolean') return this.isEditorMode ? 'editor' : 'player';
             if (typeof window === 'undefined') return 'unknown';
             const href = window.location.href;
-            if (href.includes('/player/')) return 'player';
+            if (this._isViewerUrl(href)) return 'player';
             if (href.includes('/editor/')) return 'editor';
             return 'player';
         },
 
+        // Плеер проекта (/player/) и публикация по ссылке (/public/) — режимы просмотра
+        _isViewerUrl(href) {
+            return href.includes('/player/') || href.includes('/public/');
+        },
+
+        // Splits a relative slug/path into a root-based route path and its own query:
+        // '#/3?x=1' | '/3?x=1' | '3?x=1' → { path: '/3', query: { x: '1' } }
+        _splitRelativeUrl(url) {
+            const clean = String(url).replace(/^[#/]+/, '');
+            const queryIdx = clean.indexOf('?');
+            const pathPart = queryIdx >= 0 ? clean.substring(0, queryIdx) : clean;
+            const search = queryIdx >= 0 ? clean.substring(queryIdx + 1) : '';
+            const query = search ? Url.create(`/?${search}`).query : {};
+            return { path: `/${pathPart}`, query };
+        },
+
         // Builds a full navigable URL for a relative slug/path, accounting for
-        // the deployment base path (e.g. /insight-dev/editor/player/3836/#/).
-        _buildNavigationUrl(url) {
+        // the deployment base path (e.g. /insight-dev/editor/player/3836/#/ or /editor/public/<имя>-<хеш>/#/).
+        // `query` (button vars) is merged over the link's own query.
+        _buildNavigationUrl(url, query = {}) {
             if (!url) return url;
             if (url.startsWith('http://') || url.startsWith('https://')) return url;
+            const { path, query: urlQuery } = this._splitRelativeUrl(url);
+            const merged = { ...urlQuery, ...query };
+            const search = stringifyQuery(merged);
+            const route = search ? `${path}?${search}` : path;
             const href = window.location.href;
-            if (href.includes('/player/')) {
+            if (this._isViewerUrl(href)) {
                 const hashIdx = href.indexOf('#');
                 const base = hashIdx >= 0 ? href.substring(0, hashIdx) : href.replace(/\/?$/, '/');
-                const clean = url.replace(/^[#/]+/, '');
-                return `${base}#/${clean}`;
+                return `${base}#${route}`;
             }
             if (this.$router) {
-                const { href: resolved } = this.$router.resolve(url);
+                const { href: resolved } = this.$router.resolve({ path, query: merged });
                 if (resolved.startsWith('#')) {
                     return window.location.origin + window.location.pathname + resolved;
                 }
@@ -303,15 +342,17 @@ export default {
             }
             if (window.location.hash) {
                 const base = href.replace(/#.*$/, '');
-                return `${base}#${url.replace(/^[#/]+/, '')}`;
+                return `${base}#${route}`;
             }
-            return window.location.origin + (url.startsWith('/') ? '' : '/') + url;
+            return window.location.origin + route;
         },
 
         navigateUrl() {
             const allowedProtocols = ['http', 'https'];
             const { url, isTargetBlank } = this.props;
             if ([null, undefined, ''].includes(url)) return;
+            // Never navigate from the editor — same tab, new tab and absolute links alike
+            if (this._detectPlatformMode() === 'editor') return;
             if (typeof window === 'undefined') return;
 
             const urlModel = Url.create(url);
@@ -331,24 +372,19 @@ export default {
                 return;
             }
 
-            // Relative URL — platform-aware navigation
-            const mode = this._detectPlatformMode();
-
+            // Relative URL, new tab — same app: `<href before #>#/route?vars`
             if (isTargetBlank) {
-                window.open(this._buildNavigationUrl(url), '_blank', 'noopener,noreferrer');
+                window.open(this._buildNavigationUrl(url, queryParams), '_blank', 'noopener,noreferrer');
                 return;
             }
 
-            // Don't navigate while in the editor
-            if (mode === 'editor') return;
-
-            // Player / standalone — navigate in the same tab
+            // Relative URL, same tab (player / standalone)
             if (this.$router) {
-                const path = url.replace(/^#/, '');
-                const qp = queryParams && typeof queryParams === 'object' ? queryParams : {};
-                this.$router.push({ path, query: qp }).catch(() => {});
+                const { path, query } = this._splitRelativeUrl(url);
+                const route = { path, query: { ...query, ...queryParams } };
+                this.$router.push(route).catch(() => {});
             } else {
-                window.location.href = this._buildNavigationUrl(url);
+                window.location.href = this._buildNavigationUrl(url, queryParams);
             }
         },
         saveUrlInStorage() {
@@ -427,13 +463,20 @@ export default {
             this.props.btnPaddingH = s.paddingH; this.propChanged('btnPaddingH');
             this.props.btnFontSize = s.fontSize; this.propChanged('btnFontSize');
         },
+        // Reads the CURRENT store (after cutParams/filters were applied in onClick):
+        // cleared vars are empty and skipped, vars set by filters go with their new value.
         buildNavigateQueryParams() {
             const { urlFilters } = this.props;
-            if (urlFilters.length === 0) return '';
             const { state } = store;
-            return urlFilters
-                .filter(({ name }) => [null, undefined, ''].includes(state[name]?.value) === false)
-                .reduce((acc, { name }) => ({ ...acc, [name]: state[name].value }), {});
+            return urlFilters.reduce((acc, { name, var: varName, source, data }) => {
+                const key = name || varName;
+                if (key == null || key === '') {
+                    return acc;
+                }
+                const rawValue = source === 'value' ? data : state[varName || name]?.value;
+                const value = toQueryValue(rawValue);
+                return value === undefined ? acc : { ...acc, [key]: value };
+            }, {});
         }
     }
 };
