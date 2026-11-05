@@ -1978,24 +1978,31 @@ export default {
             this._commitDate(parsed.iso);
         },
 
-        // Диапазон: введённая дата ставится на свой край; если края оказались в обратном
-        // порядке (конец раньше начала), они меняются местами вместе со временем — как при
-        // выборе двух дней в мини-календаре. Без второй даты получается однодневный диапазон.
+        // Диапазон: введённое значение всегда остаётся в том чипе, куда его ввели; подстраивается
+        // другой край. «С» позже «По» → «По» := та же дата (однодневный диапазон, время «По»
+        // сохраняется); «По» раньше «С» → «С» := та же дата. Если в один день время конца
+        // оказалось раньше времени начала — подтягивается время другого края (конец ≥ начала).
+        // Без второй даты получается однодневный диапазон.
         _applyCompactRangeInput(parsed, side) {
             const withTime = Boolean(this.props.calWithTime);
-            const typed = { iso: parsed.iso, time: withTime && parsed.time ? parsed.time : null };
-            const otherIso = side === 'start' ? this.compactEnd : this.compactStart;
-            const other = {
-                iso: otherIso || parsed.iso,
-                time: side === 'start' ? this.rangeEndTime : this.rangeStartTime
-            };
-            let [s, e] = side === 'start' ? [typed, other] : [other, typed];
-            if (s.iso > e.iso) [s, e] = [e, s];
-            if (withTime) {
-                if (s.time) this.rangeStartTime = s.time;
-                if (e.time) this.rangeEndTime = e.time;
+            const typedTime = withTime && parsed.time ? parsed.time : null;
+            let start = this.compactStart || parsed.iso;
+            let end = this.compactEnd || parsed.iso;
+            if (side === 'start') {
+                start = parsed.iso;
+                if (end < start) end = start;
+                if (withTime && typedTime) this.rangeStartTime = typedTime;
+            } else {
+                end = parsed.iso;
+                if (start > end) start = end;
+                if (withTime && typedTime) this.rangeEndTime = typedTime;
             }
-            this._setCompactRange(s.iso, e.iso);
+            if (withTime && start === end && this.rangeStartTime && this.rangeEndTime
+                && this.rangeEndTime < this.rangeStartTime) {
+                if (side === 'start') this.rangeEndTime = this.rangeStartTime;
+                else                  this.rangeStartTime = this.rangeEndTime;
+            }
+            this._setCompactRange(start, end);
         },
 
         // ── Helpers ──────────────────────────────────────────────────
