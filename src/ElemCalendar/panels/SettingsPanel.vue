@@ -60,11 +60,8 @@
                     </div>
                 </div>
                 <!-- первый день влияет на сетку месяца и пресеты «Эта/Пр. неделя»; без календаря и пресетов — ни на что -->
-                <div class="p-row" :class="{ 'p-row--disabled': !isFirstDayUseful }">
-                    <span class="toggle-row__text">
-                        <span class="p-row__label">Первый день недели</span>
-                        <span v-if="!isFirstDayUseful" class="toggle-row__hint">Нет мини-календаря и пресетов</span>
-                    </span>
+                <div v-if="isFirstDayUseful" class="p-row">
+                    <span class="p-row__label">Первый день недели</span>
                     <div class="seg-ctrl">
                         <button
                             class="seg-ctrl__btn"
@@ -143,32 +140,31 @@
                     </div>
                 </div>
 
-                <!-- Формат значения в переменных (date / dateStart / dateEnd / datesList) -->
-                <template v-if="selectionMode !== 'none'">
-                    <div class="p-row" style="margin-top:6px">
-                        <span class="p-row__label">Формат даты в переменных</span>
+                <!-- Формат значения в переменных (date / dateStart / dateEnd / datesList).
+                     'auto' (старые виджеты) не показывается — подсвечивается действующий формат -->
+                <div v-if="selectionMode !== 'none'" class="p-row">
+                    <span class="p-row__label p-row__label--nowrap">В переменную</span>
+                    <div class="seg-ctrl seg-ctrl--tight">
+                        <button
+                            v-for="f in outputFormatOptions"
+                            :key="f.value"
+                            class="seg-ctrl__btn"
+                            :class="{ 'seg-ctrl__btn--active': effectiveFormat === f.value }"
+                            @click="set('calOutputFormat', f.value)">
+                            {{ f.label }}
+                        </button>
                     </div>
-                    <ui-select prop="calOutputFormat" :options="outputFormatOptions" />
-                    <div
-                        v-if="['timestamp', 'datetime'].includes(props.calOutputFormat) && !isTimeOn"
-                        class="p-hint">
-                        Без выбора времени: начало — 00:00:00, конец диапазона — 23:59:59.
-                    </div>
-                </template>
+                </div>
 
-                <!-- время: только для одиночной даты и диапазона («Несколько» передаёт список дат, «Нет» — ничего);
-                     формат «Дата» время отбрасывает -->
-                <template v-if="isTimeApplicable">
-                    <label class="toggle-row" style="margin-top:4px" :class="{ 'toggle-row--disabled': isDateOnlyFormat }">
-                        <span class="toggle-row__text">
-                            <span class="toggle-row__label">Выбор времени</span>
-                            <span v-if="isDateOnlyFormat" class="toggle-row__hint">Формат «Дата» передаёт дату без времени</span>
-                            <span v-else class="toggle-row__hint">Время попадает в переменную в форматах «Авто», «Timestamp», «Дата и время»</span>
-                        </span>
-                        <div class="toggle" :class="{ 'toggle--on': isTimeOn }" @click="!isDateOnlyFormat && toggleBool('calWithTime')">
+                <!-- время: только для одиночной даты и диапазона; формат «Дата» время отбрасывает -->
+                <template v-if="isTimeApplicable && effectiveFormat !== 'date'">
+                    <label class="toggle-row">
+                        <span class="toggle-row__label">Выбор времени</span>
+                        <div class="toggle" :class="{ 'toggle--on': isTimeOn }" @click="toggleBool('calWithTime')">
                             <div class="toggle__thumb" />
                         </div>
                     </label>
+                    <div v-if="!isTimeOn" class="p-hint" style="margin-bottom:4px">Без времени: начало — 00:00:00, конец — 23:59:59.</div>
                     <div v-if="isTimeOn" class="sub-group">
                         <div class="p-row">
                             <span class="p-row__label">{{ isRangeMode ? 'Время начала' : 'Время' }}</span>
@@ -193,10 +189,9 @@
                                 @change="setTime('calDefaultEndTime', $event, '23:59')" />
                         </div>
                         <div v-if="isTimeInvalid('calDefaultStartTime') || isTimeInvalid('calDefaultEndTime')" class="p-warn" style="margin:0 0 4px">
-                            Время — в формате ЧЧ:мм (24 часа), от 00:00 до 23:59. Неверное значение не применяется.
+                            Формат ЧЧ:мм, 00:00–23:59. Неверное значение не применяется.
                         </div>
-                        <div v-if="!isCompact" class="p-hint">В полном календаре время не вводится — подставляется время по умолчанию.</div>
-                    </div>
+                                            </div>
                 </template>
             </div>
 
@@ -210,38 +205,31 @@
                         <div class="toggle__thumb" />
                     </div>
                 </label>
-                <div class="sub-group">
-                    <label class="toggle-row" :class="{ 'toggle-row--disabled': !isCalendarOn }">
-                        <span class="toggle-row__text">
-                            <span class="toggle-row__label">Два месяца рядом</span>
-                            <span v-if="!isCalendarOn" class="toggle-row__hint">Нужен мини-календарь</span>
-                        </span>
-                        <div class="toggle" :class="{ 'toggle--on': isDualMonth }" @click="isCalendarOn && toggleBool('calCompactDualMonth')">
+                <div v-if="isCalendarOn" class="sub-group">
+                    <label class="toggle-row">
+                        <span class="toggle-row__label">Два месяца рядом</span>
+                        <div class="toggle" :class="{ 'toggle--on': isDualMonth }" @click="toggleBool('calCompactDualMonth')">
                             <div class="toggle__thumb" />
                         </div>
                     </label>
-                    <template v-if="isCalendarOn">
-                        <label class="toggle-row">
-                            <span class="toggle-row__label">Показывать выходные</span>
-                            <div class="toggle" :class="{ 'toggle--on': props.calShowWeekends }" @click="toggleBool('calShowWeekends')">
-                                <div class="toggle__thumb" />
-                            </div>
-                        </label>
-                        <label class="toggle-row">
-                            <span class="toggle-row__label">Выделять «Сегодня»</span>
-                            <div class="toggle" :class="{ 'toggle--on': props.calHighlightToday !== false }" @click="toggleBool('calHighlightToday')">
-                                <div class="toggle__thumb" />
-                            </div>
-                        </label>
-                    </template>
+                    <label class="toggle-row">
+                        <span class="toggle-row__label">Показывать выходные</span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calShowWeekends }" @click="toggleBool('calShowWeekends')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
+                    <label class="toggle-row">
+                        <span class="toggle-row__label">Выделять «Сегодня»</span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calHighlightToday !== false }" @click="toggleBool('calHighlightToday')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
                 </div>
 
-                <label class="toggle-row" :class="{ 'toggle-row--disabled': isDualMonth }">
-                    <span class="toggle-row__text">
-                        <span class="toggle-row__label">{{ isCalendarOn ? 'Кнопка «Сегодня» в шапке' : 'Кнопка «Сегодня»' }}</span>
-                        <span v-if="isDualMonth" class="toggle-row__hint">Нет в режиме «Два месяца рядом»</span>
-                    </span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowToday !== false && !isDualMonth }" @click="!isDualMonth && toggleBool('calCompactShowToday')">
+                <!-- в режиме «Два месяца рядом» кнопки «Сегодня» нет -->
+                <label v-if="!isDualMonth" class="toggle-row">
+                    <span class="toggle-row__label">{{ isCalendarOn ? 'Кнопка «Сегодня» в шапке' : 'Кнопка «Сегодня»' }}</span>
+                    <div class="toggle" :class="{ 'toggle--on': props.calCompactShowToday !== false }" @click="toggleBool('calCompactShowToday')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
@@ -274,10 +262,10 @@
                         </div>
                     </div>
                 </div>
-                <div v-else class="p-hint">Без нижней панели выбор применяется сразу, без кнопки «Применить».</div>
+                <div v-else class="p-hint">Выбор применяется сразу, без «Применить».</div>
 
                 <div v-if="isCompactEmpty" class="p-warn">
-                    Мини-календарь, пресеты и нижняя панель выключены — выбрать дату в виджете нечем.
+                    Всё выключено — выбрать дату в виджете нечем.
                 </div>
             </div>
 
@@ -306,12 +294,11 @@
 
                     <div class="p-section__label" style="margin-bottom:4px">Список пресетов</div>
                     <div v-if="!isRangeMode" class="p-hint" style="margin-bottom:4px">
-                        Режим «Одиночный»: показываются только пресеты на один день (Вчера, Сегодня, одна дата, «1 день»).
-                        Пресеты-диапазоны скрыты.
+                        «Одиночный»: показываются только пресеты на один день.
                     </div>
-                    <div v-if="localPresets.length === 0" class="preset-empty">Пресеты не добавлены — кнопки не будут показаны</div>
+                    <div v-if="localPresets.length === 0" class="preset-empty">Пресетов нет</div>
                     <div v-else-if="visiblePresetsCount === 0" class="p-warn" style="margin:0 0 6px">
-                        Ни один пресет не подходит к текущему режиму — кнопки не будут показаны.
+                        Ни один пресет не подходит к режиму — кнопок не будет.
                     </div>
                     <div class="preset-cards">
                         <div
@@ -388,7 +375,7 @@
                                     @input="onPresetDateInput('end', $event)" />
                             </div>
                             <div v-if="presetDateError.start || presetDateError.end" class="p-warn" style="margin:0 0 4px">
-                                Дата — в формате ДД.ММ.ГГГГ. Конец можно не указывать — будет равен началу.
+                                Формат ДД.ММ.ГГГГ. Конец можно не указывать.
                             </div>
                         </template>
                         <template v-if="newPreset.type === 'relative'">
@@ -420,12 +407,9 @@
                 </label>
                 <!-- переключатель видов и кнопки «Сегодня»/«Сброс» живут в шапке -->
                 <div v-if="props.calShowHeader" class="sub-group">
-                    <label class="toggle-row" :class="{ 'toggle-row--disabled': !hasSeveralViews }">
-                        <span class="toggle-row__text">
-                            <span class="toggle-row__label">Переключатель видов</span>
-                            <span v-if="!hasSeveralViews" class="toggle-row__hint">Включён только один вид</span>
-                        </span>
-                        <div class="toggle" :class="{ 'toggle--on': props.calShowViewSwitcher && hasSeveralViews }" @click="hasSeveralViews && toggleBool('calShowViewSwitcher')">
+                    <label v-if="hasSeveralViews" class="toggle-row">
+                        <span class="toggle-row__label">Переключатель видов</span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calShowViewSwitcher }" @click="toggleBool('calShowViewSwitcher')">
                             <div class="toggle__thumb" />
                         </div>
                     </label>
@@ -442,7 +426,6 @@
                         </div>
                     </label>
                 </div>
-                <div v-else class="p-hint" style="margin-bottom:4px">Без шапки нет навигации, переключателя видов и кнопок «Сегодня»/«Сброс».</div>
 
                 <label class="toggle-row">
                     <span class="toggle-row__label">Выделять «Сегодня»</span>
@@ -450,37 +433,33 @@
                         <div class="toggle__thumb" />
                     </div>
                 </label>
-                <label class="toggle-row" :class="{ 'toggle-row--disabled': !hasMonthView }">
-                    <span class="toggle-row__text">
+                <!-- номера недель и скрытие выходных — только сетка месяца -->
+                <template v-if="hasMonthView">
+                    <label class="toggle-row">
                         <span class="toggle-row__label">Номера недель</span>
-                        <span v-if="!hasMonthView" class="toggle-row__hint">Только для вида «Месяц»</span>
-                    </span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calShowWeekNumbers && hasMonthView }" @click="hasMonthView && toggleBool('calShowWeekNumbers')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
-                <label class="toggle-row" :class="{ 'toggle-row--disabled': !hasMonthView }">
-                    <span class="toggle-row__text">
+                        <div class="toggle" :class="{ 'toggle--on': props.calShowWeekNumbers }" @click="toggleBool('calShowWeekNumbers')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
+                    <label class="toggle-row">
                         <span class="toggle-row__label">Показывать выходные</span>
-                        <span v-if="!hasMonthView" class="toggle-row__hint">Только для вида «Месяц»</span>
-                    </span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calShowWeekends && hasMonthView }" @click="hasMonthView && toggleBool('calShowWeekends')">
-                        <div class="toggle__thumb" />
-                    </div>
-                </label>
-                <label class="toggle-row" :class="{ 'toggle-row--disabled': !hasHeatmapView }">
-                    <span class="toggle-row__text">
+                        <div class="toggle" :class="{ 'toggle--on': props.calShowWeekends }" @click="toggleBool('calShowWeekends')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
+                </template>
+                <!-- тепловая карта красит ячейки месяца и года -->
+                <template v-if="hasHeatmapView">
+                    <label class="toggle-row">
                         <span class="toggle-row__label">Тепловая карта</span>
-                        <span v-if="!hasHeatmapView" class="toggle-row__hint">Только для видов «Месяц» и «Год»</span>
-                    </span>
-                    <div class="toggle" :class="{ 'toggle--on': props.calHeatmapEnabled && hasHeatmapView }" @click="hasHeatmapView && toggleBool('calHeatmapEnabled')">
-                        <div class="toggle__thumb" />
+                        <div class="toggle" :class="{ 'toggle--on': props.calHeatmapEnabled }" @click="toggleBool('calHeatmapEnabled')">
+                            <div class="toggle__thumb" />
+                        </div>
+                    </label>
+                    <div v-if="props.calHeatmapEnabled" class="p-hint" style="margin:0 0 6px">
+                        Данные метрики — в панели <strong>Данные</strong>.
                     </div>
-                </label>
-                <div v-if="props.calHeatmapEnabled && hasHeatmapView" class="p-hint" style="margin:0 0 6px">
-                    Привяжите столбец метрики в панели <strong>Данные</strong> (поле «Столбец метрики»),
-                    затем укажите переменную хранилища или статичный JSON с данными метрики.
-                </div>
+                </template>
             </div>
 
         </ui-container>
@@ -561,13 +540,20 @@ export default {
 
     computed: {
         /** Варианты calOutputFormat (utils/date-output.js) */
+        /** Явные варианты calOutputFormat (utils/date-output.js); 'auto' — только значение по умолчанию */
         outputFormatOptions() {
             return [
-                { label: 'Авто (timestamp при выборе времени, иначе дата)', value: 'auto' },
-                { label: 'Дата ГГГГ-ММ-ДД', value: 'date' },
-                { label: 'Timestamp (мс)', value: 'timestamp' },
-                { label: 'Дата и время ГГГГ-ММ-ДД ЧЧ:мм:сс', value: 'datetime' }
+                { label: 'Дата', value: 'date' },
+                { label: 'Timestamp', value: 'timestamp' },
+                { label: 'Дата и время', value: 'datetime' }
             ];
+        },
+        // Действующий формат: для 'auto' (и пустого/неизвестного) — как resolveOutputFormat в виджете:
+        // timestamp при выборе времени, иначе дата
+        effectiveFormat() {
+            const f = this.props.calOutputFormat;
+            if (['date', 'timestamp', 'datetime'].includes(f)) return f;
+            return this.isTimeApplicable && this.props.calWithTime ? 'timestamp' : 'date';
         },
         // ── Зависимости настроек: условия совпадают с v-if в шаблоне ElemCalendar.vue ──
         isCompact() {
@@ -1018,9 +1004,6 @@ export default {
 }
 .p-row--col { flex-direction: column; align-items: flex-start; }
 .p-row__label { font-size: 12px; font-weight: 500; color: #334155; }
-.p-row--disabled .p-row__label,
-.p-row--disabled .seg-ctrl { opacity: 0.4; }
-.p-row--disabled .seg-ctrl { pointer-events: none; }
 
 /* ── Segmented control ────────────────────────────────────────── */
 .seg-ctrl {
@@ -1047,6 +1030,8 @@ export default {
     white-space: nowrap;
 }
 .seg-ctrl__btn:hover { color: #334155; }
+.seg-ctrl--tight .seg-ctrl__btn { padding: 4px 7px; }
+.p-row__label--nowrap { white-space: nowrap; }
 .seg-ctrl__btn--active {
     background: #fff;
     color: #4f6aff;
@@ -1118,11 +1103,6 @@ export default {
     gap: 8px;
 }
 .toggle-row__label { font-size: 12px; color: #334155; font-weight: 500; flex: 1; }
-.toggle-row--disabled { cursor: not-allowed; pointer-events: none; }
-.toggle-row--disabled .toggle-row__label,
-.toggle-row--disabled .toggle { opacity: 0.4; }
-.toggle-row__text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.toggle-row__hint { font-size: 10px; color: #94a3b8; line-height: 1.3; margin-top: 1px; }
 
 /* Зависимые настройки — с отступом под «родительским» переключателем */
 .sub-group {
