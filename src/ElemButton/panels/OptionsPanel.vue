@@ -70,6 +70,14 @@
                             </div>
                         </template>
                         <ui-switch v-if="props.url" prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
+                        <div class="filter-item__hint link-hint">
+                            <i class="mdi mdi-information-outline" />
+                            <span>
+                                В редакторе клик по кнопке не переходит по ссылке — он редактирует кнопку.
+                                Проверить ссылку: <strong>Ctrl/⌘ + клик</strong> или значок
+                                <i class="mdi mdi-open-in-new" /> на кнопке. В плеере и публикации переход работает.
+                            </span>
+                        </div>
                     </div>
                 </transition>
             </div>
@@ -1105,6 +1113,8 @@ export default {
 .filter-item__hint strong { color: #1e293b; font-weight: 600; }
 .filter-item__hint--warn,
 .filter-item__hint--warn .mdi { color: #b45309; }
+.link-hint { align-items: flex-start; margin-top: 6px; }
+.link-hint > .mdi { margin-top: 1px; }
 
 /* ── Store explorer ─────────────────────────────────────────────── */
 .store-table {
