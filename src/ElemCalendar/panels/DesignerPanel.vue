@@ -67,140 +67,16 @@
 
 <script>
 import { Panel } from 'goodt-wcore';
-
-const COMPACT_BLOCKS = [
-    {
-        key: 'compactHead',
-        label: 'Шапка (компакт)',
-        sel: '.compact__head',
-        hint: 'background: #4f6aff;\ncolor: #fff;\npadding: 8px 12px;'
-    },
-    {
-        key: 'compactWeekday',
-        label: 'Подписи дней (компакт)',
-        sel: '.compact__wd',
-        hint: 'color: #4f6aff;\nfont-size: 0.75em;'
-    },
-    {
-        key: 'compactDay',
-        label: 'Ячейка дня (компакт)',
-        sel: '.compact__day',
-        hint: 'border-radius: 0;\nborder: 1px solid #e0e7ff;'
-    },
-    {
-        key: 'compactDayNum',
-        label: 'Число дня (компакт)',
-        sel: '.compact__day-num',
-        hint: 'font-weight: 700;\nborder-radius: 4px;'
-    },
-    {
-        key: 'compactRangeStart',
-        label: 'Начало диапазона',
-        sel: '.compact__day--range-start .compact__day-num',
-        hint: 'background: var(--cal-accent) !important;\ncolor: #fff !important;'
-    },
-    {
-        key: 'compactRangeEnd',
-        label: 'Конец диапазона',
-        sel: '.compact__day--range-end .compact__day-num',
-        hint: 'background: var(--cal-accent) !important;\ncolor: #fff !important;'
-    },
-    {
-        key: 'compactInRange',
-        label: 'Дни в диапазоне',
-        sel: '.compact__day--in-range',
-        hint: 'background: var(--cal-range-bg);'
-    },
-    {
-        key: 'compactPreset',
-        label: 'Пресет дат (компакт)',
-        sel: '.compact__preset',
-        hint: 'border-radius: 20px;\nborder: 1.5px solid currentColor;'
-    }
-];
-
-const BLOCKS = [
-    {
-        key: 'header',
-        label: 'Шапка',
-        sel: '.elem-cal__header',
-        hint: 'padding: 12px 20px;\nborder-bottom: 2px solid #4f6aff;'
-    },
-    {
-        key: 'title',
-        label: 'Заголовок периода',
-        sel: '.elem-cal__title',
-        hint: 'font-size: 1.3em;\nletter-spacing: 0.05em;'
-    },
-    {
-        key: 'navBtn',
-        label: 'Кнопки навигации',
-        sel: '.elem-cal__nav-btn',
-        hint: 'border-radius: 50%;\nbackground: rgba(255,255,255,0.25);'
-    },
-    {
-        key: 'viewBtn',
-        label: 'Переключатель вида',
-        sel: '.elem-cal__view-btn',
-        hint: 'border-radius: 20px;\nfont-weight: 700;'
-    },
-    {
-        key: 'weekday',
-        label: 'Подписи дней недели',
-        sel: '.elem-cal__weekday',
-        hint: 'color: #4f6aff;\nfont-size: 0.8em;'
-    },
-    {
-        key: 'cell',
-        label: 'Ячейка дня',
-        sel: '.elem-cal__cell',
-        hint: 'border-radius: 0;\nborder: 1px solid #e0e7ff;'
-    },
-    {
-        key: 'dayNum',
-        label: 'Число дня',
-        sel: '.elem-cal__day-num',
-        hint: 'border-radius: 4px;\nfont-weight: 700;'
-    },
-    {
-        key: 'todayCell',
-        label: 'Сегодня',
-        sel: '.elem-cal__cell--today',
-        hint: 'outline: 2px solid var(--cal-accent);\noutline-offset: -2px;'
-    },
-    {
-        key: 'selectedCell',
-        label: 'Выбранный день',
-        sel: '.elem-cal__cell--selected',
-        hint: 'background: var(--cal-selected-bg) !important;'
-    },
-    {
-        key: 'event',
-        label: 'Событие (месяц)',
-        sel: '.elem-cal__event',
-        hint: 'border-radius: 6px;\npadding: 2px 6px;'
-    },
-    {
-        key: 'weekEvent',
-        label: 'Событие (неделя/день)',
-        sel: '.elem-cal__week-event',
-        hint: 'border-radius: 6px;\nbox-shadow: 0 2px 6px rgba(0,0,0,0.15);'
-    },
-    {
-        key: 'agendaEvent',
-        label: 'Событие (список)',
-        sel: '.elem-cal__agenda-event',
-        hint: 'border-radius: 10px;\nbox-shadow: 0 1px 4px rgba(0,0,0,0.08);'
-    }
-];
+import { DESIGNER_BLOCKS } from '../constants';
 
 export default {
     extends: Panel,
     meta: { name: 'Я дизайнер', icon: 'palette' },
 
     data: () => ({
-        blocks: BLOCKS,
-        compactBlocks: COMPACT_BLOCKS,
+        // таблица общая с виджетом: селекторы здесь и в генерируемом CSS всегда совпадают
+        blocks: DESIGNER_BLOCKS.full,
+        compactBlocks: DESIGNER_BLOCKS.compact,
         openKeys: [],
         globalOpen: false,
         localGlobalCss: '',
