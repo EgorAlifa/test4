@@ -70,12 +70,13 @@
                             </div>
                         </template>
                         <ui-switch v-if="props.url" prop="isTargetBlank">Открыть в новой вкладке</ui-switch>
-                        <div class="filter-item__hint link-hint">
+                        <div v-if="!props.isSaveUrlForStore" class="filter-item__hint link-hint">
                             <i class="mdi mdi-information-outline" />
                             <span>
                                 В редакторе клик по кнопке не переходит по ссылке — он редактирует кнопку.
                                 Проверить ссылку: <strong>Ctrl/⌘ + клик</strong> или значок
-                                <i class="mdi mdi-open-in-new" /> на кнопке. В плеере и публикации переход работает.
+                                <i class="mdi mdi-open-in-new" /> на кнопке (страница проекта откроется в плеере).
+                                В плеере и публикации переход работает.
                             </span>
                         </div>
                     </div>

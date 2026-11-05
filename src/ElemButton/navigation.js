@@ -4,11 +4,12 @@ import { stringifyQuery } from './utils';
 /**
  * Навигация кнопки по ссылке.
  *
- * Адреса платформы:
- *  - редактор:               …/editor/edit/<id>/?page=<uuid>
+ * Адреса платформы (BASE_URL — например /insight/editor/):
+ *  - редактор проекта:       <BASE_URL>apps/edit/<id>/?page=<uuid>  (шаблон — templates/edit/<id>/,
+ *                            публикация — publications/edit/<id>/)
  *  - плеер проекта:          …/editor/player/<id|slug>/#/<страница>
  *  - публикация по ссылке:   …/editor/public/<имя>-<хеш>/#/<страница>
- * Плеер и публикация — режимы просмотра с hash-роутингом. В адресе публикации тоже есть «/editor/»,
+ * Плеер и публикация — режимы просмотра с hash-роутингом. В их адресах тоже есть «/editor/»,
  * поэтому по одному «/editor/» отличать редактор от просмотра нельзя.
  */
 
@@ -17,10 +18,27 @@ export const PlatformMode = Object.freeze({
     VIEWER: 'viewer'
 });
 
-const VIEWER_PATH_RE = /\/(player|public)\//;
-const EDITOR_EDIT_PATH_RE = /^(.*\/editor\/)edit\/([^/]+)\/?/;
+export const UrlKind = Object.freeze({
+    // http(s)-ссылка
+    ABSOLUTE: 'absolute',
+    // mailto: / tel: — открываются почтой / звонилкой в этой же вкладке
+    SCHEME: 'scheme',
+    // страница проекта: 'slug', '/slug', '#/slug', '?x=1'
+    RELATIVE: 'relative',
+    // пусто или недопустимая схема (javascript:, data: …)
+    INVALID: 'invalid'
+});
+
+// Как в платформе: EDITOR_PLAYER_PATH '/editor/player/', EDITOR_PUBLICATION_PATH '/editor/public/'
+const VIEWER_PATH_RE = /\/editor\/(player|public)\//;
+// Как appPreviewUrl редактора: BASE_URL.replace('/editor/', '/editor/player/') + id + '/'.
+// Редактор проектов и шаблонов (apps/edit, templates/edit) показывает один и тот же предпросмотр.
+// publications/edit сюда не входит: id публикации — не id проекта, адрес плеера по нему не построить.
+const EDITOR_EDIT_PATH_RE = /^(.*\/editor\/)(?:apps\/|templates\/)?edit\/([^/]+)\/?/;
 const HTTP_URL_RE = /^https?:\/\//i;
+const ALLOWED_SCHEME_RE = /^(mailto|tel):/i;
 const ANY_SCHEME_RE = /^[a-z][a-z0-9+.-]*:/i;
+const DOT_SEGMENTS_RE = /^(\.\.?\/)+/;
 
 /**
  * Адрес окна, в котором смотрят проект: сам window или (если виджет в iframe того же домена) верхнее окно.
@@ -40,7 +58,7 @@ export const getTopLocation = (win) => {
 };
 
 /**
- * Плеер (/player/) и публикация (/public/) — просмотр. Смотрим только pathname, не hash и не query.
+ * Плеер и публикация — просмотр. Смотрим только pathname, не hash и не query.
  *
  * @param {string} pathname
  * @return {boolean}
@@ -66,39 +84,52 @@ export const detectPlatformMode = ({ isEditorMode, pathnames }) => {
 
 /**
  * Разбирает ссылку из настроек.
- *  - 'https://…'            → absolute
- *  - 'www.site.ru/…'        → absolute (https:// дописываем — частая ошибка ввода)
- *  - 'mailto:', 'javascript:' и прочие схемы → invalid
- *  - остальное ('slug', '/slug', '#/slug', '?x=1') → relative (страница проекта)
+ *  - 'https://…'                → absolute
+ *  - '//host/…'                 → absolute со схемой текущей страницы
+ *  - 'www.site.ru/…'            → absolute (https:// дописываем — частая ошибка ввода)
+ *  - 'mailto:…', 'tel:…'        → scheme
+ *  - 'javascript:', 'data:' и прочие схемы → invalid
+ *  - остальное                  → relative (страница проекта), ведущие './' и '../' отбрасываются
  *
  * @param {string} url
- * @return {{ kind: 'absolute'|'relative'|'invalid', href: string }}
+ * @param {string} [currentProtocol] — location.protocol, для '//host'
+ * @return {{ kind: string, href: string }}
  */
-export const classifyUrl = (url) => {
+export const classifyUrl = (url, currentProtocol = 'https:') => {
     const href = String(url ?? '').trim();
-    if (href === '') return { kind: 'invalid', href };
-    if (HTTP_URL_RE.test(href)) return { kind: 'absolute', href };
-    if (href.startsWith('//')) return { kind: 'absolute', href: `https:${href}` };
-    if (/^www\./i.test(href)) return { kind: 'absolute', href: `https://${href}` };
-    if (ANY_SCHEME_RE.test(href)) return { kind: 'invalid', href };
-    return { kind: 'relative', href };
+    if (href === '') return { kind: UrlKind.INVALID, href };
+    if (HTTP_URL_RE.test(href)) return { kind: UrlKind.ABSOLUTE, href };
+    if (href.startsWith('//')) {
+        const protocol = /^https?:$/.test(currentProtocol) ? currentProtocol : 'https:';
+        return { kind: UrlKind.ABSOLUTE, href: `${protocol}${href}` };
+    }
+    if (/^www\./i.test(href)) return { kind: UrlKind.ABSOLUTE, href: `https://${href}` };
+    if (ALLOWED_SCHEME_RE.test(href)) return { kind: UrlKind.SCHEME, href };
+    if (ANY_SCHEME_RE.test(href)) return { kind: UrlKind.INVALID, href };
+    const relative = href.replace(DOT_SEGMENTS_RE, '');
+    if (relative === '') return { kind: UrlKind.RELATIVE, href: '/' };
+    return { kind: UrlKind.RELATIVE, href: relative };
 };
 
 /**
  * Относительная ссылка → путь страницы и её собственные параметры:
- * '#/3?x=1' | '/3?x=1' | '3?x=1' → { path: '/3', query: { x: '1' } }; '?x=1' → { path: '', query: { x: '1' } }
- * (пустой path — «текущая страница»).
+ *  '#/3?x=1' | '/3?x=1' | '3?x=1' → { path: '/3', query: { x: '1' } }
+ *  '/' | '#/' | '#'               → { path: '/' } — главная страница
+ *  '?x=1'                         → { path: '' } — текущая страница с параметрами
  *
  * @param {string} url
  * @return {{ path: string, query: Record<string, *> }}
  */
 export const splitRelativeUrl = (url) => {
-    const clean = String(url).replace(/^[#/]+/, '');
+    const source = String(url).replace(DOT_SEGMENTS_RE, '');
+    const hasRoot = /^[#/]/.test(source);
+    const clean = source.replace(/^[#/]+/, '');
     const queryIdx = clean.indexOf('?');
     const pathPart = queryIdx >= 0 ? clean.substring(0, queryIdx) : clean;
     const search = queryIdx >= 0 ? clean.substring(queryIdx + 1) : '';
     const query = search ? parse(search) : {};
-    return { path: pathPart ? `/${pathPart}` : '', query };
+    if (pathPart) return { path: `/${pathPart}`, query };
+    return { path: hasRoot ? '/' : '', query };
 };
 
 /**
@@ -118,29 +149,27 @@ export const buildHashRoute = (loc, url, query = {}) => {
 };
 
 /**
- * Адрес документа без hash: origin + pathname (со слешем на конце) + search.
+ * Адрес текущего документа без hash — ровно как в адресной строке (без добавления слешей),
+ * чтобы смена страницы оставалась переходом внутри документа.
  *
  * @param {Location} loc
  * @return {string}
  */
-const documentBase = (loc) => {
-    const pathname = loc.pathname.endsWith('/') ? loc.pathname : `${loc.pathname}/`;
-    return `${loc.origin}${pathname}${loc.search || ''}`;
-};
+export const documentBase = (loc) => String(loc.href).split('#')[0];
 
 /**
- * Полный адрес страницы проекта в просмотре (плеер / публикация): <документ>#/slug?vars
+ * Полный адрес страницы проекта с hash-роутингом: <документ>#/slug?vars
  *
  * @param {Location} loc
  * @param {string} url
  * @param {Record<string, *>} query
  * @return {string}
  */
-export const buildViewerUrl = (loc, url, query = {}) => `${documentBase(loc)}#${buildHashRoute(loc, url, query)}`;
+export const buildHashUrl = (loc, url, query = {}) => `${documentBase(loc)}#${buildHashRoute(loc, url, query)}`;
 
 /**
- * Адрес страницы проекта для проверки из редактора: …/editor/edit/<id>/ → …/editor/player/<id>/#/slug
- * (как кнопка «Предпросмотр» редактора). Если адрес редактора не распознан — null.
+ * Адрес страницы проекта для проверки из редактора: …/editor/apps/edit/<id>/ → …/editor/player/<id>/#/slug
+ * (как кнопка «Предпросмотр» редактора). Если адрес не распознан — null.
  *
  * @param {Location} loc
  * @param {string} url
