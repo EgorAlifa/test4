@@ -206,6 +206,7 @@
                     :class="{ 'compact__chips--time': props.calWithTime }"
                     :style="props.calCompactChipsGap ? { gap: props.calCompactChipsGap } : undefined">
                     <div
+                        ref="chipStart"
                         class="compact__chip"
                         :class="{ 'compact__chip--active': editingStart }"
                         role="button"
@@ -230,13 +231,15 @@
                             :invalid-title="locale.invalidDate"
                             :aria-label="compactStartAria"
                             @commit="_handleCompactInputCommit($event, 'start')"
-                            @cancel="editingStart = false" />
+                            @cancel="editingStart = false"
+                            @finish="_onChipEditorFinish('start', $event)" />
                         <span v-else class="compact__chip-value">{{ compactStart ? compactStartDisplay : '—' }}</span>
                     </div>
                     <!-- «По» нужен только диапазону: в режиме «Одиночный» второй чип скрыт -->
                     <span v-if="!isCompactSingle" class="compact__chip-sep">→</span>
                     <div
                         v-if="!isCompactSingle"
+                        ref="chipEnd"
                         class="compact__chip"
                         :class="{ 'compact__chip--active': editingEnd }"
                         role="button"
@@ -259,7 +262,8 @@
                             :invalid-title="locale.invalidDate"
                             :aria-label="locale.compactEndAria"
                             @commit="_handleCompactInputCommit($event, 'end')"
-                            @cancel="editingEnd = false" />
+                            @cancel="editingEnd = false"
+                            @finish="_onChipEditorFinish('end', $event)" />
                         <span v-else class="compact__chip-value">{{ compactEnd ? compactEndDisplay : '—' }}</span>
                     </div>
                 </div>
@@ -1928,14 +1932,27 @@ export default {
             }
         },
 
+        // Открыт всегда только один редактор чипа
         startEditingStart() {
+            this.editingEnd = false;
             this.editingStart = true;
             this.$nextTick(() => this.$refs.inputStart && this.$refs.inputStart.focus());
         },
 
         startEditingEnd() {
+            this.editingStart = false;
             this.editingEnd = true;
             this.$nextTick(() => this.$refs.inputEnd && this.$refs.inputEnd.focus());
+        },
+
+        // После Enter/Esc фокус возвращается на чип (иначе он падает на body);
+        // при потере фокуса (клик в другое место) фокус не перехватываем
+        _onChipEditorFinish(side, info) {
+            if (!info || !info.viaKey) return;
+            this.$nextTick(() => {
+                const chip = side === 'start' ? this.$refs.chipStart : this.$refs.chipEnd;
+                if (chip && chip.focus) chip.focus();
+            });
         },
 
         formatChipDate(iso) {
@@ -1961,10 +1978,13 @@ export default {
                 }
                 return p;
             }
-            // Фиксированные даты: автоподпись панели «2026-01-01 — 2026-01-31» (ISO) → формат локали
+            // Фиксированные даты: автоподпись панели («ДД.ММ.ГГГГ — ДД.ММ.ГГГГ», «ДД.ММ.ГГГГ»
+            // при одной дате, у старых пресетов — ISO «2026-01-01 — 2026-01-31») → формат локали
             const end = p.end || p.start;
             const m = label.match(AUTO_FIXED_LABEL_RE);
-            if (!label || (m && m[1] === p.start && m[2] === end)) {
+            const sameDate = (text, iso) => text === iso || text === formatByMask(iso, 'DD.MM.YYYY');
+            const isAuto = m && sameDate(m[1], p.start) && (m[2] ? sameDate(m[2], end) : p.start === end);
+            if (!label || isAuto) {
                 const mask = this.locale.dateMask;
                 const text = p.start === end
                     ? formatByMask(p.start, mask)

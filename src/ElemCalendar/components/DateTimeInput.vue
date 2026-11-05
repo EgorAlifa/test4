@@ -29,12 +29,14 @@ import { applyMask, formatByMask, parseByMask, maskDigitCount } from '../dateFor
 //
 // События:
 //   commit({ iso: 'YYYY-MM-DD', time: 'HH:mm' }) — Enter или потеря фокуса при корректном вводе
-//   cancel() — Esc или потеря фокуса с пустым полем (прежнее значение сохраняется)
-// Неполный/некорректный ввод при Enter или потере фокуса не теряется и не применяется:
-// текст остаётся в поле, поле подсвечивается красным, выбранная дата не меняется.
+//   cancel() — Esc или потеря фокуса с пустым/неполным/некорректным вводом
+//              (прежнее значение сохраняется, редактор закрывается)
+//   finish({ viaKey }) — после commit/cancel; viaKey = true для Enter/Esc
+//              (родитель возвращает фокус на чип; при потере фокуса — не трогает)
+// Enter с некорректным вводом оставляет поле открытым, в фокусе и подсвеченным красным.
 //
 // Клавиатура: Backspace/Delete удаляют ближайшую цифру (разделители маски пропускаются),
-// ввод цифры в заполненное поле заменяет цифру справа от каретки.
+// цифра перед существующей цифрой заменяет её (без сдвига остальных), в конце — дописывается.
 const ISO_PASTE_RE = /^\s*(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/;
 
 export default {
@@ -138,10 +140,15 @@ export default {
                 e.preventDefault();
                 if (k >= digits.length) return;
                 this.setDigits(digits.slice(0, k) + digits.slice(k + 1), k);
-            } else if (/^\d$/.test(e.key) && digits.length >= maskDigitCount(this.fullMask)) {
-                e.preventDefault();
-                if (k >= digits.length) return;
-                this.setDigits(digits.slice(0, k) + e.key + digits.slice(k + 1), k + 1);
+            } else if (/^\d$/.test(e.key)) {
+                if (k < digits.length) {
+                    // каретка перед цифрой — замена, чтобы не сдвигать день/месяц/время
+                    e.preventDefault();
+                    this.setDigits(digits.slice(0, k) + e.key + digits.slice(k + 1), k + 1);
+                } else if (digits.length >= maskDigitCount(this.fullMask)) {
+                    e.preventDefault();
+                }
+                // иначе — штатная вставка в конец, затем onInput
             }
         },
 
@@ -176,31 +183,32 @@ export default {
 
         onEnter() {
             if (this.done) return;
-            if (!this.text.trim()) { this.finish('cancel'); return; }
+            if (!this.text.trim()) { this.finish('cancel', null, true); return; }
             const parsed = this.parse();
             if (!parsed) { this.invalid = true; return; }
-            this.finish('commit', parsed);
+            this.finish('commit', parsed, true);
         },
 
         onEsc() {
             if (this.done) return;
-            this.finish('cancel');
+            this.finish('cancel', null, true);
         },
 
         onBlur() {
             if (this.done) return;
-            if (!this.text.trim()) { this.finish('cancel'); return; }
-            const parsed = this.parse();
-            // некорректный ввод не применяем и не стираем: поле остаётся открытым и красным
-            if (!parsed) { this.invalid = true; return; }
-            this.finish('commit', parsed);
+            // фокус ушёл: корректное значение применяем, иначе — отмена (прежнее значение,
+            // редактор закрывается), чтобы не оставалось «осиротевшего» открытого поля
+            const parsed = this.text.trim() ? this.parse() : null;
+            if (parsed) this.finish('commit', parsed, false);
+            else this.finish('cancel', null, false);
         },
 
-        finish(event, payload) {
+        finish(event, payload, viaKey) {
             this.done = true;
             this.invalid = false;
             if (event === 'commit') this.$emit('commit', payload);
             else this.$emit('cancel');
+            this.$emit('finish', { viaKey: Boolean(viaKey) });
         }
     }
 };
