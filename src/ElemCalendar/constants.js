@@ -52,6 +52,10 @@ export const LOCALE_DATA = {
         compactReset: 'Сбросить',
         apply: 'Применить',
         invalidDate: 'Некорректная дата',
+        clear: 'Очистить',
+        chooseDate: 'Выбор даты',
+        pickerHours: 'Часы',
+        pickerMinutes: 'Минуты',
         untitled: '(без названия)',
         more: 'ещё',
         // Подписи встроенных пресетов компактного режима
@@ -97,6 +101,10 @@ export const LOCALE_DATA = {
         compactReset: 'Reset',
         apply: 'Apply',
         invalidDate: 'Invalid date',
+        clear: 'Clear',
+        chooseDate: 'Choose date',
+        pickerHours: 'Hours',
+        pickerMinutes: 'Minutes',
         untitled: '(untitled)',
         more: 'more',
         presets: {
@@ -400,6 +408,8 @@ export const PRESETS = Object.freeze({
 // important: true — у виджета для этого состояния свои правила с !important
 // (выделение должно перекрывать тепловую карту/«Сегодня»), поэтому объявления
 // пользователя получают !important автоматически, иначе они бы не применились.
+// portal: true — элемент живёт в <body> (всплывающий календарь чипов); правило
+// пишется как «#<id корня>-popup<sel>».
 export const DESIGNER_BLOCKS = Object.freeze({
     compact: [
         { key: 'compactHead', label: 'Шапка (компакт)', sel: '.compact__head', hint: 'background: #4f6aff;\ncolor: #fff;\npadding: 8px 12px;' },
@@ -410,6 +420,7 @@ export const DESIGNER_BLOCKS = Object.freeze({
         { key: 'compactRangeEnd', label: 'Конец диапазона', sel: '.compact__day--range-end', hint: 'background: #16a34a;\ncolor: #fff;', important: true },
         { key: 'compactInRange', label: 'Дни в диапазоне', sel: '.compact__day--in-range', hint: 'background: var(--cal-range-bg);' },
         { key: 'compactPreset', label: 'Пресет дат (компакт)', sel: '.compact__preset', hint: 'border-radius: 20px;\nborder: 1.5px solid currentColor;' },
+        { key: 'compactPopup', label: 'Всплывающий календарь (ввод дат)', sel: '.compact__popup', hint: 'border-radius: 16px;\nbox-shadow: 0 8px 24px rgba(0,0,0,0.2);', portal: true },
         { key: 'compactPresetActive', label: 'Активный пресет', sel: '.compact__preset--active', hint: 'background: #4f6aff;\ncolor: #fff;' }
     ],
     full: [
