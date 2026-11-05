@@ -289,7 +289,7 @@
                 </div>
             </div>
             <div class="elem-cal__grid">
-                <template v-for="(week, wi) in monthWeeks" :key="`week-${wi}`">
+                <template v-for="(week, wi) in monthWeeks">
                     <div v-if="props.calShowWeekNumbers" :key="`wn-${wi}`" class="elem-cal__wnum">
                         {{ week.num }}
                     </div>
@@ -445,7 +445,7 @@
                 <div class="elem-cal__year-month-hd" @click="goToMonth(month.m)">{{ month.label }}</div>
                 <div class="elem-cal__year-month-grid">
                     <div v-for="(wd, wi) in weekdayHeaders" :key="`yw-${wi}`" class="elem-cal__year-wd">{{ wd.charAt(0) }}</div>
-                    <template v-for="(cell, ci) in month.cells" :key="`cell-${month.m}-${ci}`">
+                    <template v-for="(cell, ci) in month.cells">
                         <div
                             v-if="cell"
                             :key="`yd-${month.m}-${ci}`"
@@ -1518,9 +1518,10 @@ export default {
             if (event && this.props.calShowTooltip !== false) this.showTooltip(day, event);
         },
 
+        // Клик по колонке дня в недельном виде — тот же выбор, что и клик по дню в месяце
+        // (раньше всегда записывал одну дату, даже в режимах «Диапазон» и «Несколько»)
         onWeekColClick(day) {
-            if (this.props.calSelectionMode === SELECTION_MODES.NONE) return;
-            this._commitDate(day.iso);
+            this.onDayClick(day);
         },
 
         onEventClick(ev) {

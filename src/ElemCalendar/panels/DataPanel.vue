@@ -16,7 +16,7 @@
                 </template>
             </div>
 
-            <!-- Компактный режим без тултипа: события и метрика нигде не видны — секции скрыты -->
+            <!-- Компактный режим без тултипа или без мини-календаря: события и метрика нигде не видны — секции скрыты -->
             <template v-if="areSectionsUseful">
             <!-- ── Поля события из источника ─────────────────────────── -->
             <div class="p-section">
@@ -243,7 +243,8 @@ export default {
          */
         areSectionsUseful() {
             if (!this.isCompact) return true;
-            return this.props.calCompactShowTooltip === true;
+            // в компактном режиме события и метрика видны только в тултипе дней мини-календаря
+            return this.props.calCompactShowTooltip === true && this.props.calCompactShowCalendar !== false;
         },
         dimensionOptions() {
             return this.buildOptions(this.dimensions, { empty: true });
