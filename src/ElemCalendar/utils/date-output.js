@@ -112,6 +112,27 @@ export function isEmptyInput(val) {
     return val == null || val === '';
 }
 
+// Пустой список дат (сбрасывает выбор multi): пустое значение, [] или JSON-строка '[]' / '[ ]'.
+// Непустой список, в котором ничего не распознано, пустым НЕ считается.
+export function isEmptyListInput(val) {
+    if (isEmptyInput(val)) return true;
+    if (Array.isArray(val)) return val.length === 0;
+    if (typeof val === 'string') {
+        try {
+            const arr = JSON.parse(val);
+            return Array.isArray(arr) && arr.length === 0;
+        } catch (e) { return false; }
+    }
+    return false;
+}
+
+// Время по умолчанию из настроек → 'HH:mm'; некорректное (например, '25:99' из старого
+// конфига) заменяется на fallback, чтобы подпись чипа и значение в переменной совпадали.
+export function normalizeTime(time, fallback) {
+    const t = parseTime(time);
+    return t ? `${pad(t.h)}:${pad(t.m)}` : fallback;
+}
+
 // Числа с модулем меньше этого порога — не timestamp (8 цифр и меньше)
 const MIN_TIMESTAMP = 1e8;
 
@@ -137,6 +158,8 @@ function literal(iso, timeStr) {
 //   - 'YYYYMMDD' (8 цифр, строка или число);
 //   - 'YYYY-MM-DD', 'YYYY-MM-DD[T ]HH:mm[:ss[.SSS]]' — локальное время;
 //   - то же с поясом: Z, UTC, GMT, ±HH, ±HHMM, ±HH:MM, хвост '[Europe/Moscow]';
+//     IANA-имя в скобках не разбирается: '…T10:00:00[Europe/Moscow]' без смещения
+//     читается как локальное время браузера (смещение берётся только из ±HH:MM / Z);
 //   - 'DD.MM.YYYY' и 'DD.MM.YYYY HH:mm[:ss]' — локальное время;
 //   - любая другая строка, начинающаяся с корректной 'YYYY-MM-DD', — берётся только дата.
 // options.convertZone (по умолчанию true): строку с явным поясом переводить в локальное
