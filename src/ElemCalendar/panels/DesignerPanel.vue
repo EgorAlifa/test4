@@ -2,61 +2,61 @@
     <w-panel>
         <ui-container>
 
-            <div class="p-section__label">Я дизайнер — CSS для каждого элемента</div>
+            <div class="dp-title">Я дизайнер — CSS для каждого элемента</div>
 
             <!-- Справка по переменным -->
-            <div class="vars-box">
-                <div class="vars-box__title">Доступные CSS-переменные</div>
-                <div class="vars-grid">
+            <div class="dp-vars">
+                <div class="dp-vars__title">Доступные CSS-переменные</div>
+                <div class="dp-vars__grid">
                     <code v-for="v in cssVarsList" :key="v">{{ v }}</code>
                 </div>
             </div>
 
             <!-- Элементы для текущего режима (полный ИЛИ компактный) -->
-            <div class="blocks-list">
+            <div class="dp-list">
                 <div
                     v-for="block in activeBlocks"
                     :key="block.key"
-                    class="block">
+                    class="dp-block">
                     <div
-                        class="block__hd"
+                        class="dp-block__hd"
                         @click="toggle(block.key)">
-                        <i class="mdi mdi-circle-small block__dot" :class="hasValue(block.key) ? 'block__dot--active' : ''" />
-                        <span class="block__label">{{ block.label }}</span>
-                        <i class="mdi block__chevron" :class="isOpen(block.key) ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
+                        <i class="mdi mdi-circle-small dp-block__dot" :class="hasValue(block.key) ? 'dp-block__dot--active' : ''" />
+                        <span class="dp-block__label">{{ block.label }}</span>
+                        <i class="mdi dp-block__chevron" :class="isOpen(block.key) ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
                     </div>
-                    <div v-if="isOpen(block.key)" class="block__body">
-                        <code class="block__sel">{{ block.sel }}</code>
+                    <div v-if="isOpen(block.key)" class="dp-block__body">
+                        <code class="dp-block__sel">{{ block.sel }}</code>
                         <textarea
-                            class="block__textarea"
+                            class="dp-block__textarea"
                             :value="getVal(block.key)"
                             :placeholder="block.hint || 'color: red;\nfont-size: 14px;'"
                             spellcheck="false"
                             @input="setVal(block.key, $event.target.value)" />
-                        <div v-if="hasValue(block.key)" class="block__actions">
-                            <button class="block__reset" @click="setVal(block.key, '')">Сбросить</button>
+                        <div v-if="hasValue(block.key)" class="dp-block__actions">
+                            <button class="dp-block__reset" @click="setVal(block.key, '')">Сбросить</button>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Свободный CSS на весь виджет -->
-            <div class="block block--global">
-                <div class="block__hd" @click="globalOpen = !globalOpen">
-                    <i class="mdi mdi-circle-small block__dot" :class="props.calCustomCss ? 'block__dot--active' : ''" />
-                    <span class="block__label">Весь виджет (свободный CSS)</span>
-                    <i class="mdi block__chevron" :class="globalOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
+            <div class="dp-block dp-block--global">
+                <div class="dp-block__hd" @click="globalOpen = !globalOpen">
+                    <i class="mdi mdi-circle-small dp-block__dot" :class="props.calCustomCss ? 'dp-block__dot--active' : ''" />
+                    <span class="dp-block__label">Весь виджет (свободный CSS)</span>
+                    <i class="mdi dp-block__chevron" :class="globalOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
                 </div>
-                <div v-if="globalOpen" class="block__body">
-                    <code class="block__sel">.elem-cal</code>
+                <div v-if="globalOpen" class="dp-block__body">
+                    <code class="dp-block__sel">.elem-cal</code>
                     <textarea
-                        class="block__textarea"
+                        class="dp-block__textarea"
                         :value="localGlobalCss"
                         placeholder="border: 2px solid #4f6aff;&#10;font-family: 'Roboto', sans-serif;"
                         spellcheck="false"
                         @input="onGlobalCss($event.target.value)" />
-                    <div v-if="props.calCustomCss" class="block__actions">
-                        <button class="block__reset" @click="onGlobalCss('')">Сбросить</button>
+                    <div v-if="props.calCustomCss" class="dp-block__actions">
+                        <button class="dp-block__reset" @click="onGlobalCss('')">Сбросить</button>
                     </div>
                 </div>
             </div>
@@ -273,7 +273,7 @@ export default {
 </script>
 
 <style scoped>
-.p-section__label {
+.dp-title {
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -283,14 +283,14 @@ export default {
 }
 
 /* ── CSS vars reference ───────────────────────────────────────── */
-.vars-box {
+.dp-vars {
     background: #fef9ec;
     border: 1px solid #fde68a;
     border-radius: 8px;
     padding: 10px 12px;
     margin-bottom: 12px;
 }
-.vars-box__title {
+.dp-vars__title {
     font-size: 10px;
     font-weight: 700;
     color: #92400e;
@@ -298,12 +298,12 @@ export default {
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
-.vars-grid {
+.dp-vars__grid {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
 }
-.vars-grid code {
+.dp-vars__grid code {
     font-family: monospace;
     font-size: 10px;
     background: #fef3c7;
@@ -314,45 +314,52 @@ export default {
 }
 
 /* ── Blocks list ─────────────────────────────────────────────── */
-.blocks-list {
+/* Все классы с префиксом dp-: глобальный CSS платформы (goodt-framework-styles) задаёт
+   .block { margin-bottom: var(--spacer-layout3) } — из-за этого между строками были
+   разрывы ~30px. Общие имена (.block, .title, .row…) в панелях использовать нельзя. */
+.dp-list {
     display: flex;
     flex-direction: column;
     gap: 4px;
     margin-bottom: 4px;
 }
 
-.block {
+.dp-block {
+    margin: 0;
     border: 1.5px solid #e2e8f0;
     border-radius: 10px;
     overflow: hidden;
     transition: border-color 0.12s;
 }
-.block:has(.block__dot--active) {
+.dp-block:has(.dp-block__dot--active) {
     border-color: #a5b4fc;
 }
-.block--global { margin-top: 8px; }
+.dp-block--global { margin-top: 8px; }
 
-.block__hd {
+.dp-block__hd {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 9px 10px;
+    min-height: 32px;
+    box-sizing: border-box;
+    padding: 6px 10px;
+    line-height: 18px;
     background: #f8fafc;
     cursor: pointer;
     user-select: none;
     transition: background 0.12s;
 }
-.block__hd:hover { background: #f1f5ff; }
+.dp-block__hd:hover { background: #f1f5ff; }
 
-.block__dot {
+.dp-block__dot {
     font-size: 18px;
     color: #e2e8f0;
     flex-shrink: 0;
     line-height: 1;
 }
-.block__dot--active { color: #4f6aff; }
+.dp-block__dot--active { color: #4f6aff; }
 
-.block__label {
+.dp-block__label {
     font-size: 12px;
     font-weight: 600;
     color: #1e293b;
@@ -360,7 +367,7 @@ export default {
     min-width: 0;
 }
 
-.block__sel {
+.dp-block__sel {
     display: block;
     font-family: monospace;
     font-size: 10px;
@@ -371,9 +378,12 @@ export default {
     margin-bottom: 6px;
     width: fit-content;
 }
-.block__chevron { font-size: 16px; color: #94a3b8; flex-shrink: 0; }
+.dp-block__chevron { font-size: 16px; line-height: 1; color: #94a3b8; flex-shrink: 0; }
+/* у mdi ::before по умолчанию 24px/1 — иначе иконка раздувает строку */
+.dp-block__dot::before,
+.dp-block__chevron::before { font-size: inherit; line-height: 1; }
 
-.block__body {
+.dp-block__body {
     padding: 10px;
     background: #fff;
     border-top: 1px solid #e2e8f0;
@@ -381,7 +391,7 @@ export default {
     flex-direction: column;
     gap: 8px;
 }
-.block__textarea {
+.dp-block__textarea {
     width: 100%;
     min-height: 72px;
     font-family: 'Consolas', 'Monaco', monospace;
@@ -397,10 +407,10 @@ export default {
     outline: none;
     transition: border-color 0.15s;
 }
-.block__textarea:focus { border-color: #4f6aff; background: #fff; }
+.dp-block__textarea:focus { border-color: #4f6aff; background: #fff; }
 
-.block__actions { display: flex; }
-.block__reset {
+.dp-block__actions { display: flex; }
+.dp-block__reset {
     padding: 4px 12px;
     border: 1.5px solid #fca5a5;
     border-radius: 6px;
@@ -410,5 +420,5 @@ export default {
     cursor: pointer;
     transition: background 0.12s;
 }
-.block__reset:hover { background: #fef2f2; }
+.dp-block__reset:hover { background: #fef2f2; }
 </style>
