@@ -56,6 +56,8 @@ export const LOCALE_DATA = {
         chooseDate: 'Выбор даты',
         pickerHours: 'Часы',
         pickerMinutes: 'Минуты',
+        pickerHoursShort: 'ЧЧ',
+        pickerMinutesShort: 'мм',
         untitled: '(без названия)',
         more: 'ещё',
         // Подписи встроенных пресетов компактного режима
@@ -105,6 +107,8 @@ export const LOCALE_DATA = {
         chooseDate: 'Choose date',
         pickerHours: 'Hours',
         pickerMinutes: 'Minutes',
+        pickerHoursShort: 'HH',
+        pickerMinutesShort: 'mm',
         untitled: '(untitled)',
         more: 'more',
         presets: {

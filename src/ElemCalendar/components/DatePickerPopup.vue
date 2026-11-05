@@ -65,6 +65,8 @@
             </div>
             <!-- Время: две колонки 24 ч (ЧЧ и мм), без AM/PM -->
             <div v-if="withTime" class="compact__popup-time">
+                <div class="compact__popup-tcol">
+                <span class="compact__popup-th" aria-hidden="true">{{ locale.pickerHoursShort }}</span>
                 <div ref="hours" class="compact__popup-col" role="listbox" :aria-label="locale.pickerHours">
                     <button
                         v-for="h in HOURS"
@@ -78,6 +80,9 @@
                         :data-h="h"
                         @click="onTimeClick(h, curMin)">{{ h }}</button>
                 </div>
+                </div>
+                <div class="compact__popup-tcol">
+                <span class="compact__popup-th" aria-hidden="true">{{ locale.pickerMinutesShort }}</span>
                 <div ref="minutes" class="compact__popup-col" role="listbox" :aria-label="locale.pickerMinutes">
                     <button
                         v-for="m in MINUTES"
@@ -90,6 +95,7 @@
                         tabindex="-1"
                         :data-m="m"
                         @click="onTimeClick(curHour, m)">{{ m }}</button>
+                </div>
                 </div>
             </div>
         </div>
@@ -124,6 +130,8 @@ export default {
     props: {
         // Текущее значение (черновик поля ввода или выбранная дата), ISO 'YYYY-MM-DD'
         value: { type: String, default: '' },
+        // Дата, на которой открыть пустой календарь (другой край диапазона); иначе — сегодня
+        fallback: { type: String, default: '' },
         time: { type: String, default: '00:00' },
         withTime: { type: Boolean, default: false },
         // Края выбранного диапазона — для подсветки
@@ -141,7 +149,7 @@ export default {
     },
 
     data() {
-        const base = parseIsoLocal(this.value) || this.today;
+        const base = parseIsoLocal(this.value) || parseIsoLocal(this.fallback) || this.today;
         return {
             HOURS,
             MINUTES,
@@ -150,7 +158,9 @@ export default {
             focusIso: isoOf(base),
             pos: { top: 0, left: 0 },
             placeUp: false,
-            ready: false
+            ready: false,
+            // шрифт виджета (вычисленный на корне .elem-cal): календарь в <body> его не наследует
+            font: { family: '', size: '' }
         };
     },
 
@@ -197,6 +207,9 @@ export default {
         popStyle() {
             return {
                 ...this.cssVars,
+                // через переменные, а не font-family напрямую — чтобы блок «Я дизайнер» мог перебить
+                '--dpp-font-family': this.font.family || null,
+                '--dpp-font-size': this.font.size || null,
                 top: `${this.pos.top}px`,
                 left: `${this.pos.left}px`,
                 visibility: this.ready ? 'visible' : 'hidden'
@@ -207,33 +220,76 @@ export default {
     watch: {
         // Календарь следует за набранной в поле датой
         value(v) {
-            const d = parseIsoLocal(v);
-            if (!d) return;
+            const d = parseIsoLocal(v) || parseIsoLocal(this.fallback) || this.today;
             this.viewYear = d.getFullYear();
             this.viewMonth = d.getMonth();
-            this.focusIso = v;
+            this.focusIso = isoOf(d);
+            this.$nextTick(this.reposition);
         },
-        time() { this.$nextTick(this.scrollTimeIntoView); }
+        time() {
+            this.$nextTick(() => { this.scrollTimeIntoView(); this.reposition(); });
+        }
     },
 
     mounted() {
-        document.body.appendChild(this.$refs.pop);
-        this.reposition();
+        this.readWidgetFont();
+        this._onWin = () => this.reposition();
+        this.attach();
         this.ready = true;
         this.$nextTick(this.scrollTimeIntoView);
-        this._onWin = () => this.reposition();
-        window.addEventListener('resize', this._onWin);
-        window.addEventListener('scroll', this._onWin, true);
     },
 
     beforeDestroy() {
-        window.removeEventListener('resize', this._onWin);
-        window.removeEventListener('scroll', this._onWin, true);
-        const pop = this.$refs.pop;
-        if (pop && pop.parentNode) pop.parentNode.removeChild(pop);
+        this.detach();
+    },
+
+    // keep-alive: скрытый виджет не должен оставлять календарь в <body>
+    activated() {
+        this.attach();
+    },
+
+    deactivated() {
+        this.detach();
     },
 
     methods: {
+        attach() {
+            const pop = this.$refs.pop;
+            if (pop && pop.parentNode !== document.body) document.body.appendChild(pop);
+            window.addEventListener('resize', this._onWin);
+            window.addEventListener('scroll', this._onWin, true);
+            // чип может сдвинуться без скролла/ресайза окна (перенос чипов, ширина виджета)
+            if (typeof ResizeObserver !== 'undefined' && !this._ro) {
+                this._ro = new ResizeObserver(this._onWin);
+                const anchor = this.$el && this.$el.parentElement;
+                [anchor, anchor && anchor.parentElement, anchor && anchor.closest('.elem-cal')]
+                    .filter(Boolean)
+                    .forEach((el) => this._ro.observe(el));
+            }
+            this.reposition();
+        },
+
+        detach() {
+            window.removeEventListener('resize', this._onWin);
+            window.removeEventListener('scroll', this._onWin, true);
+            if (this._ro) { this._ro.disconnect(); this._ro = null; }
+            const pop = this.$refs.pop;
+            if (pop && pop.parentNode) pop.parentNode.removeChild(pop);
+        },
+
+        // Вычисленный шрифт корня виджета — учитывает calFontFamily, «Весь виджет» и т. п.
+        readWidgetFont() {
+            const root = this.$el && this.$el.closest && this.$el.closest('.elem-cal');
+            if (!root) return;
+            const cs = getComputedStyle(root);
+            const size = parseFloat(cs.fontSize);
+            this.font = {
+                family: cs.fontFamily || '',
+                // сетка рассчитана на 11–16px
+                size: size ? `${Math.min(16, Math.max(11, size))}px` : ''
+            };
+        },
+
         contains(el) {
             return Boolean(el && this.$refs.pop && this.$refs.pop.contains(el));
         },
@@ -368,8 +424,8 @@ export default {
     border: 1px solid var(--cal-cell-border, #e8ecf4);
     border-radius: min(var(--cal-radius, 12px), 14px);
     box-shadow: 0 10px 32px rgba(15, 23, 42, 0.18), 0 2px 8px rgba(15, 23, 42, 0.08);
-    font-family: var(--cal-font-family, inherit);
-    font-size: 12px;
+    font-family: var(--dpp-font-family, var(--cal-font-family, inherit));
+    font-size: var(--dpp-font-size, 12px);
     line-height: 1.2;
     box-sizing: border-box;
     user-select: none;
@@ -460,9 +516,19 @@ export default {
     padding-left: 8px;
     border-left: 1px solid var(--cal-cell-border, #e8ecf4);
 }
+.compact__popup-tcol { display: flex; flex-direction: column; gap: 4px; }
+.compact__popup-th {
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+}
 .compact__popup-col {
     width: 40px;
-    height: 236px;
+    height: 210px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;

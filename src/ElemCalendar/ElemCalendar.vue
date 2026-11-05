@@ -203,7 +203,7 @@
             <div v-if="props.calCompactShowBottom !== false" class="compact__bottom">
                 <div
                     class="compact__chips"
-                    :class="{ 'compact__chips--time': props.calWithTime }"
+                    :class="{ 'compact__chips--time': isTimeUiOn }"
                     :style="props.calCompactChipsGap ? { gap: props.calCompactChipsGap } : undefined">
                     <div
                         ref="chipStart"
@@ -234,7 +234,7 @@
                             @commit="_handleCompactInputCommit($event, 'start')"
                             @cancel="editingStart = false"
                             @finish="_onChipEditorFinish('start', $event)"
-                            @draft="chipDraft = $event"
+                            @draft="_setChipDraft('start', $event)"
                             @keydown.native.down="_focusPicker('start', $event)" />
                         <!-- Мини-календарь скрыт («Ввод дат») — свой всплывающий календарь вместо
                              нативного пикера браузера (язык, первый день недели, 24 ч — из настроек) -->
@@ -242,6 +242,7 @@
                             v-if="editingStart && compactPickerOn"
                             ref="pickerStart"
                             :value="pickerValue('start')"
+                            :fallback="compactEnd"
                             :time="pickerTime('start')"
                             :with-time="isTimeUiOn"
                             :range-start="isCompactSingle ? '' : compactStart"
@@ -289,7 +290,7 @@
                             @commit="_handleCompactInputCommit($event, 'end')"
                             @cancel="editingEnd = false"
                             @finish="_onChipEditorFinish('end', $event)"
-                            @draft="chipDraft = $event"
+                            @draft="_setChipDraft('end', $event)"
                             @keydown.native.down="_focusPicker('end', $event)" />
                         <!-- Мини-календарь скрыт («Ввод дат») — свой всплывающий календарь вместо
                              нативного пикера браузера (язык, первый день недели, 24 ч — из настроек) -->
@@ -297,6 +298,7 @@
                             v-if="editingEnd && compactPickerOn"
                             ref="pickerEnd"
                             :value="pickerValue('end')"
+                            :fallback="compactStart"
                             :time="pickerTime('end')"
                             :with-time="isTimeUiOn"
                             :range-start="isCompactSingle ? '' : compactStart"
@@ -697,7 +699,7 @@ export default {
         activePreset: null,
         editingStart: false,
         editingEnd: false,
-        // разобранный текст открытого поля чипа ({ iso, time } | null) — для всплывающего календаря
+        // разобранный текст открытого поля чипа ({ side, iso, time } | null) — для всплывающего календаря
         chipDraft: null,
         rangeStartTime: '00:00',
         rangeEndTime: '23:59',
@@ -2052,12 +2054,14 @@ export default {
 
         // Открыт всегда только один редактор чипа
         startEditingStart() {
+            if (!this.editingStart) this.chipDraft = null; // черновик другого чипа не переносится
             this.editingEnd = false;
             this.editingStart = true;
             this.$nextTick(() => this.$refs.inputStart && this.$refs.inputStart.focus());
         },
 
         startEditingEnd() {
+            if (!this.editingEnd) this.chipDraft = null;
             this.editingStart = false;
             this.editingEnd = true;
             this.$nextTick(() => this.$refs.inputEnd && this.$refs.inputEnd.focus());
@@ -2066,6 +2070,7 @@ export default {
         // После Enter/Esc фокус возвращается на чип (иначе он падает на body);
         // при потере фокуса (клик в другое место) фокус не перехватываем
         _onChipEditorFinish(side, info) {
+            this.chipDraft = null;
             if (!info || !info.viaKey) return;
             this.$nextTick(() => {
                 const chip = side === 'start' ? this.$refs.chipStart : this.$refs.chipEnd;
@@ -2084,13 +2089,24 @@ export default {
             return side === 'start' ? this.$refs.pickerStart : this.$refs.pickerEnd;
         },
 
+        _setChipDraft(side, draft) {
+            this.chipDraft = draft ? { side, iso: draft.iso, time: draft.time } : null;
+        },
+
+        _ownDraft(side) {
+            return this.chipDraft && this.chipDraft.side === side ? this.chipDraft : null;
+        },
+
+        // Пустой чип: календарь открывается на дате другого края (fallback) или на сегодня
         pickerValue(side) {
-            if (this.chipDraft && this.chipDraft.iso) return this.chipDraft.iso;
+            const draft = this._ownDraft(side);
+            if (draft && draft.iso) return draft.iso;
             return side === 'start' ? this.compactStart : this.compactEnd;
         },
 
         pickerTime(side) {
-            if (this.chipDraft && this.chipDraft.time) return this.chipDraft.time;
+            const draft = this._ownDraft(side);
+            if (draft && draft.time) return draft.time;
             return side === 'start' ? (this.rangeStartTime || '00:00') : (this.rangeEndTime || '23:59');
         },
 
