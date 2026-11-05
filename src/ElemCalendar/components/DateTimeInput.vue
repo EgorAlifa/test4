@@ -33,6 +33,10 @@ import { applyMask, formatByMask, parseByMask, maskDigitCount } from '../dateFor
 //              (прежнее значение сохраняется, редактор закрывается)
 //   finish({ viaKey }) — после commit/cancel; viaKey = true для Enter/Esc
 //              (родитель возвращает фокус на чип; при потере фокуса — не трогает)
+//   draft({ iso, time } | null) — текущий текст разобран (для всплывающего календаря)
+// Методы для всплывающего календаря: setValue(iso, time), commitByKey(), cancelByKey(),
+// blurCommit(). Проп blurGuard(el) → true, если фокус ушёл «к своим» (в календарь) —
+// тогда потеря фокуса не закрывает редактор.
 // Enter с некорректным вводом оставляет поле открытым, в фокусе и подсвеченным красным.
 //
 // Клавиатура: Backspace/Delete удаляют ближайшую цифру (разделители маски пропускаются),
@@ -55,6 +59,8 @@ export default {
         // Подсказка формата времени, например 'ЧЧ:ММ'
         timePlaceholder: { type: String, default: '' },
         invalidTitle: { type: String, default: '' },
+        // (relatedTarget) => true, если фокус перешёл в связанный элемент (всплывающий календарь)
+        blurGuard: { type: Function, default: null },
         ariaLabel: { type: String, default: '' }
     },
 
@@ -79,6 +85,10 @@ export default {
     },
 
     watch: {
+        text: {
+            immediate: true,
+            handler() { this.$emit('draft', this.parse()); }
+        },
         value: 'syncFromProps',
         time: 'syncFromProps',
         withTime: 'syncFromProps',
@@ -194,7 +204,14 @@ export default {
             this.finish('cancel', null, true);
         },
 
-        onBlur() {
+        onBlur(e) {
+            if (this.done) return;
+            if (this.blurGuard && e && this.blurGuard(e.relatedTarget)) return;
+            this.blurCommit();
+        },
+
+        // Логика потери фокуса: корректное значение — commit, иначе — cancel
+        blurCommit() {
             if (this.done) return;
             // фокус ушёл: корректное значение применяем, иначе — отмена (прежнее значение,
             // редактор закрывается), чтобы не оставалось «осиротевшего» открытого поля
@@ -202,6 +219,19 @@ export default {
             if (parsed) this.finish('commit', parsed, false);
             else this.finish('cancel', null, false);
         },
+
+        // Значение, выбранное во всплывающем календаре: только текст, без commit
+        setValue(iso, time) {
+            if (this.done || !iso) return;
+            const current = this.parse();
+            const t = time || (current && current.time) || this.time || '00:00';
+            this.text = formatByMask(iso, this.fullMask, t);
+            this.invalid = false;
+        },
+
+        commitByKey() { this.onEnter(); },
+
+        cancelByKey() { this.onEsc(); },
 
         finish(event, payload, viaKey) {
             this.done = true;

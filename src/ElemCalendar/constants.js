@@ -52,6 +52,12 @@ export const LOCALE_DATA = {
         compactReset: 'Сбросить',
         apply: 'Применить',
         invalidDate: 'Некорректная дата',
+        clear: 'Очистить',
+        chooseDate: 'Выбор даты',
+        pickerHours: 'Часы',
+        pickerMinutes: 'Минуты',
+        pickerHoursShort: 'ЧЧ',
+        pickerMinutesShort: 'мм',
         untitled: '(без названия)',
         more: 'ещё',
         // Подписи встроенных пресетов компактного режима
@@ -97,6 +103,12 @@ export const LOCALE_DATA = {
         compactReset: 'Reset',
         apply: 'Apply',
         invalidDate: 'Invalid date',
+        clear: 'Clear',
+        chooseDate: 'Choose date',
+        pickerHours: 'Hours',
+        pickerMinutes: 'Minutes',
+        pickerHoursShort: 'HH',
+        pickerMinutesShort: 'mm',
         untitled: '(untitled)',
         more: 'more',
         presets: {
@@ -400,17 +412,29 @@ export const PRESETS = Object.freeze({
 // important: true — у виджета для этого состояния свои правила с !important
 // (выделение должно перекрывать тепловую карту/«Сегодня»), поэтому объявления
 // пользователя получают !important автоматически, иначе они бы не применились.
+// portal: true — элемент живёт в <body> (всплывающий календарь чипов); правило
+// пишется как «#<id корня>-popup<sel>».
+// Когда блок компактного режима есть на экране (необязательный when(props) у DESIGNER_BLOCKS;
+// без when — блок есть всегда). Условия совпадают с v-if в ElemCalendar.vue.
+const COMPACT_WHEN = Object.freeze({
+    calendar: (p) => p.calCompactShowCalendar !== false,
+    presets: (p) => p.calCompactShowPresets !== false,
+    // всплывающий календарь чипов — без мини-календаря, при нижней панели
+    popup: (p) => p.calCompactShowCalendar === false && p.calCompactShowBottom !== false
+});
+
 export const DESIGNER_BLOCKS = Object.freeze({
     compact: [
-        { key: 'compactHead', label: 'Шапка (компакт)', sel: '.compact__head', hint: 'background: #4f6aff;\ncolor: #fff;\npadding: 8px 12px;' },
-        { key: 'compactWeekday', label: 'Подписи дней (компакт)', sel: '.compact__wd', hint: 'color: #4f6aff;\nfont-size: 0.75em;' },
-        { key: 'compactDay', label: 'Ячейка дня (компакт)', sel: '.compact__day:not(.compact__day--empty)', hint: 'border-radius: 0;\nborder: 1px solid #e0e7ff;' },
-        { key: 'compactDayNum', label: 'Число дня (компакт)', sel: '.compact__day-num', hint: 'font-weight: 700;\ntext-decoration: underline;' },
-        { key: 'compactRangeStart', label: 'Начало диапазона', sel: '.compact__day--range-start', hint: 'background: #16a34a;\ncolor: #fff;', important: true },
-        { key: 'compactRangeEnd', label: 'Конец диапазона', sel: '.compact__day--range-end', hint: 'background: #16a34a;\ncolor: #fff;', important: true },
-        { key: 'compactInRange', label: 'Дни в диапазоне', sel: '.compact__day--in-range', hint: 'background: var(--cal-range-bg);' },
-        { key: 'compactPreset', label: 'Пресет дат (компакт)', sel: '.compact__preset', hint: 'border-radius: 20px;\nborder: 1.5px solid currentColor;' },
-        { key: 'compactPresetActive', label: 'Активный пресет', sel: '.compact__preset--active', hint: 'background: #4f6aff;\ncolor: #fff;' }
+        { key: 'compactHead', when: COMPACT_WHEN.calendar, label: 'Шапка (компакт)', sel: '.compact__head', hint: 'background: #4f6aff;\ncolor: #fff;\npadding: 8px 12px;' },
+        { key: 'compactWeekday', when: COMPACT_WHEN.calendar, label: 'Подписи дней (компакт)', sel: '.compact__wd', hint: 'color: #4f6aff;\nfont-size: 0.75em;' },
+        { key: 'compactDay', when: COMPACT_WHEN.calendar, label: 'Ячейка дня (компакт)', sel: '.compact__day:not(.compact__day--empty)', hint: 'border-radius: 0;\nborder: 1px solid #e0e7ff;' },
+        { key: 'compactDayNum', when: COMPACT_WHEN.calendar, label: 'Число дня (компакт)', sel: '.compact__day-num', hint: 'font-weight: 700;\ntext-decoration: underline;' },
+        { key: 'compactRangeStart', when: COMPACT_WHEN.calendar, label: 'Начало диапазона', sel: '.compact__day--range-start', hint: 'background: #16a34a;\ncolor: #fff;', important: true },
+        { key: 'compactRangeEnd', when: COMPACT_WHEN.calendar, label: 'Конец диапазона', sel: '.compact__day--range-end', hint: 'background: #16a34a;\ncolor: #fff;', important: true },
+        { key: 'compactInRange', when: COMPACT_WHEN.calendar, label: 'Дни в диапазоне', sel: '.compact__day--in-range', hint: 'background: var(--cal-range-bg);' },
+        { key: 'compactPreset', when: COMPACT_WHEN.presets, label: 'Пресет дат (компакт)', sel: '.compact__preset', hint: 'border-radius: 20px;\nborder: 1.5px solid currentColor;' },
+        { key: 'compactPopup', when: COMPACT_WHEN.popup, label: 'Всплывающий календарь (ввод дат)', sel: '.compact__popup', hint: 'border-radius: 16px;\nbox-shadow: 0 8px 24px rgba(0,0,0,0.2);', portal: true },
+        { key: 'compactPresetActive', when: COMPACT_WHEN.presets, label: 'Активный пресет', sel: '.compact__preset--active', hint: 'background: #4f6aff;\ncolor: #fff;' }
     ],
     full: [
         { key: 'header', label: 'Шапка', sel: '.elem-cal__header', hint: 'padding: 12px 20px;\nborder-bottom: 2px solid #4f6aff;' },

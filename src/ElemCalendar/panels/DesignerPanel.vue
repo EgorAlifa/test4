@@ -87,7 +87,10 @@ export default {
 
     computed: {
         activeBlocks() {
-            return this.props.calMode === 'compact' ? this.compactBlocks : this.blocks;
+            const list = this.props.calMode === 'compact' ? this.compactBlocks : this.blocks;
+            // блоки, которых нет на экране в текущей конфигурации (when(props) в DESIGNER_BLOCKS), скрыты;
+            // их уже заданный CSS виджет применяет как раньше
+            return list.filter((b) => !b.when || b.when(this.props));
         },
 
         cssVarsList() {

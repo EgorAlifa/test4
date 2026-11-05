@@ -30,22 +30,20 @@
             </div>
 
             <!-- ── Тултип ──────────────────────────────────────────────── -->
-            <div class="p-section">
+            <!-- в компактном режиме тултип появляется только над днями мини-календаря: без него секция скрыта -->
+            <div v-if="!isCompact || isCompactCalendarOn" class="p-section">
                 <div class="p-section__label">Тултип</div>
 
-                <!-- Видимость: показываем только свитч текущего режима виджета -->
+                <!-- Видимость: свитч текущего режима виджета -->
                 <label v-if="!isCompact" class="toggle-row">
                     <span class="toggle-row__label">Показывать тултип</span>
                     <div class="toggle" :class="{ 'toggle--on': props.calShowTooltip !== false }" @click="toggleBool('calShowTooltip')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
-                <label v-else class="toggle-row" :class="{ 'toggle-row--disabled': !isCompactCalendarOn }">
-                    <span class="toggle-row__text">
-                        <span class="toggle-row__label">Показывать тултип</span>
-                        <span v-if="!isCompactCalendarOn" class="toggle-row__hint">Тултип появляется над днями мини-календаря — он выключен</span>
-                    </span>
-                    <div class="toggle" :class="{ 'toggle--on': isTooltipOn }" @click="isCompactCalendarOn && toggleBool('calCompactShowTooltip')">
+                <label v-else class="toggle-row">
+                    <span class="toggle-row__label">Показывать тултип</span>
+                    <div class="toggle" :class="{ 'toggle--on': isTooltipOn }" @click="toggleBool('calCompactShowTooltip')">
                         <div class="toggle__thumb" />
                     </div>
                 </label>
@@ -71,12 +69,9 @@
 
                 <div class="tooltip-controls">
                     <!-- значение метрики в тултипе берётся только при включённой тепловой карте -->
-                    <label class="toggle-row" :class="{ 'toggle-row--disabled': !props.calHeatmapEnabled }">
-                        <span class="toggle-row__text">
-                            <span class="toggle-row__label">Доп. метрика в тултипе</span>
-                            <span v-if="!props.calHeatmapEnabled" class="toggle-row__hint">Нужна метрика — панель «Данные»</span>
-                        </span>
-                        <div class="toggle" :class="{ 'toggle--on': props.calTooltipShowMetric !== false && props.calHeatmapEnabled }" @click="props.calHeatmapEnabled && toggleBool('calTooltipShowMetric')">
+                    <label v-if="props.calHeatmapEnabled" class="toggle-row">
+                        <span class="toggle-row__label">Доп. метрика в тултипе</span>
+                        <div class="toggle" :class="{ 'toggle--on': props.calTooltipShowMetric !== false }" @click="toggleBool('calTooltipShowMetric')">
                             <div class="toggle__thumb" />
                         </div>
                     </label>
@@ -868,11 +863,6 @@ export default {
     gap: 8px;
 }
 .toggle-row__label { font-size: 12px; color: #334155; font-weight: 500; flex: 1; }
-.toggle-row--disabled { cursor: not-allowed; pointer-events: none; }
-.toggle-row--disabled .toggle-row__label,
-.toggle-row--disabled .toggle { opacity: 0.4; }
-.toggle-row__text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.toggle-row__hint { font-size: 10px; color: #94a3b8; line-height: 1.3; margin-top: 1px; }
 .toggle {
     width: 36px; height: 20px; border-radius: 10px;
     background: #e2e8f0; position: relative; flex-shrink: 0;

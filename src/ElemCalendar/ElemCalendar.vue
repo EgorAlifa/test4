@@ -203,7 +203,7 @@
             <div v-if="props.calCompactShowBottom !== false" class="compact__bottom">
                 <div
                     class="compact__chips"
-                    :class="{ 'compact__chips--time': props.calWithTime }"
+                    :class="{ 'compact__chips--time': isTimeUiOn }"
                     :style="props.calCompactChipsGap ? { gap: props.calCompactChipsGap } : undefined">
                     <div
                         ref="chipStart"
@@ -230,9 +230,34 @@
                             :time-placeholder="locale.timePlaceholder"
                             :invalid-title="locale.invalidDate"
                             :aria-label="compactStartAria"
+                            :blur-guard="(el) => _isInsidePicker('start', el)"
                             @commit="_handleCompactInputCommit($event, 'start')"
                             @cancel="editingStart = false"
-                            @finish="_onChipEditorFinish('start', $event)" />
+                            @finish="_onChipEditorFinish('start', $event)"
+                            @draft="_setChipDraft('start', $event)"
+                            @keydown.native.down="_focusPicker('start', $event)" />
+                        <!-- Мини-календарь скрыт («Ввод дат») — свой всплывающий календарь вместо
+                             нативного пикера браузера (язык, первый день недели, 24 ч — из настроек) -->
+                        <date-picker-popup
+                            v-if="editingStart && compactPickerOn"
+                            ref="pickerStart"
+                            :value="pickerValue('start')"
+                            :fallback="compactEnd"
+                            :time="pickerTime('start')"
+                            :with-time="isTimeUiOn"
+                            :range-start="isCompactSingle ? '' : compactStart"
+                            :range-end="isCompactSingle ? '' : compactEnd"
+                            :locale="locale"
+                            :first-day="firstDay"
+                            :today="today"
+                            :css-vars="calCssVars"
+                            :popup-id="`${calRootId}-popup`"
+                            :aria-label="locale.chooseDate"
+                            :is-own-input="(el) => _isChipInput('start', el)"
+                            @pick="_onPickerPick('start', $event)"
+                            @clear="_onPickerClear('start')"
+                            @escape="_onPickerEscape('start')"
+                            @leave="_onPickerLeave('start')" />
                         <span v-else class="compact__chip-value">{{ compactStart ? compactStartDisplay : '—' }}</span>
                     </div>
                     <!-- «По» нужен только диапазону: в режиме «Одиночный» второй чип скрыт -->
@@ -261,9 +286,34 @@
                             :time-placeholder="locale.timePlaceholder"
                             :invalid-title="locale.invalidDate"
                             :aria-label="locale.compactEndAria"
+                            :blur-guard="(el) => _isInsidePicker('end', el)"
                             @commit="_handleCompactInputCommit($event, 'end')"
                             @cancel="editingEnd = false"
-                            @finish="_onChipEditorFinish('end', $event)" />
+                            @finish="_onChipEditorFinish('end', $event)"
+                            @draft="_setChipDraft('end', $event)"
+                            @keydown.native.down="_focusPicker('end', $event)" />
+                        <!-- Мини-календарь скрыт («Ввод дат») — свой всплывающий календарь вместо
+                             нативного пикера браузера (язык, первый день недели, 24 ч — из настроек) -->
+                        <date-picker-popup
+                            v-if="editingEnd && compactPickerOn"
+                            ref="pickerEnd"
+                            :value="pickerValue('end')"
+                            :fallback="compactStart"
+                            :time="pickerTime('end')"
+                            :with-time="isTimeUiOn"
+                            :range-start="isCompactSingle ? '' : compactStart"
+                            :range-end="isCompactSingle ? '' : compactEnd"
+                            :locale="locale"
+                            :first-day="firstDay"
+                            :today="today"
+                            :css-vars="calCssVars"
+                            :popup-id="`${calRootId}-popup`"
+                            :aria-label="locale.chooseDate"
+                            :is-own-input="(el) => _isChipInput('end', el)"
+                            @pick="_onPickerPick('end', $event)"
+                            @clear="_onPickerClear('end')"
+                            @escape="_onPickerEscape('end')"
+                            @leave="_onPickerLeave('end')" />
                         <span v-else class="compact__chip-value">{{ compactEnd ? compactEndDisplay : '—' }}</span>
                     </div>
                 </div>
@@ -511,6 +561,7 @@ import {
 } from './utils/date-output';
 import { formatByMask } from './dateFormat';
 import DateTimeInput from './components/DateTimeInput.vue';
+import DatePickerPopup from './components/DatePickerPopup.vue';
 
 const { store, ValueObject } = Managers.StoreManager;
 
@@ -582,7 +633,7 @@ function lerpColor(lowHex, highHex, t) {
 export default {
     extends: Elem,
     meta,
-    components: { DateTimeInput },
+    components: { DateTimeInput, DatePickerPopup },
     mixins: [useElemDatasetMixin()],
     hooks: {
         then() {
@@ -648,6 +699,8 @@ export default {
         activePreset: null,
         editingStart: false,
         editingEnd: false,
+        // разобранный текст открытого поля чипа ({ side, iso, time } | null) — для всплывающего календаря
+        chipDraft: null,
         rangeStartTime: '00:00',
         rangeEndTime: '23:59',
         // true, если время начала / конца уже пришло из переменной до mounted
@@ -980,7 +1033,9 @@ export default {
                 [...DESIGNER_BLOCKS.full, ...DESIGNER_BLOCKS.compact].forEach((block) => {
                     const css = values && values[block.key];
                     if (!css) return;
-                    parts.push(`${root} ${block.sel} { ${block.important ? withImportant(css) : css} }`);
+                    // portal: элемент вынесен в <body> (всплывающий календарь) — адресуется по своему id
+                    const sel = block.portal ? `${root}-popup${block.sel}` : `${root} ${block.sel}`;
+                    parts.push(`${sel} { ${block.important ? withImportant(css) : css} }`);
                 });
             } catch (e) { /* noop */ }
             return parts.length ? parts.join('\n') : null;
@@ -1207,6 +1262,11 @@ export default {
          * Время выбирается в чипах только при calWithTime, если формат переменных не 'date'
          * (в нём время отбрасывается) и режим выбора — дата или диапазон
          */
+        // Всплывающий календарь у чипов — только когда мини-календарь виджета скрыт
+        compactPickerOn() {
+            return this.props.calCompactShowCalendar === false;
+        },
+
         isTimeUiOn() {
             return Boolean(this.props.calWithTime)
                 && this.props.calOutputFormat !== 'date'
@@ -1994,12 +2054,14 @@ export default {
 
         // Открыт всегда только один редактор чипа
         startEditingStart() {
+            if (!this.editingStart) this.chipDraft = null; // черновик другого чипа не переносится
             this.editingEnd = false;
             this.editingStart = true;
             this.$nextTick(() => this.$refs.inputStart && this.$refs.inputStart.focus());
         },
 
         startEditingEnd() {
+            if (!this.editingEnd) this.chipDraft = null;
             this.editingStart = false;
             this.editingEnd = true;
             this.$nextTick(() => this.$refs.inputEnd && this.$refs.inputEnd.focus());
@@ -2008,11 +2070,87 @@ export default {
         // После Enter/Esc фокус возвращается на чип (иначе он падает на body);
         // при потере фокуса (клик в другое место) фокус не перехватываем
         _onChipEditorFinish(side, info) {
+            this.chipDraft = null;
             if (!info || !info.viaKey) return;
             this.$nextTick(() => {
                 const chip = side === 'start' ? this.$refs.chipStart : this.$refs.chipEnd;
                 if (chip && chip.focus) chip.focus();
             });
+        },
+
+        // ── Всплывающий календарь чипов (DatePickerPopup) ────────────
+        // Выбор в календаре идёт через поле ввода: setValue → commitByKey → тот же
+        // _handleCompactInputCommit, что и при наборе с клавиатуры (значения идентичны).
+        _chipInput(side) {
+            return side === 'start' ? this.$refs.inputStart : this.$refs.inputEnd;
+        },
+
+        _chipPicker(side) {
+            return side === 'start' ? this.$refs.pickerStart : this.$refs.pickerEnd;
+        },
+
+        _setChipDraft(side, draft) {
+            this.chipDraft = draft ? { side, iso: draft.iso, time: draft.time } : null;
+        },
+
+        _ownDraft(side) {
+            return this.chipDraft && this.chipDraft.side === side ? this.chipDraft : null;
+        },
+
+        // Пустой чип: календарь открывается на дате другого края (fallback) или на сегодня
+        pickerValue(side) {
+            const draft = this._ownDraft(side);
+            if (draft && draft.iso) return draft.iso;
+            return side === 'start' ? this.compactStart : this.compactEnd;
+        },
+
+        pickerTime(side) {
+            const draft = this._ownDraft(side);
+            if (draft && draft.time) return draft.time;
+            return side === 'start' ? (this.rangeStartTime || '00:00') : (this.rangeEndTime || '23:59');
+        },
+
+        _isInsidePicker(side, el) {
+            const picker = this._chipPicker(side);
+            return Boolean(picker && picker.contains(el));
+        },
+
+        _isChipInput(side, el) {
+            const input = this._chipInput(side);
+            return Boolean(input && el && input.$el === el);
+        },
+
+        // ArrowDown в поле ввода — фокус в сетку календаря
+        _focusPicker(side, e) {
+            const picker = this._chipPicker(side);
+            if (!picker) return;
+            e.preventDefault();
+            picker.focusDay();
+        },
+
+        _onPickerPick(side, { iso, time, commit }) {
+            const input = this._chipInput(side);
+            if (!input) return;
+            input.setValue(iso, time);
+            if (commit) input.commitByKey();
+        },
+
+        // «Очистить» — закрыть поле и сбросить выбор (как кнопка «Сбросить»)
+        _onPickerClear(side) {
+            const input = this._chipInput(side);
+            if (input) input.cancelByKey();
+            this.onCompactReset();
+        },
+
+        _onPickerEscape(side) {
+            const input = this._chipInput(side);
+            if (input) input.cancelByKey();
+        },
+
+        // Фокус ушёл и из календаря, и из поля — как потеря фокуса полем
+        _onPickerLeave(side) {
+            const input = this._chipInput(side);
+            if (input) input.blurCommit();
         },
 
         formatChipDate(iso) {

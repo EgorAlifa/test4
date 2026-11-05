@@ -6,7 +6,7 @@ export const descriptor = () => ({
         calMode: {
             type: String,
             default: 'full',
-            label: 'Режим: full (полный) | compact (компактный фильтр дат)'
+            label: 'Режим виджета: полный или компактный'
         },
         calCompactShowBottom: {
             type: Boolean,
@@ -95,7 +95,7 @@ export const descriptor = () => ({
         calSelectionMode: {
             type: String,
             default: 'range',
-            label: 'Режим выбора (none/single/range)'
+            label: 'Режим выбора дат'
         },
         calSelectedDate: {
             type: String,
@@ -349,7 +349,7 @@ export const descriptor = () => ({
         calWithTime: {
             type: Boolean,
             default: false,
-            label: 'Режим с временем (формат ДД.ММ.ГГГГ ЧЧ:мм, передаёт timestamp)'
+            label: 'Выбор времени'
         },
         calDefaultStartTime: {
             type: String,
@@ -367,7 +367,7 @@ export const descriptor = () => ({
         calOutputFormat: {
             type: String,
             default: 'auto',
-            label: 'Формат даты в переменных (auto/date/timestamp/datetime)'
+            label: 'Значение в переменных'
         },
         // ── Tooltip appearance ────────────────────────────────────────
         calTooltipBg: {
@@ -418,7 +418,7 @@ export const descriptor = () => ({
         calTooltipPosition: {
             type: String,
             default: 'right',
-            label: 'Тултип: положение относительно курсора/ячейки (right/left/top/bottom/cursor)'
+            label: 'Тултип: положение относительно курсора или ячейки'
         },
         calTooltipOffsetX: {
             type: Number,
@@ -485,10 +485,11 @@ export const descriptor = () => ({
         }
     },
     vars: {
-        date: { description: 'Выбранная дата (в режиме диапазона — начало). Формат — calOutputFormat: ISO YYYY-MM-DD, timestamp (мс, локальное время) или "YYYY-MM-DD HH:mm:ss"' },
-        dateStart: { description: 'Начало диапазона: ISO-дата, timestamp мс (время начала или 00:00) или "YYYY-MM-DD HH:mm:ss" — см. calOutputFormat' },
-        dateEnd: { description: 'Конец диапазона: ISO-дата, timestamp мс (время конца или 23:59:59.999) или "YYYY-MM-DD HH:mm:ss" — см. calOutputFormat' },
-        datesList: { description: 'Список дат: "multi" — выбранные, "range" — все дни диапазона; для timestamp / datetime — массив значений, для date — ISO (multi — JSON-строкой). В режиме auto — как раньше: multi — JSON-строка ISO, range с calWithTime — [начало, конец] в мс' }
+        // формат значений задаётся в «Настройки → В переменную» (calOutputFormat)
+        date: { description: 'Выбранная дата (в диапазоне — начало). Формат — «Настройки → В переменную»: дата ГГГГ-ММ-ДД, timestamp (мс) или «ГГГГ-ММ-ДД ЧЧ:мм:сс»' },
+        dateStart: { description: 'Начало диапазона. Формат — «Настройки → В переменную»: дата, timestamp (мс) или дата и время; без выбора времени — 00:00:00' },
+        dateEnd: { description: 'Конец диапазона. Формат — «Настройки → В переменную»: дата, timestamp (мс) или дата и время; без выбора времени — 23:59:59' },
+        datesList: { description: 'Список дат: «Несколько» — выбранные дни, «Диапазон» — все дни диапазона. Формат каждой даты — «Настройки → В переменную»' }
     },
     cssVars: {}
 });
