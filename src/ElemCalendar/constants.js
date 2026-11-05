@@ -33,7 +33,42 @@ export const LOCALE_DATA = {
         today: 'Сегодня',
         views: { month: 'Месяц', week: 'Неделя', day: 'День', agenda: 'Список', year: 'Год' },
         noEvents: 'Нет событий',
-        allDay: 'Весь день'
+        allDay: 'Весь день',
+        // Родительный падеж — для «5 ноября 2026»
+        monthsGenitive: ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],
+        // Формат даты в полях ввода и чипах (не зависит от локали браузера); время всегда 24 ч
+        dateMask: 'DD.MM.YYYY',
+        dateShortMask: 'DD.MM.YY',
+        datePlaceholder: 'ДД.ММ.ГГГГ',
+        timePlaceholder: 'ЧЧ:ММ',
+        prev: 'Назад',
+        next: 'Вперёд',
+        reset: 'Сброс',
+        compactFrom: 'С',
+        compactTo: 'По',
+        compactStartAria: 'Дата начала',
+        compactEndAria: 'Дата окончания',
+        compactReset: 'Сбросить',
+        apply: 'Применить',
+        invalidDate: 'Некорректная дата',
+        untitled: '(без названия)',
+        more: 'ещё',
+        // Подписи встроенных пресетов компактного режима
+        presets: {
+            today: 'Сегодня',
+            yesterday: 'Вчера',
+            week: 'Эта неделя',
+            last_week: 'Пр. неделя',
+            month: 'Этот месяц',
+            last_month: 'Пр. месяц',
+            quarter: 'Этот квартал',
+            last_quarter: 'Прошлый квартал',
+            d7: '7 дней',
+            d30: '30 дней',
+            d90: '90 дней',
+            year: 'Этот год'
+        },
+        lastNDays: 'Последние {n} дней'
     },
     en: {
         months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
@@ -43,9 +78,61 @@ export const LOCALE_DATA = {
         today: 'Today',
         views: { month: 'Month', week: 'Week', day: 'Day', agenda: 'Agenda', year: 'Year' },
         noEvents: 'No events',
-        allDay: 'All day'
+        allDay: 'All day',
+        monthsGenitive: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+        dateMask: 'MM/DD/YYYY',
+        dateShortMask: 'MM/DD/YY',
+        datePlaceholder: 'MM/DD/YYYY',
+        timePlaceholder: 'HH:MM',
+        prev: 'Previous',
+        next: 'Next',
+        reset: 'Reset',
+        compactFrom: 'From',
+        compactTo: 'To',
+        compactStartAria: 'Start date',
+        compactEndAria: 'End date',
+        compactReset: 'Reset',
+        apply: 'Apply',
+        invalidDate: 'Invalid date',
+        untitled: '(untitled)',
+        more: 'more',
+        presets: {
+            today: 'Today',
+            yesterday: 'Yesterday',
+            week: 'This week',
+            last_week: 'Last week',
+            month: 'This month',
+            last_month: 'Last month',
+            quarter: 'This quarter',
+            last_quarter: 'Last quarter',
+            d7: '7 days',
+            d30: '30 days',
+            d90: '90 days',
+            year: 'This year'
+        },
+        lastNDays: 'Last {n} days'
     }
 };
+
+// Подписи пресетов, которые панель настроек подставляет автоматически (по-русски).
+// Если подпись пресета совпадает с одной из них — это не пользовательский текст,
+// и в рантайме показывается подпись из LOCALE_DATA выбранного языка.
+export const AUTO_PRESET_LABELS = Object.freeze({
+    today: ['Сегодня'],
+    yesterday: ['Вчера'],
+    week: ['Эта неделя'],
+    last_week: ['Пр. неделя', 'Прошлая неделя'],
+    month: ['Этот месяц'],
+    last_month: ['Пр. месяц', 'Прошлый месяц'],
+    quarter: ['Этот квартал'],
+    last_quarter: ['Прошлый квартал'],
+    d7: ['7 дней'],
+    d30: ['30 дней'],
+    d90: ['90 дней'],
+    year: ['Этот год']
+});
+// Автоподпись относительного пресета из панели настроек: «Последние N дней»
+export const AUTO_RELATIVE_LABEL_RE = /^Последние (\d+) дней$/;
 
 // ── Visual presets ─────────────────────────────────────────────────
 export const PRESETS = Object.freeze({
