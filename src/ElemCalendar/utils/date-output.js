@@ -30,10 +30,28 @@ function hhmmOf(d) {
 
 // 'auto' / пусто / неизвестное значение → формат по старым правилам
 export function resolveOutputFormat(format, withTime) {
-    if (format === OUTPUT_FORMATS.DATE || format === OUTPUT_FORMATS.TIMESTAMP || format === OUTPUT_FORMATS.DATETIME) {
-        return format;
-    }
+    if (!isAutoFormat(format)) return format;
     return withTime ? OUTPUT_FORMATS.TIMESTAMP : OUTPUT_FORMATS.DATE;
+}
+
+// true — формат не задан явно ('auto' / пусто / неизвестное значение)
+export function isAutoFormat(format) {
+    return format !== OUTPUT_FORMATS.DATE && format !== OUTPUT_FORMATS.TIMESTAMP && format !== OUTPUT_FORMATS.DATETIME;
+}
+
+// Форма значения datesList для режима выбора ('range' | 'multi') и формата calOutputFormat.
+//   'pair'  — [начало, конец] (старое поведение 'auto' + calWithTime в режиме диапазона)
+//   'json'  — JSON-строка ISO-дат (режим multi: формат 'date' и любой 'auto')
+//   'array' — массив значений по каждому дню в выбранном формате
+// В режиме 'auto' формы сохраняются как раньше ради обратной совместимости.
+export const DATES_LIST_SHAPES = { PAIR: 'pair', JSON: 'json', ARRAY: 'array' };
+export function datesListShape(mode, format, withTime) {
+    const auto = isAutoFormat(format);
+    const resolved = resolveOutputFormat(format, withTime);
+    if (mode === 'multi') {
+        return (auto || resolved === OUTPUT_FORMATS.DATE) ? DATES_LIST_SHAPES.JSON : DATES_LIST_SHAPES.ARRAY;
+    }
+    return (auto && resolved === OUTPUT_FORMATS.TIMESTAMP) ? DATES_LIST_SHAPES.PAIR : DATES_LIST_SHAPES.ARRAY;
 }
 
 // 'HH:mm' | 'HH:mm:ss' | 'HH:mm:ss.SSS' → { h, m, s, ms } или null

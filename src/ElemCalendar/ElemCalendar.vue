@@ -491,7 +491,8 @@ import {
     resolveDataSections, hasActiveMetricSource
 } from './constants';
 import {
-    OUTPUT_FORMATS, resolveOutputFormat, toOutputValue, isoTimeToTs, parseInputDate, parseInputDateList
+    DATES_LIST_SHAPES, datesListShape, resolveOutputFormat, toOutputValue, isoTimeToTs,
+    parseInputDate, parseInputDateList
 } from './utils/date-output';
 
 const { store, ValueObject } = Managers.StoreManager;
@@ -1523,14 +1524,18 @@ export default {
                 this.propChanged('calSelectedStart');
                 this.propChanged('calSelectedEnd');
             }
-            // datesList в режиме диапазона — все дни диапазона в выбранном формате
-            const allDates = start && end ? this._outList(expandDateRange(start, end)) : null;
-            this.$storeCommit({
-                date: start ? this._outValue(start) : null,
-                dateStart: start ? this._outValue(start) : null,
-                dateEnd: end ? this._outValue(end, true) : null,
-                datesList: allDates
-            });
+            const startValue = start ? this._outValue(start) : null;
+            const endValue = end ? this._outValue(end, true) : null;
+            let datesList;
+            if (datesListShape('range', this.props.calOutputFormat, this.props.calWithTime) === DATES_LIST_SHAPES.PAIR) {
+                // 'auto' + calWithTime — как раньше: [начало, конец]
+                const pair = [startValue, endValue].filter((v) => v != null);
+                datesList = pair.length ? pair : null;
+            } else {
+                // все дни диапазона в выбранном формате
+                datesList = start && end ? this._outList(expandDateRange(start, end)) : null;
+            }
+            this.$storeCommit({ date: startValue, dateStart: startValue, dateEnd: endValue, datesList });
         },
 
         _commitMultiple(dates) {
@@ -1543,8 +1548,9 @@ export default {
             const json = JSON.stringify(dates);
             this.props.calSelectedDates = json;
             if (!this.isEditorMode) this.propChanged('calSelectedDates');
-            // ISO-даты — JSON-строкой (как раньше); timestamp / дата-время — массивом
-            const value = this.outputFormat === OUTPUT_FORMATS.DATE ? json : this._outList(dates);
+            // 'auto' и 'date' — JSON-строка ISO-дат (как раньше); timestamp / дата-время — массивом
+            const shape = datesListShape('multi', this.props.calOutputFormat, this.props.calWithTime);
+            const value = shape === DATES_LIST_SHAPES.JSON ? json : this._outList(dates);
             this.$storeCommit({ datesList: value });
         },
 

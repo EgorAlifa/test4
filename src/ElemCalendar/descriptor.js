@@ -488,7 +488,7 @@ export const descriptor = () => ({
         date: { description: 'Выбранная дата (в режиме диапазона — начало). Формат — calOutputFormat: ISO YYYY-MM-DD, timestamp (мс, локальное время) или "YYYY-MM-DD HH:mm:ss"' },
         dateStart: { description: 'Начало диапазона: ISO-дата, timestamp мс (время начала или 00:00) или "YYYY-MM-DD HH:mm:ss" — см. calOutputFormat' },
         dateEnd: { description: 'Конец диапазона: ISO-дата, timestamp мс (время конца или 23:59:59.999) или "YYYY-MM-DD HH:mm:ss" — см. calOutputFormat' },
-        datesList: { description: 'Список дат (режим "multi" — выбранные, "range" — все дни диапазона): JSON-строка ISO-дат или массив timestamp / "YYYY-MM-DD HH:mm:ss" — см. calOutputFormat' }
+        datesList: { description: 'Список дат: "multi" — выбранные, "range" — все дни диапазона; для timestamp / datetime — массив значений, для date — ISO (multi — JSON-строкой). В режиме auto — как раньше: multi — JSON-строка ISO, range с calWithTime — [начало, конец] в мс' }
     },
     cssVars: {}
 });
