@@ -2787,7 +2787,9 @@ export default {
 .elem-cal__week-col-hd--selected,
 .elem-cal__week-col-hd--selected:hover { background: var(--cal-selected-bg); }
 .elem-cal__week-col-hd--selected .elem-cal__week-dow,
-.elem-cal__week-col-hd--selected .elem-cal__week-num { color: var(--cal-selected-color); }
+.elem-cal__week-col-hd--selected .elem-cal__week-num:not(.elem-cal__week-num--today) { color: var(--cal-selected-color); }
+/* выбранный «сегодня»: кружок сохраняет белый текст, обводка отделяет его от фона выделения */
+.elem-cal__week-col-hd--selected .elem-cal__week-num--today { box-shadow: 0 0 0 2px var(--cal-selected-color); }
 
 .elem-cal__hour-slot {
     height: 60px;
