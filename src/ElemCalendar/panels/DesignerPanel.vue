@@ -95,7 +95,12 @@ export default {
             // их уже заданный CSS виджет применяет как раньше
             const visible = list.filter((b) => !b.when || b.when(this.props));
             // groupStart — первый блок своей группы (перед ним выводится заголовок раздела)
-            return visible.map((b, i) => ({ ...b, groupStart: Boolean(b.group) && (i === 0 || visible[i - 1].group !== b.group) }));
+            return visible.map((b, i) => ({
+                ...b,
+                // подпись может зависеть от режима (например, «Начало диапазона» / «Выбранный день»)
+                label: typeof b.label === 'function' ? b.label(this.props) : b.label,
+                groupStart: Boolean(b.group) && (i === 0 || visible[i - 1].group !== b.group)
+            }));
         },
 
         cssVarsList() {
