@@ -1033,8 +1033,11 @@ export default {
                 [...DESIGNER_BLOCKS.full, ...DESIGNER_BLOCKS.compact].forEach((block) => {
                     const css = values && values[block.key];
                     if (!css) return;
-                    // portal: элемент вынесен в <body> (всплывающий календарь) — адресуется по своему id
-                    const sel = block.portal ? `${root}-popup${block.sel}` : `${root} ${block.sel}`;
+                    // portal: элемент вынесен в <body> (всплывающий календарь) — адресуется по его id:
+                    // 'self' — сам календарь, 'inside' — элемент внутри него
+                    let sel = `${root} ${block.sel}`;
+                    if (block.portal === 'inside') sel = `${root}-popup ${block.sel}`;
+                    else if (block.portal) sel = `${root}-popup${block.sel}`;
                     parts.push(`${sel} { ${block.important ? withImportant(css) : css} }`);
                 });
             } catch (e) { /* noop */ }

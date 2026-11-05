@@ -3,7 +3,13 @@
         class="elem-btn"
         :class="[cssClass, buttonDynamicClass]"
         :style="[cssStyle, buttonStyle]"
-        @click="handleClick">
+        :role="isEditingCanvas ? null : 'button'"
+        :tabindex="isEditingCanvas ? null : 0"
+        :aria-disabled="isEditingCanvas ? null : String(isDisabled)"
+        @click="handleClick"
+        @keydown="handleKeydown"
+        @mousedown="handleMouseDown"
+        @auxclick="handleAuxClick">
         <span v-if="isLoading" class="elem-btn__spinner" />
         <i
             v-if="props.btnIconLeft && !isLoading"
@@ -11,13 +17,13 @@
             class="elem-btn__icon elem-btn__icon--left" />
         <!-- Editor mode: TiptapEditor (same as ElemText/ElemSticker) -->
         <tiptap-editor
-            v-if="isEditorMode && props.btnShowText !== false"
+            v-if="isEditingCanvas && props.btnShowText !== false"
             :value="props.btnText"
             placeholder="Кнопка"
             :autofocus="true"
             class="elem-btn__label-editor"
             @change="onBtnLabelChange"
-            @click.native.stop
+            @click.native.stop="handleClick"
             @mousedown.native.stop
             @pointerdown.native.stop
         >
@@ -59,6 +65,18 @@
             v-if="props.btnIconRight"
             :class="props.btnIconRight"
             class="elem-btn__icon elem-btn__icon--right" />
+        <!-- Редактор: проверка ссылки в новой вкладке (то же — Ctrl/⌘ + клик по кнопке) -->
+        <button
+            v-if="isEditingCanvas && canPreviewLink"
+            type="button"
+            class="elem-btn__open-link"
+            title="Открыть ссылку в новой вкладке (или Ctrl/⌘ + клик по кнопке)"
+            aria-label="Открыть ссылку в новой вкладке"
+            @click.stop.prevent="openLinkFromEditor"
+            @mousedown.stop
+            @pointerdown.stop>
+            <i class="mdi mdi-open-in-new" />
+        </button>
         <ui-popover v-bind="popoverOptions" :show.sync="isPopupVisible">
             <div class="elem-btn__toast">{{ popupText }}</div>
         </ui-popover>
@@ -72,15 +90,31 @@
  * @typedef {import('./ElemButton').IInstance} IInstance
  */
 import { Elem, Managers } from 'goodt-wcore';
-import { Url } from '@goodt-common/utils';
+import { cloneDeep } from 'lodash';
 import { useRouteQueryManager } from '@goodt-wcore/utils';
 import { Popover } from 'goodteditor-ui';
 import { POPUP_LIFETIME } from './constants';
-import { buildSerializedStoreUrl } from './utils';
+import { buildSerializedStoreUrl, toQueryValue } from './utils';
+import {
+    PlatformMode,
+    UrlKind,
+    appendQuery,
+    buildRoute,
+    classifyUrl,
+    currentHashPath,
+    detectPlatformMode,
+    documentBase,
+    getEditorPlayerBase,
+    getTopLocation,
+    isViewerPath,
+    routeToString
+} from './navigation';
 import { meta, Vars } from './descriptor';
 import TiptapEditor from './components/TiptapEditor.vue';
 
 const { store, ValueObject } = Managers.StoreManager;
+// Через сколько проверить, что платформа (RouteManager) действительно сменила страницу
+const ROUTE_NAVIGATE_CHECK_DELAY = 150;
 const { addRouteQueryParams } = useRouteQueryManager();
 
 /**
@@ -119,6 +153,35 @@ export default {
         }
     },
     computed: {
+        /**
+         * Кнопка на холсте редактора: клик редактирует подпись и не переходит по ссылке.
+         * В плеере и публикации — всегда false, даже если платформа прислала isEditorMode.
+         *
+         * @return {boolean}
+         */
+        isEditingCanvas() {
+            return this.getPlatformMode() === PlatformMode.EDITOR;
+        },
+        /**
+         * Кнопка ведёт по ссылке. При «Сохранить ссылку в хранилище» не переходит никогда.
+         *
+         * @return {boolean}
+         */
+        hasLink() {
+            return this.props.isSaveUrlForStore !== true && this.getLinkModel().kind !== UrlKind.INVALID;
+        },
+        /**
+         * Редактор: ссылку можно проверить (значок «↗», Ctrl/⌘ + клик).
+         * Страница проекта — только если адрес плеера строится из адреса редактора.
+         *
+         * @return {boolean}
+         */
+        canPreviewLink() {
+            if (this.hasLink === false) return false;
+            const { kind, href } = this.getLinkModel();
+            if (kind !== UrlKind.RELATIVE) return true;
+            return typeof window !== 'undefined' && getEditorPlayerBase(getTopLocation(window)) !== null;
+        },
         isToggleActive() {
             const { btnIsToggle, btnToggleStoreVar, btnToggleActiveValue } = this.props;
             if (!btnIsToggle || !btnToggleStoreVar) return false;
@@ -144,7 +207,7 @@ export default {
                 'elem-btn--glass': btnIsGlass,
                 'elem-btn--disabled': this.isDisabled,
                 'elem-btn--icon-only': btnShowText === false && !this.isLoading && (btnIconLeft || btnIconRight),
-                'elem-btn--editing': this.isEditorMode,
+                'elem-btn--editing': this.isEditingCanvas,
                 [hasClassName]: !!(hasClassName && this.hasClassActive)
             };
         },
@@ -226,16 +289,65 @@ export default {
     },
     methods: {
         handleClick(event) {
-            if (this.isEditorMode) return;
+            // только основная кнопка мыши (средняя — handleAuxClick)
+            if (event && typeof event.button === 'number' && event.button !== 0) return;
+            const isModified = Boolean(event && (event.ctrlKey || event.metaKey));
+            // Холст редактора: обычный клик — редактирование; Ctrl/⌘ + клик — проверить ссылку
+            if (this.isEditingCanvas) {
+                if (isModified && this.canPreviewLink) {
+                    event.preventDefault();
+                    this.openLinkFromEditor();
+                }
+                return;
+            }
+            if (this.isDisabled || this.isLoading) return;
+            if (this.props.isClickSelf && event && event.target !== event.currentTarget) return;
+            // Просмотр: Ctrl/⌘ + клик по кнопке со ссылкой — в новой вкладке, как у обычных ссылок
+            this.onClick({ isNewTab: isModified && this.hasLink });
+        },
+        // Клавиатура в просмотре: Enter / пробел — как клик (кнопка доступна с Tab)
+        handleKeydown(event) {
+            if (this.isEditingCanvas || event.target !== event.currentTarget) return;
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            if (this.isDisabled || this.isLoading) return;
+            this.onClick({ isNewTab: (event.ctrlKey || event.metaKey) && this.hasLink });
+        },
+        // Средняя кнопка мыши: без автопрокрутки браузера, если у кнопки есть ссылка
+        handleMouseDown(event) {
+            if (event.button === 1 && this.isEditingCanvas === false && this.hasLink) {
+                event.preventDefault();
+            }
+        },
+        // Средняя кнопка мыши в просмотре — открыть ссылку в новой вкладке.
+        // Выполняются только шаги, от которых зависят параметры ссылки, и сам переход —
+        // текущая вкладка (переключатели, события, буфер обмена) не меняется.
+        handleAuxClick(event) {
+            if (event.button !== 1 || this.isEditingCanvas || this.hasLink === false) return;
             if (this.isDisabled || this.isLoading) return;
             if (this.props.isClickSelf && event.target !== event.currentTarget) return;
-            this.onClick();
+            event.preventDefault();
+            this.onClick({ isNewTab: true, isLinkOnly: true });
         },
         buildStateFromFilters(filters) {
-            return filters.reduce(
-                (acc, { name, data }) => ({ ...acc, [name]: new ValueObject(data, store.state[name]?.meta) }),
-                {}
-            );
+            return filters.reduce((acc, { name, data, valueSource, fromVar }) => {
+                if (valueSource !== 'var') {
+                    return { ...acc, [name]: new ValueObject(data, store.state[name]?.meta) };
+                }
+                // «A = текущее значение B», source var not chosen yet — leave the target untouched
+                if (fromVar == null || fromVar === '') {
+                    return acc;
+                }
+                // B may be set earlier in the same list — its new value wins over the store
+                const isSetInBatch = Object.prototype.hasOwnProperty.call(acc, fromVar);
+                const value = (isSetInBatch ? acc[fromVar] : store.state[fromVar])?.value;
+                // empty/cleared source clears the target (bare undefined, as applyCutParams)
+                const isEmpty = [null, undefined, ''].includes(value) || (Array.isArray(value) && value.length === 0);
+                if (isEmpty) {
+                    return { ...acc, [name]: undefined };
+                }
+                return { ...acc, [name]: new ValueObject(cloneDeep(value), store.state[name]?.meta) };
+            }, {});
         },
         applyCutParams() {
             const { cutParams } = this;
@@ -273,83 +385,224 @@ export default {
         triggerCustomEvent() {
             this.eventName.forEach(this.$eventTrigger);
         },
-        // ── Platform helpers (mirrors ElemRoutesNavigator logic) ─────────
-        _detectPlatformMode() {
-            if (typeof window === 'undefined') return 'unknown';
-            const href = window.location.href;
-            if (href.includes('/player/')) return 'player';
-            if (href.includes('/editor/')) return 'editor';
-            return 'player';
+        // ── Навигация ──────────────────────────────────────────────────
+        // Правила (одинаковы для всех видов ссылок):
+        //  - холст редактора: не переходим (клик редактирует кнопку), проверка ссылки — Ctrl/⌘ + клик или «↗»;
+        //  - плеер / публикация / встроенный проект: переходим всегда, синхронно в обработчике клика,
+        //    иначе браузер считает новую вкладку всплывающим окном и блокирует её.
+        // Страницы проекта — через RouteManager платформы (как $routeNavigate у Elem); hash и $router —
+        // только запасные варианты, если RouteManager не ведёт маршрут или не сменил страницу.
+        /** @return {string} */
+        getPlatformMode() {
+            if (typeof window === 'undefined') return PlatformMode.VIEWER;
+            const pathnames = [window.location.pathname, getTopLocation(window).pathname];
+            return detectPlatformMode({ isEditorMode: this.isEditorMode, pathnames });
         },
 
-        // Builds a full navigable URL for a relative slug/path, accounting for
-        // the deployment base path (e.g. /insight-dev/editor/player/3836/#/).
-        _buildNavigationUrl(url) {
-            if (!url) return url;
-            if (url.startsWith('http://') || url.startsWith('https://')) return url;
-            const href = window.location.href;
-            if (href.includes('/player/')) {
-                const hashIdx = href.indexOf('#');
-                const base = hashIdx >= 0 ? href.substring(0, hashIdx) : href.replace(/\/?$/, '/');
-                const clean = url.replace(/^[#/]+/, '');
-                return `${base}#/${clean}`;
+        /** @return {{ kind: string, href: string }} */
+        getLinkModel() {
+            const protocol = typeof window === 'undefined' ? 'https:' : window.location.protocol;
+            return classifyUrl(this.props.url, protocol);
+        },
+
+        /**
+         * RouteManager платформы. Для смены страницы — только если он ведёт текущий маршрут
+         * (route задан), как проверяет и useRouteQueryManager платформы.
+         *
+         * @return {object|null}
+         */
+        getRouteManager() {
+            try {
+                return Managers.RouteManager?.instance ?? null;
+            } catch (e) {
+                return null;
             }
-            if (this.$router) {
-                const { href: resolved } = this.$router.resolve(url);
-                if (resolved.startsWith('#')) {
-                    return window.location.origin + window.location.pathname + resolved;
+        },
+
+        /** @return {object|null} */
+        getActiveRouteManager() {
+            const routeManager = this.getRouteManager();
+            const isActive = routeManager != null && routeManager.route != null
+                && typeof routeManager.navigate === 'function';
+            return isActive ? routeManager : null;
+        },
+
+        /**
+         * Hash-роутинг (…/#/slug): плеер и публикация, встроенный проект с hash-роутером.
+         *
+         * @return {boolean}
+         */
+        isHashRouting() {
+            if (isViewerPath(window.location.pathname)) return true;
+            if (this.$router != null) return this.$router.mode === 'hash';
+            return window.location.hash !== '';
+        },
+
+        /** @return {string} путь текущей страницы проекта */
+        getCurrentPagePath() {
+            const routePath = this.getActiveRouteManager()?.route?.path;
+            if (routePath) return routePath;
+            if (this.isHashRouting()) return currentHashPath(window.location);
+            return this.$router?.currentRoute?.path ?? '/';
+        },
+
+        /**
+         * Полный адрес страницы проекта (новая вкладка; проект без роутера).
+         *
+         * @param {{ path: string, query: object }} route
+         * @return {string}
+         */
+        buildProjectPageUrl(route) {
+            if (this.isHashRouting()) {
+                const base = documentBase(window.location);
+                const routeManager = this.getRouteManager();
+                if (typeof routeManager?.buildRouteString === 'function') {
+                    return String(routeManager.buildRouteString(route, base));
                 }
-                return window.location.origin + resolved;
+                return `${base}#${routeToString(route)}`;
             }
-            if (window.location.hash) {
-                const base = href.replace(/#.*$/, '');
-                return `${base}#${url.replace(/^[#/]+/, '')}`;
+            if (this.$router != null) {
+                const { href: resolved } = this.$router.resolve(route);
+                return resolved.startsWith('#')
+                    ? documentBase(window.location) + resolved
+                    : window.location.origin + resolved;
             }
-            return window.location.origin + (url.startsWith('/') ? '' : '/') + url;
+            return window.location.origin + routeToString(route);
         },
 
-        navigateUrl() {
-            const allowedProtocols = ['http', 'https'];
-            const { url, isTargetBlank } = this.props;
-            if ([null, undefined, ''].includes(url)) return;
+        /**
+         * Смена страницы проекта в этой вкладке без RouteManager.
+         *
+         * @param {{ path: string, query: object }} route
+         */
+        navigateProjectPageFallback(route) {
+            // Плеер и публикация — hash-роутинг: меняем только hash, страница переключается без
+            // перезагрузки, переменные этого же клика сохраняются. $router там не используем — у виджета
+            // это может быть роутер редактора без маршрутов проекта.
+            if (this.isHashRouting()) {
+                window.location.hash = routeToString(route);
+                return;
+            }
+            if (this.$router != null) {
+                this.$router.push(route).catch(() => {});
+                return;
+            }
+            window.location.assign(window.location.origin + routeToString(route));
+        },
+
+        /**
+         * Смена страницы проекта в этой вкладке: RouteManager платформы, а если он не сменил
+         * ни маршрут, ни адрес — запасной вариант.
+         *
+         * @param {{ path: string, query: object }} route
+         */
+        navigateProjectPage(route) {
+            const routeManager = this.getActiveRouteManager();
+            if (routeManager == null) {
+                this.navigateProjectPageFallback(route);
+                return;
+            }
+            const routeBefore = routeManager.route;
+            const hrefBefore = window.location.href;
+            routeManager.navigate({ path: route.path, query: route.query });
+            setTimeout(() => {
+                const isChanged = routeManager.route !== routeBefore || window.location.href !== hrefBefore;
+                if (isChanged === false) this.navigateProjectPageFallback(route);
+            }, ROUTE_NAVIGATE_CHECK_DELAY);
+        },
+
+        /**
+         * mailto: / tel: — через временную ссылку <a>: почта / звонилка без ухода со страницы
+         * (location.assign вызвал бы beforeunload и мог оборвать запросы).
+         *
+         * @param {string} href
+         */
+        openSchemeLink(href) {
+            const anchor = document.createElement('a');
+            anchor.href = href;
+            anchor.rel = 'noopener noreferrer';
+            anchor.style.display = 'none';
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+        },
+
+        /** @return {Record<string, string>} параметры «Добавить параметры в адрес» */
+        buildRouteQueryParams() {
+            const { routeQueryParamNames = [] } = this.props;
+            return routeQueryParamNames.reduce((acc, { label, value }) => {
+                if (label == null || label === '' || value == null) return acc;
+                return { ...acc, [label]: value };
+            }, {});
+        },
+
+        /**
+         * Переход по ссылке поглощает «Добавить параметры в адрес»: у ссылки на страницу проекта
+         * эти параметры уходят в адрес новой страницы (отдельная навигация к текущей странице
+         * могла бы прийти позже и вернуть пользователя назад).
+         *
+         * @return {boolean}
+         */
+        isRouteQueryMergedIntoLink() {
+            return this.props.isSaveUrlForStore !== true && this.getLinkModel().kind === UrlKind.RELATIVE;
+        },
+
+        /** @param {{ isNewTab?: boolean }} [options] */
+        navigateUrl({ isNewTab = false } = {}) {
             if (typeof window === 'undefined') return;
+            if (this.getPlatformMode() === PlatformMode.EDITOR) return;
+            const { kind, href } = this.getLinkModel();
+            if (kind === UrlKind.INVALID) return;
 
-            const urlModel = Url.create(url);
-            const urlProtocol = urlModel.protocol ?? '';
-            const queryParams = this.buildNavigateQueryParams();
-
-            // Reject non-http(s), non-relative protocols (e.g. javascript:, mailto:)
-            if (
-                allowedProtocols.some((p) => urlProtocol.includes(p)) === false &&
-                !urlModel.isRelative
-            ) return;
-
-            // Absolute URL: open with correct target
-            if (urlModel.isAbsolute) {
-                const target = isTargetBlank === true ? '_blank' : '_self';
-                window.open(String(Url.create({ href: url, query: queryParams })), target, 'noopener,noreferrer');
+            if (kind === UrlKind.SCHEME) {
+                this.openSchemeLink(href);
                 return;
             }
 
-            // Relative URL — platform-aware navigation
-            const mode = this._detectPlatformMode();
+            // Новая вкладка — window.open строго синхронно в клике (иначе блокировщик всплывающих окон)
+            const isTargetBlank = isNewTab || this.props.isTargetBlank === true;
 
+            if (kind === UrlKind.ABSOLUTE) {
+                const target = appendQuery(href, this.buildNavigateQueryParams());
+                if (isTargetBlank) {
+                    window.open(target, '_blank', 'noopener,noreferrer');
+                } else {
+                    window.location.assign(target);
+                }
+                return;
+            }
+
+            // Страница проекта: параметры ссылки < «параметры в адрес» < «переменные в ссылку»
+            const query = { ...this.buildRouteQueryParams(), ...this.buildNavigateQueryParams() };
+            const route = buildRoute(href, query, this.getCurrentPagePath());
             if (isTargetBlank) {
-                window.open(this._buildNavigationUrl(url), '_blank', 'noopener,noreferrer');
+                window.open(this.buildProjectPageUrl(route), '_blank', 'noopener,noreferrer');
                 return;
             }
+            this.navigateProjectPage(route);
+        },
 
-            // Don't navigate while in the editor
-            if (mode === 'editor') return;
-
-            // Player / standalone — navigate in the same tab
-            if (this.$router) {
-                const path = url.replace(/^#/, '');
-                const qp = queryParams && typeof queryParams === 'object' ? queryParams : {};
-                this.$router.push({ path, query: qp }).catch(() => {});
-            } else {
-                window.location.href = this._buildNavigationUrl(url);
+        /** Редактор: проверить ссылку кнопки (новая вкладка), без изменения переменных */
+        openLinkFromEditor() {
+            if (typeof window === 'undefined' || this.canPreviewLink === false) return;
+            const { kind, href } = this.getLinkModel();
+            if (kind === UrlKind.SCHEME) {
+                this.openSchemeLink(href);
+                return;
             }
+            if (kind === UrlKind.ABSOLUTE) {
+                window.open(appendQuery(href, this.buildNavigateQueryParams()), '_blank', 'noopener,noreferrer');
+                return;
+            }
+            // Как ссылка «Предпросмотр» редактора: <плеер>/#/slug (RouteManager.buildRouteString)
+            const base = getEditorPlayerBase(getTopLocation(window));
+            const query = { ...this.buildRouteQueryParams(), ...this.buildNavigateQueryParams() };
+            const route = buildRoute(href, query, '/');
+            const routeManager = this.getRouteManager();
+            const target = typeof routeManager?.buildRouteString === 'function'
+                ? String(routeManager.buildRouteString(route, base))
+                : `${base}#${routeToString(route)}`;
+            window.open(target, '_blank', 'noopener,noreferrer');
         },
         saveUrlInStorage() {
             if (this.props.isSaveUrlForStore) {
@@ -362,28 +615,47 @@ export default {
             this.isLoading = true;
             setTimeout(() => { this.isLoading = false; }, btnLoadingDuration || 1500);
         },
-        onClick() {
-            const { isCopyStore, shouldCopyText, hasClassName } = this.props;
+        /**
+         * @param {{ isNewTab?: boolean, isLinkOnly?: boolean }} [options]
+         *  isLinkOnly — средняя кнопка мыши: только шаги, от которых зависят параметры ссылки, и переход
+         */
+        onClick({ isNewTab = false, isLinkOnly = false } = {}) {
+            const { isCopyStore, shouldCopyText, hasClassName, isSaveUrlForStore } = this.props;
+            const isRouteQueryMerged = this.isRouteQueryMergedIntoLink();
+            const navigateStep = ['переход по ссылке', () => this.navigateUrl({ isNewTab })];
 
-            if (hasClassName) this.hasClassActive = !this.hasClassActive;
+            const steps = isLinkOnly
+                ? [
+                    ['очистка переменных', this.applyCutParams],
+                    ['установка переменных', this.applyStoreFilters],
+                    navigateStep
+                ]
+                : [
+                    ['класс :has()', () => { if (hasClassName) this.hasClassActive = !this.hasClassActive; }],
+                    ['переключатель', this.applyToggle],
+                    ['индикатор загрузки', this.startLoading],
+                    ['очистка переменных', this.applyCutParams],
+                    ['установка переменных', this.applyStoreFilters],
+                    ['события', this.triggerCustomEvent],
+                    ...(isRouteQueryMerged ? [] : [['параметры адреса', this.addRouteQueryParams]]),
+                    isSaveUrlForStore ? ['сохранение ссылки', this.saveUrlInStorage] : navigateStep
+                ];
+            if (isLinkOnly === false && isCopyStore) {
+                steps.push(['копирование ссылки', this.copySerializedStoreUrlToClipboard]);
+            }
+            if (isLinkOnly === false && shouldCopyText) {
+                steps.push(['копирование текста', this.copyTextToClipboard]);
+            }
 
-            this.applyToggle();
-            this.startLoading();
-
-            const commonMethods = [
-                this.applyCutParams,
-                this.applyStoreFilters,
-                this.triggerCustomEvent,
-                this.addRouteQueryParams
-            ];
-            const executeMethods = this.props.isSaveUrlForStore
-                ? [...commonMethods, this.saveUrlInStorage]
-                : [...commonMethods, this.navigateUrl];
-
-            if (isCopyStore) executeMethods.push(this.copySerializedStoreUrlToClipboard);
-            if (shouldCopyText) executeMethods.push(this.copyTextToClipboard);
-
-            executeMethods.forEach((handler) => handler.call(this));
+            // Ошибка одного шага (переменные, события) не должна отменять остальные, в т.ч. переход по ссылке
+            steps.forEach(([name, step]) => {
+                try {
+                    step.call(this);
+                } catch (error) {
+                    // eslint-disable-next-line no-console
+                    console.error(`[ElemButton] шаг «${name}»:`, error);
+                }
+            });
         },
         copySerializedStoreUrlToClipboard() {
             const excludeKeys = (this.props.isCopyStoreExcludeVars || '')
@@ -427,13 +699,20 @@ export default {
             this.props.btnPaddingH = s.paddingH; this.propChanged('btnPaddingH');
             this.props.btnFontSize = s.fontSize; this.propChanged('btnFontSize');
         },
+        // Reads the CURRENT store (after cutParams/filters were applied in onClick):
+        // cleared vars are empty and skipped, vars set by filters go with their new value.
         buildNavigateQueryParams() {
             const { urlFilters } = this.props;
-            if (urlFilters.length === 0) return '';
             const { state } = store;
-            return urlFilters
-                .filter(({ name }) => [null, undefined, ''].includes(state[name]?.value) === false)
-                .reduce((acc, { name }) => ({ ...acc, [name]: state[name].value }), {});
+            return urlFilters.reduce((acc, { name, var: varName, source, data }) => {
+                const key = name || varName;
+                if (key == null || key === '') {
+                    return acc;
+                }
+                const rawValue = source === 'value' ? data : state[varName || name]?.value;
+                const value = toQueryValue(rawValue);
+                return value === undefined ? acc : { ...acc, [key]: value };
+            }, {});
         }
     }
 };
@@ -464,6 +743,12 @@ export default {
     transition: box-shadow 0.2s ease, transform 0.15s ease, background 0.2s ease, opacity 0.15s ease;
     -webkit-font-smoothing: antialiased;
     outline: none;
+}
+
+/* ── Фокус с клавиатуры (Tab) ───────────────────────────────────── */
+.elem-btn:not(.elem-btn--editing):focus-visible {
+    outline: 2px solid var(--btn-focus-color, #4f6aff);
+    outline-offset: 2px;
 }
 
 /* ── Default hover: brightness filter — clean on gradients, no color veil ── */
@@ -504,6 +789,33 @@ export default {
 /* ── Editor mode: cursor reset ──────────────────────────────────── */
 .elem-btn--editing { cursor: default; }
 
+/* ── Editor mode: «открыть ссылку» — появляется при наведении ───── */
+.elem-btn__open-link {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #4f6aff;
+    font-size: 12px;
+    line-height: 1;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.18);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+.elem-btn--editing:hover .elem-btn__open-link,
+.elem-btn__open-link:focus-visible { opacity: 1; }
+.elem-btn__open-link:hover { background: #eef2ff; }
+
 /* ── Glass variant ──────────────────────────────────────────────── */
 .elem-btn--glass {
     background: rgba(255, 255, 255, 0.12) !important;
@@ -513,17 +825,17 @@ export default {
 }
 
 /* ── Loading state ──────────────────────────────────────────────── */
+.elem-btn--loading:not(.elem-btn--editing) { pointer-events: none; }
 .elem-btn--loading {
     cursor: wait;
-    pointer-events: none;
     opacity: 0.8;
 }
 
 /* ── Disabled state ─────────────────────────────────────────────── */
+.elem-btn--disabled:not(.elem-btn--editing) { pointer-events: none; }
 .elem-btn--disabled {
     opacity: 0.45;
     cursor: not-allowed;
-    pointer-events: none;
 }
 
 /* ── Icons ──────────────────────────────────────────────────────── */
