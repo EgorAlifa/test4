@@ -435,8 +435,18 @@ export function withImportant(css) {
     let cur = '';
     let depth = 0;
     let quote = '';
-    for (const ch of String(css || '')) {
-        if (quote) { if (ch === quote) quote = ''; cur += ch; continue; }
+    let escaped = false;
+    // комментарии убираем заранее: «/* a; b */» не должен делить объявления
+    const source = String(css || '').replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const ch of source) {
+        if (quote) {
+            // внутри строки символ после «\» экранирован (content: "a\"; b")
+            if (escaped) escaped = false;
+            else if (ch === '\\') escaped = true;
+            else if (ch === quote) quote = '';
+            cur += ch;
+            continue;
+        }
         if (ch === '"' || ch === "'") quote = ch;
         else if (ch === '(') depth++;
         else if (ch === ')') depth = Math.max(0, depth - 1);
@@ -447,7 +457,7 @@ export function withImportant(css) {
     return decls
         .map((d) => d.trim())
         .filter((d) => d && d.includes(':'))
-        .map((d) => (/!important$/i.test(d) ? d : `${d} !important`))
+        .map((d) => (/!\s*important\s*$/i.test(d) ? d : `${d} !important`))
         .join('; ');
 }
 
