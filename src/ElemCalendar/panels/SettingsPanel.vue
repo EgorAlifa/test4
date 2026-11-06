@@ -141,7 +141,7 @@
                 </div>
 
                 <!-- Формат значения в переменных (date / dateStart / dateEnd / datesList).
-                     'auto' (старые виджеты) не показывается — подсвечивается действующий формат -->
+                     «Авто» пишет в формате значения, уже лежащего в переменной (что определено — подпись ниже) -->
                 <div v-if="selectionMode !== 'none'" class="p-row">
                     <span class="p-row__label p-row__label--nowrap">В переменную</span>
                     <div class="seg-ctrl seg-ctrl--tight">
@@ -149,13 +149,34 @@
                             v-for="f in outputFormatOptions"
                             :key="f.value"
                             class="seg-ctrl__btn"
-                            :class="{ 'seg-ctrl__btn--active': effectiveFormat === f.value }"
-                            @click="setOutputFormat(f.value)">
+                            :class="{ 'seg-ctrl__btn--active': outputFormatGroup === f.value }"
+                            @click="setOutputFormatGroup(f.value)">
                             {{ f.label }}
                         </button>
                     </div>
                 </div>
-                <div v-if="formatShapeHint && selectionMode !== 'none'" class="p-hint" style="margin-bottom:4px">{{ formatShapeHint }}</div>
+                <template v-if="selectionMode !== 'none'">
+                    <!-- «Дата и время»: строкой ('datetime') или числом в мс ('timestamp') -->
+                    <div v-if="outputFormatGroup === 'datetime'" class="sub-group">
+                        <div class="p-row">
+                            <span class="p-row__label">Вид</span>
+                            <div class="seg-ctrl seg-ctrl--tight">
+                                <button
+                                    class="seg-ctrl__btn"
+                                    :class="{ 'seg-ctrl__btn--active': props.calOutputFormat === 'datetime' }"
+                                    title="ГГГГ-ММ-ДД ЧЧ:мм:сс"
+                                    @click="setOutputFormat('datetime')">Строкой</button>
+                                <button
+                                    class="seg-ctrl__btn"
+                                    :class="{ 'seg-ctrl__btn--active': props.calOutputFormat === 'timestamp' }"
+                                    title="Timestamp, миллисекунды"
+                                    @click="setOutputFormat('timestamp')">Числом (мс)</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="outputFormatGroup === 'auto'" class="p-hint" style="margin-bottom:4px">{{ autoFormatCaption }}</div>
+                    <div v-if="formatShapeHint" class="p-hint" style="margin-bottom:4px">{{ formatShapeHint }}</div>
+                </template>
 
                 <!-- время: только для одиночной даты и диапазона; явный формат «Дата» время отбрасывает
                      ('auto' с временем виджет сам передаёт как timestamp) -->
@@ -548,17 +569,42 @@ export default {
         /** Явные варианты calOutputFormat (utils/date-output.js); 'auto' — только значение по умолчанию */
         outputFormatOptions() {
             return [
+                { label: 'Авто', value: 'auto' },
                 { label: 'Дата', value: 'date' },
-                { label: 'Timestamp', value: 'timestamp' },
                 { label: 'Дата и время', value: 'datetime' }
             ];
         },
-        // Действующий формат: для 'auto' (и пустого/неизвестного) — как resolveOutputFormat в виджете:
-        // timestamp при выборе времени, иначе дата
-        effectiveFormat() {
+        // Группа «В переменную»: 'auto' (и пустое/неизвестное), 'date', 'datetime' (= 'datetime' | 'timestamp')
+        outputFormatGroup() {
             const f = this.props.calOutputFormat;
-            if (['date', 'timestamp', 'datetime'].includes(f)) return f;
-            return this.isTimeApplicable && this.props.calWithTime ? 'timestamp' : 'date';
+            if (isAutoFormat(f)) return 'auto';
+            return f === 'date' ? 'date' : 'datetime';
+        },
+        // Подпись под «Авто»: что определил виджет. Поле экземпляра outputFormatResolved = '<формат>|<источник>'
+        // (не prop — не сохраняется в конфиг); экземпляр виджета панель получает как elementInstance
+        autoFormatCaption() {
+            const inst = this.elementInstance;
+            const resolved = inst && inst.outputFormatResolved;
+            const [format, source] = String(resolved || '').split('|');
+            const formats = {
+                date: 'дата',
+                timestamp: 'дата и время числом (мс)',
+                timestamp_s: 'дата и время числом (сек)',
+                datetime: 'дата и время строкой',
+                iso: 'ISO-строка',
+                ddmmyyyy: 'ДД.ММ.ГГГГ',
+                yyyymmdd: 'ГГГГММДД'
+            };
+            // 'variable' — формат взят из значения в переменной (поэтому timestamp сохраняется и без
+            // «Выбора времени»); 'setting' и неизвестные источники — без пояснения
+            const sources = {
+                variable: 'по значению переменной',
+                time: 'включён выбор времени',
+                default: 'по умолчанию'
+            };
+            const own = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+            if (!own(formats, format)) return 'Авто: формат определится по значению переменной';
+            return `Авто → ${formats[format]}${own(sources, source) ? ` (${sources[source]})` : ''}`;
         },
         // ── Зависимости настроек: условия совпадают с v-if в шаблоне ElemCalendar.vue ──
         isCompact() {
@@ -924,16 +970,21 @@ export default {
             this.presetDateError = { ...this.presetDateError, [side]: false };
         },
 
-        // «В переменную». Пока хранится 'auto', клик по уже подсвеченному (действующему) варианту ничего
-        // не меняет: явное значение сменило бы форму datesList у существующих виджетов
+        // Клик по группе «Авто | Дата | Дата и время». Повторный клик по активной группе ничего не меняет;
+        // «Дата и время» по умолчанию — строкой ('datetime'), вид меняется во второй строке
+        setOutputFormatGroup(group) {
+            if (group === this.outputFormatGroup) return;
+            this.setOutputFormat(group === 'auto' ? 'auto' : group);
+        },
+
+        // Запись calOutputFormat; для явных форматов — подсказка, если меняется форма datesList
         setOutputFormat(format) {
             const stored = this.props.calOutputFormat;
-            if (isAutoFormat(stored) && format === this.effectiveFormat) return;
             if (format === stored) return;
             const mode = this.selectionMode;
             const withTime = Boolean(this.props.calWithTime);
             let hint = '';
-            if (mode === 'range' || mode === 'multi') {
+            if (!isAutoFormat(format) && (mode === 'range' || mode === 'multi')) {
                 const before = datesListShape(mode, stored, withTime);
                 const after = datesListShape(mode, format, withTime);
                 if (before !== after) {
