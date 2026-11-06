@@ -556,8 +556,9 @@ import {
     resolveDataSections, hasActiveMetricSource
 } from './constants';
 import {
-    DATES_LIST_SHAPES, datesListShape, resolveOutputFormat, toOutputValue,
-    isEmptyInput, isEmptyListInput, normalizeTime, parseInputDate, parseInputDateList
+    DATES_LIST_SHAPES, datesListShape, resolveOutputFormat, toOutputValue, isAutoFormat,
+    isEmptyInput, isEmptyListInput, normalizeTime, parseInputDate, parseInputDateList,
+    detectValueFormat, sameValueFormat, formatName, formatAs, formatListAs
 } from './utils/date-output';
 import { formatByMask } from './dateFormat';
 import DateTimeInput from './components/DateTimeInput.vue';
@@ -659,6 +660,12 @@ export default {
         {
             vars: ['date', 'dateStart', 'dateEnd', 'datesList'],
             handler([date, dateStart, dateEnd, datesList]) {
+                // 'auto': запоминаем формат значений, уже лежащих в переменных (и в редакторе —
+                // для подсказки панели calOutputFormatResolved)
+                this._learnFormat('date', date);
+                this._learnFormat('dateStart', dateStart);
+                this._learnFormat('dateEnd', dateEnd);
+                this._learnFormat('datesList', datesList);
                 if (this.isEditorMode) return;
                 const selMode = this.selectionMode;
                 if (selMode === 'multi') {
@@ -983,6 +990,11 @@ export default {
             }
             if (this.currentView === 'year') return `${y}`;
             return `${months[m]} ${y}`;
+        },
+
+        // От чего зависит effectiveOutputFormat (кроме нереактивных запомненных форматов)
+        _resolvedFormatDeps() {
+            return [this.props.calOutputFormat, this.isTimeUiOn, this.selectionMode, this.isEditorMode].join('|');
         },
 
         // ── Формат значений, которые пишутся в переменные ────────────
@@ -1348,6 +1360,11 @@ export default {
         'props.calSelectedDate'(v) {
             if (v) { const d = parseIso(v); if (d) this.navDate = new Date(d); }
         },
+        // Подсказка панели: чем на деле пишет режим 'auto' (calOutputFormatResolved)
+        _resolvedFormatDeps: {
+            immediate: true,
+            handler() { this._syncResolvedFormat(); }
+        },
         // ── Store-backed data: refresh cache when var names change ────
         'props.calEventsVar': {
             immediate: true,
@@ -1357,6 +1374,7 @@ export default {
         '_storeInDate': {
             immediate: true,
             handler(val) {
+                this._learnFormat('date', val);
                 if (this.isEditorMode || val === undefined) return;
                 const selMode = this.selectionMode;
                 if (selMode !== 'range' && selMode !== 'multi') this._applyStoreDate(val);
@@ -1365,6 +1383,7 @@ export default {
         '_storeInDateStart': {
             immediate: true,
             handler(val) {
+                this._learnFormat('dateStart', val);
                 if (this.isEditorMode || val === undefined) return;
                 const selMode = this.selectionMode;
                 if (selMode === 'range') this._applyStoreDateRange(val, this._storeInDateEnd);
@@ -1373,6 +1392,7 @@ export default {
         '_storeInDateEnd': {
             immediate: true,
             handler(val) {
+                this._learnFormat('dateEnd', val);
                 if (this.isEditorMode || val === undefined) return;
                 const selMode = this.selectionMode;
                 if (selMode === 'range') this._applyStoreDateRange(this._storeInDateStart, val);
@@ -1381,6 +1401,7 @@ export default {
         '_storeInDatesList': {
             immediate: true,
             handler(val) {
+                this._learnFormat('datesList', val);
                 if (this.isEditorMode || val === undefined) return;
                 const selMode = this.selectionMode;
                 if (selMode === 'multi') this._applyStoreDatesList(val);
@@ -1617,9 +1638,90 @@ export default {
             }
         },
 
+        // ── Режим 'auto': формат по значению в переменной ────────────
+        // Нереактивное состояние экземпляра: запомненный формат каждой переменной
+        // (hints) и последнее записанное виджетом значение (written) — своё эхо из
+        // хранилища формат не меняет. Живёт, пока жив виджет: после «Сбросить» (null)
+        // формат не откатывается к умолчанию.
+        _fmtState() {
+            if (!this.__fmtState) this.__fmtState = { hints: {}, written: {} };
+            return this.__fmtState;
+        },
+
+        // Запомнить формат значения переменной key ('date' | 'dateStart' | 'dateEnd' | 'datesList').
+        // Пустое / нераспознанное значение и эхо собственной записи формат не меняют;
+        // новое внешнее значение другого формата — заменяет запомненный.
+        _learnFormat(key, value) {
+            if (isEmptyInput(value)) return;
+            const st = this._fmtState();
+            let json;
+            try { json = JSON.stringify(value); } catch (e) { return; }
+            if (st.written[key] === json) return;
+            const desc = detectValueFormat(value);
+            if (!desc || (key === 'datesList') !== (desc.kind === 'list')) return;
+            if (sameValueFormat(st.hints[key], desc)) return;
+            st.hints[key] = desc;
+            this._syncResolvedFormat();
+        },
+
+        // Формат для переменной: свой, иначе соседней (начало ↔ конец ↔ дата)
+        _formatHint(key) {
+            const chains = {
+                date: ['date', 'dateStart', 'dateEnd'],
+                dateStart: ['dateStart', 'dateEnd', 'date'],
+                dateEnd: ['dateEnd', 'dateStart', 'date'],
+                datesList: ['datesList']
+            };
+            const { hints } = this._fmtState();
+            const found = (chains[key] || [key]).find((k) => hints[k]);
+            return found ? hints[found] : null;
+        },
+
+        // Запомненный формат для записи — только в режиме 'auto'
+        _autoHint(key) {
+            return isAutoFormat(this.props.calOutputFormat) ? this._formatHint(key) : null;
+        },
+
+        // Чем на деле пишет виджет: { format, source }.
+        //   format — 'date' | 'timestamp' | 'timestamp_s' | 'datetime' | 'iso' | 'ddmmyyyy' | 'yyyymmdd'
+        //            (при явном формате — значение calOutputFormat);
+        //   source — 'variable' (по значению в переменной), 'time' (выбор времени включён),
+        //            'default' (ISO-дата), 'setting' (формат задан явно).
+        effectiveOutputFormat() {
+            const explicit = this.props.calOutputFormat;
+            if (!isAutoFormat(explicit)) return { format: explicit, source: 'setting' };
+            const mode = this.selectionMode;
+            const key = mode === 'multi' ? 'datesList' : (mode === 'range' ? 'dateStart' : 'date');
+            const hint = this._formatHint(key);
+            if (hint) return { format: formatName(hint), source: 'variable' };
+            return this.isTimeUiOn ? { format: 'timestamp', source: 'time' } : { format: 'date', source: 'default' };
+        },
+
+        // Подсказка для панели (панель не видит экземпляр виджета): 'формат|источник',
+        // например 'timestamp|variable'. Пишется только в редакторе и только при изменении.
+        _syncResolvedFormat() {
+            if (!this.isEditorMode || !this.props) return;
+            const r = this.effectiveOutputFormat();
+            const value = `${r.format}|${r.source}`;
+            if (this.props.calOutputFormatResolved === value) return;
+            this.props.calOutputFormatResolved = value;
+            this.propChanged('calOutputFormatResolved');
+        },
+
+        // Запись в переменные с запоминанием записанного (для распознавания эха)
+        _storeWrite(values) {
+            const st = this._fmtState();
+            Object.keys(values).forEach((k) => {
+                try { st.written[k] = JSON.stringify(values[k]); } catch (e) { st.written[k] = undefined; }
+            });
+            this.$storeCommit(values);
+        },
+
         // Значение для переменной по выбранному формату (calOutputFormat).
         // Без выбора времени: начало — 00:00:00.000, конец диапазона — 23:59:59.999.
-        _outValue(iso, isEnd = false) {
+        // 'auto' с запомненным форматом переменной key — в этом формате (formatAs),
+        // иначе — как раньше (ISO-дата / timestamp мс при выборе времени).
+        _outValue(iso, isEnd = false, key = null) {
             // Время учитывается там же, где его можно выбрать в чипах (isTimeUiOn — по
             // действующему режиму selectionMode): старый конфиг compact + 'multi' работает
             // как диапазон и время берёт, а calWithTime в полном режиме multi — нет
@@ -1627,18 +1729,22 @@ export default {
             const time = isEnd
                 ? (this.rangeEndTime || this.defaultEndTime)
                 : (this.rangeStartTime || this.defaultStartTime);
+            const hint = key ? this._autoHint(key) : null;
+            // Пустое значение: '' для ISO-даты (как раньше), null для остальных форматов
+            if (hint && !iso) return hint.kind === 'date' ? '' : null;
+            if (hint) return formatAs(hint, iso, time, { withTime, isEnd });
             return toOutputValue(iso, { format: this.outputFormat, withTime, time, isEnd });
         },
 
         // Каждая дата списка — начало её дня (или время начала при calWithTime)
-        _outList(isoList) {
-            return isoList.map((iso) => this._outValue(iso)).filter((v) => v != null && v !== '');
+        _outList(isoList, key = null) {
+            return isoList.map((iso) => this._outValue(iso, false, key)).filter((v) => v != null && v !== '');
         },
 
         _commitDate(iso) {
             this.props.calSelectedDate = iso;
             if (!this.isEditorMode) this.propChanged('calSelectedDate');
-            this.$storeCommit({ date: this._outValue(iso) });
+            this._storeWrite({ date: this._outValue(iso, false, 'date') });
         },
 
         _commitRange(start, end) {
@@ -1648,34 +1754,51 @@ export default {
                 this.propChanged('calSelectedStart');
                 this.propChanged('calSelectedEnd');
             }
-            const startValue = start ? this._outValue(start) : null;
-            const endValue = end ? this._outValue(end, true) : null;
+            const dateValue = start ? this._outValue(start, false, 'date') : null;
+            const startValue = start ? this._outValue(start, false, 'dateStart') : null;
+            const endValue = end ? this._outValue(end, true, 'dateEnd') : null;
+            // Форма списка (пара / все дни) — по старым правилам; контейнер (массив / JSON)
+            // и формат элементов — по запомненному формату datesList, если он есть
+            const listHint = this._autoHint('datesList');
+            const isPair = datesListShape('range', this.props.calOutputFormat, this.isTimeUiOn) === DATES_LIST_SHAPES.PAIR;
             let datesList;
-            if (datesListShape('range', this.props.calOutputFormat, this.isTimeUiOn) === DATES_LIST_SHAPES.PAIR) {
+            if (isPair) {
                 // 'auto' + calWithTime — как раньше: [начало, конец]
-                const pair = [startValue, endValue].filter((v) => v != null);
-                datesList = pair.length ? pair : null;
+                const pair = listHint
+                    ? [this._outValue(start, false, 'datesList'), this._outValue(end, true, 'datesList')]
+                    : [startValue, endValue];
+                const filled = pair.filter((v) => v != null && v !== '');
+                if (listHint) datesList = formatListAs(listHint, filled);
+                else datesList = filled.length ? filled : null;
             } else {
                 // все дни диапазона в выбранном формате
-                datesList = start && end ? this._outList(expandDateRange(start, end)) : null;
+                const days = start && end ? this._outList(expandDateRange(start, end), 'datesList') : null;
+                datesList = days && listHint ? formatListAs(listHint, days) : days;
             }
-            this.$storeCommit({ date: startValue, dateStart: startValue, dateEnd: endValue, datesList });
+            this._storeWrite({ date: dateValue, dateStart: startValue, dateEnd: endValue, datesList });
         },
 
         _commitMultiple(dates) {
             if (dates.length === 0) {
                 this.props.calSelectedDates = '';
                 if (!this.isEditorMode) this.propChanged('calSelectedDates');
-                this.$storeCommit({ datesList: null });
+                this._storeWrite({ datesList: null });
                 return;
             }
             const json = JSON.stringify(dates);
             this.props.calSelectedDates = json;
             if (!this.isEditorMode) this.propChanged('calSelectedDates');
-            // 'auto' и 'date' — JSON-строка ISO-дат (как раньше); timestamp / дата-время — массивом
-            const shape = datesListShape('multi', this.props.calOutputFormat, this.isTimeUiOn);
-            const value = shape === DATES_LIST_SHAPES.JSON ? json : this._outList(dates);
-            this.$storeCommit({ datesList: value });
+            // 'auto' с запомненным форматом — в нём; иначе 'auto' и 'date' — JSON-строка
+            // ISO-дат (как раньше); timestamp / дата-время — массивом
+            const listHint = this._autoHint('datesList');
+            let value;
+            if (listHint) {
+                value = formatListAs(listHint, this._outList(dates, 'datesList'));
+            } else {
+                const shape = datesListShape('multi', this.props.calOutputFormat, this.isTimeUiOn);
+                value = shape === DATES_LIST_SHAPES.JSON ? json : this._outList(dates);
+            }
+            this._storeWrite({ datesList: value });
         },
 
         // ── Cell classes ─────────────────────────────────────────────
