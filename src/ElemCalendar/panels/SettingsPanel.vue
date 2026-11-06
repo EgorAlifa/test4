@@ -589,15 +589,19 @@ export default {
                 timestamp_s: 'дата и время числом (сек)',
                 datetime: 'дата и время строкой',
                 iso: 'ISO-строка',
-                ddmmyyyy: 'ДД.ММ.ГГГГ'
+                ddmmyyyy: 'ДД.ММ.ГГГГ',
+                yyyymmdd: 'ГГГГММДД'
             };
+            // 'variable' — формат взят из значения в переменной (поэтому timestamp сохраняется и без
+            // «Выбора времени»); 'setting' и неизвестные источники — без пояснения
             const sources = {
                 variable: 'по значению переменной',
                 time: 'включён выбор времени',
                 default: 'по умолчанию'
             };
-            if (!formats[format]) return 'Авто: формат определится по значению переменной';
-            return `Авто → ${formats[format]}${sources[source] ? ` (${sources[source]})` : ''}`;
+            const own = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+            if (!own(formats, format)) return 'Авто: формат определится по значению переменной';
+            return `Авто → ${formats[format]}${own(sources, source) ? ` (${sources[source]})` : ''}`;
         },
         // ── Зависимости настроек: условия совпадают с v-if в шаблоне ElemCalendar.vue ──
         isCompact() {
