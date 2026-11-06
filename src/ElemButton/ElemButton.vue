@@ -113,8 +113,6 @@ import { meta, Vars } from './descriptor';
 import TiptapEditor from './components/TiptapEditor.vue';
 
 const { store, ValueObject } = Managers.StoreManager;
-// Через сколько проверить, что платформа (RouteManager) действительно сменила страницу
-const ROUTE_NAVIGATE_CHECK_DELAY = 150;
 const { addRouteQueryParams } = useRouteQueryManager();
 
 /**
@@ -310,6 +308,8 @@ export default {
             if (this.isEditingCanvas || event.target !== event.currentTarget) return;
             if (event.key !== 'Enter' && event.key !== ' ') return;
             event.preventDefault();
+            // зажатая клавиша не должна повторять переход
+            if (event.repeat) return;
             if (this.isDisabled || this.isLoading) return;
             this.onClick({ isNewTab: (event.ctrlKey || event.metaKey) && this.hasLink });
         },
@@ -390,8 +390,10 @@ export default {
         //  - холст редактора: не переходим (клик редактирует кнопку), проверка ссылки — Ctrl/⌘ + клик или «↗»;
         //  - плеер / публикация / встроенный проект: переходим всегда, синхронно в обработчике клика,
         //    иначе браузер считает новую вкладку всплывающим окном и блокирует её.
-        // Страницы проекта — через RouteManager платформы (как $routeNavigate у Elem); hash и $router —
-        // только запасные варианты, если RouteManager не ведёт маршрут или не сменил страницу.
+        // Страница проекта в этой вкладке — ровно одним способом, без повторных попыток:
+        //  - плеер / публикация: hash (их hash-роутер сам обновляет RouteManager);
+        //  - другой хост с RouteManager, который ведёт маршрут: RouteManager.navigate (как $routeNavigate у Elem);
+        //  - без RouteManager: hash при hash-роутинге, иначе $router.push.
         /** @return {string} */
         getPlatformMode() {
             if (typeof window === 'undefined') return PlatformMode.VIEWER;
@@ -471,14 +473,24 @@ export default {
         },
 
         /**
-         * Смена страницы проекта в этой вкладке без RouteManager.
+         * Смена страницы проекта в этой вкладке. Один переход, без таймеров и повторов: повторная
+         * навигация отменила бы медленный первый переход (загрузка данных дважды, «Navigation cancelled»).
          *
          * @param {{ path: string, query: object }} route
          */
-        navigateProjectPageFallback(route) {
+        navigateProjectPage(route) {
             // Плеер и публикация — hash-роутинг: меняем только hash, страница переключается без
             // перезагрузки, переменные этого же клика сохраняются. $router там не используем — у виджета
             // это может быть роутер редактора без маршрутов проекта.
+            if (isViewerPath(window.location.pathname)) {
+                window.location.hash = routeToString(route);
+                return;
+            }
+            const routeManager = this.getActiveRouteManager();
+            if (routeManager != null) {
+                routeManager.navigate({ path: route.path, query: route.query });
+                return;
+            }
             if (this.isHashRouting()) {
                 window.location.hash = routeToString(route);
                 return;
@@ -488,27 +500,6 @@ export default {
                 return;
             }
             window.location.assign(window.location.origin + routeToString(route));
-        },
-
-        /**
-         * Смена страницы проекта в этой вкладке: RouteManager платформы, а если он не сменил
-         * ни маршрут, ни адрес — запасной вариант.
-         *
-         * @param {{ path: string, query: object }} route
-         */
-        navigateProjectPage(route) {
-            const routeManager = this.getActiveRouteManager();
-            if (routeManager == null) {
-                this.navigateProjectPageFallback(route);
-                return;
-            }
-            const routeBefore = routeManager.route;
-            const hrefBefore = window.location.href;
-            routeManager.navigate({ path: route.path, query: route.query });
-            setTimeout(() => {
-                const isChanged = routeManager.route !== routeBefore || window.location.href !== hrefBefore;
-                if (isChanged === false) this.navigateProjectPageFallback(route);
-            }, ROUTE_NAVIGATE_CHECK_DELAY);
         },
 
         /**
@@ -522,6 +513,8 @@ export default {
             anchor.href = href;
             anchor.rel = 'noopener noreferrer';
             anchor.style.display = 'none';
+            // клик по служебной ссылке не должен всплыть до обработчиков страницы
+            anchor.addEventListener('click', (event) => event.stopPropagation());
             document.body.appendChild(anchor);
             anchor.click();
             anchor.remove();
