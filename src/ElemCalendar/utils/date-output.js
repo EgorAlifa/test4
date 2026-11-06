@@ -225,8 +225,9 @@ export function parseInputDateList(val, options) {
 //       число или числовая строка: < 1e11 — секунды (10 цифр), иначе мс (13 цифр);
 //       timestamp в мс до 1973-03-03 (< 1e11) поэтому считается секундами — осознанно;
 //   { kind: 'datetime', sep: ' ' | 'T', seconds, ms }   'YYYY-MM-DD HH:mm[:ss[.SSS]]' без пояса;
-//   { kind: 'iso', sep, seconds, ms, zone: 'Z' | 'offset', offsetStyle: 'colon' | 'compact' | 'hours' }
+//   { kind: 'iso', sep, seconds, ms, zone: 'Z' | 'offset', offsetStyle: 'colon' | 'compact' | 'hours', offset }
 //       'YYYY-MM-DDTHH:mm[:ss][.SSS]' с Z (UTC, GMT) или ±hh:mm / ±hhmm / ±hh;
+//       offset — текст смещения как в значении ('+03:00'), только для zone: 'offset';
 //   { kind: 'date' }                                    'YYYY-MM-DD';
 //   { kind: 'yyyymmdd', type: 'number' | 'string' }     8 цифр;
 //   { kind: 'ddmmyyyy', time, seconds }                 'DD.MM.YYYY[ HH:mm[:ss]]';
@@ -255,7 +256,7 @@ function detectScalarFormat(val) {
     const z = m[6].toUpperCase();
     if (z === 'Z' || z === 'UTC' || z === 'GMT') return { kind: 'iso', ...base, zone: 'Z' };
     const offsetStyle = z.includes(':') ? 'colon' : (z.length === 3 ? 'hours' : 'compact');
-    return { kind: 'iso', ...base, zone: 'offset', offsetStyle };
+    return { kind: 'iso', ...base, zone: 'offset', offsetStyle, offset: z };
 }
 
 export function detectValueFormat(val) {
@@ -330,6 +331,13 @@ function offsetText(d, style) {
 //   time     — выбранное время 'HH:mm' (учитывается только при withTime)
 //   withTime — выбор времени включён; иначе начало — 00:00:00, конец (isEnd) — 23:59:59
 //              с точностью формата (.999 для мс; 23:59 для формата без секунд)
+// Строка с поясом (kind 'iso'):
+//   - с выбором времени — момент времени: локальное время переводится в UTC ('Z') или
+//     пишется с текущим смещением пояса браузера;
+//   - без выбора времени — дата буквально: 'YYYY-MM-DDT00:00:00Z' / 'T23:59:59Z' или с тем же
+//     текстом смещения, что был в переменной ('…T00:00:00+03:00'). Так же буквально такие строки
+//     и читаются в режиме «только дата» (parseInputDate с convertZone: false) — круговой проход
+//     устойчив в любом поясе браузера.
 export function formatAs(desc, iso, time, { withTime = false, isEnd = false } = {}) {
     if (!desc || !iso || !splitIso(iso)) return null;
     if (desc.kind === 'list') return formatAs(desc.item, iso, time, { withTime, isEnd });
@@ -360,6 +368,9 @@ export function formatAs(desc, iso, time, { withTime = false, isEnd = false } = 
     };
     if (desc.kind === 'ddmmyyyy') {
         return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${tail(d.getHours(), d.getMinutes(), d.getSeconds(), 0)}`;
+    }
+    if (desc.kind === 'iso' && !withTime) {
+        return `${iso}${desc.sep}${tail(t.h, t.m, t.s, t.ms)}${desc.zone === 'Z' ? 'Z' : desc.offset}`;
     }
     if (desc.kind === 'iso' && desc.zone === 'Z') {
         const u = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;

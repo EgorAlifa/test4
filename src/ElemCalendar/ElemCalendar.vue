@@ -1657,13 +1657,13 @@ export default {
         _sameStoreValue(a, b, isList) {
             if (isList) {
                 if (isEmptyListInput(a) || isEmptyListInput(b)) return isEmptyListInput(a) && isEmptyListInput(b);
-                const la = parseInputDateList(a);
-                const lb = parseInputDateList(b);
+                const la = parseInputDateList(a, this._readOptions());
+                const lb = parseInputDateList(b, this._readOptions());
                 return Boolean(la && lb && la.length) && JSON.stringify(la) === JSON.stringify(lb);
             }
             if (isEmptyInput(a) || isEmptyInput(b)) return isEmptyInput(a) && isEmptyInput(b);
-            const pa = parseInputDate(a);
-            const pb = parseInputDate(b);
+            const pa = parseInputDate(a, this._readOptions());
+            const pb = parseInputDate(b, this._readOptions());
             return Boolean(pa && pb) && pa.iso === pb.iso && (pa.time || '') === (pb.time || '');
         },
 
@@ -2444,12 +2444,17 @@ export default {
         // Converts an incoming store value (ISO date / datetime, timestamp ms or s,
         // YYYYMMDD, DD.MM.YYYY, Date) into { iso: 'YYYY-MM-DD', time: 'HH:mm' | null }.
         // Returns null on empty / unparseable (see isEmptyInput to tell them apart).
-        // Строка с явным поясом (Z / UTC / GMT / ±hh:mm) — это момент времени: всегда
-        // переводится в пояс браузера, и при выключенном выборе времени тоже. Так чтение
-        // согласовано с записью (formatAs пишет локальную полночь как UTC-момент), и
-        // формат «Z» не сдвигает выбор на день при каждой записи.
+        // Строка с явным поясом (Z / UTC / GMT / ±hh:mm):
+        //   - выбор времени включён — это момент времени, переводится в пояс браузера;
+        //   - выключен (только дата) — дата берётся буквально, как в исходной версии
+        //     (slice(0, 10)): '2026-11-05T00:00:00Z' — 5 ноября в любом поясе.
+        // Запись (formatAs) устроена так же, поэтому формат «Z» не сдвигает выбор.
+        _readOptions() {
+            return { convertZone: this.isTimeUiOn };
+        },
+
         _parseStoreDate(val) {
-            return parseInputDate(val);
+            return parseInputDate(val, this._readOptions());
         },
 
         // Применить время из переменной к полю времени (только в режиме с временем)
@@ -2574,7 +2579,7 @@ export default {
             }
             // Элементы — ISO-даты, timestamp'ы или числовые строки; массив или JSON-строка.
             // Не массив, или в непустом списке ни один элемент не распознан — выбор не трогаем.
-            const newDates = parseInputDateList(val);
+            const newDates = parseInputDateList(val, this._readOptions());
             if (!newDates || !newDates.length) return;
             if (JSON.stringify(newDates) === JSON.stringify(this.selectedDates.slice().sort())) return;
             this.selectedDates = newDates;
