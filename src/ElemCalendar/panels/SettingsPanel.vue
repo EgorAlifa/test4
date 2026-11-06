@@ -580,9 +580,12 @@ export default {
             if (isAutoFormat(f)) return 'auto';
             return f === 'date' ? 'date' : 'datetime';
         },
-        // Подпись под «Авто»: что определил виджет (calOutputFormatResolved = '<формат>|<источник>')
+        // Подпись под «Авто»: что определил виджет. Поле экземпляра outputFormatResolved = '<формат>|<источник>'
+        // (не prop — не сохраняется в конфиг); экземпляр виджета панель получает как elementInstance
         autoFormatCaption() {
-            const [format, source] = String(this.props.calOutputFormatResolved || '').split('|');
+            const inst = this.elementInstance;
+            const resolved = inst && inst.outputFormatResolved;
+            const [format, source] = String(resolved || '').split('|');
             const formats = {
                 date: 'дата',
                 timestamp: 'дата и время числом (мс)',

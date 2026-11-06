@@ -369,12 +369,6 @@ export const descriptor = () => ({
             default: 'auto',
             label: 'Значение в переменных'
         },
-        // Служебное: что определил режим «Авто» — '<формат>|<источник>' (пишет виджет, в панели — подпись)
-        calOutputFormatResolved: {
-            type: String,
-            default: '',
-            label: 'Определённый формат (служебное)'
-        },
         // ── Tooltip appearance ────────────────────────────────────────
         calTooltipBg: {
             type: String,
