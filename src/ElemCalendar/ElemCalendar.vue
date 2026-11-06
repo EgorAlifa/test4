@@ -566,6 +566,9 @@ import DatePickerPopup from './components/DatePickerPopup.vue';
 
 const { store, ValueObject } = Managers.StoreManager;
 
+// Сколько ждать эха собственной записи в хранилище: оно приходит в ближайший тик
+const ECHO_WINDOW_MS = 2000;
+
 // ── Pure date helpers ──────────────────────────────────────────────
 function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
 function isoDate(d) { if (!d || isNaN(d.getTime())) return ''; return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
@@ -1340,6 +1343,8 @@ export default {
                 this.compactClickStep = 0;
                 this.compactHoverCell = null;
                 this.activePreset = null;
+                // Видимый выбор — снова из сохранённых props, как при mounted
+                this._restoreSelectionFromProps();
             }
         },
         'props.calView'(v) {
@@ -1393,20 +1398,8 @@ export default {
         const v = this.props.calView;
         if (v && Object.values(VIEWS).includes(v)) this.currentView = v;
 
-        // Init selected date
-        const sd = this.selectedDate;
-        if (sd) this.navDate = new Date(sd);
-
-        // Init range from props
-        if (this.props.calSelectedStart) this.rangeStart = parseIso(this.props.calSelectedStart);
-        if (this.props.calSelectedEnd) this.rangeEnd = parseIso(this.props.calSelectedEnd);
-
-        if (!this.selectedDates.length && this.props.calSelectedDates) {
-            try {
-                const parsed = JSON.parse(this.props.calSelectedDates);
-                if (Array.isArray(parsed)) this.selectedDates = parsed.map(String).filter(Boolean);
-            } catch (e) { /* noop */ }
-        }
+        // Init selection (date / range / multi) from props
+        this._restoreSelectionFromProps();
 
         // Tick timer for "now" line
         this._tickNow();
@@ -1426,6 +1419,20 @@ export default {
     },
 
     methods: {
+        // Видимый выбор из сохранённых props.calSelected* (mounted, выход из редактора)
+        _restoreSelectionFromProps() {
+            const sd = this.selectedDate;
+            if (sd) this.navDate = new Date(sd);
+            if (this.props.calSelectedStart) this.rangeStart = parseIso(this.props.calSelectedStart);
+            if (this.props.calSelectedEnd) this.rangeEnd = parseIso(this.props.calSelectedEnd);
+            if (!this.selectedDates.length && this.props.calSelectedDates) {
+                try {
+                    const parsed = JSON.parse(this.props.calSelectedDates);
+                    if (Array.isArray(parsed)) this.selectedDates = parsed.map(String).filter(Boolean);
+                } catch (e) { /* noop */ }
+            }
+        },
+
         // ── Dataset ──────────────────────────────────────────────────
         buildDimensionValues() {
             const { dimension } = this.props;
@@ -1639,18 +1646,25 @@ export default {
             });
         },
 
-        // Эхо собственной записи: первая доставка после записи, в которой ВСЕ записанные
-        // переменные совпадают с записанным по смыслу (хранилище может вернуть число строкой).
-        // Ожидание эха снимается первой же доставкой, где есть хоть одна записанная переменная:
-        // любая следующая доставка — уже чьё-то внешнее изменение.
-        _isEchoDelivery(values, channel) {
+        // Эхо собственной записи. Решается по изменившимся переменным доставки (changed):
+        //   - есть изменившаяся переменная, которую мы не записывали, — доставка внешняя;
+        //   - все изменившиеся записаны нами и совпадают с записанным по смыслу (хранилище может
+        //     вернуть число строкой) — эхо.
+        // Ожидание эха снимается любой доставкой с изменениями и устаревает через ECHO_WINDOW_MS
+        // (своё эхо приходит в ближайший тик; если значение не изменилось — доставки нет вовсе).
+        _isEchoDelivery(values, changed, channel) {
             const st = this._fmtState();
             const pend = st.pendingEcho[channel];
             if (!pend) return false;
-            const keys = Object.keys(pend).filter((k) => values[k] !== undefined);
+            if (Date.now() - pend.at > ECHO_WINDOW_MS) {
+                st.pendingEcho[channel] = null;
+                return false;
+            }
+            const keys = Object.keys(changed).filter((k) => changed[k]);
             if (!keys.length) return false;
             st.pendingEcho[channel] = null;
-            return keys.every((k) => this._sameStoreValue(values[k], pend[k], k === 'datesList'));
+            return keys.every((k) => Object.prototype.hasOwnProperty.call(pend.values, k)
+                && this._sameStoreValue(values[k], pend.values[k], k === 'datesList'));
         },
 
         // Какие переменные изменились с прошлой доставки по этому каналу. Сравнение по JSON:
@@ -1673,9 +1687,8 @@ export default {
         // Одна доставка значений переменных → выбор. Эхо собственной записи ничего не меняет
         // (только запоминается как последняя доставка).
         _applyStoreDelivery(values, channel) {
-            const echo = this._isEchoDelivery(values, channel);
             const changed = this._storeChanges(values, channel);
-            if (echo) return;
+            if (this._isEchoDelivery(values, changed, channel)) return;
             const { date, dateStart, dateEnd, datesList } = values;
             // 'auto': запоминаем формат внешних значений
             ['date', 'dateStart', 'dateEnd', 'datesList'].forEach((k) => {
@@ -1799,7 +1812,8 @@ export default {
         },
 
         // Запись в переменные с запоминанием записанного: следующая доставка по каждому
-        // каналу, совпавшая с записью по всем записанным переменным, — эхо (см. _isEchoDelivery)
+        // каналу, в которой изменились только записанные переменные и совпали с записью, — эхо
+        // (см. _isEchoDelivery)
         _storeWrite(values) {
             const st = this._fmtState();
             const snapshot = {};
@@ -1807,7 +1821,8 @@ export default {
                 const v = values[k];
                 snapshot[k] = Array.isArray(v) ? v.slice() : v;
             });
-            st.pendingEcho = { out: snapshot, in: snapshot };
+            const pend = { values: snapshot, at: Date.now() };
+            st.pendingEcho = { out: pend, in: pend };
             this.$storeCommit(values);
         },
 
