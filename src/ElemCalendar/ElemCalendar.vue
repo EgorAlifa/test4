@@ -664,36 +664,7 @@ export default {
             // Значение приходит только для переменных, привязанных на чтение (varAliases.listen);
             // для непривязанных — undefined.
             handler([date, dateStart, dateEnd, datesList]) {
-                // 'auto': запоминаем формат значений, уже лежащих в переменных
-                this._learnFormat('date', date);
-                this._learnFormat('dateStart', dateStart);
-                this._learnFormat('dateEnd', dateEnd);
-                this._learnFormat('datesList', datesList);
-                // Какие переменные изменились с прошлого раза (первая доставка — все привязанные)
-                const changed = this._storeChanges({ date, dateStart, dateEnd, datesList });
-                const selMode = this.selectionMode;
-                if (selMode === 'multi') {
-                    if (datesList !== undefined) this._applyStoreDatesList(datesList);
-                } else if (selMode === 'range') {
-                    // Начало/конец пусты, а в `date` есть значение (в т. ч. при первой доставке) —
-                    // берём `date`
-                    const preferDate = changed.date && !isEmptyInput(date)
-                        && isEmptyInput(dateStart) && isEmptyInput(dateEnd);
-                    if ((changed.dateStart || changed.dateEnd) && !preferDate) {
-                        this._applyStoreDateRange(
-                            dateStart !== undefined ? dateStart : null,
-                            dateEnd !== undefined ? dateEnd : null
-                        );
-                    } else if (changed.date) {
-                        // Снаружи задали только `date` — однодневный диапазон
-                        this._applyStoreDateAsRange(date);
-                    }
-                } else if (changed.date && !(isEmptyInput(date) && changed.dateStart && !isEmptyInput(dateStart))) {
-                    this._applyStoreDate(date);
-                } else if (changed.dateStart) {
-                    // Одиночный режим: снаружи задали только начало диапазона — берём его как дату
-                    this._applyStoreDate(dateStart, 'dateStart');
-                }
+                this._applyStoreDelivery({ date, dateStart, dateEnd, datesList }, 'out');
                 // Refresh store-sourced events / metric on any store change
                 this._refreshStoreEvents();
                 this._refreshStoreMetric();
@@ -1357,6 +1328,10 @@ export default {
     watch: {
         isEditorMode(val, oldVal) {
             this.editorSelection = { calSelectedDate: null, calSelectedStart: null, calSelectedEnd: null, calSelectedDates: null };
+            // Выход из редактора: сбрасываем только видимый выбор. Выбор в редакторе живёт в
+            // editorSelection (props не трогаются), поэтому ни писать props, ни звать propChanged
+            // не нужно — иначе переключение пометило бы виджет изменённым и сохранило бы пустые
+            // calSelected* в конфиг.
             if (oldVal === true && val === false) {
                 this.rangeStart = null;
                 this.rangeEnd = null;
@@ -1365,14 +1340,6 @@ export default {
                 this.compactClickStep = 0;
                 this.compactHoverCell = null;
                 this.activePreset = null;
-                this.props.calSelectedDate = '';
-                this.props.calSelectedStart = '';
-                this.props.calSelectedEnd = '';
-                this.props.calSelectedDates = '';
-                this.propChanged('calSelectedDate');
-                this.propChanged('calSelectedStart');
-                this.propChanged('calSelectedEnd');
-                this.propChanged('calSelectedDates');
             }
         },
         'props.calView'(v) {
@@ -1394,41 +1361,19 @@ export default {
         // ── Input variable watchers (reactive store → calendar) ───────
         '_storeInDate': {
             immediate: true,
-            handler(val) {
-                this._learnFormat('date', val);
-                if (val === undefined) return;
-                const selMode = this.selectionMode;
-                if (selMode === 'range') this._applyStoreDateAsRange(val);
-                else if (selMode !== 'multi') this._applyStoreDate(val);
-            }
+            handler(val) { this._queueStoreInput('date', val); }
         },
         '_storeInDateStart': {
             immediate: true,
-            handler(val) {
-                this._learnFormat('dateStart', val);
-                if (val === undefined) return;
-                const selMode = this.selectionMode;
-                if (selMode === 'range') this._applyStoreDateRange(val, this._storeInDateEnd);
-                else if (selMode !== 'multi') this._applyStoreDate(val, 'dateStart');
-            }
+            handler(val) { this._queueStoreInput('dateStart', val); }
         },
         '_storeInDateEnd': {
             immediate: true,
-            handler(val) {
-                this._learnFormat('dateEnd', val);
-                if (val === undefined) return;
-                const selMode = this.selectionMode;
-                if (selMode === 'range') this._applyStoreDateRange(this._storeInDateStart, val);
-            }
+            handler(val) { this._queueStoreInput('dateEnd', val); }
         },
         '_storeInDatesList': {
             immediate: true,
-            handler(val) {
-                this._learnFormat('datesList', val);
-                if (val === undefined) return;
-                const selMode = this.selectionMode;
-                if (selMode === 'multi') this._applyStoreDatesList(val);
-            }
+            handler(val) { this._queueStoreInput('datesList', val); }
         },
         // ── Heatmap auto-toggle ──────────────────────────────────────
         // Enable heatmap automatically when any metric source is provided;
@@ -1675,29 +1620,102 @@ export default {
             else this.props[key] = value;
         },
 
-        // Какие переменные изменились с прошлой доставки watchStore (по смыслу значения).
-        // undefined — переменная не привязана на чтение, изменением не считается.
-        _storeChanges(values) {
+        // ── Входящие значения переменных: одно решение на доставку ───
+        // Два канала: 'out' — watchStore по переменным виджета (date / dateStart / dateEnd /
+        // datesList, привязанным на чтение), 'in' — входные переменные calDate*Var. Оба канала
+        // проходят через _applyStoreDelivery: эхо, запоминание формата и выбор — по одним правилам.
+
+        // Входной канал: значения четырёх вотчеров собираются и применяются один раз за тик —
+        // иначе порядок вотчеров решал бы, чьё значение победит, а промежуточные состояния мигали бы.
+        _queueStoreInput(key, val) {
             const st = this._fmtState();
-            if (!st.seen) st.seen = {};
+            st.input[key] = val;
+            if (st.inputQueued) return;
+            st.inputQueued = true;
+            this.$nextTick(() => {
+                st.inputQueued = false;
+                const { date, dateStart, dateEnd, datesList } = st.input;
+                this._applyStoreDelivery({ date, dateStart, dateEnd, datesList }, 'in');
+            });
+        },
+
+        // Эхо собственной записи: первая доставка после записи, в которой ВСЕ записанные
+        // переменные совпадают с записанным по смыслу (хранилище может вернуть число строкой).
+        // Ожидание эха снимается первой же доставкой, где есть хоть одна записанная переменная:
+        // любая следующая доставка — уже чьё-то внешнее изменение.
+        _isEchoDelivery(values, channel) {
+            const st = this._fmtState();
+            const pend = st.pendingEcho[channel];
+            if (!pend) return false;
+            const keys = Object.keys(pend).filter((k) => values[k] !== undefined);
+            if (!keys.length) return false;
+            st.pendingEcho[channel] = null;
+            return keys.every((k) => this._sameStoreValue(values[k], pend[k], k === 'datesList'));
+        },
+
+        // Какие переменные изменились с прошлой доставки по этому каналу. Сравнение по JSON:
+        // платформа доставляет только при изменении JSON, так что внешняя запись той же даты в
+        // другом виде ('2026-11-10' → '2026-11-10 00:00:00') — тоже изменение.
+        // undefined — переменная не привязана, изменением не считается.
+        _storeChanges(values, channel) {
+            const seen = this._fmtState().seen[channel];
             const changed = {};
             Object.keys(values).forEach((k) => {
                 const v = values[k];
                 if (v === undefined) return;
-                const had = Object.prototype.hasOwnProperty.call(st.seen, k);
-                changed[k] = !had || !this._sameStoreValue(v, st.seen[k], k === 'datesList');
-                st.seen[k] = Array.isArray(v) ? v.slice() : v;
+                const json = JSON.stringify(v);
+                changed[k] = !Object.prototype.hasOwnProperty.call(seen, k) || seen[k] !== json;
+                seen[k] = json;
             });
             return changed;
         },
 
+        // Одна доставка значений переменных → выбор. Эхо собственной записи ничего не меняет
+        // (только запоминается как последняя доставка).
+        _applyStoreDelivery(values, channel) {
+            const echo = this._isEchoDelivery(values, channel);
+            const changed = this._storeChanges(values, channel);
+            if (echo) return;
+            const { date, dateStart, dateEnd, datesList } = values;
+            // 'auto': запоминаем формат внешних значений
+            ['date', 'dateStart', 'dateEnd', 'datesList'].forEach((k) => {
+                if (changed[k]) this._learnFormat(k, values[k]);
+            });
+            const selMode = this.selectionMode;
+            if (selMode === 'multi') {
+                if (changed.datesList) this._applyStoreDatesList(datesList);
+            } else if (selMode === 'range') {
+                // Начало/конец пусты, а в `date` есть значение (в т. ч. при первой доставке) —
+                // берём `date`
+                const preferDate = changed.date && !isEmptyInput(date)
+                    && isEmptyInput(dateStart) && isEmptyInput(dateEnd);
+                if ((changed.dateStart || changed.dateEnd) && !preferDate) {
+                    this._applyStoreDateRange(
+                        dateStart !== undefined ? dateStart : null,
+                        dateEnd !== undefined ? dateEnd : null
+                    );
+                } else if (changed.date) {
+                    // Снаружи задали только `date` — однодневный диапазон
+                    this._applyStoreDateAsRange(date);
+                }
+            } else if (changed.date && !(isEmptyInput(date) && changed.dateStart && !isEmptyInput(dateStart))) {
+                this._applyStoreDate(date);
+            } else if (changed.dateStart) {
+                // Одиночный режим: снаружи задали только начало диапазона — берём его как дату
+                this._applyStoreDate(dateStart);
+            }
+        },
+
         // ── Режим 'auto': формат по значению в переменной ────────────
         // Нереактивное состояние экземпляра: запомненный формат каждой переменной
-        // (hints) и последнее записанное виджетом значение (written) — своё эхо из
-        // хранилища ни формат, ни выбор не меняет. Живёт, пока жив виджет: после
+        // (hints), ожидаемое эхо последней записи по каналам (pendingEcho) и последняя
+        // доставка по каналам (seen) — своё эхо из хранилища ни формат, ни выбор не меняет.
+        // Живёт, пока жив виджет: после
         // «Сбросить» (null) формат не откатывается к умолчанию.
         _fmtState() {
-            if (!this.__fmtState) this.__fmtState = { hints: {}, written: {} };
+            if (!this.__fmtState) {
+                this.__fmtState = { hints: {}, pendingEcho: { out: null, in: null }, seen: { out: {}, in: {} }, input: {} };
+            }
             return this.__fmtState;
         },
 
@@ -1717,23 +1735,12 @@ export default {
             return Boolean(pa && pb) && pa.iso === pb.iso && (pa.time || '') === (pb.time || '');
         },
 
-        // Эхо собственной записи: значение совпадает с последним записанным в переменную key.
-        // Первое несовпадающее (внешнее) значение забывает запись — дальше даже такое же
-        // значение уже считается внешним (например, сброс извне и повторный выбор той же даты).
-        _isEcho(key, value) {
-            if (value === undefined) return false;
-            const { written } = this._fmtState();
-            if (!Object.prototype.hasOwnProperty.call(written, key)) return false;
-            if (this._sameStoreValue(value, written[key], key === 'datesList')) return true;
-            delete written[key];
-            return false;
-        },
-
         // Запомнить формат значения переменной key ('date' | 'dateStart' | 'dateEnd' | 'datesList').
-        // Пустое / нераспознанное значение и эхо собственной записи формат не меняют;
-        // новое внешнее значение другого формата — заменяет запомненный.
+        // Пустое / нераспознанное значение формат не меняет (эхо сюда не доходит —
+        // его отсекает _applyStoreDelivery); новое внешнее значение другого формата —
+        // заменяет запомненный.
         _learnFormat(key, value) {
-            if (isEmptyInput(value) || this._isEcho(key, value)) return;
+            if (isEmptyInput(value)) return;
             const st = this._fmtState();
             const desc = detectValueFormat(value);
             if (!desc || (key === 'datesList') !== (desc.kind === 'list')) return;
@@ -1791,13 +1798,16 @@ export default {
             if (this.outputFormatResolved !== value) this.outputFormatResolved = value;
         },
 
-        // Запись в переменные с запоминанием записанного (для распознавания эха)
+        // Запись в переменные с запоминанием записанного: следующая доставка по каждому
+        // каналу, совпавшая с записью по всем записанным переменным, — эхо (см. _isEchoDelivery)
         _storeWrite(values) {
             const st = this._fmtState();
+            const snapshot = {};
             Object.keys(values).forEach((k) => {
                 const v = values[k];
-                st.written[k] = Array.isArray(v) ? v.slice() : v;
+                snapshot[k] = Array.isArray(v) ? v.slice() : v;
             });
+            st.pendingEcho = { out: snapshot, in: snapshot };
             this.$storeCommit(values);
         },
 
@@ -2539,10 +2549,8 @@ export default {
         },
 
         // Apply an incoming store value for the `date` var (single mode).
-        // key — переменная, из которой пришло значение (для распознавания эха).
-        _applyStoreDate(val, key = 'date') {
-            // Эхо собственной записи выбор не меняет
-            if (this._isEcho(key, val)) return;
+        // Эхо собственной записи сюда не доходит — его отсекает _applyStoreDelivery.
+        _applyStoreDate(val) {
             const parsed = this._parseStoreDate(val);
             // Нераспознанное непустое значение выбор не сбрасывает
             if (!parsed && !isEmptyInput(val)) return;
@@ -2571,22 +2579,14 @@ export default {
         // Режим диапазона, снаружи задали только `date`: однодневный диапазон
         // (начало = конец = дата; время начала — из значения, время конца не трогаем).
         _applyStoreDateAsRange(val) {
-            if (this._isEcho('date', val)) return;
             const parsed = this._parseStoreDate(val);
             if (!parsed && !isEmptyInput(val)) return;
-            this._applyStoreDateRange(val, parsed ? parsed.iso : null, { echoKeys: false, endTime: false });
+            this._applyStoreDateRange(val, parsed ? parsed.iso : null, { endTime: false });
         },
 
         // Apply incoming store values for `dateStart` + `dateEnd` (range mode).
-        // options.echoKeys: false — эхо уже проверено вызывающим; options.endTime: false —
-        // время конца из значения не брать.
-        _applyStoreDateRange(startVal, endVal, { echoKeys = true, endTime = true } = {}) {
-            // Эхо собственной записи выбор не меняет (непривязанный край — undefined — не в счёт)
-            if (echoKeys) {
-                const startEcho = startVal === undefined || this._isEcho('dateStart', startVal);
-                const endEcho = endVal === undefined || this._isEcho('dateEnd', endVal);
-                if (startEcho && endEcho && (startVal !== undefined || endVal !== undefined)) return;
-            }
+        // options.endTime: false — время конца из значения не брать.
+        _applyStoreDateRange(startVal, endVal, { endTime = true } = {}) {
             const startParsed = this._parseStoreDate(startVal);
             const endParsed   = this._parseStoreDate(endVal);
             // Нераспознанное непустое значение — игнорируем обновление целиком
@@ -2627,8 +2627,6 @@ export default {
 
         // Apply an incoming store value for `datesList` (multi mode).
         _applyStoreDatesList(val) {
-            // Эхо собственной записи выбор не меняет
-            if (this._isEcho('datesList', val)) return;
             // null / '' / [] / '[]' — сброс (виджет сам пишет [] при сбросе в timestamp / datetime)
             if (isEmptyListInput(val)) {
                 // Guard: skip only when BOTH the local array and the prop are
