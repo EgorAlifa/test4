@@ -223,6 +223,7 @@ export function parseInputDateList(val, options) {
 // detectValueFormat(value) → описание формата или null (пусто / не распознано / Date):
 //   { kind: 'timestamp', unit: 'ms' | 's', type: 'number' | 'string' }
 //       число или числовая строка: < 1e11 — секунды (10 цифр), иначе мс (13 цифр);
+//       timestamp в мс до 1973-03-03 (< 1e11) поэтому считается секундами — осознанно;
 //   { kind: 'datetime', sep: ' ' | 'T', seconds, ms }   'YYYY-MM-DD HH:mm[:ss[.SSS]]' без пояса;
 //   { kind: 'iso', sep, seconds, ms, zone: 'Z' | 'offset', offsetStyle: 'colon' | 'compact' | 'hours' }
 //       'YYYY-MM-DDTHH:mm[:ss][.SSS]' с Z (UTC, GMT) или ±hh:mm / ±hhmm / ±hh;
@@ -277,6 +278,15 @@ export function detectValueFormat(val) {
         return null;
     }
     return detectScalarFormat(val);
+}
+
+// Есть ли в формате время (дата, ГГГГММДД и ДД.ММ.ГГГГ без времени — нет)
+export function valueFormatHasTime(desc) {
+    if (!desc) return false;
+    if (desc.kind === 'list') return valueFormatHasTime(desc.item);
+    if (desc.kind === 'date' || desc.kind === 'yyyymmdd') return false;
+    if (desc.kind === 'ddmmyyyy') return Boolean(desc.time);
+    return true;
 }
 
 // Имя формата для панели: 'date' | 'timestamp' | 'timestamp_s' | 'datetime' | 'iso' | 'ddmmyyyy' | 'yyyymmdd'

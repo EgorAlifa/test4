@@ -558,7 +558,7 @@ import {
 import {
     DATES_LIST_SHAPES, datesListShape, resolveOutputFormat, toOutputValue, isAutoFormat,
     isEmptyInput, isEmptyListInput, normalizeTime, parseInputDate, parseInputDateList,
-    detectValueFormat, sameValueFormat, formatName, formatAs, formatListAs
+    detectValueFormat, sameValueFormat, formatName, formatAs, formatListAs, valueFormatHasTime
 } from './utils/date-output';
 import { formatByMask } from './dateFormat';
 import DateTimeInput from './components/DateTimeInput.vue';
@@ -714,6 +714,9 @@ export default {
         // (immediate-вотчеры) — тогда mounted не затирает его значением по умолчанию
         startTimeFromStore: false,
         endTimeFromStore: false,
+        // Чем на деле пишет режим «Авто»: '<формат>|<источник>' (см. effectiveOutputFormat).
+        // Не сохраняется в конфиг: панель читает его с экземпляра виджета (elementInstance)
+        outputFormatResolved: '',
         // ── Multi mode state ─────────────────────────────────────────
         selectedDates: [],         // Array of ISO date strings for 'multi' mode
         // ── Store-sourced data (reactive cache) ───────────────────────
@@ -1641,22 +1644,47 @@ export default {
         // ── Режим 'auto': формат по значению в переменной ────────────
         // Нереактивное состояние экземпляра: запомненный формат каждой переменной
         // (hints) и последнее записанное виджетом значение (written) — своё эхо из
-        // хранилища формат не меняет. Живёт, пока жив виджет: после «Сбросить» (null)
-        // формат не откатывается к умолчанию.
+        // хранилища ни формат, ни выбор не меняет. Живёт, пока жив виджет: после
+        // «Сбросить» (null) формат не откатывается к умолчанию.
         _fmtState() {
             if (!this.__fmtState) this.__fmtState = { hints: {}, written: {} };
             return this.__fmtState;
+        },
+
+        // Одинаковы ли два значения переменной по смыслу: та же дата и время (HH:mm)
+        // или тот же список дат. Сравнение по разобранному значению, а не по JSON:
+        // хранилище может вернуть число строкой или иначе обернуть значение.
+        _sameStoreValue(a, b, isList) {
+            if (isList) {
+                if (isEmptyListInput(a) || isEmptyListInput(b)) return isEmptyListInput(a) && isEmptyListInput(b);
+                const la = parseInputDateList(a);
+                const lb = parseInputDateList(b);
+                return Boolean(la && lb && la.length) && JSON.stringify(la) === JSON.stringify(lb);
+            }
+            if (isEmptyInput(a) || isEmptyInput(b)) return isEmptyInput(a) && isEmptyInput(b);
+            const pa = parseInputDate(a);
+            const pb = parseInputDate(b);
+            return Boolean(pa && pb) && pa.iso === pb.iso && (pa.time || '') === (pb.time || '');
+        },
+
+        // Эхо собственной записи: значение совпадает с последним записанным в переменную key.
+        // Первое несовпадающее (внешнее) значение забывает запись — дальше даже такое же
+        // значение уже считается внешним (например, сброс извне и повторный выбор той же даты).
+        _isEcho(key, value) {
+            if (value === undefined) return false;
+            const { written } = this._fmtState();
+            if (!Object.prototype.hasOwnProperty.call(written, key)) return false;
+            if (this._sameStoreValue(value, written[key], key === 'datesList')) return true;
+            delete written[key];
+            return false;
         },
 
         // Запомнить формат значения переменной key ('date' | 'dateStart' | 'dateEnd' | 'datesList').
         // Пустое / нераспознанное значение и эхо собственной записи формат не меняют;
         // новое внешнее значение другого формата — заменяет запомненный.
         _learnFormat(key, value) {
-            if (isEmptyInput(value)) return;
+            if (isEmptyInput(value) || this._isEcho(key, value)) return;
             const st = this._fmtState();
-            let json;
-            try { json = JSON.stringify(value); } catch (e) { return; }
-            if (st.written[key] === json) return;
             const desc = detectValueFormat(value);
             if (!desc || (key === 'datesList') !== (desc.kind === 'list')) return;
             if (sameValueFormat(st.hints[key], desc)) return;
@@ -1677,9 +1705,14 @@ export default {
             return found ? hints[found] : null;
         },
 
-        // Запомненный формат для записи — только в режиме 'auto'
+        // Запомненный формат для записи — только в режиме 'auto'. Формат без времени
+        // (дата, ГГГГММДД, ДД.ММ.ГГГГ) при включённом выборе времени не используется:
+        // выбранное время не должно пропадать — пишется как раньше (timestamp мс).
         _autoHint(key) {
-            return isAutoFormat(this.props.calOutputFormat) ? this._formatHint(key) : null;
+            if (!isAutoFormat(this.props.calOutputFormat)) return null;
+            const hint = this._formatHint(key);
+            if (hint && this.isTimeUiOn && !valueFormatHasTime(hint)) return null;
+            return hint;
         },
 
         // Чем на деле пишет виджет: { format, source }.
@@ -1692,27 +1725,28 @@ export default {
             if (!isAutoFormat(explicit)) return { format: explicit, source: 'setting' };
             const mode = this.selectionMode;
             const key = mode === 'multi' ? 'datesList' : (mode === 'range' ? 'dateStart' : 'date');
-            const hint = this._formatHint(key);
+            const hint = this._autoHint(key);
             if (hint) return { format: formatName(hint), source: 'variable' };
             return this.isTimeUiOn ? { format: 'timestamp', source: 'time' } : { format: 'date', source: 'default' };
         },
 
-        // Подсказка для панели (панель не видит экземпляр виджета): 'формат|источник',
-        // например 'timestamp|variable'. Пишется только в редакторе и только при изменении.
+        // Подсказка для панели: '<формат>|<источник>', например 'timestamp|variable'.
+        // Реактивное поле экземпляра (outputFormatResolved), а не prop: панель получает
+        // экземпляр виджета (elementInstance) и читает его оттуда — без propChanged
+        // виджет не помечается изменённым и служебное значение не попадает в конфиг.
         _syncResolvedFormat() {
-            if (!this.isEditorMode || !this.props) return;
+            if (!this.props) return;
             const r = this.effectiveOutputFormat();
             const value = `${r.format}|${r.source}`;
-            if (this.props.calOutputFormatResolved === value) return;
-            this.props.calOutputFormatResolved = value;
-            this.propChanged('calOutputFormatResolved');
+            if (this.outputFormatResolved !== value) this.outputFormatResolved = value;
         },
 
         // Запись в переменные с запоминанием записанного (для распознавания эха)
         _storeWrite(values) {
             const st = this._fmtState();
             Object.keys(values).forEach((k) => {
-                try { st.written[k] = JSON.stringify(values[k]); } catch (e) { st.written[k] = undefined; }
+                const v = values[k];
+                st.written[k] = Array.isArray(v) ? v.slice() : v;
             });
             this.$storeCommit(values);
         },
@@ -2410,10 +2444,12 @@ export default {
         // Converts an incoming store value (ISO date / datetime, timestamp ms or s,
         // YYYYMMDD, DD.MM.YYYY, Date) into { iso: 'YYYY-MM-DD', time: 'HH:mm' | null }.
         // Returns null on empty / unparseable (see isEmptyInput to tell them apart).
-        // Без выбора времени дата строки с поясом берётся буквально, без пересчёта в
-        // пояс браузера — иначе '…T00:00:00Z' в Нью-Йорке стал бы предыдущим днём.
+        // Строка с явным поясом (Z / UTC / GMT / ±hh:mm) — это момент времени: всегда
+        // переводится в пояс браузера, и при выключенном выборе времени тоже. Так чтение
+        // согласовано с записью (formatAs пишет локальную полночь как UTC-момент), и
+        // формат «Z» не сдвигает выбор на день при каждой записи.
         _parseStoreDate(val) {
-            return parseInputDate(val, { convertZone: this.isTimeUiOn });
+            return parseInputDate(val);
         },
 
         // Применить время из переменной к полю времени (только в режиме с временем)
@@ -2449,6 +2485,8 @@ export default {
 
         // Apply an incoming store value for the `date` var (single mode).
         _applyStoreDate(val) {
+            // Эхо собственной записи выбор не меняет
+            if (this._isEcho('date', val)) return;
             const parsed = this._parseStoreDate(val);
             // Нераспознанное непустое значение выбор не сбрасывает
             if (!parsed && !isEmptyInput(val)) return;
@@ -2476,6 +2514,10 @@ export default {
 
         // Apply incoming store values for `dateStart` + `dateEnd` (range mode).
         _applyStoreDateRange(startVal, endVal) {
+            // Эхо собственной записи выбор не меняет (непривязанный край — undefined — не в счёт)
+            const startEcho = startVal === undefined || this._isEcho('dateStart', startVal);
+            const endEcho = endVal === undefined || this._isEcho('dateEnd', endVal);
+            if (startEcho && endEcho && (startVal !== undefined || endVal !== undefined)) return;
             const startParsed = this._parseStoreDate(startVal);
             const endParsed   = this._parseStoreDate(endVal);
             // Нераспознанное непустое значение — игнорируем обновление целиком
@@ -2516,6 +2558,8 @@ export default {
 
         // Apply an incoming store value for `datesList` (multi mode).
         _applyStoreDatesList(val) {
+            // Эхо собственной записи выбор не меняет
+            if (this._isEcho('datesList', val)) return;
             // null / '' / [] / '[]' — сброс (виджет сам пишет [] при сбросе в timestamp / datetime)
             if (isEmptyListInput(val)) {
                 // Guard: skip only when BOTH the local array and the prop are
@@ -2530,7 +2574,7 @@ export default {
             }
             // Элементы — ISO-даты, timestamp'ы или числовые строки; массив или JSON-строка.
             // Не массив, или в непустом списке ни один элемент не распознан — выбор не трогаем.
-            const newDates = parseInputDateList(val, { convertZone: this.isTimeUiOn });
+            const newDates = parseInputDateList(val);
             if (!newDates || !newDates.length) return;
             if (JSON.stringify(newDates) === JSON.stringify(this.selectedDates.slice().sort())) return;
             this.selectedDates = newDates;
