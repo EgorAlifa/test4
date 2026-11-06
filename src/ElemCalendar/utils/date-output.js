@@ -217,3 +217,153 @@ export function parseInputDateList(val, options) {
     });
     return Array.from(set).sort();
 }
+
+// ── Режим 'auto': формат по значению, которое уже лежит в переменной ──────────
+//
+// detectValueFormat(value) → описание формата или null (пусто / не распознано / Date):
+//   { kind: 'timestamp', unit: 'ms' | 's', type: 'number' | 'string' }
+//       число или числовая строка: < 1e11 — секунды (10 цифр), иначе мс (13 цифр);
+//   { kind: 'datetime', sep: ' ' | 'T', seconds, ms }   'YYYY-MM-DD HH:mm[:ss[.SSS]]' без пояса;
+//   { kind: 'iso', sep, seconds, ms, zone: 'Z' | 'offset', offsetStyle: 'colon' | 'compact' | 'hours' }
+//       'YYYY-MM-DDTHH:mm[:ss][.SSS]' с Z (UTC, GMT) или ±hh:mm / ±hhmm / ±hh;
+//   { kind: 'date' }                                    'YYYY-MM-DD';
+//   { kind: 'yyyymmdd', type: 'number' | 'string' }     8 цифр;
+//   { kind: 'ddmmyyyy', time, seconds }                 'DD.MM.YYYY[ HH:mm[:ss]]';
+//   { kind: 'list', container: 'array' | 'json', item } список дат; item — формат первого
+//       распознанного элемента. Пустой список или список без распознанных дат → null.
+function detectScalarFormat(val) {
+    if (typeof val === 'number' || (typeof val === 'string' && /^\s*\d+\s*$/.test(val))) {
+        const type = typeof val === 'number' ? 'number' : 'string';
+        const str = String(val).trim();
+        if (!isFinite(Number(str))) return null;
+        if (/^\d{8}$/.test(str)) return parseInputDate(str) ? { kind: 'yyyymmdd', type } : null;
+        const n = Number(str);
+        if (n < MIN_TIMESTAMP || !Number.isInteger(n)) return null;
+        return { kind: 'timestamp', unit: n < SECONDS_THRESHOLD ? 's' : 'ms', type };
+    }
+    if (typeof val !== 'string') return null;
+    const s = val.trim();
+    const ru = /^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}:\d{2})(:\d{2})?)?$/.exec(s);
+    if (ru) return parseInputDate(s) ? { kind: 'ddmmyyyy', time: Boolean(ru[4]), seconds: Boolean(ru[5]) } : null;
+    const m = /^(\d{4}-\d{2}-\d{2})(?:([T\s])(\d{1,2}:\d{2})(:\d{2})?(\.\d+)?\s*(Z|UTC|GMT|[+-]\d{2}(?::?\d{2})?)?)?$/i.exec(s);
+    if (!m || !parseInputDate(s, { convertZone: false })) return null;
+    if (!m[2]) return { kind: 'date' };
+    if (!parseTime(m[3])) return null;
+    const base = { sep: m[2] === 'T' ? 'T' : ' ', seconds: Boolean(m[4]), ms: Boolean(m[5]) };
+    if (!m[6]) return { kind: 'datetime', ...base };
+    const z = m[6].toUpperCase();
+    if (z === 'Z' || z === 'UTC' || z === 'GMT') return { kind: 'iso', ...base, zone: 'Z' };
+    const offsetStyle = z.includes(':') ? 'colon' : (z.length === 3 ? 'hours' : 'compact');
+    return { kind: 'iso', ...base, zone: 'offset', offsetStyle };
+}
+
+export function detectValueFormat(val) {
+    if (isEmptyInput(val) || val instanceof Date) return null;
+    let arr = null;
+    let container = null;
+    if (Array.isArray(val)) {
+        arr = val;
+        container = 'array';
+    } else if (typeof val === 'string' && /^\s*\[/.test(val)) {
+        try { arr = JSON.parse(val); } catch (e) { return null; }
+        if (!Array.isArray(arr)) return null;
+        container = 'json';
+    }
+    if (arr) {
+        for (const v of arr) {
+            const item = detectScalarFormat(v);
+            if (item) return { kind: 'list', container, item };
+        }
+        return null;
+    }
+    return detectScalarFormat(val);
+}
+
+// Имя формата для панели: 'date' | 'timestamp' | 'timestamp_s' | 'datetime' | 'iso' | 'ddmmyyyy' | 'yyyymmdd'
+export function formatName(desc) {
+    if (!desc) return null;
+    if (desc.kind === 'list') return formatName(desc.item);
+    if (desc.kind === 'timestamp') return desc.unit === 's' ? 'timestamp_s' : 'timestamp';
+    return desc.kind;
+}
+
+// Одинаковые ли описания формата
+export function sameValueFormat(a, b) {
+    return JSON.stringify(a || null) === JSON.stringify(b || null);
+}
+
+// Точность формата: 'ms' | 's' | 'min' | 'day' — от неё зависит «конец дня»
+// (23:59:59.999 / 23:59:59 / 23:59)
+function precisionOf(desc) {
+    switch (desc.kind) {
+        case 'timestamp': return desc.unit === 'ms' ? 'ms' : 's';
+        case 'datetime':
+        case 'iso': return desc.ms ? 'ms' : (desc.seconds ? 's' : 'min');
+        case 'ddmmyyyy': return desc.seconds ? 's' : 'min';
+        default: return 'day';
+    }
+}
+
+// Смещение локального пояса на момент d в стиле исходного значения
+function offsetText(d, style) {
+    const off = -d.getTimezoneOffset();
+    const sign = off < 0 ? '-' : '+';
+    const hh = pad(Math.floor(Math.abs(off) / 60));
+    const mm = pad(Math.abs(off) % 60);
+    if (style === 'hours' && mm === '00') return `${sign}${hh}`;
+    if (style === 'compact') return `${sign}${hh}${mm}`;
+    return `${sign}${hh}:${mm}`;
+}
+
+// Дата в формате desc (см. detectValueFormat).
+//   iso      — 'YYYY-MM-DD'; пусто / некорректно → null
+//   time     — выбранное время 'HH:mm' (учитывается только при withTime)
+//   withTime — выбор времени включён; иначе начало — 00:00:00, конец (isEnd) — 23:59:59
+//              с точностью формата (.999 для мс; 23:59 для формата без секунд)
+export function formatAs(desc, iso, time, { withTime = false, isEnd = false } = {}) {
+    if (!desc || !iso || !splitIso(iso)) return null;
+    if (desc.kind === 'list') return formatAs(desc.item, iso, time, { withTime, isEnd });
+    if (desc.kind === 'date') return iso;
+    if (desc.kind === 'yyyymmdd') {
+        const s = iso.replace(/-/g, '');
+        return desc.type === 'number' ? Number(s) : s;
+    }
+    const [y, mo, dd] = splitIso(iso);
+    if (desc.kind === 'ddmmyyyy' && !desc.time) return `${pad(dd)}.${pad(mo)}.${y}`;
+    const prec = precisionOf(desc);
+    let t = withTime ? parseTime(time) : null;
+    if (t) t = { ...t, s: 0, ms: 0 };
+    else if (isEnd) t = { h: 23, m: 59, s: prec === 'min' ? 0 : 59, ms: prec === 'ms' ? 999 : 0 };
+    else t = START_OF_DAY;
+    const ts = isoTimeToTs(iso, t);
+    const d = new Date(ts);
+    if (desc.kind === 'timestamp') {
+        const n = desc.unit === 's' ? Math.floor(ts / 1000) : ts;
+        return desc.type === 'string' ? String(n) : n;
+    }
+    // Время с точностью формата
+    const tail = (h, m, s, ms) => {
+        let out = `${pad(h)}:${pad(m)}`;
+        if (prec === 's' || prec === 'ms') out += `:${pad(s)}`;
+        if (prec === 'ms') out += `.${pad(ms, 3)}`;
+        return out;
+    };
+    if (desc.kind === 'ddmmyyyy') {
+        return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${tail(d.getHours(), d.getMinutes(), d.getSeconds(), 0)}`;
+    }
+    if (desc.kind === 'iso' && desc.zone === 'Z') {
+        const u = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+        return `${u}${desc.sep}${tail(d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds(), d.getUTCMilliseconds())}Z`;
+    }
+    const local = `${isoOf(d)}${desc.sep}${tail(d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds())}`;
+    if (desc.kind === 'iso') return `${local}${offsetText(d, desc.offsetStyle)}`;
+    return local; // datetime
+}
+
+// Список дат в контейнере из desc ({ kind: 'list', container }): массив или JSON-строка.
+// values — уже отформатированные элементы. Пустой список → null.
+export function formatListAs(desc, values) {
+    const list = values.filter((v) => v != null && v !== '');
+    if (!list.length) return null;
+    return desc && desc.container === 'json' ? JSON.stringify(list) : list;
+}
