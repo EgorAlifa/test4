@@ -659,26 +659,40 @@ export default {
     watchStore: [
         {
             vars: ['date', 'dateStart', 'dateEnd', 'datesList'],
+            // Платформа (goodt-wcore) вызывает обработчик через $nextTick после created —
+            // уже после mounted, — и затем при каждом изменении любой из переменных.
+            // Значение приходит только для переменных, привязанных на чтение (varAliases.listen);
+            // для непривязанных — undefined.
             handler([date, dateStart, dateEnd, datesList]) {
-                // 'auto': запоминаем формат значений, уже лежащих в переменных (и в редакторе —
-                // для подсказки панели calOutputFormatResolved)
+                // 'auto': запоминаем формат значений, уже лежащих в переменных
                 this._learnFormat('date', date);
                 this._learnFormat('dateStart', dateStart);
                 this._learnFormat('dateEnd', dateEnd);
                 this._learnFormat('datesList', datesList);
-                if (this.isEditorMode) return;
+                // Какие переменные изменились с прошлого раза (первая доставка — все привязанные)
+                const changed = this._storeChanges({ date, dateStart, dateEnd, datesList });
                 const selMode = this.selectionMode;
                 if (selMode === 'multi') {
                     if (datesList !== undefined) this._applyStoreDatesList(datesList);
                 } else if (selMode === 'range') {
-                    if (dateStart !== undefined || dateEnd !== undefined) {
+                    // Начало/конец пусты, а в `date` есть значение (в т. ч. при первой доставке) —
+                    // берём `date`
+                    const preferDate = changed.date && !isEmptyInput(date)
+                        && isEmptyInput(dateStart) && isEmptyInput(dateEnd);
+                    if ((changed.dateStart || changed.dateEnd) && !preferDate) {
                         this._applyStoreDateRange(
                             dateStart !== undefined ? dateStart : null,
                             dateEnd !== undefined ? dateEnd : null
                         );
+                    } else if (changed.date) {
+                        // Снаружи задали только `date` — однодневный диапазон
+                        this._applyStoreDateAsRange(date);
                     }
-                } else {
-                    if (date !== undefined) this._applyStoreDate(date);
+                } else if (changed.date && !(isEmptyInput(date) && changed.dateStart && !isEmptyInput(dateStart))) {
+                    this._applyStoreDate(date);
+                } else if (changed.dateStart) {
+                    // Одиночный режим: снаружи задали только начало диапазона — берём его как дату
+                    this._applyStoreDate(dateStart, 'dateStart');
                 }
                 // Refresh store-sourced events / metric on any store change
                 this._refreshStoreEvents();
@@ -717,6 +731,9 @@ export default {
         // Чем на деле пишет режим «Авто»: '<формат>|<источник>' (см. effectiveOutputFormat).
         // Не сохраняется в конфиг: панель читает его с экземпляра виджета (elementInstance)
         outputFormatResolved: '',
+        // Выбор в редакторе: внешние значения переменных и клики показываются на холсте,
+        // но не пишутся в props (иначе попали бы в конфиг виджета). null — брать из props.
+        editorSelection: { calSelectedDate: null, calSelectedStart: null, calSelectedEnd: null, calSelectedDates: null },
         // ── Multi mode state ─────────────────────────────────────────
         selectedDates: [],         // Array of ISO date strings for 'multi' mode
         // ── Store-sourced data (reactive cache) ───────────────────────
@@ -1018,7 +1035,7 @@ export default {
 
         // ── Selection parsed ─────────────────────────────────────────
         selectedDate() {
-            return parseIso(this.props.calSelectedDate);
+            return parseIso(this._sel('calSelectedDate'));
         },
 
         maxEventsPerCell() {
@@ -1144,8 +1161,8 @@ export default {
         compactStart() {
             if (this.rangeStart) return isoDate(this.rangeStart);
             // «Одиночный»: зафиксированная дата хранится в calSelectedDate (переменная date)
-            if (this.isCompactSingle) return this.props.calSelectedDate || '';
-            return this.props.calSelectedStart || '';
+            if (this.isCompactSingle) return this._sel('calSelectedDate') || '';
+            return this._sel('calSelectedStart') || '';
         },
 
         compactEnd() {
@@ -1155,7 +1172,7 @@ export default {
             // During step 1 (start chosen, awaiting end click) rangeEnd is null
             // but props.calSelectedEnd still holds the PREVIOUS range's end —
             // returning it here would draw a spurious stale range on the grid.
-            if (this.compactClickStep === 0) return this.props.calSelectedEnd || '';
+            if (this.compactClickStep === 0) return this._sel('calSelectedEnd') || '';
             return '';
         },
 
@@ -1339,6 +1356,7 @@ export default {
 
     watch: {
         isEditorMode(val, oldVal) {
+            this.editorSelection = { calSelectedDate: null, calSelectedStart: null, calSelectedEnd: null, calSelectedDates: null };
             if (oldVal === true && val === false) {
                 this.rangeStart = null;
                 this.rangeEnd = null;
@@ -1378,25 +1396,27 @@ export default {
             immediate: true,
             handler(val) {
                 this._learnFormat('date', val);
-                if (this.isEditorMode || val === undefined) return;
+                if (val === undefined) return;
                 const selMode = this.selectionMode;
-                if (selMode !== 'range' && selMode !== 'multi') this._applyStoreDate(val);
+                if (selMode === 'range') this._applyStoreDateAsRange(val);
+                else if (selMode !== 'multi') this._applyStoreDate(val);
             }
         },
         '_storeInDateStart': {
             immediate: true,
             handler(val) {
                 this._learnFormat('dateStart', val);
-                if (this.isEditorMode || val === undefined) return;
+                if (val === undefined) return;
                 const selMode = this.selectionMode;
                 if (selMode === 'range') this._applyStoreDateRange(val, this._storeInDateEnd);
+                else if (selMode !== 'multi') this._applyStoreDate(val, 'dateStart');
             }
         },
         '_storeInDateEnd': {
             immediate: true,
             handler(val) {
                 this._learnFormat('dateEnd', val);
-                if (this.isEditorMode || val === undefined) return;
+                if (val === undefined) return;
                 const selMode = this.selectionMode;
                 if (selMode === 'range') this._applyStoreDateRange(this._storeInDateStart, val);
             }
@@ -1405,7 +1425,7 @@ export default {
             immediate: true,
             handler(val) {
                 this._learnFormat('datesList', val);
-                if (this.isEditorMode || val === undefined) return;
+                if (val === undefined) return;
                 const selMode = this.selectionMode;
                 if (selMode === 'multi') this._applyStoreDatesList(val);
             }
@@ -1641,6 +1661,36 @@ export default {
             }
         },
 
+        // ── Выбор: props вне редактора, теневое состояние в редакторе ──
+        _sel(key) {
+            if (this.isEditorMode) {
+                const v = this.editorSelection[key];
+                if (v !== null && v !== undefined) return v;
+            }
+            return this.props[key];
+        },
+
+        _setSel(key, value) {
+            if (this.isEditorMode) this.editorSelection[key] = value;
+            else this.props[key] = value;
+        },
+
+        // Какие переменные изменились с прошлой доставки watchStore (по смыслу значения).
+        // undefined — переменная не привязана на чтение, изменением не считается.
+        _storeChanges(values) {
+            const st = this._fmtState();
+            if (!st.seen) st.seen = {};
+            const changed = {};
+            Object.keys(values).forEach((k) => {
+                const v = values[k];
+                if (v === undefined) return;
+                const had = Object.prototype.hasOwnProperty.call(st.seen, k);
+                changed[k] = !had || !this._sameStoreValue(v, st.seen[k], k === 'datesList');
+                st.seen[k] = Array.isArray(v) ? v.slice() : v;
+            });
+            return changed;
+        },
+
         // ── Режим 'auto': формат по значению в переменной ────────────
         // Нереактивное состояние экземпляра: запомненный формат каждой переменной
         // (hints) и последнее записанное виджетом значение (written) — своё эхо из
@@ -1776,14 +1826,14 @@ export default {
         },
 
         _commitDate(iso) {
-            this.props.calSelectedDate = iso;
+            this._setSel('calSelectedDate', iso);
             if (!this.isEditorMode) this.propChanged('calSelectedDate');
             this._storeWrite({ date: this._outValue(iso, false, 'date') });
         },
 
         _commitRange(start, end) {
-            this.props.calSelectedStart = start;
-            this.props.calSelectedEnd = end;
+            this._setSel('calSelectedStart', start);
+            this._setSel('calSelectedEnd', end);
             if (!this.isEditorMode) {
                 this.propChanged('calSelectedStart');
                 this.propChanged('calSelectedEnd');
@@ -1814,13 +1864,13 @@ export default {
 
         _commitMultiple(dates) {
             if (dates.length === 0) {
-                this.props.calSelectedDates = '';
+                this._setSel('calSelectedDates', '');
                 if (!this.isEditorMode) this.propChanged('calSelectedDates');
                 this._storeWrite({ datesList: null });
                 return;
             }
             const json = JSON.stringify(dates);
-            this.props.calSelectedDates = json;
+            this._setSel('calSelectedDates', json);
             if (!this.isEditorMode) this.propChanged('calSelectedDates');
             // 'auto' с запомненным форматом — в нём; иначе 'auto' и 'date' — JSON-строка
             // ISO-дат (как раньше); timestamp / дата-время — массивом
@@ -2489,9 +2539,10 @@ export default {
         },
 
         // Apply an incoming store value for the `date` var (single mode).
-        _applyStoreDate(val) {
+        // key — переменная, из которой пришло значение (для распознавания эха).
+        _applyStoreDate(val, key = 'date') {
             // Эхо собственной записи выбор не меняет
-            if (this._isEcho('date', val)) return;
+            if (this._isEcho(key, val)) return;
             const parsed = this._parseStoreDate(val);
             // Нераспознанное непустое значение выбор не сбрасывает
             if (!parsed && !isEmptyInput(val)) return;
@@ -2499,7 +2550,7 @@ export default {
             // Use ?? '' so that null and '' both normalise to '' — prevents the
             // early-return from firing when the prop is '' and iso is null
             // (both would have become null with || null, hiding the clear).
-            const curIso = this.props.calSelectedDate ?? '';
+            const curIso = this._sel('calSelectedDate') ?? '';
             // Время применяем и при той же дате — иначе смена только времени теряется
             this._applyStoreTime(parsed, 'start');
             if ((iso ?? '') === curIso) return;
@@ -2510,19 +2561,32 @@ export default {
             this.compactHoverCell = null;
             this.activePreset = null;
             if (!iso) {
-                this.props.calSelectedDate = '';
+                this._setSel('calSelectedDate', '');
             } else {
-                this.props.calSelectedDate = iso;
+                this._setSel('calSelectedDate', iso);
                 this._navigateTo(iso);
             }
         },
 
+        // Режим диапазона, снаружи задали только `date`: однодневный диапазон
+        // (начало = конец = дата; время начала — из значения, время конца не трогаем).
+        _applyStoreDateAsRange(val) {
+            if (this._isEcho('date', val)) return;
+            const parsed = this._parseStoreDate(val);
+            if (!parsed && !isEmptyInput(val)) return;
+            this._applyStoreDateRange(val, parsed ? parsed.iso : null, { echoKeys: false, endTime: false });
+        },
+
         // Apply incoming store values for `dateStart` + `dateEnd` (range mode).
-        _applyStoreDateRange(startVal, endVal) {
+        // options.echoKeys: false — эхо уже проверено вызывающим; options.endTime: false —
+        // время конца из значения не брать.
+        _applyStoreDateRange(startVal, endVal, { echoKeys = true, endTime = true } = {}) {
             // Эхо собственной записи выбор не меняет (непривязанный край — undefined — не в счёт)
-            const startEcho = startVal === undefined || this._isEcho('dateStart', startVal);
-            const endEcho = endVal === undefined || this._isEcho('dateEnd', endVal);
-            if (startEcho && endEcho && (startVal !== undefined || endVal !== undefined)) return;
+            if (echoKeys) {
+                const startEcho = startVal === undefined || this._isEcho('dateStart', startVal);
+                const endEcho = endVal === undefined || this._isEcho('dateEnd', endVal);
+                if (startEcho && endEcho && (startVal !== undefined || endVal !== undefined)) return;
+            }
             const startParsed = this._parseStoreDate(startVal);
             const endParsed   = this._parseStoreDate(endVal);
             // Нераспознанное непустое значение — игнорируем обновление целиком
@@ -2532,11 +2596,11 @@ export default {
             // Use ?? '' so that null and '' both normalise to '' — prevents the
             // early-return from firing when the props are '' and incoming ISOs
             // are null (both would have become null with || null, hiding the clear).
-            const curStart = this.props.calSelectedStart ?? '';
-            const curEnd   = this.props.calSelectedEnd   ?? '';
+            const curStart = this._sel('calSelectedStart') ?? '';
+            const curEnd   = this._sel('calSelectedEnd')   ?? '';
             // Время применяем и при тех же датах — иначе смена только времени теряется
             this._applyStoreTime(startParsed, 'start');
-            this._applyStoreTime(endParsed, 'end');
+            if (endTime) this._applyStoreTime(endParsed, 'end');
             if ((startIso ?? '') === curStart && (endIso ?? '') === curEnd) return;
 
             if (!startIso) {
@@ -2547,14 +2611,14 @@ export default {
                 this.compactHoverCell = null;
                 this.editingStart = false;
                 this.editingEnd = false;
-                this.props.calSelectedStart = '';
-                this.props.calSelectedEnd = '';
+                this._setSel('calSelectedStart', '');
+                this._setSel('calSelectedEnd', '');
                 return;
             }
             this.rangeStart = parseIso(startIso);
             this.rangeEnd   = endIso ? parseIso(endIso) : null;
-            this.props.calSelectedStart = startIso;
-            this.props.calSelectedEnd   = endIso || '';
+            this._setSel('calSelectedStart', startIso);
+            this._setSel('calSelectedEnd', endIso || '');
             this.activePreset = null;
             this.compactClickStep = 0;
             this.compactHoverCell = null;
@@ -2572,9 +2636,9 @@ export default {
                 // where selectedDates is [] while calSelectedDates still holds a
                 // stale string, which would cause the null reset to be silently
                 // ignored with the previous `selectedDates.length === 0` check.
-                if (this.selectedDates.length === 0 && !this.props.calSelectedDates) return;
+                if (this.selectedDates.length === 0 && !this._sel('calSelectedDates')) return;
                 this.selectedDates = [];
-                this.props.calSelectedDates = '';
+                this._setSel('calSelectedDates', '');
                 return;
             }
             // Элементы — ISO-даты, timestamp'ы или числовые строки; массив или JSON-строка.
@@ -2583,7 +2647,7 @@ export default {
             if (!newDates || !newDates.length) return;
             if (JSON.stringify(newDates) === JSON.stringify(this.selectedDates.slice().sort())) return;
             this.selectedDates = newDates;
-            this.props.calSelectedDates = JSON.stringify(newDates);
+            this._setSel('calSelectedDates', JSON.stringify(newDates));
             if (newDates.length) this._navigateTo(newDates[0]);
         }
     }
